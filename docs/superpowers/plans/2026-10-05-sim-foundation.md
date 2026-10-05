@@ -110,7 +110,7 @@ All commands below run from the repository root `C:\Development\Fantasy_world` i
 **Interfaces:**
 - Produces: `readonly record struct WorldDate(long Day)` with `Year`, `Month`, `DayOfMonth`, `Season`, `IsFirstOfMonth`, `IsFirstOfYear`, `FromYmd(int,int,int)`, `AddDays(long)`, comparison operators, consts `DaysPerMonth=30`, `MonthsPerYear=12`, `DaysPerYear=360`; `enum Season { Spring, Summer, Autumn, Winter }`; `static class TimeScale { TimeSpan RealTimePerWorldDay; const long MaxCatchUpDays = 10800; long WholeWorldDays(TimeSpan) }`.
 
-- [ ] **Step 1: Install the .NET 8 SDK**
+- [x] **Step 1: Install the .NET 8 SDK**
 
 Run (PowerShell):
 ```powershell
@@ -119,7 +119,7 @@ winget install --id Microsoft.DotNet.SDK.8 --accept-source-agreements --accept-p
 Then open a new shell and run `dotnet --list-sdks`.
 Expected: a line starting with `8.0.`
 
-- [ ] **Step 2: Create repo-level files**
+- [x] **Step 2: Create repo-level files**
 
 `global.json`:
 ```json
@@ -158,7 +158,7 @@ worlds/
 </Project>
 ```
 
-- [ ] **Step 3: Scaffold the solution**
+- [x] **Step 3: Scaffold the solution**
 
 ```bash
 cd sim
@@ -183,7 +183,7 @@ Edit `sim/FantasyWorld.Cli/FantasyWorld.Cli.csproj` so its first `PropertyGroup`
 Run: `dotnet build sim`
 Expected: `Build succeeded.` with 0 warnings.
 
-- [ ] **Step 4: Write the failing tests**
+- [x] **Step 4: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Core/WorldDateTests.cs`:
 ```csharp
@@ -279,12 +279,12 @@ public class TimeScaleTests
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they fail**
+- [x] **Step 5: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'WorldDate' could not be found`.
 
-- [ ] **Step 6: Implement**
+- [x] **Step 6: Implement**
 
 `sim/FantasyWorld.Sim/Core/WorldDate.cs`:
 ```csharp
@@ -341,12 +341,12 @@ public static class TimeScale
 }
 ```
 
-- [ ] **Step 7: Run tests to verify they pass**
+- [x] **Step 7: Run tests to verify they pass**
 
 Run: `dotnet test sim`
 Expected: `Passed!  - Failed: 0, Passed: 15`
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add global.json .gitignore sim
@@ -367,7 +367,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: nothing.
 - Produces: `static class StableHash { ulong Fnv1a64(string) }`; `sealed class Rng { Rng(ulong seed); static Rng ForStream(ulong worldSeed, string stream, long tick); ulong NextULong(); double NextDouble(); int NextInt(int minInclusive, int maxExclusive); bool Chance(double p) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Core/RngTests.cs`:
 ```csharp
@@ -456,12 +456,12 @@ public class RngTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~RngTests`
 Expected: build FAILS with `CS0103: The name 'StableHash' does not exist`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Core/StableHash.cs`:
 ```csharp
@@ -522,12 +522,12 @@ public sealed class Rng
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~RngTests`
 Expected: `Passed!  - Failed: 0, Passed: 11`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -554,7 +554,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   - `sealed class EventLog { const int MaxCauses = 3; long NextId; int Count; IReadOnlyList<WorldEvent> All; WorldEvent Append(WorldDate, EventDraft); void Restore(WorldEvent); WorldEvent Get(long); bool TryGet(long, out WorldEvent); IReadOnlyList<long> EffectsOf(long); IReadOnlyList<WorldEvent> Involving(EntityRef); IEnumerable<WorldEvent> Since(long afterId) }`.
   - `internal static class Sorted { SortedDictionary<string, T> From<T>(IEnumerable<KeyValuePair<string, T>>?) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Events/EventLogTests.cs`:
 ```csharp
@@ -693,12 +693,12 @@ public class EventLogTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~EventLogTests`
 Expected: build FAILS with `CS0246: The type or namespace name 'EventLog' could not be found`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Core/Sorted.cs`:
 ```csharp
@@ -865,12 +865,12 @@ public sealed class EventLog
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~EventLogTests`
 Expected: `Passed!  - Failed: 0, Passed: 12`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -891,7 +891,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `EventLog`, `WorldEvent`, `Cause`, `CauseKind` (Task 3).
 - Produces: `sealed record ChainNode(WorldEvent Event, CauseKind? Kind, IReadOnlyList<ChainNode> Causes)`; `sealed class HistoryQuery { HistoryQuery(EventLog); ChainNode WhyChain(long eventId, int depth = 4); IReadOnlyList<WorldEvent> RootCauses(long eventId); IReadOnlyList<WorldEvent> Consequences(long eventId, int depth = 1) }`; `static class EventText { string Describe(WorldEvent) }` → `"#12 Y3 M2 D1 RevoltBegan grain=35"`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Query/HistoryQueryTests.cs`:
 ```csharp
@@ -979,12 +979,12 @@ public class HistoryQueryTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~HistoryQueryTests`
 Expected: build FAILS with `CS0246: The type or namespace name 'HistoryQuery' could not be found`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Query/HistoryQuery.cs`:
 ```csharp
@@ -1071,12 +1071,12 @@ public static class EventText
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~HistoryQueryTests`
 Expected: `Passed!  - Failed: 0, Passed: 6`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1097,7 +1097,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `WorldDate` (Task 1), `Sorted` (Task 3).
 - Produces: `sealed record ScheduledAction(WorldDate Date, int Priority, long Seq, string Kind, SortedDictionary<string, string> Data)`; `sealed class EventQueue { long NextSeq; int Count; ScheduledAction Schedule(WorldDate date, string kind, IReadOnlyDictionary<string, string>? data = null, int priority = 0); bool TryDequeueDue(WorldDate today, out ScheduledAction action); IReadOnlyList<ScheduledAction> Snapshot(); void Restore(IEnumerable<ScheduledAction> actions, long nextSeq) }`. Order: date, then priority (lower first), then seq.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Engine/EventQueueTests.cs`:
 ```csharp
@@ -1165,12 +1165,12 @@ public class EventQueueTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~EventQueueTests`
 Expected: build FAILS with `CS0246: The type or namespace name 'EventQueue' could not be found`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Engine/ScheduledAction.cs`:
 ```csharp
@@ -1233,12 +1233,12 @@ public sealed class EventQueue
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~EventQueueTests`
 Expected: `Passed!  - Failed: 0, Passed: 4`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1265,7 +1265,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   - `sealed class Simulator { Simulator(World, EventLog, EventQueue, IReadOnlyList<ISimSystem>, bool checkInvariants = false); World World; EventLog Log; EventQueue Queue; void AdvanceDays(long days, IProgress<WorldDate>? progress = null, CancellationToken ct = default) }`. Each step moves the date forward one day, runs every system's `OnMonthlyTick` (in registration order) when the new date is the first of a month, then drains due scheduled actions. Progress is reported on each first-of-month.
   - `static class WorldFactory { World CreateNew(ulong seed, DateTimeOffset nowUtc) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Engine/SimulatorTests.cs`:
 ```csharp
@@ -1408,12 +1408,12 @@ public sealed class ListProgress<T> : IProgress<T>
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~SimulatorTests`
 Expected: build FAILS with `CS0246: The type or namespace name 'ISimSystem' could not be found`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Model/World.cs`:
 ```csharp
@@ -1616,12 +1616,12 @@ public static class WorldFactory
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~SimulatorTests`
 Expected: `Passed!  - Failed: 0, Passed: 9`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1642,7 +1642,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `World`, `Simulator`, `WorldFactory`, `ISimSystem`, `EventQueue`, `ScheduledAction` (Tasks 5–6); `EventLog`, `WorldEvent` (Task 3).
 - Produces: `static class SimJson { JsonSerializerOptions Options }`; `sealed record WorldSnapshot(int SchemaVersion, ulong Seed, long Day, DateTimeOffset LastRealUtc, long LastSeenEventId, SortedDictionary<string, double> Stats, SortedDictionary<string, long> Markers, List<ScheduledAction> Queue, long QueueNextSeq) { static WorldSnapshot Capture(World, EventQueue); World ToWorld(); EventQueue ToQueue() }`; `static class WorldHasher { string Hash(World, EventLog, EventQueue) }` (uppercase hex SHA-256). Test support: `CoinSystem` (name `"coin"`, handles `"echo"`).
 
-- [ ] **Step 1: Write the test support system**
+- [x] **Step 1: Write the test support system**
 
 `sim/FantasyWorld.Sim.Tests/Support/CoinSystem.cs`:
 ```csharp
@@ -1681,7 +1681,7 @@ public sealed class CoinSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Engine/DeterminismTests.cs`:
 ```csharp
@@ -1767,12 +1767,12 @@ public class DeterminismTests
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~DeterminismTests`
 Expected: build FAILS with `CS0234: The type or namespace name 'Persist' does not exist`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 `sim/FantasyWorld.Sim/Persist/SimJson.cs`:
 ```csharp
@@ -1863,12 +1863,12 @@ public static class WorldHasher
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~DeterminismTests`
 Expected: `Passed!  - Failed: 0, Passed: 5`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -1889,7 +1889,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `Simulator` (Task 6), `TimeScale` (Task 1).
 - Produces: `sealed record CatchUpResult(long DaysAdvanced, long DaysRemaining, WorldDate From, WorldDate To)`; `static class CatchUp { CatchUpResult Run(Simulator sim, DateTimeOffset nowUtc, IProgress<WorldDate>? progress = null, CancellationToken ct = default) }`. Rules: owed = whole world days in `now − world.LastRealUtc`; advance `min(owed, 10800)`; move `LastRealUtc` forward only by the real time actually consumed (so sub-day remainders and capped days carry over); negative elapsed (clock moved back) does nothing.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Engine/CatchUpTests.cs`:
 ```csharp
@@ -1966,12 +1966,12 @@ public class CatchUpTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~CatchUpTests`
 Expected: build FAILS with `CS0103: The name 'CatchUp' does not exist`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Engine/CatchUp.cs`:
 ```csharp
@@ -2000,12 +2000,12 @@ public static class CatchUp
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~CatchUpTests`
 Expected: `Passed!  - Failed: 0, Passed: 5`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2026,7 +2026,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `WorldSnapshot`, `SimJson`, `WorldHasher` (Task 7); `EventLog`, `WorldEvent` (Task 3); `World`, `EventQueue`.
 - Produces: `sealed class WorldStore : IDisposable { const int CurrentSchemaVersion = 1; static WorldStore Open(string path); int SchemaVersion; bool HasWorld; long CountEvents(); void Save(World, EventLog, EventQueue); (World World, EventLog Log, EventQueue Queue) Load() }`. Tables: `meta(key, value)`, `snapshot(id=1, json)`, `events(id, day, type, json)`, `event_causes(cause_id, effect_id, kind, weight)`, `event_actors(event_id, role, kind, entity_id)`. `Save` writes everything in one transaction and only inserts events newer than the stored maximum id. Test support: `TempFile` (`Path` property, `Dispose` deletes the file and its `-wal`/`-shm` siblings).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Support/TempFile.cs`:
 ```csharp
@@ -2122,12 +2122,12 @@ public class WorldStoreTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~WorldStoreTests`
 Expected: build FAILS with `CS0246: The type or namespace name 'WorldStore' could not be found`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Persist/WorldStore.cs`:
 ```csharp
@@ -2307,12 +2307,12 @@ public sealed class WorldStore : IDisposable
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~WorldStoreTests`
 Expected: `Passed!  - Failed: 0, Passed: 4`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2336,7 +2336,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   - `UnrestSystem`, name `"unrest"`, consts `RevoltMarker = "revolt"`, `RevoltEndKind = "revolt.end"`. Monthly: `unrest` (default 0) += 15 during a shortage else −5, floored at 0. At ≥ 50 with no active revolt, emits `RevoltBegan` (cause: the active shortage, if any) and schedules `revolt.end` 90 days later, which emits `RevoltEnded` (cause: the revolt), sets unrest to 20 and clears the marker.
   - `static class DefaultSystems { IReadOnlyList<ISimSystem> Create() }` → `[HarvestSystem, UnrestSystem]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/DemoSystemsTests.cs`:
 ```csharp
@@ -2424,12 +2424,12 @@ public class DemoSystemsTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter FullyQualifiedName~DemoSystemsTests`
 Expected: build FAILS with `CS0234: The type or namespace name 'Systems' does not exist`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/Demo/HarvestSystem.cs`:
 ```csharp
@@ -2547,12 +2547,12 @@ public static class DefaultSystems
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter FullyQualifiedName~DemoSystemsTests`
 Expected: `Passed!  - Failed: 0, Passed: 5`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2574,7 +2574,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `WorldStore` (Task 9), `Simulator`, `WorldFactory`, `CatchUp` (Tasks 6, 8), `DefaultSystems` (Task 10), `HistoryQuery`, `ChainNode`, `EventText` (Task 4).
 - Produces: `static class DurationParser { long ParseDays(string) }` (`30d`, `4mo`, `7y`); `static class CliApp { int Run(string[] args, TextWriter output, Func<DateTimeOffset> clock) }`. Exit codes: 0 ok, 1 runtime error (message prefixed `error: `), 2 usage. Commands: `new`, `advance`, `catchup`, `log`, `why`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Cli/DurationParserTests.cs`:
 ```csharp
@@ -2733,12 +2733,12 @@ public class CliAppTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DurationParserTests|FullyQualifiedName~CliAppTests"`
 Expected: build FAILS with `CS0103: The name 'DurationParser' does not exist`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Cli/DurationParser.cs`:
 ```csharp
@@ -2923,12 +2923,12 @@ Replace `sim/FantasyWorld.Cli/Program.cs` entirely with:
 return FantasyWorld.Cli.CliApp.Run(args, Console.Out, () => DateTimeOffset.UtcNow);
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DurationParserTests|FullyQualifiedName~CliAppTests"`
 Expected: `Passed!  - Failed: 0, Passed: 17`
 
-- [ ] **Step 5: Smoke-test the real binary**
+- [x] **Step 5: Smoke-test the real binary**
 
 ```bash
 dotnet run --project sim/FantasyWorld.Cli -- new worlds/demo.fw.db --seed 7
@@ -2940,7 +2940,7 @@ dotnet run --project sim/FantasyWorld.Cli -- why worlds/demo.fw.db <that-id>
 ```
 Expected: the revolt line, then an indented `because #… GrainShortageBegan …` line (or no cause line if that revolt began without an active shortage). Then delete the folder: `rm -r worlds`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -2961,7 +2961,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: the whole `sim` solution.
 - Produces: a CI check named `ci / test` on every push and pull request.
 
-- [ ] **Step 1: Write the workflow**
+- [x] **Step 1: Write the workflow**
 
 `.github/workflows/ci.yml`:
 ```yaml
@@ -2983,7 +2983,7 @@ jobs:
         run: dotnet test sim --configuration Release
 ```
 
-- [ ] **Step 2: Update the README**
+- [x] **Step 2: Update the README**
 
 Replace `README.md` with:
 ````markdown
@@ -3008,12 +3008,12 @@ dotnet run --project sim/FantasyWorld.Cli -- why worlds/aerenmoor.fw.db <event-i
 ```
 ````
 
-- [ ] **Step 3: Run the full suite in Release**
+- [x] **Step 3: Run the full suite in Release**
 
 Run: `dotnet test sim --configuration Release`
 Expected: `Passed!  - Failed: 0, Passed: 93`
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 ```bash
 git add .github README.md

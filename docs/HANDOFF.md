@@ -10,17 +10,17 @@ Context for picking up this project on another machine / in a new Claude session
 | UI design (Claude Design canvas) | Done — https://claude.ai/artifact/1q5esun6tMtyMP75sMwsvb |
 | Sim core spec | Done, approved — `docs/superpowers/specs/2026-10-05-fantasy-world-sim-core-design.md` |
 | Plan 1 of 6 (Sim foundation) | Written — `docs/superpowers/plans/2026-10-05-sim-foundation.md` |
-| Plan 1 execution | **Not started** (no code committed yet) |
+| Plan 1 execution | **Done** — Tasks 1–12 committed on `ccr-81a7454e-12gx87`; 93/93 tests pass (Debug + Release) |
 
 ## Next step
 
-Execute Plan 1 with **subagent-driven development** (chosen), in an isolated worktree / feature branch, not on `main`:
+1. Review and merge the Plan 1 branch (`ccr-81a7454e-12gx87`) into `main`; confirm the `ci` workflow is green.
+2. Write Plan 2 (World & regions) — terrain grid, region graph, settlements, economy, region events, world generation (no prehistory). The roadmap of Plans 2–6 is in the Plan 1 file.
 
-1. Install the .NET 8 SDK if missing (Plan 1, Task 1, Step 1).
-2. Start Task 1 and work through Tasks 1–12; each task is TDD + commit.
-3. Final whole-branch review, then merge.
-
-Then write Plan 2 (World & regions). The roadmap of Plans 2–6 is in the plan file.
+Notes from Plan 1 execution:
+- Toolchain on Linux: `curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0` (installs to `~/.dotnet`).
+- The demo harvest/unrest systems revolt only occasionally (e.g. seed 7 has none in its first 20 years, 29 in 100 years); use `fw advance <file> 100y` when demoing `fw why` on a `RevoltBegan`.
+- `CliApp` does not catch `SqliteException`, so pointing `fw` at a non-SQLite file crashes with a stack trace instead of `error:`.
 
 ## Key decisions (don't re-ask)
 
