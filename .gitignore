@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+TestResults/
+*.fw.db
+*.fw.db-wal
+*.fw.db-shm
+worlds/
