@@ -11,11 +11,13 @@ Context for picking up this project on another machine / in a new Claude session
 | Sim core spec | Done, approved — `docs/superpowers/specs/2026-10-05-fantasy-world-sim-core-design.md` |
 | Plan 1 of 6 (Sim foundation) | Written — `docs/superpowers/plans/2026-10-05-sim-foundation.md` |
 | Plan 1 execution | **Done** — Tasks 1–12 committed on `ccr-81a7454e-12gx87`; 93/93 tests pass (Debug + Release) |
+| Plan 2 of 6 (World & regions) | Drafted — `docs/superpowers/plans/2026-10-05-world-and-regions.md` (16 tasks; code prototyped and replayed task by task: 225 tests pass). **Review the "Decisions made while drafting" table before executing.** |
 
 ## Next step
 
 1. Review and merge the Plan 1 branch (`ccr-81a7454e-12gx87`) into `main`; confirm the `ci` workflow is green.
-2. Write Plan 2 (World & regions) — terrain grid, region graph, settlements, economy, region events, world generation (no prehistory). The roadmap of Plans 2–6 is in the Plan 1 file.
+2. Review Plan 2's drafted decisions (map size, region-pooled food, plague tuning, deferred cultures/trade/lakes), then execute it with subagent-driven development on a fresh branch.
+3. Then write Plan 3 (Characters & artifacts).
 
 Notes from Plan 1 execution:
 - Toolchain on Linux: `curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0` (installs to `~/.dotnet`).
