@@ -186,6 +186,41 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["MonstersSlain"] = new[] { "{hunter} cleared {@place} of monsters.", "{hunter} hunted down the monsters of {@place}." },
     };
 
+    /// <summary>Short headline titles (present tense, no full stop) for events that lead a digest.</summary>
+    private static readonly IReadOnlyDictionary<string, string> Titles = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["WarDeclared"] = "{war} begins",
+        ["PeaceSigned"] = "{war} ends",
+        ["BattleFought"] = "Battle at {@place}",
+        ["RealmFell"] = "{realm} falls",
+        ["RealmRose"] = "{realm} rises",
+        ["EraBegan"] = "{=era} begins",
+        ["IndependenceDeclared"] = "{realm} breaks free",
+        ["RegionCeded"] = "{@place} changes hands",
+        ["SiegeEnded"] = "The siege of {@place} ends",
+        ["SettlementSacked"] = "{@place} is sacked",
+        ["SuccessionOccurred"] = "A new lord at {@place}",
+        ["CharacterDied"] = "{deceased} is dead",
+        ["MonsterRose"] = "A beast rises in {@place}",
+        ["MonsterLegendary"] = "{monster} becomes a legend",
+        ["MonsterSlain"] = "{monster} is slain",
+        ["MonsterRaid"] = "{monster} raids {@place}",
+        ["HolyWarProclaimed"] = "A holy war on {b}",
+        ["SchismBegan"] = "A schism in {old}",
+        ["SaintDeclared"] = "{saint} is made a saint",
+        ["RealmConverted"] = "{realm} takes up {faith}",
+        ["HolySiteLost"] = "{faith} loses its holy land",
+        ["WildMagic"] = "Wild magic at {@place}",
+        ["LandmarkCompleted"] = "{structure} stands complete",
+        ["WorksCollapsed"] = "{structure} collapses",
+        ["LabyrinthOpened"] = "{structure} opens",
+        ["LabyrinthCleared"] = "{structure} is cleared",
+        ["PlagueOutbreak"] = "Plague in {@place}",
+        ["RevoltBegan"] = "Revolt in {@place}",
+        ["ArtifactStolen"] = "{artifact} is stolen",
+        ["ArtifactForged"] = "{artifact} is forged",
+    };
+
     /// <summary>How a cause is joined to what it caused, by depth (the first layer, then further back).</summary>
     private static readonly string[] FirstConnectives = { "This happened because", "It came about because" };
 
@@ -258,12 +293,64 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         return English.Capitalise(sentence);
     }
 
-    public string Narrate(WorldEvent ev)
+    /// <summary>A short headline title ("The War of the Ash begins"), else the event's sentence without its full stop.</summary>
+    public string Title(WorldEvent ev)
     {
-        var sentence = TemplateFor(ev) is { } template && Fill(template, ev) is { } filled
+        var title = Titles.TryGetValue(ev.Type, out var template) && Fill(template, ev) is { } filled ? filled : Sentence(ev).TrimEnd('.');
+        return English.Capitalise(title);
+    }
+
+    /// <summary>
+    /// What a headline's title leaves out: the event told in full (when the title is short), what led to it, and the
+    /// engine's note on why or how — never the title again.
+    /// </summary>
+    public string Body(WorldEvent ev, EventLog log)
+    {
+        var parts = new List<string>();
+        // The full sentence only when it names someone or somewhere the title leaves out.
+        var title = Title(ev);
+        var sentence = Sentence(ev);
+        var names = ev.Actors.Values.Concat(ev.Place is { } at ? new[] { at } : Array.Empty<EntityRef>()).Select(Prose).OfType<string>();
+        if (Titles.ContainsKey(ev.Type) && names.Any(n => sentence.Contains(n, StringComparison.OrdinalIgnoreCase) && !title.Contains(n, StringComparison.OrdinalIgnoreCase)))
+            parts.Add(sentence);
+        if (ev.Causes.OrderByDescending(c => c.Weight).ThenBy(c => c.EventId).Select(c => log.TryGet(c.EventId, out var cause) ? cause : null)
+                .FirstOrDefault(c => c is not null) is { } first)
+        {
+            parts.Add($"{(first.Date.Year == ev.Date.Year ? "Earlier that year," : $"Before it, in Year {first.Date.Year},")} {Clause(first)}");
+        }
+        if ((ev.Payload.GetValueOrDefault("motive") ?? ev.Payload.GetValueOrDefault("account") ?? ev.Payload.GetValueOrDefault("lore")) is { } note) parts.Add(note);
+        return parts.Count == 0 ? $"{FantasyWorld.Sim.Chronicle.Digest.SeasonLabel(ev.Date)}." : string.Join(" ", parts);
+    }
+
+    /// <summary>
+    /// The story of why (sub-project 5 §3): a chain told as one paragraph, oldest cause first, ending with the outcome.
+    /// </summary>
+    public string Story(IReadOnlyList<WorldEvent> chain)
+    {
+        var ordered = chain.DistinctBy(e => e.Id).OrderBy(e => e.Date).ThenBy(e => e.Id).ToList();
+        if (ordered.Count == 0) return "";
+        var text = new StringBuilder();
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var ev = ordered[i];
+            var lead = i == 0 ? $"In Year {ev.Date.Year}," : i == ordered.Count - 1 ? (ev.Date.Year == ordered[i - 1].Date.Year ? "And so" : $"And so, in Year {ev.Date.Year},")
+                : ev.Date.Year == ordered[i - 1].Date.Year ? "That same year," : $"In Year {ev.Date.Year},";
+            var sentence = Sentence(ev);
+            if (text.Length > 0) text.Append(' ');
+            text.Append(lead).Append(' ').Append(TemplateFor(ev) is { } t && t.StartsWith('{') ? sentence : LowerFirst(sentence));
+        }
+        return text.ToString();
+    }
+
+    /// <summary>The event as a clause to follow "In Year 12," or "And so": names keep their case, other openings lower theirs.</summary>
+    public string Clause(WorldEvent ev) =>
+        TemplateFor(ev) is { } template && Fill(template, ev) is { } filled
             ? template.StartsWith('{') ? filled : LowerFirst(filled)
             : LowerFirst(Generic(ev));
-        var text = new StringBuilder($"In Year {ev.Date.Year}, {sentence}");
+
+    public string Narrate(WorldEvent ev)
+    {
+        var text = new StringBuilder($"In Year {ev.Date.Year}, {Clause(ev)}");
         if (ev.Payload.TryGetValue("motive", out var motive)) text.Append($" ({motive})");
         if (ev.Payload.TryGetValue("account", out var account)) text.Append($" {account}");
         return text.ToString();

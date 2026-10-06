@@ -40,8 +40,11 @@ public sealed record DigestScreen(
         if (ranked.Count > 0)
         {
             var top = ranked[0].Event;
-            var body = narrator is null ? Note(top) : narrator.Narrate(top);
-            headline = new Headline(1, Categories.Of(top), Categories.Kicker(top), Link(templates.Sentence(top), top), Link(body, top), top.Id, top.Causes.Count > 0);
+            var body = narrator is null ? templates.Body(top, log) : narrator.Narrate(top);
+            var mentions = top.Causes.Select(c => log.TryGet(c.EventId, out var cause) ? cause : null).OfType<WorldEvent>()
+                .SelectMany(LinkedText.Mentions).Concat(LinkedText.Mentions(top));
+            headline = new Headline(1, Categories.Of(top), Categories.Kicker(top), Link(templates.Title(top), top),
+                LinkedText.Link(body, mentions, nameOf), top.Id, top.Causes.Count > 0);
         }
         var items = ranked.Skip(1).Select(r => new DigestItem(r.Number, Categories.Of(r.Event), Link(templates.Sentence(r.Event), r.Event), r.Event.Id)).ToList();
 
@@ -65,11 +68,6 @@ public sealed record DigestScreen(
     }
 
     public static string DisplayName(World world) => world.Name.Length > 0 ? world.Name : "The World";
-
-    /// <summary>What the engine knows of why or how: motive, account or lore, else when it happened.</summary>
-    private static string Note(WorldEvent ev) =>
-        ev.Payload.GetValueOrDefault("account") ?? ev.Payload.GetValueOrDefault("motive") ?? ev.Payload.GetValueOrDefault("lore")
-        ?? $"{Digest.SeasonLabel(ev.Date)}.";
 
     private static string Word(long n) => n < Numbers.Length ? Numbers[n] : n.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
 

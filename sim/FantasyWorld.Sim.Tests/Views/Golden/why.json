@@ -86,5 +86,30 @@
   "systems": [
     "characters"
   ],
-  "consequences": []
+  "consequences": [],
+  "story": {
+    "text": "In Year 5, Steil of Bandbia was born at Greindrondcross to Keth of Bandbia and Gral of Bandbia. And so Keth of Bandbia died in childbirth at the age of 29.",
+    "links": [
+      {
+        "start": 11,
+        "length": 16,
+        "entity": "char#31"
+      },
+      {
+        "start": 40,
+        "length": 15,
+        "entity": "settlement#16"
+      },
+      {
+        "start": 59,
+        "length": 15,
+        "entity": "char#17"
+      },
+      {
+        "start": 79,
+        "length": 15,
+        "entity": "char#16"
+      }
+    ]
+  }
 }

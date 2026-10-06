@@ -196,6 +196,8 @@ public partial class HeadlessChecks : Node
         Check(why.Graph.Cards.Count == 1 + why.Why.Layers.Sum(l => l.Count) && why.Canvas.FindChildren("Card*", "", false, false).Count == why.Graph.Cards.Count,
             "every cause is a card");
         Check(why.GetNode<Label>("Intro/Summary").Text == why.Why.Summary, "the chain is summarised");
+        Check(why.Why.Story is null || why.GetNodeOrNull<RichTextLabel>("Intro/StoryScroll/Story") is { } story && story.GetParsedText() == why.Why.Story.Text,
+            "the chain is told as a story");
         await Shot("why");
         Check(why.Canvas.FindChildren("Title", "RichTextLabel", true, false).Cast<Control>().All(t => t.MouseFilter == Control.MouseFilterEnum.Pass),
             "clicks on a card's words reach the card");

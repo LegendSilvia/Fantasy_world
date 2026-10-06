@@ -19,7 +19,8 @@ public sealed record Mention(EntityRef Ref, string Name);
 /// </summary>
 public sealed record WhyScreen(
     EventCard Outcome, IReadOnlyList<IReadOnlyList<EventCard>> Layers, IReadOnlyList<CauseEdge> Edges, string Summary,
-    IReadOnlyList<Mention> People, IReadOnlyList<Mention> Places, IReadOnlyList<Category> Systems, IReadOnlyList<EventCard> Consequences)
+    IReadOnlyList<Mention> People, IReadOnlyList<Mention> Places, IReadOnlyList<Category> Systems, IReadOnlyList<EventCard> Consequences,
+    LinkedText? Story = null)
 {
     public static WhyScreen Build(World world, EventLog log, long eventId, int depth = 4)
     {
@@ -63,7 +64,8 @@ public sealed record WhyScreen(
         return new WhyScreen(Card(outcome, outcome.Causes.Any(c => !distance.ContainsKey(c.EventId))), layers, edges, summary,
             mentions.Where(m => m.Ref.Kind == Character.Kind).ToList(),
             mentions.Where(m => m.Ref.Kind is Settlement.Kind or Region.Kind).ToList(),
-            chain.Select(Categories.Of).Distinct().OrderBy(c => c).ToList(), consequences);
+            chain.Select(Categories.Of).Distinct().OrderBy(c => c).ToList(), consequences,
+            chain.Count > 1 ? LinkedText.Link(narrator.Story(chain), chain.SelectMany(LinkedText.Mentions), nameOf) : null);
     }
 
     private static readonly string[] Numbers = { "no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve" };

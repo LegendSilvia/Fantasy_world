@@ -37,6 +37,16 @@ public partial class WhyView : Control
         title.CustomMinimumSize = new Vector2(300, 0);
         intro.AddChild(title);
         intro.AddChild(Ui.Body(Why.Summary, "Summary", Palette.Muted));
+        if (Why.Story is { } story)
+        {
+            // The story of why: the chain as one paragraph, oldest cause first.
+            // Long chains make long stories: they scroll within the column rather than run off the page.
+            var scroller = new ScrollContainer { Name = "StoryScroll", HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, CustomMinimumSize = new Vector2(300, 240) };
+            var told = Ui.Linked(story, "Story", Host.Router.Open, 13, Palette.Body);
+            told.CustomMinimumSize = new Vector2(288, 0);
+            scroller.AddChild(told);
+            intro.AddChild(scroller);
+        }
         AddChild(intro);
 
         var scroll = Ui.Place(new ScrollContainer { Name = "Scroll", HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }, 0, 0, GraphLeft, 70);
