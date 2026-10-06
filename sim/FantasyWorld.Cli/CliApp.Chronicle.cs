@@ -39,6 +39,7 @@ public static partial class CliApp
         var minutes = int.Parse(Option(rest, "--minutes") ?? "60", CultureInfo.InvariantCulture);
         if (minutes < 0) throw new FormatException("--minutes cannot be negative.");
         using var store = OpenExisting(path);
+        Backups.Rotate(store, path);
         var (sim, gateway) = LoadLive(store, providers);
         var followed = store.LoadFollowed();
         var host = new LiveHost(sim);

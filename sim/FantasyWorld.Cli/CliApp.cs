@@ -122,6 +122,7 @@ public static partial class CliApp
         if (rest.Length < 1) return UsageError(output);
         var days = DurationParser.ParseDays(rest[0]);
         using var store = OpenExisting(path);
+        Backups.Rotate(store, path);
         var (sim, gateway) = LoadLive(store, providers);
         var lastId = sim.Log.NextId - 1;
         sim.AdvanceDays(days);
@@ -136,6 +137,7 @@ public static partial class CliApp
     private static int CatchUpCommand(string path, TextWriter output, Func<DateTimeOffset> clock, Func<LlmSettings, ILlmProvider?> providers)
     {
         using var store = OpenExisting(path);
+        Backups.Rotate(store, path);
         var (sim, gateway) = LoadLive(store, providers);
         var result = CatchUp.Run(sim, clock());
         var fresh = gateway.Journal.Pending.ToList();

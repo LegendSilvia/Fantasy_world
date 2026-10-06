@@ -7,7 +7,7 @@ public sealed class TempFile : IDisposable
 
     public void Dispose()
     {
-        foreach (var suffix in new[] { "", "-wal", "-shm" })
+        foreach (var suffix in new[] { "", "-wal", "-shm", ".bak1", ".bak2", ".bak3" })
             if (File.Exists(Path + suffix)) File.Delete(Path + suffix);
     }
 }

@@ -39,6 +39,9 @@ public sealed class WorldStore : IDisposable
     private readonly SqliteConnection _connection;
     private SqliteTransaction? _transaction;
 
+    /// <summary>The newest event id this session saw in the file (null until it loads or saves).</summary>
+    private long? _knownMaxEventId;
+
     private WorldStore(SqliteConnection connection) => _connection = connection;
 
     public static WorldStore Open(string path)
@@ -69,20 +72,23 @@ public sealed class WorldStore : IDisposable
         try
         {
             var persistedMax = ScalarLong("SELECT COALESCE(MAX(id), 0) FROM events");
+            if (_knownMaxEventId is { } known && known != persistedMax)
+                throw new InvalidOperationException(
+                    "The world file was changed by another session since this one loaded it; this session's changes were not saved.");
             foreach (var id in log.ForgottenUnsaved) DeleteEvent(id);
             foreach (var ev in log.Since(persistedMax)) InsertEvent(ev);
 
             if (world.Geography is { } geography && !HasGeography)
             {
                 using var cmd = Command("INSERT INTO geography(id, json) VALUES (1, $json)");
-                cmd.Parameters.AddWithValue("$json", JsonSerializer.Serialize(geography, SimJson.Options));
+                cmd.Parameters.AddWithValue("$json", Packed.Pack(geography));
                 cmd.ExecuteNonQuery();
             }
 
             using (var cmd = Command("INSERT INTO snapshot(id, json) VALUES (1, $json) " +
                                      "ON CONFLICT(id) DO UPDATE SET json = excluded.json"))
             {
-                cmd.Parameters.AddWithValue("$json", JsonSerializer.Serialize(WorldSnapshot.Capture(world, queue), SimJson.Options));
+                cmd.Parameters.AddWithValue("$json", Packed.Pack(WorldSnapshot.Capture(world, queue)));
                 cmd.ExecuteNonQuery();
             }
             SetMeta("world_day", world.Date.Day.ToString(CultureInfo.InvariantCulture));
@@ -92,6 +98,7 @@ public sealed class WorldStore : IDisposable
             _transaction.Commit();
             journal?.MarkSaved();
             log.MarkForgottenSaved();
+            _knownMaxEventId = log.NextId - 1;
         }
         catch
         {
@@ -107,13 +114,13 @@ public sealed class WorldStore : IDisposable
 
     public (World World, EventLog Log, EventQueue Queue) Load()
     {
-        string json;
+        WorldSnapshot snapshot;
         using (var cmd = Command("SELECT json FROM snapshot WHERE id = 1"))
-            json = cmd.ExecuteScalar() as string ?? throw new InvalidOperationException("No world has been saved in this file.");
-        var snapshot = JsonSerializer.Deserialize<WorldSnapshot>(json, SimJson.Options)
-            ?? throw new InvalidOperationException("World snapshot is empty.");
+            snapshot = Packed.Unpack<WorldSnapshot>(cmd.ExecuteScalar() ?? throw new InvalidOperationException("No world has been saved in this file."))
+                       ?? throw new InvalidOperationException("World snapshot is empty.");
 
         var log = new EventLog();
+        _knownMaxEventId = ScalarLong("SELECT COALESCE(MAX(id), 0) FROM events");
         using (var cmd = Command("SELECT json FROM events ORDER BY id"))
         using (var reader = cmd.ExecuteReader())
             while (reader.Read())
@@ -122,11 +129,23 @@ public sealed class WorldStore : IDisposable
         var world = snapshot.ToWorld();
         using (var cmd = Command("SELECT json FROM geography WHERE id = 1"))
         {
-            if (cmd.ExecuteScalar() is string geography)
-                world.Geography = JsonSerializer.Deserialize<Geography>(geography, SimJson.Options);
+            if (cmd.ExecuteScalar() is { } geography and not DBNull)
+                world.Geography = Packed.Unpack<Geography>(geography);
         }
 
         return (world, log, snapshot.ToQueue());
+    }
+
+    /// <summary>
+    /// Copies the world file into <paramref name="backupPath"/> through SQLite's online backup, so a backup taken
+    /// while open is consistent.
+    /// </summary>
+    public void BackupTo(string backupPath)
+    {
+        var target = new SqliteConnectionStringBuilder { DataSource = backupPath, Pooling = false }.ToString();
+        using var destination = new SqliteConnection(target);
+        destination.Open();
+        _connection.BackupDatabase(destination);
     }
 
     /// <summary>Saves new LLM answers alone (narration, which changes nothing in the world).</summary>
