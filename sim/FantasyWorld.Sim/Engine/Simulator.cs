@@ -4,7 +4,10 @@ using FantasyWorld.Sim.Model;
 
 namespace FantasyWorld.Sim.Engine;
 
-/// <summary>Advances the world one day at a time. Catch-up and live mode both use AdvanceDays.</summary>
+/// <summary>
+/// Advances the world one day at a time. Each day: monthly ticks (first of month), yearly ticks
+/// (first of year), then due scheduled actions. Catch-up and live mode both use AdvanceDays.
+/// </summary>
 public sealed class Simulator
 {
     private readonly IReadOnlyList<ISimSystem> _systems;
@@ -47,6 +50,10 @@ public sealed class Simulator
         if (World.Date.IsFirstOfMonth)
             foreach (var system in _systems)
                 system.OnMonthlyTick(ContextFor(system.Name, "month"));
+
+        if (World.Date.IsFirstOfYear)
+            foreach (var system in _systems)
+                system.OnYearlyTick(ContextFor(system.Name, "year"));
 
         while (Queue.TryDequeueDue(World.Date, out var action))
         {

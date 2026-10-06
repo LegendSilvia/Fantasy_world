@@ -21,6 +21,15 @@ public class SimulatorTests
         public void OnScheduled(SimContext ctx, ScheduledAction action) => _trace.Add($"{Name}:{action.Kind}@{ctx.Date.Day}");
     }
 
+    private sealed class YearlySystem : ISimSystem
+    {
+        private readonly List<string> _trace;
+        public YearlySystem(List<string> trace) => _trace = trace;
+        public string Name => "yearly";
+        public void OnMonthlyTick(SimContext ctx) => _trace.Add($"month@{ctx.Date.Day}");
+        public void OnYearlyTick(SimContext ctx) => _trace.Add($"year@{ctx.Date.Day}");
+    }
+
     private static Simulator Make(params ISimSystem[] systems) =>
         new(WorldFactory.CreateNew(1, DateTimeOffset.UnixEpoch), new EventLog(), new EventQueue(), systems, checkInvariants: true);
 
@@ -43,6 +52,17 @@ public class SimulatorTests
         sim.Queue.Schedule(new WorldDate(5), "ping");
         sim.AdvanceDays(30);
         Assert.Equal(new[] { "a:ping@5", "a@30", "a:ping@30" }, trace);
+    }
+
+    [Fact]
+    public void YearlyTick_FiresOnFirstOfYear_AfterMonthlyTicks()
+    {
+        var trace = new List<string>();
+        var sim = Make(new YearlySystem(trace));
+        sim.AdvanceDays(720);
+        Assert.Equal(new[] { "month@360", "year@360" }, trace.Where(t => t.EndsWith("@360")));
+        Assert.Equal(2, trace.Count(t => t.StartsWith("year@")));
+        Assert.Equal(24, trace.Count(t => t.StartsWith("month@")));
     }
 
     [Fact]

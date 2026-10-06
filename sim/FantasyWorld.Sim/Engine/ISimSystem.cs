@@ -7,6 +7,9 @@ public interface ISimSystem
 
     void OnMonthlyTick(SimContext ctx);
 
+    /// <summary>Runs on the first day of each year, after every system's monthly tick.</summary>
+    void OnYearlyTick(SimContext ctx) { }
+
     /// <summary>Scheduled-action kinds this system handles. Each kind has exactly one owner.</summary>
     IEnumerable<string> HandledKinds => Array.Empty<string>();
 
