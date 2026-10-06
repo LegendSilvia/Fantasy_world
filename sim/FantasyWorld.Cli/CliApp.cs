@@ -17,7 +17,7 @@ public static partial class CliApp
 {
     public const string Usage = """
         Usage:
-          fw new <world-file> [--seed <n>] [--size tiny|medium|large]
+          fw new <world-file> [--seed <n>] [--size tiny|medium|large] [--prehistory <years>]   (default 100; tiny 0)
           fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
           fw catchup <world-file>                   simulate the real time that has passed, then the digest
           fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
@@ -100,12 +100,18 @@ public static partial class CliApp
         if (!Enum.TryParse<WorldSize>(sizeText, ignoreCase: true, out var size) || !Enum.IsDefined(size))
             throw new FormatException($"Unknown size '{sizeText}'. Use tiny, medium or large.");
 
+        var years = int.Parse(Option(rest, "--prehistory") ?? Prehistory.DefaultYearsFor(size).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+        if (years is < 0 or > 1000) throw new FormatException("--prehistory must be between 0 and 1000 years.");
+
         var world = WorldGenerator.Generate(new WorldGenOptions(seed, size), now);
+        var sim = Prehistory.Run(world, years);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         using var store = WorldStore.Open(path);
-        store.Save(world, new EventLog(), new EventQueue());
+        store.Save(world, sim.Log, sim.Queue);
         output.WriteLine($"Created world at {path} (seed {seed}, {size.ToString().ToLowerInvariant()}: " +
                          $"{world.Regions.Count} regions, {world.Settlements.Count} settlements).");
+        if (years > 0)
+            output.WriteLine($"{years} years of prehistory: {sim.Log.Count} events; it is now {world.Date}. Run `fw digest` for the story so far.");
         return 0;
     }
 
