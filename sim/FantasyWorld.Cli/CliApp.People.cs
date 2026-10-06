@@ -100,6 +100,5 @@ public static partial class CliApp
         _ => "destroyed",
     };
 
-    private static string FullName(World world, Character c) =>
-        world.Houses.TryGetValue(c.HouseId, out var house) ? $"{c.Name} of {house.Name}" : c.Name;
+    private static string FullName(World world, Character c) => Names.Full(world, c);
 }

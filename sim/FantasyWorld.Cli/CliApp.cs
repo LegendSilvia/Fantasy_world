@@ -215,18 +215,7 @@ public static partial class CliApp
         return new Simulator(world, log, queue, DefaultSystems.Create());
     }
 
-    private static Func<EntityRef, string?> NameOf(World world) => entity => entity.Kind switch
-    {
-        Region.Kind => world.Regions.TryGetValue(entity.Id, out var r) ? r.Name : null,
-        Settlement.Kind => world.Settlements.TryGetValue(entity.Id, out var s) ? s.Name : null,
-        Character.Kind => world.Characters.TryGetValue(entity.Id, out var c) ? FullName(world, c) : null,
-        Artifact.Kind => world.Artifacts.TryGetValue(entity.Id, out var a) ? a.Name : null,
-        House.Kind => world.Houses.TryGetValue(entity.Id, out var h) ? $"House {h.Name}" : null,
-        Realm.Kind => world.Realms.TryGetValue(entity.Id, out var realm) ? Statecraft.Title(realm) : null,
-        War.Kind => world.Wars.TryGetValue(entity.Id, out var war) ? war.Name : null,
-        Army.Kind => world.Armies.TryGetValue(entity.Id, out var army) ? army.Name : null,
-        _ => null,
-    };
+    private static Func<EntityRef, string?> NameOf(World world) => Names.Of(world);
 
     private static void PrintEvents(TextWriter output, World world, IEnumerable<WorldEvent> events)
     {
