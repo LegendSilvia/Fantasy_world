@@ -50,7 +50,8 @@ public sealed class DiplomacySystem : ISimSystem
                 .ToList();
             var choice = _decider.Decide(new DecisionBrief(ruler.Id, "war or peace", choices), ctx.Rng);
             if (choice.Key == "peace") continue;
-            Declare(ctx, realm, options[int.Parse(choice.Key[4..], CultureInfo.InvariantCulture)]);
+            using (ctx.Annotate("motive", choice.Reasoning))
+                Declare(ctx, realm, options[int.Parse(choice.Key[4..], CultureInfo.InvariantCulture)]);
         }
     }
 

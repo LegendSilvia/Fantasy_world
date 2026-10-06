@@ -29,12 +29,14 @@ public sealed partial class MilitarySystem
             var attackerWon = war.Score > 0;
             var loser = world.Realms[attackerWon ? war.DefenderId : war.AttackerId];
             var ruler = Realms.RulerOf(world, loser);
-            var accept = ruler is null || _decider.Decide(new DecisionBrief(ruler.Id, "sue for peace", new[]
+            var choice = ruler is null ? null : _decider.Decide(new DecisionBrief(ruler.Id, "sue for peace", new[]
             {
                 new DecisionOption("accept", 30 + Math.Abs(war.Score), "accept the victor's terms"),
                 new DecisionOption("fight", Math.Max(5, 100 - Math.Abs(war.Score) - loser.WarWeariness), "fight on"),
-            }), ctx.Rng).Key == "accept";
-            if (accept) MakePeace(ctx, war, attackerWon, white: false);
+            }), ctx.Rng);
+            if (choice is null || choice.Key == "accept")
+                using (ctx.Annotate("motive", choice?.Reasoning))
+                    MakePeace(ctx, war, attackerWon, white: false);
         }
         else if (years >= 5 && Math.Abs(war.Score) < 25) MakePeace(ctx, war, attackerWon: false, white: true);
         else if (years >= 10) MakePeace(ctx, war, attackerWon: war.Score > 0, white: Math.Abs(war.Score) < 10);

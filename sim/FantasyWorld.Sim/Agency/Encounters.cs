@@ -6,7 +6,11 @@ namespace FantasyWorld.Sim.Agency;
 public enum Fate { Unharmed, Wounded, Maimed, Dead }
 
 /// <summary>A legal result of an encounter, with its base probability from the odds.</summary>
-public sealed record EncounterOutcome(string Key, double Probability, bool AttackerWins, Fate AttackerFate, Fate DefenderFate);
+public sealed record EncounterOutcome(string Key, double Probability, bool AttackerWins, Fate AttackerFate, Fate DefenderFate)
+{
+    /// <summary>How it happened, when an LLM arbitrated (spec §8.3): stored as the event's account.</summary>
+    public string? Account { get; init; }
+}
 
 /// <summary>
 /// A dramatic personal conflict (spec §8.3). The engine sets the stage (strengths) and enumerates the

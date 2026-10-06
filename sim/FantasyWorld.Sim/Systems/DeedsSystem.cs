@@ -49,7 +49,7 @@ public sealed class DeedsSystem : ISimSystem
             var options = Options(ctx, c, residents[c.SettlementId]);
             if (options.Count <= 1) continue;
             var choice = _decider.Decide(new DecisionBrief(c.Id, c.Ambition, options), ctx.Rng);
-            Act(ctx, c, choice.Key);
+            using (ctx.Annotate("motive", choice.Reasoning)) Act(ctx, c, choice.Key);
         }
     }
 

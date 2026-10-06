@@ -71,7 +71,8 @@ public sealed class FamilySystem : ISimSystem
             .ToList();
         var choice = _decider.Decide(new DecisionBrief(suitor.Id, "courtship", options), ctx.Rng);
         if (choice.Key == "unwed") return;
-        Wed(ctx, suitor, world.Characters[long.Parse(choice.Key, System.Globalization.CultureInfo.InvariantCulture)]);
+        using (ctx.Annotate("motive", choice.Reasoning))
+            Wed(ctx, suitor, world.Characters[long.Parse(choice.Key, System.Globalization.CultureInfo.InvariantCulture)]);
     }
 
     public static WorldEvent Wed(SimContext ctx, Character a, Character b)

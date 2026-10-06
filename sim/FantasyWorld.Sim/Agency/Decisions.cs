@@ -3,7 +3,11 @@ using FantasyWorld.Sim.Core;
 namespace FantasyWorld.Sim.Agency;
 
 /// <summary>One legal choice. Weight is the rules engine's prior (from traits, ambition, opinion).</summary>
-public sealed record DecisionOption(string Key, double Weight, string Summary);
+public sealed record DecisionOption(string Key, double Weight, string Summary)
+{
+    /// <summary>Why it was chosen, when an LLM chose it (spec §8.2): stored as the event's motive.</summary>
+    public string? Reasoning { get; init; }
+}
 
 /// <summary>
 /// A decision point (spec §8.2): a notable chooses among 2–5 legal options. The rules decider picks by
