@@ -87,7 +87,7 @@ public sealed class RegionSystem : ISimSystem
         var population = settlements.Sum(s => s.Population);
         var dangerTarget = Math.Max(0, region.BaseDanger - Math.Min(20, population / 500.0));
         region.Danger = Math.Clamp(region.Danger + (dangerTarget - region.Danger) * 0.03, 0, 100);
-        region.LeyPower = Math.Clamp(region.LeyPower + (region.BaseLey - region.LeyPower) * 0.01, 0, 100);
+        region.LeyPower = Math.Clamp(region.LeyPower + (MagicSystem.Tide(region, ctx.Date) - region.LeyPower) * 0.01, 0, 100);
 
         Threshold(ctx, region, Conditions.Exhausted,
             begins: region.Fertility < region.BaseFertility * 0.7, ends: region.Fertility >= region.BaseFertility * 0.85,

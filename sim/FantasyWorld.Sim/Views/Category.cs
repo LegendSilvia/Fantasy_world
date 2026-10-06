@@ -56,6 +56,8 @@ public static class Categories
         ["RouteOpened"] = "Trade",
         ["RouteSevered"] = "Trade cut",
         ["RegionConverted"] = "Conversion",
+        ["WildMagic"] = "Wild magic",
+        ["MagicLawChanged"] = "Magic law",
         ["SchismBegan"] = "Schism",
         ["SaintDeclared"] = "A saint",
         ["RealmConverted"] = "A realm converts",

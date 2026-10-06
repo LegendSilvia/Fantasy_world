@@ -122,7 +122,7 @@ public sealed class SettlementSystem : ISimSystem
         foreach (var (name, minTier, cost) in BuildOrder)
         {
             if (s.Buildings.Contains(name) || s.Tier < minTier) continue;
-            if (name == "mage tower" && region.LeyPower < 50) continue;
+            if (name == "mage tower" && (region.LeyPower < 50 || Realms.SovereignOf(ctx.World, region)?.MagicLaw == MagicLaw.Outlawed)) continue;
             if (s.Wealth < cost) return;
             s.Wealth -= cost;
             s.Buildings.Add(name);
