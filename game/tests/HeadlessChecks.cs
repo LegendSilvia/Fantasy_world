@@ -160,9 +160,13 @@ public partial class HeadlessChecks : Node
         var map = main.Session!.Map();
         Check(diorama.Block.Mesh is ArrayMesh { } block && block.GetSurfaceCount() == 2, "the block has a top and walls");
         Check(diorama.GetNodeOrNull<MeshInstance3D>("Water")?.Mesh is not null, "the sea is drawn");
-        Check(diorama.SettlementLayer.GetChildCount() + diorama.StructureLayer.GetChildCount() == map.Settlements.Count(s => s.Position is not null) + map.Structures.Count(s => s.Position is not null),
-            "one marker per settlement and structure");
-        Check(map.Borders.Count == 0 || diorama.BorderLines.Mesh is ArrayMesh { } lines && lines.GetSurfaceCount() == 1, "realm borders are drawn");
+        var settlements = map.Settlements.Count(s => s.Position is not null);
+        Check(diorama.Markers.Count(m => m.Shape == MarkerShape.Settlement) == settlements
+              && diorama.SettlementLayer.GetNode<MultiMeshInstance3D>("Roofs").Multimesh.InstanceCount >= 3 * settlements,
+            "every settlement is a cluster of houses");
+        Check(diorama.StructureLayer.GetChildCount() == map.Structures.Count(s => s.Position is not null), "every landmark and labyrinth stands on the block");
+        Check(diorama.TreeCount > 100, $"woods are planted ({diorama.TreeCount} trees)");
+        Check(map.Borders.Count == 0 || diorama.BorderLines.Mesh is ArrayMesh { } lines && lines.GetSurfaceCount() == 2, "realm borders are drawn, ink over a halo");
 
         diorama.Rig.Reset();
         await Frames(90);

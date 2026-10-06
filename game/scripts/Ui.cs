@@ -116,6 +116,24 @@ public static class Ui
         return label;
     }
 
+    /// <summary>A one-line display title that shrinks its type, never wraps, to fit a width (long world names).</summary>
+    public static Label FittedTitle(string text, int size, float maxWidth, string name = "Title")
+    {
+        var label = Title(text, size, name);
+        label.AutowrapMode = TextServer.AutowrapMode.Off;
+        var width = Display.GetStringSize(text, HorizontalAlignment.Left, -1, size).X;
+        if (width > maxWidth) label.AddThemeFontSizeOverride("font_size", Math.Max(28, (int)(size * maxWidth / width)));
+        return label;
+    }
+
+    /// <summary>A label that never wraps (short labels in rows).</summary>
+    public static Label Line(string text, string name, Rgb? colour = null, int size = 13)
+    {
+        var label = Body(text, name, colour, size);
+        label.AutowrapMode = TextServer.AutowrapMode.Off;
+        return label;
+    }
+
     public static Label Body(string text, string name = "Body", Rgb? colour = null, int size = 13)
     {
         var label = new Label { Name = name, Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };

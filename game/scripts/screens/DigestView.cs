@@ -33,7 +33,7 @@ public partial class DigestView : Control
         Ui.Place(intro, 0, 0, 56, 48);
         intro.CustomMinimumSize = new Vector2(340, 0);
         intro.AddChild(Ui.Kicker($"{Digest.WorldName} · Morning digest"));
-        intro.AddChild(Ui.Title(Digest.Title, 72));
+        intro.AddChild(Ui.FittedTitle(Digest.Title, 72, 440));
         intro.AddChild(Ui.Body(Digest.Subtitle, "Subtitle", Palette.Muted));
         AddChild(intro);
 
@@ -156,12 +156,18 @@ public partial class DigestView : Control
 
     public override void _Process(double delta)
     {
-        foreach (var child in PinLayer.GetChildren())
-            if (child is PinTag tag && Host.Diorama.Pins.FirstOrDefault(p => p.Number == tag.Number) is { } pin)
-            {
-                tag.Visible = !Host.Diorama.Camera.IsPositionBehind(Diorama.ToGodot(pin.Position));
-                tag.Position = Host.Diorama.ScreenOf(pin.Position) - new Vector2(11, 11);
-            }
+        var tags = PinLayer.GetChildren().OfType<PinTag>().ToList();
+        var boxes = new List<LabelBox>(tags.Count);
+        foreach (var tag in tags)
+        {
+            var pin = Host.Diorama.Pins.First(p => p.Number == tag.Number);
+            tag.Position = Host.Diorama.ScreenOf(pin.Position) - new Vector2(11, 11);
+            boxes.Add(Host.Diorama.Camera.IsPositionBehind(Diorama.ToGodot(pin.Position))
+                ? new LabelBox(-1e5f, -1e5f, 0, 0, 0)
+                : new LabelBox(tag.Position.X, tag.Position.Y, tag.Size.X, tag.Size.Y, 100 - tag.Number));
+        }
+        var visible = Declutter.Visible(boxes, GetViewportRect().Size.X, GetViewportRect().Size.Y, MapHudView.Reserved(this, "Card", "Intro"));
+        for (var i = 0; i < tags.Count; i++) tags[i].Visible = visible[i];
     }
 
     private PinTag PinButton(Pin pin)

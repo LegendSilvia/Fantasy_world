@@ -56,6 +56,19 @@ public partial class Main : Control
         MouseFilter = MouseFilterEnum.Ignore;
         Diorama = new Diorama();
         AddChild(Diorama);
+        // A soft wash of the ground colour behind the left-hand text, so titles stay legible over busy terrain.
+        var wash = new Gradient();
+        wash.SetColor(0, Ui.C(Palette.Ground, 0.9f));
+        wash.SetColor(1, Ui.C(Palette.Ground, 0));
+        wash.AddPoint(0.55f, Ui.C(Palette.Ground, 0.6f));
+        var scrim = new TextureRect
+        {
+            Name = "Scrim", MouseFilter = MouseFilterEnum.Ignore, StretchMode = TextureRect.StretchModeEnum.Scale,
+            Texture = new GradientTexture2D { Gradient = wash, Width = 256, Height = 4, FillFrom = new Vector2(0, 0), FillTo = new Vector2(1, 0) },
+        };
+        scrim.AnchorBottom = 1;
+        (scrim.OffsetLeft, scrim.OffsetRight) = (0, 560);
+        AddChild(scrim);
         Screens = new Control { Name = "Screens", MouseFilter = MouseFilterEnum.Ignore };
         Screens.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(Screens);
@@ -103,8 +116,11 @@ public partial class Main : Control
         Geography = _session!.Read((w, _) => w.Geography);
         if (Geography is not null)
         {
-            Diorama.Build(Geography);
-            Diorama.Show(_session.Map());
+            var today = _session.Map();
+            var clearings = today.Settlements.Where(s => s.Position is not null)
+                .Select(s => Client.Projection.ToBlock(Geography.Terrain, s.Position!, 0));
+            Diorama.Build(Geography, clearings);
+            Diorama.Show(today);
         }
         Digest = _session.Digest();
         _session.MarkSeen();

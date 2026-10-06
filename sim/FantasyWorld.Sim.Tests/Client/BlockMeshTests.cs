@@ -22,7 +22,10 @@ public class BlockMeshTests
         Assert.Contains(top.Positions, p => p.Y > 0.05f);
         Assert.All(top.Normals, n => Assert.InRange(n.Length(), 0.999f, 1.001f));
         Assert.True(top.Normals.Count(n => n.Y > 0.5f) > top.Normals.Length * 0.9);
-        Assert.Contains(BlockMesh.ColourOf(Biome.Mountain), top.Colors);
+        Assert.All(top.Colors, c => Assert.True(c.X is >= 0 and <= 1 && c.Y is >= 0 and <= 1 && c.Z is >= 0 and <= 1));
+        Assert.True(top.Colors.Distinct().Count() > 200, "biomes blend instead of standing in flat blocks");
+        // The surface is smooth: neighbouring samples never jump by a whole step of the old tile terraces.
+        Assert.True(Enumerable.Range(0, 32).All(i => Math.Abs(top.Positions[i].Y - top.Positions[i + 1].Y) < 0.03f));
         Assert.All(top.Indices, i => Assert.InRange(i, 0, top.Positions.Length - 1));
     }
 
@@ -32,9 +35,21 @@ public class BlockMeshTests
         var sides = BlockMesh.Sides(Grid, 16);
         Assert.Equal(4 * 16 * BlockMesh.Strata.Length * 4, sides.Positions.Length);
         Assert.Equal(-BlockMesh.BaseDepth, sides.Positions.Min(p => p.Y));
-        Assert.All(BlockMesh.Strata, s => Assert.Contains(s.Colour, sides.Colors));
+        // The world is ringed by sea, so its walls show sand over clay over bedrock.
+        Assert.All(BlockMesh.Strata.Skip(1), s => Assert.Contains(s.Colour, sides.Colors));
+        Assert.Contains(BlockMesh.Sand, sides.Colors);
         Assert.All(sides.Normals, n => Assert.Equal(0, n.Y));
-        Assert.Equal(2, BlockMesh.WaterPlane().Triangles);
+    }
+
+    [Fact]
+    public void TheSea_DeepensInColourAndOpacity_AndIsClearOverLand()
+    {
+        var water = BlockMesh.Water(Grid, 24);
+        Assert.NotNull(water.Alphas);
+        Assert.Equal(water.Positions.Length, water.Alphas!.Length);
+        Assert.Contains(0f, water.Alphas);
+        Assert.Contains(water.Alphas, a => a > 0.6f);
+        Assert.All(water.Positions.Take(25 * 25), p => Assert.Equal(0, p.Y));
     }
 
     [Fact]

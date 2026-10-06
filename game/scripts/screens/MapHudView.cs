@@ -49,7 +49,7 @@ public partial class MapHudView : Control
         intro.CustomMinimumSize = new Vector2(300, 0);
         _kicker = Ui.Kicker("", "Kicker");
         intro.AddChild(_kicker);
-        intro.AddChild(Ui.Title($"{Map.WorldName}.", 64));
+        intro.AddChild(Ui.FittedTitle($"{Map.WorldName}.", 64, 440));
         _summary = Ui.Body("", "Summary", Palette.Muted);
         intro.AddChild(_summary);
         AddChild(intro);
@@ -125,14 +125,31 @@ public partial class MapHudView : Control
         }
         var grid = Host.Geography?.Terrain;
         if (grid is null) return;
-        foreach (var child in TagLayer.GetChildren())
-            if (child is SettlementTag tag)
-            {
-                var at = Client.Projection.ToBlock(grid, tag.Settlement.Position!, 0.02f);
-                tag.Visible = !Host.Diorama.Camera.IsPositionBehind(Diorama.ToGodot(at));
-                tag.Position = Host.Diorama.ScreenOf(at) - new Vector2(11, 24);
-            }
+        var tags = TagLayer.GetChildren().OfType<SettlementTag>().ToList();
+        var boxes = new List<LabelBox>(tags.Count);
+        foreach (var tag in tags)
+        {
+            var at = Client.Projection.ToBlock(grid, tag.Settlement.Position!, 0.02f);
+            tag.Position = Host.Diorama.ScreenOf(at) - new Vector2(11, 24);
+            var behind = Host.Diorama.Camera.IsPositionBehind(Diorama.ToGodot(at));
+            boxes.Add(behind ? new LabelBox(-1e5f, -1e5f, 0, 0, 0) : new LabelBox(tag.Position.X, tag.Position.Y, tag.Size.X, tag.Size.Y, Priority(tag.Settlement)));
+        }
+        var visible = Declutter.Visible(boxes, GetViewportRect().Size.X, GetViewportRect().Size.Y, Reserved(this, "Card", "Intro", "Legend"));
+        for (var i = 0; i < tags.Count; i++) tags[i].Visible = visible[i];
     }
+
+    /// <summary>News first, then cities, towns, villages: the order in which tags claim screen space.</summary>
+    public static int Priority(MapSettlement settlement) => settlement.Marker switch
+    {
+        PinMarker.Conflict => 10,
+        PinMarker.RecentEvent => 9,
+        _ => Enum.TryParse<FantasyWorld.Sim.Model.SettlementTier>(settlement.Tier, out var tier) ? (int)tier : 0,
+    };
+
+    /// <summary>Screen boxes of a screen's own panels, which labels must not cover.</summary>
+    public static IEnumerable<LabelBox> Reserved(Control screen, params string[] panels) =>
+        panels.Select(p => screen.GetNodeOrNull<Control>(p)).Where(c => c is { Visible: true })
+            .Select(c => c!.GetGlobalRect()).Select(r => new LabelBox(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, int.MaxValue));
 
     private SettlementTag Tag(MapSettlement settlement)
     {
@@ -147,6 +164,7 @@ public partial class MapHudView : Control
         };
         var dot = Ui.Capsule("Dot", Ui.C(colour), Ui.C(Palette.Card), 0, 0);
         dot.CustomMinimumSize = new Vector2(18, 18);
+        dot.SizeFlagsVertical = SizeFlags.ShrinkCenter;
         var pill = Ui.Capsule("Name", Ui.C(Palette.Card), Ui.C(settlement.Marker == PinMarker.Conflict ? Palette.Ink : Palette.Border));
         var name = Ui.Body(settlement.Name, "Text", Palette.Ink, 12);
         name.AutowrapMode = TextServer.AutowrapMode.Off;
@@ -229,10 +247,10 @@ public partial class MapHudView : Control
         History.ValueChanged += value => ShowYear((int)value);
         history.AddChild(History);
         var ends = Ui.Row("Ends", 0);
-        var first = Ui.Body("Year 1", "First", Palette.Muted, 12);
+        var first = Ui.Line("Year 1", "First", Palette.Muted, 12);
         first.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         ends.AddChild(first);
-        ends.AddChild(Ui.Body("Now", "Now", Palette.Muted, 12));
+        ends.AddChild(Ui.Line("Now", "Now", Palette.Muted, 12));
         history.AddChild(ends);
         column.AddChild(history);
 
