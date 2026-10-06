@@ -1,3 +1,4 @@
+using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Model;
 
 namespace FantasyWorld.Sim.Tests.Support;
@@ -35,5 +36,20 @@ public static class TestRealms
         world.Realms[realm.Id] = realm;
         world.Regions[world.Settlements[capitalId].RegionId].OwnerRealmId = realm.Id;
         return realm;
+    }
+
+    /// <summary>Realm 1 declares war on realm 2 over the given region (default: region 2).</summary>
+    public static War DeclareWar(World world, EventLog log, long target = 2)
+    {
+        var cb = log.Append(world.Date, new EventDraft("BorderRaid"));
+        var declared = log.Append(world.Date, new EventDraft("WarDeclared", Causes: new[] { new Cause(cb.Id, CauseKind.Motive, 0.9) }));
+        var war = new War
+        {
+            Id = world.Ids.Take(War.Kind), Name = "The Test War", AttackerId = 1, DefenderId = 2,
+            Attackers = { 1 }, Defenders = { 2 }, CasusBelli = CasusBelli.Revenge, CasusBelliEventId = cb.Id,
+            DeclaredEventId = declared.Id, TargetRegionId = target, StartDay = world.Date.Day,
+        };
+        world.Wars[war.Id] = war;
+        return war;
     }
 }
