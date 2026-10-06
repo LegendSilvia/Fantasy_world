@@ -34,6 +34,7 @@ public sealed class World
     public SortedDictionary<long, War> Wars { get; init; } = new();
     public SortedDictionary<long, Army> Armies { get; init; } = new();
     public SortedDictionary<long, Structure> Structures { get; init; } = new();
+    public SortedDictionary<long, TradeRoute> Routes { get; init; } = new();
 
     /// <summary>Region → realm at world creation: the baseline that history replays from (map history slider).</summary>
     public SortedDictionary<long, long> FoundingOwners { get; init; } = new();

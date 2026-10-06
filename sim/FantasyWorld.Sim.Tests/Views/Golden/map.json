@@ -1,6 +1,6 @@
 {
   "worldName": "Dromothholt",
-  "summary": "Two realms, 24 settlements, no open labyrinths.",
+  "summary": "Two realms, 24 settlements, one open labyrinth.",
   "year": 21,
   "firstYear": 1,
   "historical": true,
@@ -536,7 +536,18 @@
       }
     }
   ],
-  "structures": [],
+  "structures": [
+    {
+      "ref": "structure#1",
+      "name": "The Deeps of Taramdale",
+      "kind": "Labyrinth",
+      "state": "Standing",
+      "position": {
+        "x": 0.4921875,
+        "y": 0.4296875
+      }
+    }
+  ],
   "borders": [
     {
       "a": "region#2",

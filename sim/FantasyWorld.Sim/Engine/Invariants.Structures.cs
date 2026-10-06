@@ -18,5 +18,15 @@ public static partial class Invariants
                 errors.Add($"Landmark #{s.Id} stands without a completion event.");
             if (s.Progress is < 0 or > 100) errors.Add($"Structure #{s.Id} has progress {s.Progress}.");
         }
+
+        foreach (var r in world.Routes.Values)
+        {
+            if (!world.Settlements.ContainsKey(r.FromId) || !world.Settlements.ContainsKey(r.ToId)) errors.Add($"Route #{r.Id} joins an unknown market.");
+            else if (r.Regions.Count == 0 || r.Regions[0] != world.Settlements[r.FromId].RegionId || r.Regions[^1] != world.Settlements[r.ToId].RegionId)
+                errors.Add($"Route #{r.Id} does not run from market to market.");
+            if (r.Regions.Any(id => !world.Regions.ContainsKey(id))) errors.Add($"Route #{r.Id} crosses an unknown region.");
+            if (!log.TryGet(r.OpenedEventId, out _)) errors.Add($"Route #{r.Id} cites missing event #{r.OpenedEventId}.");
+            if (r.State != RouteState.Open && r.Volume != 0) errors.Add($"Route #{r.Id} carries trade while {r.State}.");
+        }
     }
 }
