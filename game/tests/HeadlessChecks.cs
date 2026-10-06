@@ -75,6 +75,13 @@ public partial class HeadlessChecks : Node
             };
             world.Armies[army.Id] = army;
             target.OccupierRealmId = a.Id;
+            var beastId = world.Ids.Take("monster");
+            var rose = log.Append(world.Date, new FantasyWorld.Sim.Events.EventDraft("MonsterRose",
+                Actors: new Dictionary<string, FantasyWorld.Sim.Events.EntityRef> { ["monster"] = new("monster", beastId) }, Place: home.Ref));
+            world.Monsters[beastId] = new FantasyWorld.Sim.Model.Monster
+            {
+                Id = beastId, Name = "The Wyrm of the Staged War", Breed = "wyrm", RegionId = home.Id, Might = 80, Legendary = true, RoseEventId = rose.Id,
+            };
             return (army.Ref, leader.Ref);
         });
         main.Router.Go(new Screen(ScreenKind.Map));
@@ -88,6 +95,8 @@ public partial class HeadlessChecks : Node
         Check(war.Fronts.Mesh is ArrayMesh { } fronts && fronts.GetSurfaceCount() >= 2, "the front between the sides is drawn with its teeth");
         var tag = (main.Current as MapHudView)?.TagLayer.GetChildren().OfType<ArmyTag>().FirstOrDefault();
         Check(tag is not null && tag.Army.Ref == armyRef, "the host is named on the map");
+        Check(main.Diorama.Monsters.Count == 1 && main.Diorama.StructureLayer.GetNodeOrNull("monster" + main.Diorama.Monsters[0].Ref.Id) is not null,
+            "a beast stands in its lair");
         await Shot("war");
         var banner = war.BannerAt(armyRef)!.Value;
         var screen = main.Diorama.Camera.UnprojectPosition(banner + new Godot.Vector3(0, WarLayer.BannerHeight * 0.7f, 0));
@@ -335,7 +344,8 @@ public partial class HeadlessChecks : Node
         Check(diorama.Markers.Count(m => m.Shape == MarkerShape.Settlement) == settlements
               && diorama.SettlementLayer.GetNode<MultiMeshInstance3D>("Roofs").Multimesh.InstanceCount >= 3 * settlements,
             "every settlement is a cluster of houses");
-        Check(diorama.StructureLayer.GetChildCount() == map.Structures.Count(s => s.Position is not null), "every landmark and labyrinth stands on the block");
+        Check(diorama.StructureLayer.GetChildren().Count(n => n.Name.ToString().StartsWith("structure")) == map.Structures.Count(s => s.Position is not null),
+            "every landmark and labyrinth stands on the block");
         Check(diorama.TreeCount > 100, $"woods are planted ({diorama.TreeCount} trees)");
         Check(map.Borders.Count == 0 || diorama.BorderLines.Mesh is ArrayMesh { } lines && lines.GetSurfaceCount() == 2, "realm borders are drawn, ink over a halo");
 

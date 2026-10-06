@@ -34,6 +34,9 @@ public sealed record MapArmy(
 /// <summary>A trade road on the map: its markets, the way it runs (market, regions between, market) and its state.</summary>
 public sealed record MapRoute(EntityRef Ref, string Name, EntityRef From, EntityRef To, string State, int Volume, IReadOnlyList<MapPoint> Path);
 
+/// <summary>A beast in its lair: what it is, how mighty, whether it is a legend or asleep, and the event of its rising.</summary>
+public sealed record MapMonster(EntityRef Ref, string Name, string Breed, int Might, bool Legendary, bool Slumbering, MapPoint Position, long RoseEventId);
+
 /// <summary>A battle of the last year: where, who won, and the event to explain it.</summary>
 public sealed record MapBattle(long EventId, int Year, MapPoint Position, EntityRef Victor, EntityRef Vanquished, EntityRef War);
 
@@ -45,7 +48,8 @@ public sealed record MapBattle(long EventId, int Year, MapPoint Position, Entity
 public sealed record MapScreen(
     string WorldName, string Summary, int Year, int FirstYear, bool Historical, IReadOnlyList<MapRegion> Regions, IReadOnlyList<MapSettlement> Settlements,
     IReadOnlyList<MapStructure> Structures, IReadOnlyList<Border> Borders, IReadOnlyList<Conflict> Conflicts, IReadOnlyList<LegendEntry> Legend,
-    IReadOnlyList<MapArmy>? Armies = null, IReadOnlyList<MapBattle>? Battles = null, IReadOnlyList<MapRoute>? Routes = null)
+    IReadOnlyList<MapArmy>? Armies = null, IReadOnlyList<MapBattle>? Battles = null, IReadOnlyList<MapRoute>? Routes = null,
+    IReadOnlyList<MapMonster>? Monsters = null)
 {
     /// <summary>Battles shown on the map: those of the last year.</summary>
     public const int BattleDays = 360;
@@ -110,7 +114,7 @@ public sealed record MapScreen(
         var summary = $"{Count(independent.Count, "realm")}, {Count(settlements.Count, "settlement")}, "
                       + $"{Count(labyrinths, "open labyrinth")}.";
         return new MapScreen(DigestScreen.DisplayName(world), char.ToUpperInvariant(summary[0]) + summary[1..], date.Year, 1, map.Historical,
-            regions, settlements, structures, borders, conflicts, legend, today ? ArmiesIn(world) : Array.Empty<MapArmy>(), BattlesBefore(world, log, date), RoutesAt(world, log, date, today));
+            regions, settlements, structures, borders, conflicts, legend, today ? ArmiesIn(world) : Array.Empty<MapArmy>(), BattlesBefore(world, log, date), RoutesAt(world, log, date, today), MonstersAt(world, log, date));
     }
 
     /// <summary>Hosts in the field today (armies are not kept in history, so past maps show none).</summary>
@@ -130,6 +134,17 @@ public sealed record MapScreen(
         }
         return armies;
     }
+
+    /// <summary>Beasts that had risen by the date and were not yet slain then.</summary>
+    private static IReadOnlyList<MapMonster> MonstersAt(World world, EventLog log, WorldDate date) =>
+        world.Monsters.Values
+            .Where(m => log.TryGet(m.RoseEventId, out var rose) && rose.Date <= date
+                        && !(m.State == MonsterState.Slain && log.TryGet(m.SlainEventId, out var slain) && slain.Date <= date))
+            .Select(m => (Beast: m, At: MapPoint.Of(world, world.Regions[m.RegionId].Ref)))
+            .Where(x => x.At is not null)
+            .Select(x => new MapMonster(x.Beast.Ref, x.Beast.Name, x.Beast.Breed, (int)Math.Round(x.Beast.Might), x.Beast.Legendary,
+                x.Beast.State == MonsterState.Slumbering, x.At!, x.Beast.RoseEventId))
+            .ToList();
 
     /// <summary>Roads opened by the date; their state then is replayed from their severing and restoring.</summary>
     private static IReadOnlyList<MapRoute> RoutesAt(World world, EventLog log, WorldDate date, bool today)

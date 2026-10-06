@@ -172,6 +172,10 @@ public partial class Main : Control
     private void Picked(FantasyWorld.Sim.Events.EntityRef picked)
     {
         if (picked.Kind == "event") Router.Explain(picked.Id);
+        else if (picked.Kind == Monster.Kind)
+        {
+            if (Diorama.Monsters.FirstOrDefault(m => m.Ref == picked) is { } beast) Router.Explain(beast.RoseEventId);
+        }
         else if (picked.Kind == Army.Kind)
         {
             if (Diorama.War.Armies.FirstOrDefault(a => a.Ref == picked)?.Commander is { } commander) Router.Open(commander.Ref);
