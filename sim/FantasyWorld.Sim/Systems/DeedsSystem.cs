@@ -64,8 +64,12 @@ public sealed class DeedsSystem : ISimSystem
         var options = new List<DecisionOption> { new("rest", 30, "carry on as before") };
         var bold = c.Has(Traits.Brave) ? 2.0 : c.Has(Traits.Craven) ? 0.2 : 1.0;
 
+        var beast = world.Monsters.Values.Where(m => m.State == MonsterState.Roaming && nearby.Any(r => r.Id == m.RegionId))
+            .OrderByDescending(m => m.Notoriety).ThenBy(m => m.Id).FirstOrDefault();
         var lair = nearby.Where(r => r.Danger >= 50).OrderByDescending(r => r.Danger).ThenBy(r => r.Id).FirstOrDefault();
-        if (lair is not null)
+        if (beast is not null)
+            options.Add(new($"hunt:{beast.RegionId}", (c.Ambition == Ambitions.Renown ? 50 : 6) * bold, $"hunt {beast.Name} in {world.Regions[beast.RegionId].Name}"));
+        else if (lair is not null)
             options.Add(new($"hunt:{lair.Id}", (c.Ambition == Ambitions.Renown ? 40 : 5) * bold, $"hunt the monsters of {lair.Name}"));
 
         var lost = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && nearby.Any(r => r.Id == a.RegionId))
@@ -118,6 +122,11 @@ public sealed class DeedsSystem : ISimSystem
 
     private void Hunt(SimContext ctx, Character hunter, Region region)
     {
+        if (ctx.World.Monsters.Values.Where(m => m.State == MonsterState.Roaming && m.RegionId == region.Id).OrderBy(m => m.Id).FirstOrDefault() is { } beast)
+        {
+            HuntBeast(ctx, hunter, region, beast);
+            return;
+        }
         var outcome = _arbiter.Resolve(Encounters.HuntIn(ctx.World, hunter, region), ctx.Rng);
         using var account = ctx.Annotate("account", outcome.Account);
         var hunt = ctx.Emit(new EventDraft(outcome.AttackerWins ? "MonstersSlain" : "MonsterHuntFailed",
@@ -132,6 +141,40 @@ public sealed class DeedsSystem : ISimSystem
             Glory(ctx, hunter, 8);
         }
         Suffer(ctx, hunter, outcome.AttackerFate, "monsters", hunt, lostIn: region.Id);
+    }
+
+    /// <summary>
+    /// A hunt for a named beast: the arbiter weighs the hunter against its might. Slaying it ends its story (fame, a
+    /// safer land, and from a mighty beast a trophy); failing feeds its notoriety.
+    /// </summary>
+    private void HuntBeast(SimContext ctx, Character hunter, Region region, Monster beast)
+    {
+        var world = ctx.World;
+        var outcome = _arbiter.Resolve(Encounters.HuntBeast(world, hunter, beast), ctx.Rng);
+        using var account = ctx.Annotate("account", outcome.Account);
+        var hunt = ctx.Emit(new EventDraft(outcome.AttackerWins ? "MonsterSlain" : "MonsterHuntFailed",
+            Actors: new Dictionary<string, EntityRef> { ["hunter"] = hunter.Ref, ["monster"] = beast.Ref },
+            Place: region.Ref, Payload: new Dictionary<string, string> { ["outcome"] = outcome.Key },
+            Causes: new[] { new Cause(ctx.Log.Involving(beast.Ref).LastOrDefault()?.Id ?? beast.RoseEventId, CauseKind.Trigger, 0.8) },
+            Importance: Fates.Importance(hunter, outcome.AttackerWins ? (int)(30 + beast.Might / 3 + (beast.Legendary ? 15 : 0)) : 18),
+            Tags: new[] { "Characters", "Deeds", "Magic" }));
+        if (outcome.AttackerWins)
+        {
+            beast.State = MonsterState.Slain;
+            beast.SlainEventId = hunt.Id;
+            beast.SlayerId = hunter.Id;
+            region.Danger = Math.Max(0, region.Danger - 25);
+            Glory(ctx, hunter, 8 + beast.Might / 8);
+            if (beast.Might >= 60 && world.Artifacts.Values.Count(a => a.Place != ArtifactPlace.Destroyed) < ArtifactCap(world))
+            {
+                var trophy = ArtifactForge.Create(ctx.Rng, world.Ids, new NameGen(ctx.Rng, world.Cultures.GetValueOrDefault(region.CultureId)?.Style), hunt.Id,
+                    fame: 20 + beast.Notoriety / 2);
+                world.Artifacts[trophy.Id] = trophy;
+                Fates.MoveToHolder(trophy, hunter, hunt.Id, "won");
+            }
+        }
+        else beast.Notoriety = Math.Min(100, beast.Notoriety + 8);
+        Suffer(ctx, hunter, outcome.AttackerFate, beast.Name, hunt, lostIn: region.Id);
     }
 
     private void Delve(SimContext ctx, Character delver, Artifact artifact)

@@ -22,6 +22,7 @@ public static class Names
         Army.Kind => world.Armies.TryGetValue(entity.Id, out var army) ? army.Name : null,
         Structure.Kind => world.Structures.TryGetValue(entity.Id, out var structure) ? structure.Name : null,
         TradeRoute.Kind => world.Routes.TryGetValue(entity.Id, out var route) ? route.Name : null,
+        Monster.Kind => world.Monsters.TryGetValue(entity.Id, out var monster) ? monster.Name : null,
         Culture.Kind => world.Cultures.TryGetValue(entity.Id, out var culture) ? culture.Name : null,
         Faith.Kind => world.Faiths.TryGetValue(entity.Id, out var faith) ? faith.Name : null,
         _ => null,

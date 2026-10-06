@@ -28,5 +28,13 @@ public static partial class Invariants
             if (!log.TryGet(r.OpenedEventId, out _)) errors.Add($"Route #{r.Id} cites missing event #{r.OpenedEventId}.");
             if (r.State != RouteState.Open && r.Volume != 0) errors.Add($"Route #{r.Id} carries trade while {r.State}.");
         }
+
+        foreach (var m in world.Monsters.Values)
+        {
+            if (!world.Regions.ContainsKey(m.RegionId)) errors.Add($"Monster #{m.Id} lairs in unknown region #{m.RegionId}.");
+            if (m.Might is < 1 or > 100) errors.Add($"Monster #{m.Id} has might {m.Might}.");
+            if (!log.TryGet(m.RoseEventId, out _)) errors.Add($"Monster #{m.Id} cites missing event #{m.RoseEventId}.");
+            if (m.State == MonsterState.Slain && m.SlainEventId == 0) errors.Add($"Monster #{m.Id} is slain without a slaying.");
+        }
     }
 }

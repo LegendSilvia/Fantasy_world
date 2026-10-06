@@ -107,6 +107,10 @@ public static class Encounters
     public static Encounter HuntIn(World world, Character hunter, Region region) =>
         Wilds(Hunt, world, hunter, Math.Max(1, region.Danger / 4), deathShare: 0.15);
 
+    /// <summary>Hunting a named beast: its strength is half its might, and losing to it is often fatal.</summary>
+    public static Encounter HuntBeast(World world, Character hunter, Monster beast) =>
+        Wilds(Hunt, world, hunter, Math.Max(1, beast.Might / 2), deathShare: 0.25);
+
     /// <summary>Delving for a lost artifact: the wilds' strength is danger / 3; failure is deadlier.</summary>
     public static Encounter DelveIn(World world, Character delver, Region region) =>
         Wilds(Delve, world, delver, Math.Max(1, region.Danger / 3), deathShare: 0.3);

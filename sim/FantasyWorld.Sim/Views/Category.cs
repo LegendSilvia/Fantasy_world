@@ -49,6 +49,12 @@ public static class Categories
         ["ArtifactStolen"] = "Theft",
         ["RevoltBegan"] = "Revolt",
         ["PlagueOutbreak"] = "Plague",
+        ["MonsterRose"] = "A beast rises",
+        ["MonsterRaid"] = "Raid",
+        ["MonsterLegendary"] = "A legend",
+        ["MonsterSlain"] = "A beast slain",
+        ["RouteOpened"] = "Trade",
+        ["RouteSevered"] = "Trade cut",
     };
 
     /// <summary>A short label above a headline ("War ends"), else the event type in words.</summary>

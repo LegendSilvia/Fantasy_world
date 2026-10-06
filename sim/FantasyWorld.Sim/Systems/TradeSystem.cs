@@ -43,7 +43,7 @@ public sealed class TradeSystem : ISimSystem
             var blocked = Blocked(ctx, route);
             if (route.State == RouteState.Open && blocked is { } cut)
                 Sever(ctx, route, cut.Reason, cut.Place ?? from.Ref, cut.Cause);
-            else if (route.State == RouteState.Severed && blocked is null)
+            else if (route.State == RouteState.Severed && blocked is null && !RaidedLately(ctx, route))
             {
                 route.State = RouteState.Open;
                 // Recorded at a weight compaction keeps, so past maps see the road reopen.
@@ -66,6 +66,12 @@ public sealed class TradeSystem : ISimSystem
         }
         Open(ctx);
     }
+
+    /// <summary>A road a beast's raid cut stays shunned this long.</summary>
+    public const int RaidDays = 180;
+
+    private static bool RaidedLately(SimContext ctx, TradeRoute route) =>
+        ctx.Log.TryGet(route.SeveredEventId, out var cut) && cut.Payload.GetValueOrDefault("reason") == "raid" && ctx.Date.Day - cut.Date.Day < RaidDays;
 
     /// <summary>Cuts an open road, citing what cut it.</summary>
     public static void Sever(SimContext ctx, TradeRoute route, string reason, EntityRef place, long? cause)
