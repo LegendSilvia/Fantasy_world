@@ -16,7 +16,17 @@ public static class CatchUp
         if (owed <= 0) return new CatchUpResult(0, 0, from, from);
 
         var days = Math.Min(owed, TimeScale.MaxCatchUpDays);
-        sim.AdvanceDays(days, progress, ct);
+        try
+        {
+            sim.AdvanceDays(days, progress, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Stopped part-way (the game was closed): the clock keeps pace with the days actually simulated, so saving
+            // now never makes the world run ahead of real time.
+            world.LastRealUtc += TimeSpan.FromTicks(TimeScale.RealTimePerWorldDay.Ticks * (world.Date.Day - from.Day));
+            throw;
+        }
         world.LastRealUtc += TimeSpan.FromTicks(TimeScale.RealTimePerWorldDay.Ticks * days);
         return new CatchUpResult(days, owed - days, from, world.Date);
     }

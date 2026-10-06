@@ -43,7 +43,7 @@ public sealed class AnthropicProvider(AnthropicClient? client = null) : ILlmProv
         try
         {
             _client ??= DefaultClient();
-            var message = await _client.Messages.Create(BuildParams(request, model), ct);
+            var message = await _client.Messages.Create(BuildParams(request, model), ct).ConfigureAwait(false);
             refused = message.StopReason == StopReason.Refusal;
             var json = string.Concat(message.Content.Select(b => b.Value).OfType<TextBlock>().Select(t => t.Text));
             var usage = message.Usage;

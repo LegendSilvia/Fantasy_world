@@ -1,6 +1,4 @@
-using FantasyWorld.Sim.Persist;
-
-namespace FantasyWorld.Cli;
+namespace FantasyWorld.Sim.Persist;
 
 /// <summary>
 /// Rolling backups of the last three sessions (spec §9): before a command changes the world, the file is copied to

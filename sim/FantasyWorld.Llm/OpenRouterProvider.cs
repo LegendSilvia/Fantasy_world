@@ -47,8 +47,8 @@ public sealed class OpenRouterProvider(string apiKey, HttpClient? http = null) :
         message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         try
         {
-            using var response = await _http.SendAsync(message, ct);
-            var body = await response.Content.ReadAsStringAsync(ct);
+            using var response = await _http.SendAsync(message, ct).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) throw new LlmUnavailableException($"OpenRouter answered {(int)response.StatusCode}.");
             using var doc = JsonDocument.Parse(body);
             var root = doc.RootElement;

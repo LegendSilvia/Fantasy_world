@@ -24,6 +24,7 @@
     <ProjectReference Include="..\FantasyWorld.Sim\FantasyWorld.Sim.csproj" />
     <ProjectReference Include="..\FantasyWorld.Cli\FantasyWorld.Cli.csproj" />
     <ProjectReference Include="..\FantasyWorld.Llm\FantasyWorld.Llm.csproj" />
+    <ProjectReference Include="..\FantasyWorld.Client\FantasyWorld.Client.csproj" />
   </ItemGroup>
 
 </Project>
