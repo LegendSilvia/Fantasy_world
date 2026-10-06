@@ -1,6 +1,8 @@
 using System.Threading.Tasks;
 using FantasyWorld.Client;
 using FantasyWorld.Sim.Core;
+using FantasyWorld.Sim.Model;
+using FantasyWorld.Sim.Views;
 using FantasyWorld.Sim.WorldGen;
 using Godot;
 
@@ -29,6 +31,19 @@ public partial class Main : Control
 
     public Diorama Diorama { get; private set; } = null!;
 
+    /// <summary>The layer the current screen's controls live in, above the diorama.</summary>
+    public Control Screens { get; private set; } = null!;
+
+    public Panel StatusLight { get; private set; } = null!;
+
+    public Geography? Geography { get; private set; }
+
+    /// <summary>The digest built when the world caught up (it is marked seen at once, so it is kept, not rebuilt).</summary>
+    public DigestScreen? Digest { get; private set; }
+
+    /// <summary>The control showing the current screen, if that screen has one yet.</summary>
+    public Control? Current { get; private set; }
+
     /// <summary>Lets a test (or another host) supply an open session before the node enters the tree.</summary>
     public void Use(Session session) => _session = session;
 
@@ -36,16 +51,24 @@ public partial class Main : Control
     {
         Name = "Main";
         Theme = Ui.CreateTheme();
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         // The diorama draws behind every card; the root lets clicks it does not use fall through to it.
         MouseFilter = MouseFilterEnum.Ignore;
         Diorama = new Diorama();
         AddChild(Diorama);
+        Screens = new Control { Name = "Screens", MouseFilter = MouseFilterEnum.Ignore };
+        Screens.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(Screens);
+        var pill = Ui.Capsule("StatusPill", Ui.C(Palette.Card), Ui.C(Palette.Border), 14, 8);
+        Ui.Place(pill, 1, 1, -40, -40);
+        var row = Ui.Row("Row", 8);
+        StatusLight = Ui.Dot(Palette.Muted, 8, "Light");
+        row.AddChild(StatusLight);
         Status = Ui.Body("Opening…", "Status", Palette.Body, 12);
         Status.AutowrapMode = TextServer.AutowrapMode.Off;
-        Status.SetAnchorsPreset(LayoutPreset.BottomLeft);
-        Status.Position = new Vector2(28, -40);
-        AddChild(Status);
+        row.AddChild(Status);
+        pill.AddChild(row);
+        AddChild(pill);
         _ = StartAsync();
     }
 
@@ -77,13 +100,33 @@ public partial class Main : Control
     /// <summary>Called once the world is current: subclasses and later tasks show the screens here.</summary>
     protected virtual void OnCaughtUp()
     {
-        if (_session!.Read((w, _) => w.Geography) is { } geography)
+        Geography = _session!.Read((w, _) => w.Geography);
+        if (Geography is not null)
         {
-            Diorama.Build(geography);
+            Diorama.Build(Geography);
             Diorama.Show(_session.Map());
         }
+        Digest = _session.Digest();
+        _session.MarkSeen();
+        Diorama.Picked += Router.Open;
+        Router.Changed += Show;
         CaughtUp = true;
         UpdateStatus();
+        Show(Router.Current);
+    }
+
+    /// <summary>Replaces the current screen's controls (and the diorama's pins) for a screen.</summary>
+    public void Show(Screen screen)
+    {
+        Ui.Clear(Screens);
+        Diorama.ShowPins(screen.Kind == ScreenKind.Digest && Digest is not null && Geography is not null
+            ? Markers.Pins(Digest, Geography) : Array.Empty<Pin>());
+        Current = screen.Kind switch
+        {
+            ScreenKind.Digest when Digest is not null => new DigestView { Host = this, Digest = Digest },
+            _ => null,
+        };
+        if (Current is not null) Screens.AddChild(Current);
     }
 
     public override void _Process(double delta)
@@ -97,8 +140,11 @@ public partial class Main : Control
 
     public void UpdateStatus()
     {
-        if (_session?.TryRead((w, _) => w.Date.ToString()) is { } date)
-            Status.Text = _session.DaysBehind > 0 ? $"Catching up · {_session.DaysBehind} days behind" : $"Caught up · {date}";
+        if (_session?.TryRead((w, _) => DigestScreen.StatusLine(w.Date, _session.DaysBehind)) is { } line)
+        {
+            Status.Text = line;
+            StatusLight.AddThemeStyleboxOverride("panel", Ui.Round(Ui.C(_session.DaysBehind > 0 ? Palette.Conflict : Palette.Realm), null));
+        }
     }
 
     public override void _ExitTree() => _session?.Dispose();

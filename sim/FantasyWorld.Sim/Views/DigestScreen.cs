@@ -49,11 +49,13 @@ public sealed record DigestScreen(
         var subtitle = elapsed == 0
             ? $"Nothing has passed since you last looked at {name}."
             : $"While you were away, {Span(elapsed)} passed in {name}. {Seasons(since, world.Date)}, and {Count(digest.EventCount)} recorded.";
-        var status = daysBehind > 0
-            ? $"Catching up · {daysBehind.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)} day{(daysBehind == 1 ? "" : "s")} behind"
-            : $"Caught up · Year {world.Date.Year}, day {(world.Date.Month - 1) * WorldDate.DaysPerMonth + world.Date.DayOfMonth}";
-        return new DigestScreen(name, world.Date.Year, $"Year {world.Date.Year}.", subtitle, elapsed, status, pins, headline, items);
+        return new DigestScreen(name, world.Date.Year, $"Year {world.Date.Year}.", subtitle, elapsed, StatusLine(world.Date, daysBehind), pins, headline, items);
     }
+
+    /// <summary>"Caught up · Year 312, day 196", or "Catching up · 12 days behind" while real time is still owed.</summary>
+    public static string StatusLine(WorldDate date, long daysBehind) => daysBehind > 0
+        ? $"Catching up · {daysBehind.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)} day{(daysBehind == 1 ? "" : "s")} behind"
+        : $"Caught up · Year {date.Year}, day {(date.Month - 1) * WorldDate.DaysPerMonth + date.DayOfMonth}";
 
     /// <summary>The digest a returning reader sees: everything since they last looked, without marking it seen.</summary>
     public static DigestScreen ForReader(World world, EventLog log, IReadOnlySet<EntityRef> followed, long daysBehind = 0, INarrator? narrator = null)

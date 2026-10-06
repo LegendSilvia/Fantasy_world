@@ -46,6 +46,51 @@ public partial class HeadlessChecks : Node
         Check(main.Status.Text.StartsWith("Caught up · "), $"status reads caught up (\"{main.Status.Text}\")");
         await Frames(2);
         await DioramaChecks(main);
+        await DigestChecks(main);
+    }
+
+    private async Task DigestChecks(Main main)
+    {
+        main.Router.Home();
+        main.Diorama.Rig.Reset();
+        await Frames(60);
+        var view = main.Current as DigestView;
+        Check(view is not null, "the digest is the first screen");
+        if (view is null) return;
+        var digest = main.Digest!;
+        Check(view.GetNode<Label>("Intro/Title").Text == digest.Title, "the digest shows the year");
+        Check(view.GetNode<Label>("Intro/Subtitle").Text == digest.Subtitle, "and the time away");
+        Check(main.Session!.Digest().Items.Count == 0 && main.Session.Digest().Headline is null, "showing the digest marks it seen");
+        Check(digest.Headline is null || view.Content.GetNode<RichTextLabel>("Headline/HeadlineTitle").GetParsedText() == digest.Headline.Title.Text,
+            "the headline is shown");
+        Check(view.Content.GetNodeOrNull("Items")?.GetChildCount() == digest.Items.Count, $"every item is listed ({digest.Items.Count})");
+        Check(view.PinLayer.GetChildCount() == digest.Pins.Count && main.Diorama.Pins.Count == digest.Pins.Count, $"one pin per place ({digest.Pins.Count})");
+        await Shot("digest");
+
+        if (digest.Pins.Count > 0)
+        {
+            var pin = view.PinLayer.GetChild<PinTag>(0);
+            var expected = main.Diorama.ScreenOf(main.Diorama.Pins[0].Position) - new Godot.Vector2(11, 11);
+            Check(pin.Position.DistanceTo(expected) < 1, "pins follow their places on screen");
+            view.FlyTo(digest.Pins[0].EventId);
+            await Frames(2);
+            Check(main.Diorama.Rig.GoalDistance == OrbitRig.DistanceFor(Zoom.Region), "an item flies the camera to its place");
+        }
+
+        view.ShowChronicle(true);
+        await Frames(2);
+        Check(view.Content.GetNodeOrNull("Chronicle") is not null && view.ShowingChronicle, "the toggle shows the full chronicle");
+        await Shot("digest-chronicle");
+        view.ShowChronicle(false);
+
+        if (digest.Headline is { CanExplain: true } headline)
+        {
+            view.Content.GetNode<Button>("Headline/Why").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(main.Router.Current == new Screen(ScreenKind.Why, headline.EventId), "\"Why did this happen?\" opens the why chain");
+            main.Router.Back();
+            await Frames(2);
+            Check(main.Current is DigestView, "Back returns to the digest");
+        }
     }
 
     private async Task DioramaChecks(Main main)

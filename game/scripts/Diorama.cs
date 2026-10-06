@@ -91,7 +91,7 @@ public partial class Diorama : Node3D
         BorderLines.Mesh = DashedLines(FantasyWorld.Client.Markers.Borders(map, _geography), Palette.Ink);
     }
 
-    /// <summary>The digest's numbered pins (empty to clear them).</summary>
+    /// <summary>The digest's pins as stems over their places (the screen draws their numbered labels).</summary>
     public void ShowPins(IEnumerable<Pin> pins)
     {
         Ui.Clear(PinLayer);
@@ -106,11 +106,7 @@ public partial class Diorama : Node3D
                 Mesh = new CylinderMesh { TopRadius = 0.0015f, BottomRadius = 0.0015f, Height = Client.Markers.PinLift },
                 MaterialOverride = Flat(Palette.Ink),
             });
-            node.AddChild(new Label3D
-            {
-                Name = "Number", Text = pin.Number.ToString(), Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, FontSize = 48, PixelSize = 0.0006f,
-                Modulate = Colors.White, OutlineModulate = Ui.C(Palette.Ink), OutlineSize = 22, NoDepthTest = true,
-            });
+            node.AddChild(new MeshInstance3D { Name = "Head", Mesh = new SphereMesh { Radius = 0.006f, Height = 0.012f }, MaterialOverride = Flat(Palette.Ink) });
             PinLayer.AddChild(node);
         }
     }
