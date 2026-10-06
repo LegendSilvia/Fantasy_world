@@ -18,12 +18,20 @@ Context for picking up this project on another machine / in a new Claude session
 | Plan 6 of 6 (Chronicle & hardening) | **Done** — `docs/superpowers/plans/2026-10-06-chronicle-and-hardening.md`, Tasks 1–9; 457/457 tests pass (Debug + Release); spec §11 criteria 1–3 and 5 checked automatically; ~50–90 ms per world year (budget 2 s) |
 | Sim core (sub-project 1) | **Complete** |
 | Sub-project 2 (Chronicle & why UI data) | **Done** — spec `docs/superpowers/specs/2026-10-06-chronicle-views-design.md`, plan `docs/superpowers/plans/2026-10-06-chronicle-views.md`, Tasks 1–8; 478/478 tests pass; every screen well under a millisecond (budget 50 ms) |
-| Sub-project 4 (Godot diorama client) | Spec drafted — `docs/superpowers/specs/2026-10-06-godot-diorama-client-design.md`; prototype in progress (session, block mesh, camera, Godot project, diorama, digest screen) |
+| Sub-project 4 (Godot diorama client) | **Done** — spec `docs/superpowers/specs/2026-10-06-godot-diorama-client-design.md`, plan `docs/superpowers/plans/2026-10-06-godot-diorama-client.md`, Tasks 1–13; 512/512 tests pass; 69 headless Godot checks pass (also in CI); screenshots in `docs/images/` |
+| Sub-project 3 (Myth, magic & structures) | Spec drafted — `docs/superpowers/specs/2026-10-06-myth-magic-structures-design.md`; prototype in progress (trade routes and roads on the map, named monsters and hunts, beasts on the map, faith spread and holy sites) |
+| Sub-project 5 (Narration polish) | Spec drafted — `docs/superpowers/specs/2026-10-06-narration-polish-design.md` |
 
 ## Next step
 
-1. Merge the working branch into `main` (Plans 4–6 and sub-project 2).
-2. Sub-project 4 (Godot client), then 3 (depth) and 5 (narration evals).
+1. Merge the working branch into `main` (Plans 4–6 and sub-projects 2 and 4).
+2. Sub-project 3 (depth), then 5 (narration evals).
+
+Notes from sub-project 4 execution:
+- Try it: install Godot 4.3 .NET, `dotnet build game/FantasyWorld.Game.csproj`, then open `game/` in Godot (or run it with `--path game`); it opens `worlds/default.fw.db`, catching up first.
+- Headless checks: `godot --headless --path game res://tests/HeadlessChecks.tscn` (prints `HEADLESS CHECKS PASSED (n)`, exit 0/1). Screenshots: add `-- --shots <dir>` under a display (xvfb works with `--rendering-driver opengl3`).
+- The sim never runs on the main thread: catch-up, live steps and digests run on workers; LLM providers use `ConfigureAwait(false)` for this reason.
+- Godot C# needs one node class per file, named after the file; vertex colours are converted from sRGB to linear.
 
 Notes from sub-project 2 execution:
 - Try it: `fw view worlds/w.fw.db digest`, `… map --as-of 50`, `… character char#12`, `… why <event-id>`, `… chronicle --category war`, `… realm 3`, `… artifact 2` (JSON for clients).

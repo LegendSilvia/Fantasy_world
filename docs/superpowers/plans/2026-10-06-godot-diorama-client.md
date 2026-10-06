@@ -75,7 +75,7 @@ Spec §2: the game never touches the simulation directly. A `Session` opens (rot
 - Consumes: `WorldGenerator`, `Prehistory`, `CatchUp`, `LiveHost`, `WorldStore`, `LlmGateway`, the LLM deciders (Plans 1–6); the view models (sub-project 2).
 - Produces: project `sim/FantasyWorld.Client` (net8 class library; in the solution and referenced by the tests); `sealed class Session : IDisposable { Create(path, seed, size, clock, prehistoryYears?, progress?); Open(path, clock, providers?); DaysBehind; Busy; CatchUpAsync(progress?, ct); Step(); NextDayAt; Read(view); TryRead(view); Digest(); MarkSeen(); Map(year?); Character(id); Family(id); Why(eventId, depth); Chronicle(from?, to?, only?, page); Realm(id); Artifact(id); IsFollowed(entity); Follow(entity, follow) }`; `Backups` moved to `FantasyWorld.Sim.Persist`; `DigestScreen.ForReader(world, log, followed, daysBehind, narrator)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/SessionTests.cs`:
 ```csharp
@@ -228,12 +228,12 @@ Replace `sim/FantasyWorld.Sim.Tests/FantasyWorld.Sim.Tests.csproj` entirely with
 </Project>
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Client' does not exist in the namespace 'FantasyWorld' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Remove the files this task moves:
 ```bash
@@ -732,12 +732,12 @@ Global
 EndGlobal
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SessionTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 483` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -760,7 +760,7 @@ Spec §3: the world as a floating block. The terrain grid becomes plain mesh arr
 - Consumes: `TerrainGrid`, `Biome`, `MapPoint` (Plans 1–2, sub-project 2).
 - Produces: `record MeshData(Positions, Normals, Colors, Indices) { Triangles }`; `static class BlockMesh { HeightScale; BaseDepth; Strata; Hex(rgb); ColourOf(biome); HeightAt(grid, u, v); Top(grid, resolution); Sides(grid, resolution); … }`; `static class Projection { MarkerLift; ToBlock(grid, point, lift); ToMap(onBlock) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/BlockMeshTests.cs`:
 ```csharp
@@ -818,12 +818,12 @@ public class BlockMeshTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'BlockMesh' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Client/BlockMesh.cs`:
 ```csharp
@@ -980,12 +980,12 @@ public static class Projection
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~BlockMeshTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 486` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1008,7 +1008,7 @@ Spec §3–§5, the parts of the client that are pure logic. The orbit rig turns
 - Consumes: `EntityRef`, `Category` (Plans 1–6, sub-project 2).
 - Produces: `enum Zoom { Realm, Region, Town }`; `sealed class OrbitRig { MinPitch; MaxPitch; MinDistance; MaxDistance; DistanceFor(zoom); Drag(dx, dy); Scroll(steps); Preset(zoom); Focus(point, zoom?); Reset(); Update(seconds); Eye; Target; Goal…; NearestZoom }`; `enum ScreenKind`; `record Screen(Kind, Id, Year, Focus)`; `sealed class ScreenRouter { Current; CanGoBack; Changed; Go; Back; Home; For(entity); Open(entity); Explain(eventId) }`; `static class Palette { Ground, Card, Border, Rule, Ink, Body, Muted, Conflict, Realm; For(category); Heraldic(name) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/NavigationTests.cs`:
 ```csharp
@@ -1070,12 +1070,12 @@ public class NavigationTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'OrbitRig' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Client/OrbitRig.cs`:
 ```csharp
@@ -1267,12 +1267,12 @@ public sealed class ScreenRouter
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~NavigationTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 489` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1294,7 +1294,7 @@ Spec §2 and §7. A Godot 4.3 .NET project (`game/`) that references the client 
 - Consumes: Tasks 1–3.
 - Produces: `game/project.godot` (main scene `res://scenes/Main.tscn`, 1440×900), `game/FantasyWorld.Game.csproj` (`Godot.NET.Sdk/4.3.0`, references `FantasyWorld.Client`); `static class Ui { CreateTheme(); C(rgb, alpha); Card; Kicker; Title; Body; Button; Pill; Column; Row; Clear }`; `partial class Main : Control { Use(session); Session; Router; Status; CaughtUp; OnCaughtUp(); UpdateStatus() }`; `game/tests/HeadlessChecks.tscn` (prints `HEADLESS CHECKS PASSED (n)`); fonts in `game/fonts/`.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 `game/.gitignore`:
 ```
@@ -1700,16 +1700,16 @@ public partial class HeadlessChecks : Node
 script = ExtResource("1")
 ```
 
-- [ ] **Step 2: Run tests to verify they pass**
+- [x] **Step 2: Run tests to verify they pass**
 
 Run: `dotnet test sim` → `Passed: 489` in total.
 
-- [ ] **Step 3: Run the headless game checks**
+- [x] **Step 3: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (2)` and exit code 0.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add game
@@ -1733,7 +1733,7 @@ Spec §3: the block, the sea, settlements and structures as markers, realm borde
 - Consumes: Tasks 1–4; `MapScreen`, `DigestScreen` (sub-project 2).
 - Produces: `enum MarkerShape`; `record Marker`, `Pin`, `Segment`; `static class Markers { PinLift; SizeOf(tier); For(map, geography); Pins(digest, geography); Borders(map, geography) }`; `partial class Diorama : Node3D { Rig; Camera; Block; MarkerLayer; PinLayer; BorderLines; Markers; Pins; Picked; Build(geography); Show(map); ShowPins(pins); Focus(point, zoom?); Pick(screen); ScreenOf(position); ToGodot(v) }`; `Main.Diorama`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/MarkersTests.cs`:
 ```csharp
@@ -1785,12 +1785,12 @@ public class MarkersTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Markers' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `game/scripts/Diorama.cs`:
 ```csharp
@@ -2379,17 +2379,17 @@ public static class Markers
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~MarkersTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 492` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (10)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game sim
@@ -2413,7 +2413,7 @@ Spec §4, the launch screen: the year and time away on the left, the control car
 - Consumes: Tasks 1–5.
 - Produces: `static class Markup { Bbcode(linkedText); Escape(text); Elapsed(days) }`; `DigestScreen.StatusLine(date, daysBehind)`; `Ui.Linked/Dot/Capsule/Ruled/Round/Place`; `partial class DigestView : Control { Host; Digest; ShowChronicle(on); FlyTo(eventId); PinLayer; Content }`; `Main { Screens; Geography; Digest; Current; Show(screen); StatusLight }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/MarkupTests.cs`:
 ```csharp
@@ -2456,12 +2456,12 @@ public class MarkupTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Markup' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `game/scripts/Diorama.cs` entirely with:
 ```csharp
@@ -3569,17 +3569,17 @@ public sealed record DigestScreen(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~MarkupTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 495` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (20)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game sim
@@ -3603,7 +3603,7 @@ Spec §4: the world's name and summary, name tags over settlements (towns and ci
 - Consumes: Tasks 1–6; `History` through `MapScreen.Build(asOf)` (sub-project 2).
 - Produces: `[Flags] enum MapLayers`; `static class MapLabels { Shows(settlement, zoom, layers); Find(map, entity); ZoomFor(entity) }`; `Diorama.SetLayers/Layers/SettlementLayer/StructureLayer/ShownYear`, `Show(map, pastYear?)`; `partial class MapHudView : Control { Focus; Map; Year; Now; ShowYear(year); SetLayer(layer, on); ShowCard(tag); Snapshot() }`; `Ui` checkbox and slider styling.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/MapLabelsTests.cs`:
 ```csharp
@@ -3649,12 +3649,12 @@ public class MapLabelsTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'MapLabels' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `game/scripts/Diorama.cs` entirely with:
 ```csharp
@@ -4880,17 +4880,17 @@ public static class MapLabels
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~MapLabelsTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 498` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (35)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game sim
@@ -4915,7 +4915,7 @@ The first render read as a game prototype: tile-stepped colour blocks, neon gree
 - Consumes: Tasks 1–7.
 - Produces: `sealed class TerrainField { For(grid); Height(u, v); BaseColour; River; Cold; Detail }`; `BlockMesh { Shore; SeaDepth; RiverBed; Relief; Sand; Rock; Snow; River; Shallows; Deep; SeaFloor; Water(grid, resolution); Hash(i, j) }` (`MeshData.Alphas`); `enum TreeKind`; `record Tree`, `House`; `static class Scatter { Spacing; MaxTrees; Density(biome); Trees(grid, clearings?, clearing); Houses(settlement, grid) }`; `Markers.BorderLines(map, geography)`, `Markers.Chains(edges)`; `readonly record struct LabelBox`; `static class Declutter { Visible(labels, width, height, reserved?) }`; `Ui.FittedTitle/Line`; `game/tests/Showcase.tscn`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Client/BlockMeshTests.cs` entirely with:
 ```csharp
@@ -5126,12 +5126,12 @@ public class ScatterTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Scatter' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `game/scripts/Diorama.cs` entirely with:
 ```csharp
@@ -7545,17 +7545,17 @@ public static class Scatter
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~BlockMeshTests|FullyQualifiedName~MarkersTests|FullyQualifiedName~ScatterTests"`
 Expected: `Passed!  - Failed: 0, Passed: 13`. Then `dotnet test sim` → `Passed: 505` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (37)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game sim
@@ -7578,7 +7578,7 @@ The character page exposed a simulation bug: a defender that always marched to r
 - Consumes: `MilitarySystem`, `DiplomacySystem` (Plan 4).
 - Produces: `MilitarySystem.GiveOrders` engages invaders first; `DiplomacySystem.WarCauses` adds the latest `PeaceSigned`/`RegionCeded`/`IndependenceDeclared` between the realms; `SuccessCriteriaTests.Armies_MeetEachOther_RatherThanTradePlacesForever`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Engine/SuccessCriteriaTests.cs` entirely with:
 ```csharp
@@ -7686,12 +7686,12 @@ public class SuccessCriteriaTests(PrehistoricWorld fixture) : IClassFixture<Preh
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 1 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Systems/DiplomacySystem.cs` entirely with:
 ```csharp
@@ -8401,17 +8401,17 @@ public static class Statecraft
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SuccessCriteriaTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 506` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (37)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -8435,7 +8435,7 @@ Spec §4. The character page: name, role line, trait and ambition chips, a paint
 - Consumes: Tasks 1–9.
 - Produces: `record CardBox`, `Connector`, `WhyGraph`; `static class WhyLayout { CardHeight; RowGap; ColumnGap; MaxCard; MinCard; Layout(why, width) }`; `static class MiniMap { Pixels(grid, size) }`; `partial class CharacterView`, `FamilyView`, `WhyView`, `WhyCanvas`, `PinTag`, `SettlementTag`; `Ui.Chip/NameLink/BackLink/Page`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/PagesTests.cs`:
 ```csharp
@@ -8479,12 +8479,12 @@ public class PagesTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'WhyLayout' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `game/scripts/Main.cs` entirely with:
 ```csharp
@@ -10452,17 +10452,17 @@ public static class WhyLayout
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PagesTests"`
 Expected: `Passed!  - Failed: 0, Passed: 2`. Then `dotnet test sim` → `Passed: 508` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (51)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game sim
@@ -10486,7 +10486,7 @@ Spec §4 and §7. Every link now leads somewhere: realm pages (ruler, laws, coun
 - Consumes: Tasks 1–10.
 - Produces: `abstract partial class DocumentPage`; `partial class RealmView`, `ArtifactView`, `ChronicleView { Only; Page; Filter(category); Show(page) }`; `Main { LiveToastImportance = 40; Toast(text, eventId); CurrentToast }` and key handling; router: wars open the chronicle filtered to war; `.github/workflows/ci.yml` job `game`; README section "The game" with screenshots in `docs/images/`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Client/NavigationTests.cs` entirely with:
 ```csharp
@@ -10550,12 +10550,12 @@ public class NavigationTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 1 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `.github/workflows/ci.yml` entirely with:
 ```yaml
@@ -13041,17 +13041,17 @@ public sealed class ScreenRouter
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~NavigationTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 508` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (63)` and exit code 0.
 
-- [ ] **Step 6: Render the README screenshots**
+- [x] **Step 6: Render the README screenshots**
 
 On a machine with a display (or under `xvfb-run`):
 ```bash
@@ -13061,7 +13061,7 @@ cp /tmp/showcase/3-region.png docs/images/region.png
 cp /tmp/showcase/8-why.png docs/images/why.png
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .github README.md game sim
@@ -13084,7 +13084,7 @@ Characters should be part of the fighting, and they were not: no one was ever kn
 - Consumes: `PromotionSystem`, `MilitarySystem` battles, `Fates`, `TemplateNarrator` (Plans 3–4).
 - Produces: `PromotionSystem { MaxKnightsPerYear = 2; MinKnightMartial = 8 }` and yearly knighting (`Knighted`); `BattleFought` actors `victor knight n` / `vanquished knight n`; events `WoundedInBattle` (payload `wound`) and `DistinguishedInBattle`, with templates; `SuccessCriteriaTests.Battles_AreFoughtByPeople_WhoCarryThemIntoTheirLives`; regenerated view goldens.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Engine/SuccessCriteriaTests.cs` entirely with:
 ```csharp
@@ -13670,12 +13670,12 @@ Replace `sim/FantasyWorld.Sim.Tests/Views/Golden/why.json` entirely with:
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 2 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Narration/TemplateNarrator.cs` entirely with:
 ```csharp
@@ -14193,17 +14193,17 @@ public sealed class PromotionSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SuccessCriteriaTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 509` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (63)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -14228,7 +14228,7 @@ War drawn the way a strategy map draws it: a broad campaign arrow along each hos
 - Consumes: Tasks 1–12; `Army`, `War` (Plan 4).
 - Produces: `record MapArmy`, `MapBattle`; `MapScreen.Armies`, `MapScreen.Battles`, `MapScreen.BattleDays`; `MeshData.Uvs`; `record Arrow`, `Front`; `static class WarLayout { Attacker; Defender; SideColour; Colour; Arrows; ArrowMesh; Fronts; Occupation; OccupationOutline }`; `MapLayers.Armies`; `partial class WarLayer : Node3D { Show(map, geography); BannerAt; BannerTop; ScaleFor; Armies; RecentBattles }`; `ArmyTag`; `Main` routes picked banners and battles; `game/tests/WarMovie.tscn`; README war section.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Client/WarLayoutTests.cs`:
 ```csharp
@@ -14920,12 +14920,12 @@ Replace `sim/FantasyWorld.Sim.Tests/Views/Golden/map.json` entirely with:
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'MapScreen' does not contain a definition for 'Armies' and no accessible extension method 'Armies' accepting a first argument of type 'MapScreen' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `README.md` entirely with:
 ````markdown
@@ -18065,17 +18065,17 @@ public sealed record MapScreen(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~WarLayoutTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 512` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (69)` and exit code 0.
 
-- [ ] **Step 6: Render the README screenshots**
+- [x] **Step 6: Render the README screenshots**
 
 On a machine with a display (or under `xvfb-run`):
 ```bash
@@ -18083,7 +18083,7 @@ godot --path game --write-movie /tmp/war.avi --fixed-fps 30 res://tests/WarMovie
 ffmpeg -y -ss 6 -i /tmp/war.avi -frames:v 1 docs/images/war.png
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add README.md game sim
