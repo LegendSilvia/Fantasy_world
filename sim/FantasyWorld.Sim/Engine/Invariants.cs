@@ -52,7 +52,11 @@ public static partial class Invariants
             if (!world.Faiths.ContainsKey(culture.FaithId))
                 errors.Add($"Culture #{culture.Id} has unknown faith #{culture.FaithId}.");
         foreach (var faith in world.Faiths.Values)
+        {
             if (faith.Zeal is < 0 or > 100) errors.Add($"Faith #{faith.Id} has zeal {faith.Zeal} outside 0–100.");
+            if (faith.ParentFaithId != 0 && !world.Faiths.ContainsKey(faith.ParentFaithId))
+                errors.Add($"Faith #{faith.Id} split from unknown faith #{faith.ParentFaithId}.");
+        }
         foreach (var realm in world.Realms.Values)
             if (realm.FaithId != 0 && !world.Faiths.ContainsKey(realm.FaithId))
                 errors.Add($"Realm #{realm.Id} has unknown faith #{realm.FaithId}.");

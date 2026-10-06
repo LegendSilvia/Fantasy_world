@@ -56,6 +56,8 @@ public static class Categories
         ["RouteOpened"] = "Trade",
         ["RouteSevered"] = "Trade cut",
         ["RegionConverted"] = "Conversion",
+        ["SchismBegan"] = "Schism",
+        ["SaintDeclared"] = "A saint",
         ["RealmConverted"] = "A realm converts",
         ["HolySiteLost"] = "Holy land lost",
         ["HolySiteRegained"] = "Holy land regained",

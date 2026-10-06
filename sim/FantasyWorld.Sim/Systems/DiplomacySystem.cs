@@ -174,6 +174,10 @@ public sealed class DiplomacySystem : ISimSystem
             var tenets = world.Faiths.GetValueOrDefault(realm.FaithId)?.Tenets ?? new List<string>();
             if (realm.FaithId != enemy.FaithId && (tenets.Contains("zealous") || tenets.Contains("warlike")))
                 options.Add(new(CasusBelli.HolyWar, enemy.Id, 0, Border(world, realm, enemy), 0, 20));
+            // A faith that lost its holy land to this neighbour wants it back, the more so the more zealous it is.
+            if (world.Faiths.GetValueOrDefault(realm.FaithId) is { HolySiteLostEventId: not 0 } mine && world.Regions.TryGetValue(mine.HolyRegionId, out var holy)
+                && Realms.SovereignOf(world, holy)?.Id == enemy.Id && (mine.Zeal >= 40 || tenets.Contains("zealous") || tenets.Contains("warlike")))
+                options.Add(new(CasusBelli.HolyWar, enemy.Id, mine.HolySiteLostEventId, holy.Id, 0, 40));
 
             var hungry = Realms.Domain(world, realm).Select(r => r.Conditions.GetValueOrDefault(Conditions.Shortage)).FirstOrDefault(id => id != 0);
             var granary = theirs.Where(r => r.Fertility >= 60 && Touches(world, r, realm)).OrderByDescending(r => r.Fertility).ThenBy(r => r.Id).FirstOrDefault();
@@ -205,11 +209,13 @@ public sealed class DiplomacySystem : ISimSystem
             cbEvent = ctx.Emit(new EventDraft("HolyWarProclaimed", Actors: Pair(attacker, defender),
                 Place: world.Settlements[attacker.CapitalId].Ref,
                 Payload: new Dictionary<string, string> { ["faith"] = world.Faiths[attacker.FaithId].Name },
+                Causes: cb.EventId != 0 ? new[] { new Cause(cb.EventId, CauseKind.Motive, 0.9) } : null,
                 Importance: 50, Tags: new[] { "Politics", "Faith" })).Id;
 
         var target = world.Regions.GetValueOrDefault(cb.TargetRegionId);
         var name = cb.Kind switch
         {
+            CasusBelli.HolyWar when target is not null && target.Id == world.Faiths[attacker.FaithId].HolyRegionId => $"The Holy War for {target.Name}",
             CasusBelli.HolyWar => $"The Holy War of {world.Faiths[attacker.FaithId].Deity}",
             CasusBelli.Independence => $"The {defender.Name} Rebellion",
             CasusBelli.Revenge => $"The War of {attacker.Name}'s Vengeance",

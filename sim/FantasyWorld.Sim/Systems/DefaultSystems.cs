@@ -25,7 +25,7 @@ public static class DefaultSystems
         new DiplomacySystem(decider, inventor),
         new MilitarySystem(arbiter, decider),
         new TradeSystem(),
-        new FaithSystem(),
+        new FaithSystem(inventor),
         new MonsterSystem(inventor),
         new FamilySystem(decider),
         new RelationsSystem(),

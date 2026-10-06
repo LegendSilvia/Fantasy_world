@@ -53,6 +53,8 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["RouteRestored"] = "Trade returned to {route}.",
         ["RouteClosed"] = "{route} fell out of use.",
         ["OccupationLapsed"] = "{realm} gave up its hold on {@place}.",
+        ["SchismBegan"] = "{heresiarch} broke from {old} and founded {faith}.",
+        ["SaintDeclared"] = "{faith} declared {saint} a saint.",
         ["RegionConverted"] = "The people of {@place} turned from {old} to {faith}.",
         ["RealmConverted"] = "{realm} took up {faith}.",
         ["HolySiteLost"] = "{faith} lost its holy land of {@place} to {realm}.",

@@ -10,7 +10,7 @@ public enum ArtifactPlace { Held, Treasury, Lost, Destroyed }
 
 /// <summary>
 /// A mechanical effect. Kind "attribute" adds Amount to Attribute while held; other kinds are tags
-/// later systems read: "ward" (monsters), "truthsight" (intrigue), "harvest" (region food), "legitimacy" (Plan 4).
+/// later systems read: "ward" (monsters), "truthsight" (intrigue), "harvest" (region food), "legitimacy" (Plan 4), "devotion" (a saint's relics: holds their town to its faith).
 /// </summary>
 public sealed record ArtifactPower(string Kind, string? Attribute, int Amount);
 

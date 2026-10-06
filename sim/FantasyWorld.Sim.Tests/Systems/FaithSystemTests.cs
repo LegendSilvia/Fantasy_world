@@ -1,3 +1,4 @@
+using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Model;
@@ -142,5 +143,68 @@ public class FaithSystemTests
         sim.AdvanceDays(360);
         Assert.DoesNotContain(sim.Log.All, e => e.Type == "HolySiteRegained");
         Assert.NotEqual(0, sun.HolySiteLostEventId);
+    }
+
+    [Fact]
+    public void AZealousFaithThatLostItsHolyLand_SplitsWhenAPriestFoundsAHeresy()
+    {
+        var world = TestRealms.TwoKingdoms();
+        var log = new EventLog();
+        var ohm = world.Faiths[1];
+        ohm.Tenets.Add("zealous");
+        world.Realms[1].FaithId = AddFaith(world, "The Sun Creed", 2).Id; // Ohm's holy land is held by a realm of the Sun
+        var lost = log.Append(world.Date, new EventDraft("HolySiteLost", Place: world.Regions[1].Ref));
+        (ohm.HolySiteLostEventId, ohm.Zeal) = (lost.Id, 90);
+        var priest = TestPeople.Add(world, 2, 40, role: Role.Priest);
+        priest.Attributes.Lore = 18;
+        var sim = Run(world, log);
+        sim.AdvanceDays(360 * 40);
+
+        var schism = sim.Log.All.First(e => e.Type == "SchismBegan");
+        Assert.Equal(priest.Ref, schism.Actors["heresiarch"]);
+        Assert.Contains(schism.Causes, c => c.EventId == lost.Id);
+        var heresy = world.Faiths[schism.Actors["faith"].Id];
+        Assert.Equal((ohm.Id, priest.Id, schism.Id, ohm.Deity), (heresy.ParentFaithId, heresy.FounderId, heresy.FoundedEventId, heresy.Deity));
+        Assert.Equal("The True Way of Ohm", heresy.Name);
+        Assert.NotEqual(ohm.Tenets.Order(), heresy.Tenets.Order());
+        Assert.Equal(heresy.Id, priest.FaithId);
+        Assert.Contains(sim.Log.All, e => e.Type == "RegionConverted" && e.Causes.Any(c => c.EventId == schism.Id) && e.Place == world.Regions[2].Ref);
+    }
+
+    [Fact]
+    public void ADevoutNotableOfRenown_IsDeclaredASaint_AndTheirRelicsHoldTheTown()
+    {
+        var world = TestPeople.World();
+        var log = new EventLog();
+        var holy = TestPeople.Add(world, 1, 70, role: Role.Priest, traits: new[] { Traits.Devout });
+        holy.Renown = FaithSystem.SaintRenown;
+        var before = FaithSystem.Devotion(world, world.Regions[1]);
+        var ctx = new SimContext(world, log, new EventQueue(), new Rng(1));
+        var died = Fates.Die(ctx, holy, "old age", Array.Empty<Cause>());
+        var sim = Run(world, log);
+        sim.AdvanceDays(360 * 3);
+
+        var saint = sim.Log.All.Single(e => e.Type == "SaintDeclared");
+        Assert.Equal(holy.Ref, saint.Actors["saint"]);
+        Assert.Contains(saint.Causes, c => c.EventId == died.Id);
+        Assert.Equal(saint.Id, holy.SaintEventId);
+        var relic = world.Artifacts[saint.Actors["relic"].Id];
+        Assert.Equal((ArtifactType.Relic, ArtifactPlace.Treasury, 1L), (relic.Type, relic.Place, relic.SettlementId));
+        Assert.True(FaithSystem.Devotion(world, world.Regions[1]) > before);
+    }
+
+    [Fact]
+    public void ARealmWhoseFaithLostItsHolyLand_HasAHolyWarAgainstItsHolder()
+    {
+        var world = TestRealms.TwoKingdoms();
+        world.Geography = world.Geography; // the two kingdoms border each other
+        var log = new EventLog();
+        var sun = AddFaith(world, "The Sun Creed", 2);
+        world.Realms[1].FaithId = sun.Id;
+        var lost = log.Append(world.Date, new EventDraft("HolySiteLost", Place: world.Regions[2].Ref));
+        (sun.HolySiteLostEventId, sun.Zeal) = (lost.Id, 50);
+        var ctx = new SimContext(world, log, new EventQueue(), new Rng(1));
+        var cb = DiplomacySystem.CasusBelliFor(ctx, world.Realms[1]).Single(o => o.Kind == CasusBelli.HolyWar && o.EventId == lost.Id);
+        Assert.Equal((2L, 2L), (cb.Against, cb.TargetRegionId));
     }
 }

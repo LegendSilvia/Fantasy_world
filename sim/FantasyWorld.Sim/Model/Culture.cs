@@ -40,6 +40,12 @@ public sealed class Faith
     /// <summary>The event that cost the faith its holy land (0 while a realm of the faith, or none, holds it).</summary>
     public long HolySiteLostEventId { get; set; }
 
+    /// <summary>For a faith born of a schism: the faith it split from, its heresiarch and the schism (else 0).</summary>
+    public long ParentFaithId { get; init; }
+
+    public long FounderId { get; init; }
+    public long FoundedEventId { get; init; }
+
     public bool Has(string tenet) => Tenets.Contains(tenet);
 
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
