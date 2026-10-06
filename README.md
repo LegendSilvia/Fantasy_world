@@ -47,6 +47,28 @@ exits non-zero on failure (CI runs it). `godot --path game res://tests/Showcase.
 full-size world from the angles above, and `godot --path game --write-movie war.avi --fixed-fps 30 res://tests/WarMovie.tscn`
 films a host on the march (both need a display).
 
+## Myths, magic and structures
+
+The world grows its own legends, each with a cause you can follow:
+
+- **Beasts** rise where the land is dangerous, more often after a ley surge: a wyrm in the mountains, a hydra in the
+  swamp. They raid nearby towns until a hero hunts them by name; some become legends, very old ones slumber.
+- **Trade roads** join markets at peace with each other; wars, occupations and danger sever them, and peace reopens
+  them (the map's *Trade routes* layer).
+- **Faiths** spread from realms and neighbours, held back by temples and saints' relics; a realm whose lands have
+  turned takes up the new faith. A faith that loses its holy land grows zealous, may wage a holy war to take it
+  back, and may split when a priest founds a heresy. Devout notables of renown become saints.
+- **Magic** ebbs and flows in slow ley tides. Mage towers train mages where the law allows; a surge at a tower may go
+  wild (a storm, a blight, a portal that lets danger in), and realms tighten their law after it. Where magic is
+  outlawed, mages flee or burn.
+- **Great works** take years: an architect, a patron, delays from war, plague and famine, collapses when rushed;
+  towns that knew siege raise fortresses, and fallen works are restored.
+- **Labyrinths** open in wild, ley-charged land with three to seven levels and a guardian on the deepest. Delvers go
+  down level by level; slaying the guardian and taking the last relic clears it, leaving a ruin or a shrine.
+- Rivals quarrel over their borders, and rulers who crave renown seek glory against weaker neighbours.
+
+![A town with its temple and mage tower, a beast in the hills and a labyrinth's walls](docs/images/town.png)
+
 ## Run
 
 ```bash

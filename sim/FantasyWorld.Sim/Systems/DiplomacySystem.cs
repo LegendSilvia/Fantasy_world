@@ -173,7 +173,18 @@ public sealed class DiplomacySystem : ISimSystem
 
             var tenets = world.Faiths.GetValueOrDefault(realm.FaithId)?.Tenets ?? new List<string>();
             if (realm.FaithId != enemy.FaithId && (tenets.Contains("zealous") || tenets.Contains("warlike")))
-                options.Add(new(CasusBelli.HolyWar, enemy.Id, 0, Border(world, realm, enemy), 0, 20));
+            {
+                // Zeal is stirred by the rival faith's latest gain (a land turned, or a realm that took it up), else by the
+                // latest wrong the rival did, else by the zealot's own coming to power, else by the rival's latest deed.
+                var border = Border(world, realm, enemy);
+                var stirred = ctx.Log.Involving(world.Regions[border].Ref).Concat(ctx.Log.Involving(enemy.Ref))
+                    .Where(e => e.Type is "RegionConverted" or "RealmConverted" && e.Actors.GetValueOrDefault("faith").Id == enemy.FaithId)
+                    .Select(e => e.Id).DefaultIfEmpty().Max();
+                if (stirred == 0) stirred = realm.Memories.Where(m => m.About == enemy.Id && m.Feeling < 0).Select(m => m.EventId).DefaultIfEmpty().Max();
+                if (stirred == 0 && ruler is not null) stirred = Fates.Accession(ctx.Log, ruler)?.Id ?? 0;
+                if (stirred == 0) stirred = ctx.Log.Involving(enemy.Ref).LastOrDefault()?.Id ?? 0;
+                options.Add(new(CasusBelli.HolyWar, enemy.Id, stirred, border, 0, 20));
+            }
             // A faith that lost its holy land to this neighbour wants it back, the more so the more zealous it is.
             if (world.Faiths.GetValueOrDefault(realm.FaithId) is { HolySiteLostEventId: not 0 } mine && world.Regions.TryGetValue(mine.HolyRegionId, out var holy)
                 && Realms.SovereignOf(world, holy)?.Id == enemy.Id && (mine.Zeal >= 40 || tenets.Contains("zealous") || tenets.Contains("warlike")))
