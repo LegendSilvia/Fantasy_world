@@ -1,5 +1,6 @@
 using System.Text;
 using FantasyWorld.Sim.Model;
+using FantasyWorld.Sim.Narration;
 
 namespace FantasyWorld.Sim.Llm;
 
@@ -20,6 +21,7 @@ public static class WorldBible
         foreach (var faith in world.Faiths.Values)
             data.AppendLine($"- {PromptText.Data(faith.Name)}, worshipping {PromptText.Data(faith.Deity)}; tenets: {string.Join(", ", faith.Tenets.Select(t => PromptText.Data(t)))}");
 
+        var chronicler = Chronicler.Of(world);
         return $"""
             You are the chronicler-arbiter of a persistent fantasy world that a simulation engine runs day by day.
             The engine owns the world's rules and state. You give its people their choices, their luck and their
@@ -37,6 +39,11 @@ public static class WorldBible
 
             Tone: grounded, low-to-high fantasy of feudal realms, old faiths, rare magic and rarer artifacts. People
             act from pride, love, fear, faith, greed and grief; consequences last for generations.
+
+            {chronicler.Persona}
+
+            Style:
+            {Chronicler.StyleGuide}
 
             {PromptText.Section("world_data", data.ToString())}
             """;
