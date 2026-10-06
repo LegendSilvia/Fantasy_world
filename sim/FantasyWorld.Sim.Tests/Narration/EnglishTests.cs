@@ -28,6 +28,7 @@ public class EnglishTests
         Assert.Equal("six regions ceded and tribute", English.Terms("6 region(s) ceded; tribute"));
         Assert.Equal("the War of the Ash", English.InProse("The War of the Ash"));
         Assert.Equal("Wosmeim", English.InProse("Wosmeim"));
+        Assert.Equal(("a storm", "an ogre"), (English.WithArticle("storm"), English.WithArticle("ogre")));
     }
 
     [Fact]

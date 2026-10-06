@@ -42,7 +42,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["ArtifactInherited"] = "{heir} inherited {artifact}.",
         ["ArtifactStolen"] = "{thief} stole {artifact} from {victim}.",
         ["BattleFought"] = "At {@place}, {victor} defeated {vanquished} in a battle of {war}.",
-        ["MonsterRose"] = "{monster}, a {=breed}, rose in {@place}.",
+        ["MonsterRose"] = "{monster}, {=a:breed}, rose in {@place}.",
         ["MonsterRaid"] = "{monster} fell on {@place}; {=dead} died.",
         ["MonsterLegendary"] = "{monster} became a legend of terror in {@place}.",
         ["MonsterSlumbered"] = "{monster} sank into slumber in {@place}.",
@@ -55,7 +55,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["OccupationLapsed"] = "{realm} gave up its hold on {@place}.",
         ["SchismBegan"] = "{heresiarch} broke from {old} and founded {faith}.",
         ["SaintDeclared"] = "{faith} declared {saint} a saint.",
-        ["WildMagic"] = "Wild magic broke loose at {@place}: a {=kind} that killed {=dead}.",
+        ["WildMagic"] = "Wild magic broke loose at {@place}: {=a:kind} that killed {=dead}.",
         ["MageTrained"] = "{mage} was trained in the mage tower of {@place}.",
         ["MagicLawChanged"] = "{realm} changed its law on magic from {=from} to {=law}.",
         ["MageFled"] = "{mage} fled the law against magic to {@place}.",
@@ -230,7 +230,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
     {
         ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
-        ("WildMagic", e => e.Payload.GetValueOrDefault("dead") is null or "0", "Wild magic broke loose at {@place}: a {=kind}."),
+        ("WildMagic", e => e.Payload.GetValueOrDefault("dead") is null or "0", "Wild magic broke loose at {@place}: {=a:kind}."),
         ("WorksCollapsed", e => e.Payload.GetValueOrDefault("dead") == "0", "{structure} collapsed while it was being built."),
         ("PeaceSigned", e => e.Payload.GetValueOrDefault("outcome") == "white peace", "{war} ended with neither side the victor."),
         ("CharacterDied", e => e.Payload.GetValueOrDefault("age") == "0", "{deceased} {=death} in infancy."),
@@ -240,6 +240,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ("MonsterHuntFailed", e => e.Payload.GetValueOrDefault("outcome") == "failure_death", "{hunter} hunted the monsters of {@place} and was killed."),
         ("LabyrinthDelveFailed", e => e.Payload.GetValueOrDefault("outcome") == "failure_death", "{delver} went down to level {=level} of {structure} and never returned."),
         ("DelveFailed", e => e.Payload.GetValueOrDefault("outcome") == "failure_death", "{delver} sought {artifact} in {@place} and died there."),
+        ("ArtifactInherited", e => !e.Actors.ContainsKey("heir"), "With no heir to claim it, {artifact} went to the treasury of {@place}."),
     };
 
     private readonly Func<EntityRef, string?> _nameOf = Names.Of(world);
@@ -277,6 +278,8 @@ public sealed partial class TemplateNarrator(World world) : INarrator
             { } other => $"by {other}",
             null => null,
         },
+        "over" => ev.Payload.TryGetValue("over", out var over) ? Over(over) : null,
+        _ when key.StartsWith("a:", StringComparison.Ordinal) => ev.Payload.TryGetValue(key[2..], out var noun) ? English.WithArticle(noun) : null,
         "people" => ev.Payload.TryGetValue("people", out var many) && long.TryParse(many, out var n) ? n == 1 ? "one person" : $"{English.Number(n)} people" : null,
         "notables" => ev.Payload.TryGetValue("people", out var few) && long.TryParse(few, out var k) ? English.Count(k, "notable") : null,
         "most common" => ev.Payload.TryGetValue("most common", out var common)
@@ -335,9 +338,8 @@ public sealed partial class TemplateNarrator(World world) : INarrator
             var ev = ordered[i];
             var lead = i == 0 ? $"In Year {ev.Date.Year}," : i == ordered.Count - 1 ? (ev.Date.Year == ordered[i - 1].Date.Year ? "And so" : $"And so, in Year {ev.Date.Year},")
                 : ev.Date.Year == ordered[i - 1].Date.Year ? "That same year," : $"In Year {ev.Date.Year},";
-            var sentence = Sentence(ev);
             if (text.Length > 0) text.Append(' ');
-            text.Append(lead).Append(' ').Append(TemplateFor(ev) is { } t && t.StartsWith('{') ? sentence : LowerFirst(sentence));
+            text.Append(lead).Append(' ').Append(Clause(ev));
         }
         return text.ToString();
     }
@@ -378,13 +380,15 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     /// <summary>Each cause once, joined by a connective that varies with depth and event, so a chain does not repeat itself.</summary>
     private void Causes(StringBuilder text, ChainNode node, bool first, HashSet<long> told)
     {
+        var second = false;
         foreach (var cause in node.Causes)
         {
             if (!told.Add(cause.Event.Id)) continue;
+            // A second cause of the same event is joined as such; otherwise the connective varies with depth and event.
             var choices = first ? FirstConnectives : DeeperConnectives;
-            var connective = choices[(int)(cause.Event.Id % choices.Length)];
-            var told2 = Narrate(cause.Event);
-            text.Append($" {connective} {(connective.EndsWith(',') ? told2 : LowerFirst(told2))}");
+            var connective = second ? "And also because" : choices[(int)(cause.Event.Id % choices.Length)];
+            text.Append($" {connective} {LowerFirst(Narrate(cause.Event))}"); // "In Year …" becomes "in Year …"
+            second = true;
             Causes(text, cause, first: false, told);
         }
     }
@@ -415,6 +419,10 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         if (ev.Place is { } place && Prose(place) is { } where) text += $" at {where}";
         return English.Capitalise(text) + ".";
     }
+
+    /// <summary>What a rivalry is over: "calm vs wrathful" reads as a clash of natures.</summary>
+    private static string Over(string over) =>
+        over.Split(" vs ") is [var mine, var theirs] ? $"the clash of {English.WithArticle(mine)} nature with {English.WithArticle(theirs)} one" : English.InProse(over);
 
     /// <summary>Sentences that open with a name keep their capital; others continue the "In year N," clause.</summary>
     private static string LowerFirst(string sentence) =>

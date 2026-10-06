@@ -35,6 +35,9 @@ public static partial class English
     /// <summary>A name as it reads inside a sentence: "The War of the Ash" becomes "the War of the Ash".</summary>
     public static string InProse(string name) => name.StartsWith("The ", StringComparison.Ordinal) ? "the " + name[4..] : name;
 
+    /// <summary>"a storm", "an ogre".</summary>
+    public static string WithArticle(string word) => ("aeiou".Contains(char.ToLowerInvariant(word.FirstOrDefault())) ? "an " : "a ") + word;
+
     public static string Capitalise(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 
     /// <summary>How a cause of death reads after the dead one's name.</summary>
@@ -48,6 +51,7 @@ public static partial class English
         "battle" => "fell in battle",
         "a duel" => "was killed in a duel",
         "burned for sorcery" => "was burned for sorcery",
+        "old wounds" => "died of old wounds",
         _ => $"was killed by {InProse(cause)}",
     };
 
