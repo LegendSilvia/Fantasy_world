@@ -20,12 +20,19 @@ Context for picking up this project on another machine / in a new Claude session
 | Sub-project 2 (Chronicle & why UI data) | **Done** — spec `docs/superpowers/specs/2026-10-06-chronicle-views-design.md`, plan `docs/superpowers/plans/2026-10-06-chronicle-views.md`, Tasks 1–8; 478/478 tests pass; every screen well under a millisecond (budget 50 ms) |
 | Sub-project 4 (Godot diorama client) | **Done** — spec `docs/superpowers/specs/2026-10-06-godot-diorama-client-design.md`, plan `docs/superpowers/plans/2026-10-06-godot-diorama-client.md`, Tasks 1–13; 512/512 tests pass; 69 headless Godot checks pass (also in CI); screenshots in `docs/images/` |
 | Sub-project 3 (Myth, magic & structures) | **Done** — spec `docs/superpowers/specs/2026-10-06-myth-magic-structures-design.md`, plan `docs/superpowers/plans/2026-10-06-myth-magic-structures.md`, Tasks 1–11; 557/557 tests pass; 73 headless Godot checks pass; a two-century medium soak with invariants checked every tick |
-| Sub-project 5 (Narration polish) | Spec drafted — `docs/superpowers/specs/2026-10-06-narration-polish-design.md`; prototype complete (English layer, phrasing variety, headline titles and the story of why, chronicler persona, guardrails, structural evals, `fw eval`), in review |
+| Sub-project 5 (Narration polish & evals) | **Done** — spec `docs/superpowers/specs/2026-10-06-narration-polish-design.md`, plan `docs/superpowers/plans/2026-10-06-narration-polish.md`, Tasks 1–7; 586/586 tests pass; 74 headless Godot checks pass |
+| **All five sub-projects** | **Complete** |
 
 ## Next step
 
-1. Merge the working branch into `main` (Plans 4–6 and sub-projects 2, 3 and 4).
-2. Sub-project 5 (narration polish and evals): plan and execute.
+1. Merge the working branch into `main` (Plans 4–6 and sub-projects 2–5).
+2. With an API key, run the live evals once (`fw eval narration --cap 2`, `fw eval decisions`) and read the reports in `evals/`; the LLM voice has only been exercised against scripted providers here.
+3. Later work noted in the plans' Deferred lines: sound, settings and world management screens, desktop exports, sea trade, possessives and plural agreement in the template voice.
+
+Notes from sub-project 5 execution:
+- Try it: `fw tell <world> <event-id>` and `fw digest <world>` read in the new voice; the why page shows the story of why.
+- Narration goldens: `sim/FantasyWorld.Sim.Tests/Narration/Golden/narration.txt`; regenerate with `UPDATE_GOLDEN=1 dotnet test sim --filter NarrationEvalTests` and read the diff.
+- The guard rejects LLM narration whose names or numbers are not in its brief (including an unknown word opening a sentence); a false alarm only costs the template prose.
 
 Notes from sub-project 3 execution:
 - Try it: `fw new worlds/w.fw.db --seed 7 --size medium --prehistory 200`, then `fw log … | grep -E "Monster|Holy|Schism|Saint|Wild|Labyrinth|Route"`; the map's Trade routes layer and the town view show roads, beasts, temples and mage towers.

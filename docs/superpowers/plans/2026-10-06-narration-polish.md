@@ -63,7 +63,7 @@ Spec §3. Played on real worlds the template voice showed its seams: realms with
 - Consumes: `TemplateNarrator`, `LinkedText`, `Names` (Plans 5–6, sub-project 2).
 - Produces: `static class English { Number(n); Count(n, noun); Plural(noun); List(items); InProse(name); Capitalise(text); Death(cause); CasusBelli(kind); Terms(terms); Value(value) }`; `LinkedText.Reads(span, name)`; template keys `{=death}`, `{=why}`, `{=terms}`, `{=cut}`; conditional variants; event `RouteClosed` reads.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Chronicle/DigestTests.cs` entirely with:
 ```csharp
@@ -1191,12 +1191,12 @@ Replace `sim/FantasyWorld.Sim.Tests/Views/Golden/why.json` entirely with:
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'English' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Narration/English.cs`:
 ```csharp
@@ -1586,17 +1586,17 @@ public sealed record LinkedText(string Text, IReadOnlyList<TextLink> Links)
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CategoryTests|FullyQualifiedName~CharacterScreenTests|FullyQualifiedName~ChronicleScreenTests|FullyQualifiedName~CliLlmTests|FullyQualifiedName~DigestScreenTests|FullyQualifiedName~DigestTests|FullyQualifiedName~EnglishTests|FullyQualifiedName~NarrationTests"`
 Expected: `Passed!  - Failed: 0, Passed: 31`. Then `dotnet test sim` → `Passed: 564` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (73)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -1620,7 +1620,7 @@ Spec §3. Every common event now has its own words (droughts, floods, ley surges
 - Consumes: Task 1.
 - Produces: templates for the land, towns and people that had none; `Alternates` by event type; `NarrateChain` that skips repeats and joins second causes with "And also because".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Llm/NarrationTests.cs` entirely with:
 ```csharp
@@ -2429,12 +2429,12 @@ Replace `sim/FantasyWorld.Sim.Tests/Views/Golden/why.json` entirely with:
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 8 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Narration/TemplateNarrator.cs` entirely with:
 ```csharp
@@ -2778,17 +2778,17 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CategoryTests|FullyQualifiedName~EnglishTests|FullyQualifiedName~NarrationTests|FullyQualifiedName~VarietyTests"`
 Expected: `Passed!  - Failed: 0, Passed: 19`. Then `dotnet test sim` → `Passed: 568` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (73)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -2812,7 +2812,7 @@ Spec §3. The digest's headline used to repeat itself ("In year 2, The Banners A
 - Consumes: Tasks 1–2; `DigestScreen`, `WhyScreen`, `WhyView` (sub-projects 2 and 4).
 - Produces: `TemplateNarrator { Title(ev); Body(ev, log); Story(chain); Clause(ev) }`; `WhyScreen.Story`; the why page's `Intro/Story` label.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Narration/HeadlineTests.cs`:
 ```csharp
@@ -3222,12 +3222,12 @@ Replace `sim/FantasyWorld.Sim.Tests/Views/Golden/why.json` entirely with:
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'TemplateNarrator' does not contain a definition for 'Title' and no accessible extension method 'Title' accepting a first argument of type 'TemplateNarrator' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `game/scripts/screens/WhyView.cs` entirely with:
 ```csharp
@@ -4447,17 +4447,17 @@ public sealed record WhyScreen(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~HeadlineTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 571` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (74)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game sim
@@ -4481,7 +4481,7 @@ Spec §4. Each world has a chronicler: a name from its first culture, a temperam
 - Consumes: `WorldBible`, `NameGen` (Plans 1, 5).
 - Produces: `sealed record Chronicler(Name, Temperament, Diction) { StyleGuide; Of(world); Persona }`; the bible's persona and Style sections.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Narration/ChroniclerTests.cs`:
 ```csharp
@@ -4512,12 +4512,12 @@ public class ChroniclerTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Chronicler' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Llm/WorldBible.cs` entirely with:
 ```csharp
@@ -4621,17 +4621,17 @@ public sealed record Chronicler(string Name, string Temperament, string Diction)
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~ChroniclerTests"`
 Expected: `Passed!  - Failed: 0, Passed: 1`. Then `dotnet test sim` → `Passed: 572` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (74)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -4655,7 +4655,7 @@ Spec §4. A narration may only use the facts in its brief: every number, and eve
 - Consumes: `LlmNarrator`, `LlmGateway` (Plan 5).
 - Produces: `static class NarrationGuard { Problems(narration, brief); Faithful(narration, brief) }`; `LlmNarrator` validating answers with it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Narration/GuardTests.cs`:
 ```csharp
@@ -4704,12 +4704,12 @@ public class GuardTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'NarrationGuard' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Narration/LlmNarrator.cs` entirely with:
 ```csharp
@@ -4885,17 +4885,17 @@ public static partial class NarrationGuard
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~GuardTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 575` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (74)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -4919,7 +4919,7 @@ Spec §5–6. On every test run, every sentence of a sixty-year history must be 
 - Consumes: Tasks 1–5.
 - Produces: `NarrationEvalTests` and `Narration/Golden/narration.txt` (regenerate with `UPDATE_GOLDEN=1`); `English.WithArticle(word)` and the `{=a:key}` placeholder.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Narration/EnglishTests.cs` entirely with:
 ```csharp
@@ -5370,12 +5370,12 @@ Replace `sim/FantasyWorld.Sim.Tests/Views/Golden/character.json` entirely with:
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0117: 'English' does not contain a definition for 'WithArticle'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Narration/English.cs` entirely with:
 ```csharp
@@ -5912,17 +5912,17 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~EnglishTests|FullyQualifiedName~NarrationEvalTests"`
 Expected: `Passed!  - Failed: 0, Passed: 11`. Then `dotnet test sim` → `Passed: 579` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (74)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -5947,7 +5947,7 @@ Spec §5. Opt-in live evals of the LLM voice on fixed seeds. `fw eval narration`
 - Consumes: Tasks 4–5; `LlmDecider`, `LlmArbiter`, `Encounters` (Plans 3–5).
 - Produces: `record EvalScore`, `record EvalReport { ToJson() }`; `static class QualityEvals { NarrationRubric; DecisionRubric; DefaultSeeds; Narration(provider, settings, capUsd, samples, seeds?, time?); Decisions(provider, settings, capUsd, draws, seeds?, time?); Save(report, directory) }`; `fw eval narration|decisions [--provider] [--model] [--samples] [--draws] [--seeds] [--cap] [--out]`; `TempDir` test helper; README section.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Narration/QualityEvalsTests.cs`:
 ```csharp
@@ -6106,12 +6106,12 @@ public sealed class TempDir : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'QualityEvals' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `.gitignore` entirely with:
 ```
@@ -6948,17 +6948,17 @@ public static class QualityEvals
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~QualityEvalsTests"`
 Expected: `Passed!  - Failed: 0, Passed: 7`. Then `dotnet test sim` → `Passed: 586` in total.
 
-- [ ] **Step 5: Run the headless game checks**
+- [x] **Step 5: Run the headless game checks**
 
 Run (with `godot` the Godot 4.3 .NET binary): `dotnet build game/FantasyWorld.Game.csproj && godot --headless --path game --import && godot --headless --path game res://tests/HeadlessChecks.tscn`
 Expected: `HEADLESS CHECKS PASSED (74)` and exit code 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add .gitignore README.md sim
