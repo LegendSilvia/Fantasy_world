@@ -46,6 +46,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["CharacterBorn"] = "{child} was born at {@place} to {mother} and {father}.",
         ["CharacterDied"] = "{deceased} died of {=cause} at {=age}.",
         ["ComingOfAge"] = "{character} came of age, dreaming of {=ambition}.",
+        ["ChronicleCompacted"] = "the chronicle of {=period} was condensed ({=events} minor events: {=most common}).",
         ["CouncilAppointed"] = "{member} became {=seat} of {realm}.",
         ["DelveFailed"] = "{delver} sought {artifact} in {@place} and failed.",
         ["DuelFought"] = "{challenger} fought {defender} {=stakes} at {@place}.",

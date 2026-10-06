@@ -13,7 +13,7 @@ public sealed class Simulator
     private readonly IReadOnlyList<ISimSystem> _systems;
     private readonly Dictionary<string, ISimSystem> _handlers = new(StringComparer.Ordinal);
     private readonly bool _checkInvariants;
-    private int _checkedCount;
+    private long _checkedId;
 
     public Simulator(World world, EventLog log, EventQueue queue, IReadOnlyList<ISimSystem> systems, bool checkInvariants = false)
     {
@@ -22,7 +22,7 @@ public sealed class Simulator
         Queue = queue;
         _systems = systems;
         _checkInvariants = checkInvariants;
-        _checkedCount = log.Count;
+        _checkedId = log.NextId - 1;
         foreach (var system in systems)
             foreach (var kind in system.HandledKinds)
                 if (!_handlers.TryAdd(kind, system))
@@ -67,9 +67,9 @@ public sealed class Simulator
         if (_checkInvariants)
         {
             // Entities only change when a tick or scheduled action ran; the log is checked every day.
-            var errors = Invariants.Check(World, Log, _checkedCount, entities: changed);
+            var errors = Invariants.Check(World, Log, Log.IndexAfter(_checkedId), entities: changed);
             if (errors.Count > 0) throw new InvariantViolationException(errors);
-            _checkedCount = Log.Count;
+            _checkedId = Log.NextId - 1;
         }
     }
 

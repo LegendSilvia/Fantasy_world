@@ -27,6 +27,7 @@ public sealed class WorldStore : IDisposable
             event_id INTEGER NOT NULL, role TEXT NOT NULL, kind TEXT NOT NULL, entity_id INTEGER NOT NULL,
             PRIMARY KEY (event_id, role));
         CREATE INDEX IF NOT EXISTS ix_event_actors_entity ON event_actors(kind, entity_id);
+        CREATE INDEX IF NOT EXISTS ix_event_causes_effect ON event_causes(effect_id);
         CREATE TABLE IF NOT EXISTS llm_calls (
             hash TEXT PRIMARY KEY, tier TEXT NOT NULL, day INTEGER NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
             response TEXT NOT NULL, input_tokens INTEGER NOT NULL, output_tokens INTEGER NOT NULL,
@@ -58,13 +59,17 @@ public sealed class WorldStore : IDisposable
 
     public bool HasGeography => ScalarLong("SELECT COUNT(*) FROM geography") > 0;
 
-    /// <summary>Saves the month in one transaction: new events, the snapshot and new LLM answers (spec §9).</summary>
+    /// <summary>
+    /// Saves the month in one transaction (spec §9): compacted events removed, new events, the snapshot and new LLM
+    /// answers.
+    /// </summary>
     public void Save(World world, EventLog log, EventQueue queue, LlmJournal? journal = null)
     {
         _transaction = _connection.BeginTransaction();
         try
         {
             var persistedMax = ScalarLong("SELECT COALESCE(MAX(id), 0) FROM events");
+            foreach (var id in log.ForgottenUnsaved) DeleteEvent(id);
             foreach (var ev in log.Since(persistedMax)) InsertEvent(ev);
 
             if (world.Geography is { } geography && !HasGeography)
@@ -86,6 +91,7 @@ public sealed class WorldStore : IDisposable
 
             _transaction.Commit();
             journal?.MarkSaved();
+            log.MarkForgottenSaved();
         }
         catch
         {
@@ -194,6 +200,21 @@ public sealed class WorldStore : IDisposable
         // 1 → 2 adds the geography table, 2 → 3 llm_calls and 3 → 4 followed; the schema script above creates them.
         if (current < CurrentSchemaVersion)
             SetMeta("schema_version", CurrentSchemaVersion.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private void DeleteEvent(long id)
+    {
+        foreach (var sql in new[]
+                 {
+                     "DELETE FROM events WHERE id = $id",
+                     "DELETE FROM event_causes WHERE effect_id = $id OR cause_id = $id",
+                     "DELETE FROM event_actors WHERE event_id = $id",
+                 })
+        {
+            using var cmd = Command(sql);
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.ExecuteNonQuery();
+        }
     }
 
     private void InsertEvent(WorldEvent ev)

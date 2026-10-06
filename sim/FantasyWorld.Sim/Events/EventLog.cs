@@ -70,6 +70,42 @@ public sealed class EventLog
 
     public IEnumerable<WorldEvent> Since(long afterId) => _events.Where(e => e.Id > afterId);
 
+    private readonly List<long> _forgottenUnsaved = new();
+
+    /// <summary>Compacted event ids the world file still holds; the next save deletes them.</summary>
+    public IReadOnlyList<long> ForgottenUnsaved => _forgottenUnsaved;
+
+    public void MarkForgottenSaved() => _forgottenUnsaved.Clear();
+
+    /// <summary>The index of the first event with an id above <paramref name="id"/> (ids ascend).</summary>
+    public int IndexAfter(long id)
+    {
+        int lo = 0, hi = _events.Count;
+        while (lo < hi)
+        {
+            var mid = (lo + hi) / 2;
+            if (_events[mid].Id <= id) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    /// <summary>Removes compacted events (spec §7 "Compaction"). Ids are never reused; nothing retained may cite them.</summary>
+    public void Forget(IReadOnlySet<long> ids)
+    {
+        if (ids.Count == 0) return;
+        foreach (var ev in _events)
+            if (!ids.Contains(ev.Id) && ev.Causes.Any(c => ids.Contains(c.EventId)))
+                throw new InvalidOperationException($"Event #{ev.Id} cites an event being forgotten.");
+        var kept = _events.Where(e => !ids.Contains(e.Id)).ToList();
+        _events.Clear();
+        _byId.Clear();
+        _effects.Clear();
+        _byEntity.Clear();
+        foreach (var ev in kept) Add(ev);
+        _forgottenUnsaved.AddRange(ids.Order());
+    }
+
     private void Add(WorldEvent ev)
     {
         _events.Add(ev);
