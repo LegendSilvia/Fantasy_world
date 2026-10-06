@@ -12,16 +12,39 @@ public sealed class InvariantViolationException : Exception
     public IReadOnlyList<string> Errors { get; }
 }
 
-public static class Invariants
+/// <summary>Split into partial files per subject; each Check* hook is optional.</summary>
+public static partial class Invariants
 {
-    /// <summary>Checks log events from startIndex onward, plus every entity. Returns human-readable violations.</summary>
-    public static IReadOnlyList<string> Check(World world, EventLog log, int startIndex = 0)
+    /// <summary>Checks log events from startIndex onward, plus (unless entities is false) every entity. Returns human-readable violations.</summary>
+    public static IReadOnlyList<string> Check(World world, EventLog log, int startIndex = 0, bool entities = true)
     {
         var errors = new List<string>();
         CheckLog(world, log, startIndex, errors);
+        if (!entities) return errors;
         CheckRegions(world, log, errors);
         CheckSettlements(world, log, errors);
+        CheckCultures(world, errors);
+        CheckPeople(world, log, errors);
+        CheckArtifacts(world, log, errors);
         return errors;
+    }
+
+    static partial void CheckPeople(World world, EventLog log, List<string> errors);
+
+    static partial void CheckArtifacts(World world, EventLog log, List<string> errors);
+
+    private static void CheckCultures(World world, List<string> errors)
+    {
+        foreach (var region in world.Regions.Values)
+        {
+            if (region.CultureId != 0 && !world.Cultures.ContainsKey(region.CultureId))
+                errors.Add($"Region #{region.Id} has unknown culture #{region.CultureId}.");
+            if (region.FaithId != 0 && !world.Faiths.ContainsKey(region.FaithId))
+                errors.Add($"Region #{region.Id} has unknown faith #{region.FaithId}.");
+        }
+        foreach (var culture in world.Cultures.Values)
+            if (!world.Faiths.ContainsKey(culture.FaithId))
+                errors.Add($"Culture #{culture.Id} has unknown faith #{culture.FaithId}.");
     }
 
     private static void CheckLog(World world, EventLog log, int startIndex, List<string> errors)

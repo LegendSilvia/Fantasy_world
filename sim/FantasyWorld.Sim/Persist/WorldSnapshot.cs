@@ -20,9 +20,14 @@ public sealed record WorldSnapshot(
     long QueueNextSeq,
     SortedDictionary<string, long>? Ids = null,
     SortedDictionary<long, Region>? Regions = null,
-    SortedDictionary<long, Settlement>? Settlements = null)
+    SortedDictionary<long, Settlement>? Settlements = null,
+    SortedDictionary<long, Culture>? Cultures = null,
+    SortedDictionary<long, Faith>? Faiths = null,
+    SortedDictionary<long, House>? Houses = null,
+    SortedDictionary<long, Character>? Characters = null,
+    SortedDictionary<long, Artifact>? Artifacts = null)
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public static WorldSnapshot Capture(World world, EventQueue queue) => new(
         CurrentVersion,
@@ -36,9 +41,14 @@ public sealed record WorldSnapshot(
         queue.NextSeq,
         Sorted.From(world.Ids.Next),
         world.Regions,
-        world.Settlements);
+        world.Settlements,
+        world.Cultures,
+        world.Faiths,
+        world.Houses,
+        world.Characters,
+        world.Artifacts);
 
-    /// <summary>Rebuilds the world. Version 1 snapshots have no entities and load as an empty map.</summary>
+    /// <summary>Rebuilds the world. Older snapshots lack newer entities, which load empty.</summary>
     public World ToWorld() => new()
     {
         Seed = Seed,
@@ -48,9 +58,17 @@ public sealed record WorldSnapshot(
         Stats = Sorted.From(Stats),
         Markers = Sorted.From(Markers),
         Ids = new IdGen { Next = Ids ?? new SortedDictionary<string, long>() },
-        Regions = new SortedDictionary<long, Region>(Regions ?? new SortedDictionary<long, Region>()),
-        Settlements = new SortedDictionary<long, Settlement>(Settlements ?? new SortedDictionary<long, Settlement>()),
+        Regions = Copy(Regions),
+        Settlements = Copy(Settlements),
+        Cultures = Copy(Cultures),
+        Faiths = Copy(Faiths),
+        Houses = Copy(Houses),
+        Characters = Copy(Characters),
+        Artifacts = Copy(Artifacts),
     };
+
+    private static SortedDictionary<long, T> Copy<T>(SortedDictionary<long, T>? source) =>
+        source is null ? new SortedDictionary<long, T>() : new SortedDictionary<long, T>(source);
 
     public EventQueue ToQueue()
     {

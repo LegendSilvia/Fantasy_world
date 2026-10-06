@@ -11,12 +11,17 @@ public readonly record struct WorldDate(long Day) : IComparable<WorldDate>
     public const int MonthsPerYear = 12;
     public const int DaysPerYear = DaysPerMonth * MonthsPerYear;
 
-    [JsonIgnore] public int Year => (int)(Day / DaysPerYear) + 1;
-    [JsonIgnore] public int Month => (int)(Day % DaysPerYear / DaysPerMonth) + 1;
-    [JsonIgnore] public int DayOfMonth => (int)(Day % DaysPerMonth) + 1;
+    // Floor division, so days before Year 1 (people born before history began) read Y0, Y-1, …
+    [JsonIgnore] public int Year => (int)FloorDiv(Day, DaysPerYear) + 1;
+    [JsonIgnore] public int Month => (int)(Mod(Day, DaysPerYear) / DaysPerMonth) + 1;
+    [JsonIgnore] public int DayOfMonth => (int)Mod(Day, DaysPerMonth) + 1;
     [JsonIgnore] public Season Season => (Season)((Month - 1) / 3);
-    [JsonIgnore] public bool IsFirstOfMonth => Day % DaysPerMonth == 0;
-    [JsonIgnore] public bool IsFirstOfYear => Day % DaysPerYear == 0;
+    [JsonIgnore] public bool IsFirstOfMonth => Mod(Day, DaysPerMonth) == 0;
+    [JsonIgnore] public bool IsFirstOfYear => Mod(Day, DaysPerYear) == 0;
+
+    private static long Mod(long value, long divisor) => ((value % divisor) + divisor) % divisor;
+
+    private static long FloorDiv(long value, long divisor) => (value - Mod(value, divisor)) / divisor;
 
     public static WorldDate FromYmd(int year, int month, int day) =>
         new((long)(year - 1) * DaysPerYear + (month - 1) * DaysPerMonth + (day - 1));

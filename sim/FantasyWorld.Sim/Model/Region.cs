@@ -36,6 +36,11 @@ public sealed class Region
 
     public double MountainShare { get; init; }
 
+    /// <summary>The culture and faith most of the region's people share (0 for worlds generated before Plan 3).</summary>
+    public long CultureId { get; set; }
+
+    public long FaithId { get; set; }
+
     // Living state, 0–100 unless noted.
     public double BaseFertility { get; init; }
     public double Fertility { get; set; }

@@ -36,6 +36,9 @@ public sealed class Settlement
 
     public bool Abandoned { get; set; }
 
+    /// <summary>The ruling notable (0 for none). Character.Role is Lord exactly for these.</summary>
+    public long LordId { get; set; }
+
     /// <summary>Building names, kept sorted.</summary>
     public List<string> Buildings { get; init; } = new();
 

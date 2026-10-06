@@ -46,6 +46,7 @@ public sealed class Simulator
     private void StepDay()
     {
         World.Date = World.Date.AddDays(1);
+        var changed = World.Date.IsFirstOfMonth;
 
         if (World.Date.IsFirstOfMonth)
             foreach (var system in _systems)
@@ -60,11 +61,13 @@ public sealed class Simulator
             if (!_handlers.TryGetValue(action.Kind, out var handler))
                 throw new InvalidOperationException($"No system handles scheduled kind '{action.Kind}'.");
             handler.OnScheduled(ContextFor(handler.Name, "scheduled/" + action.Seq), action);
+            changed = true;
         }
 
         if (_checkInvariants)
         {
-            var errors = Invariants.Check(World, Log, _checkedCount);
+            // Entities only change when a tick or scheduled action ran; the log is checked every day.
+            var errors = Invariants.Check(World, Log, _checkedCount, entities: changed);
             if (errors.Count > 0) throw new InvariantViolationException(errors);
             _checkedCount = Log.Count;
         }

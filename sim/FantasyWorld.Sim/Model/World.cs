@@ -22,6 +22,18 @@ public sealed class World
     public IdGen Ids { get; init; } = new();
     public SortedDictionary<long, Region> Regions { get; init; } = new();
     public SortedDictionary<long, Settlement> Settlements { get; init; } = new();
+    public SortedDictionary<long, Culture> Cultures { get; init; } = new();
+    public SortedDictionary<long, Faith> Faiths { get; init; } = new();
+    public SortedDictionary<long, House> Houses { get; init; } = new();
+    public SortedDictionary<long, Character> Characters { get; init; } = new();
+    public SortedDictionary<long, Artifact> Artifacts { get; init; } = new();
+
+    /// <summary>Living notables (not faded), in id order.</summary>
+    public IEnumerable<Character> ActiveCharacters => Characters.Values.Where(c => c.IsActive);
+
+    /// <summary>Living notables who live in the settlement, in id order.</summary>
+    public IEnumerable<Character> PeopleOf(Settlement settlement) =>
+        ActiveCharacters.Where(c => c.SettlementId == settlement.Id);
 
     /// <summary>The region's settlements that are still inhabited, in id order.</summary>
     public IEnumerable<Settlement> LivingSettlements(Region region) =>
