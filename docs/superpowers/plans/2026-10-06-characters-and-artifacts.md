@@ -94,7 +94,7 @@ All of this plan's entities, persisted from the start (snapshot v3) and guarded 
 - Consumes: `IdGen`, `Region`, `Settlement`, `World`, `WorldSnapshot`, `Invariants`, `Simulator` (Plans 1–2).
 - Produces: `NameStyle(string[] Onsets, Vowels, Codas) { Default; Derive(Rng) }`; `enum Lineage { Patrilineal, Matrilineal }`; `Culture` (kind `"culture"`: `Name, Style, Lineage, HomeRegionId, FaithId`); `Faith` (kind `"faith"`: `Name, Deity, Tenets, HolyRegionId`; `TenetPool`); `Traits` (nine opposed personality pairs + acquired `scarred, maimed, humiliated, renowned, bereaved`; `OppositeOf`, `Compatibility`); `Ambitions` (`renown, artifact, magic, wealth, vengeance, family`); `enum Sex`, `enum LifeStage { Child, Adult, Elder, Dead }`, `enum Role { None, Lord, Knight, Mage, Priest, Merchant, Elder, Adventurer, Rebel }`; `Attributes` (six 0–20 values, `Get/Set` by name); `record Memory(EventId, About, Feeling, Weight)`; `Character` (kind `"char"`; identity, family links, `Attributes`, `Traits`, `Ambition/AmbitionTarget`, `Role`, `Memories`, `Wounds`, `Renown`, `Faded`; `Age`, `Stage`, `IsAlive`, `IsActive`, `Has`); `House` (kind `"house"`); `ArtifactType`, `ArtifactPlace { Held, Treasury, Lost, Destroyed }`, `record ArtifactPower(Kind, Attribute, Amount)`, `record ProvenanceEntry(EventId, From, To, How)`, `Artifact` (kind `"artifact"`; `Bonus(attribute)`); `Relations { FriendAt = 40, RivalAt = −40; Opinion(a, b); AreKin; AreSiblings }`; `Region.CultureId/FaithId`; `Settlement.LordId`; `World.Cultures/Faiths/Houses/Characters/Artifacts`, `ActiveCharacters`, `PeopleOf(settlement)`; `WorldSnapshot` v3; `Invariants` becomes `partial` with `Invariants.People.cs` and `Invariants.Artifacts.cs` and `Check(…, bool entities = true)`. Test support: `TestPeople.World()`, `Add`, `Marry`, `GiveArtifact`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Model/PeopleModelTests.cs`:
 ```csharp
@@ -317,12 +317,12 @@ public static class TestPeople
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'Sex' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Core/WorldDate.cs` entirely with:
 ```csharp
@@ -1304,12 +1304,12 @@ public sealed record WorldSnapshot(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PeopleModelTests"`
 Expected: `Passed!  - Failed: 0, Passed: 13`. Then `dotnet test sim` → `Passed: 238` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1333,7 +1333,7 @@ Cultures spread from widely spaced homelands over the region graph (each region 
 - Consumes: `NameStyle`, `Culture`, `Faith` (Task 1); `RegionGraph` (Plan 2).
 - Produces: `NameGen(Rng, NameStyle? style = null)` with new `House()` (unique), `Proper()` (unique) and `Given()` (repeats allowed); `static class CultureGenerator { (List<Culture>, List<Faith>) Generate(regions, graph, Rng, IdGen) }` (cultures = clamp(regions / 14, 3, 9), faiths = clamp((cultures + 1) / 2, 2, 5); sets each region's `CultureId`/`FaithId`); `WorldGenerator` fills `World.Cultures`/`Faiths`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/CultureGeneratorTests.cs`:
 ```csharp
@@ -1424,12 +1424,12 @@ public class CultureGeneratorTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1729: 'NameGen' does not contain a constructor that takes 2 arguments`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/CultureGenerator.cs`:
 ```csharp
@@ -1677,12 +1677,12 @@ public static class WorldGenerator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CultureGeneratorTests"`
 Expected: `Passed!  - Failed: 0, Passed: 7`. Then `dotnet test sim` → `Passed: 245` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1705,7 +1705,7 @@ One place that makes artifacts (spec §4): the type decides which attributes the
 - Consumes: `Artifact`, `ArtifactPower`, `ResourceKinds` (Task 1, Plan 2); `NameGen` (Task 2).
 - Produces: `static class ArtifactForge { Curses; Artifact Create(Rng, IdGen, NameGen, long originEventId, ArtifactType? type = null, IReadOnlyList<string>? rareMaterials = null, double fame = 10) }` (no location set).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/ArtifactForgeTests.cs`:
 ```csharp
@@ -1767,12 +1767,12 @@ public class ArtifactForgeTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'ArtifactForge' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/ArtifactForge.cs`:
 ```csharp
@@ -1869,12 +1869,12 @@ public static class ArtifactForge
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~ArtifactForgeTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 251` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1898,7 +1898,7 @@ Every town and city gets a lord's household. Cities also get knights, a priest, 
 - Consumes: Tasks 1–3; `WorldGenerator` (Plan 2).
 - Produces: `static class CharacterFactory { Character Create(World, Rng, settlementId, Sex, birthDay, houseId, Role role = None, Character? father = null, Character? mother = null); House NewHouse(World, Rng, cultureId, seatSettlementId); Character? LineageParent(World, father, mother); string ChooseAmbition(Character, Rng) }` (attributes inherited from parents ± 3 or rolled, plus role bonuses; 3–4 compatible traits, some inherited; culture and faith from the lineage parent or the region); `static class PeopleGenerator { void Populate(World, Rng) }`, called at the end of `WorldGenerator.Generate`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/PeopleGeneratorTests.cs`:
 ```csharp
@@ -1990,12 +1990,12 @@ public class PeopleGeneratorTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'CharacterFactory' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/CharacterFactory.cs`:
 ```csharp
@@ -2305,12 +2305,12 @@ public static class WorldGenerator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PeopleGeneratorTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 257` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2333,7 +2333,7 @@ The seam where Plan 5's LLM plugs in (spec §8.2–8.3). A **decision point** is
 - Consumes: `Character`, `Artifact`, `Traits` (Task 1).
 - Produces (namespace `FantasyWorld.Sim.Agency`): `record DecisionOption(Key, Weight, Summary)`, `record DecisionBrief(CharacterId, Situation, Options)`, `interface IDecider { DecisionOption Decide(DecisionBrief, Rng) }`, `RulesDecider`; `enum Fate { Unharmed, Wounded, Maimed, Dead }`, `record EncounterOutcome(Key, Probability, AttackerWins, AttackerFate, DefenderFate)`, `record Encounter(Kind, AttackerId, DefenderId, AttackerStrength, DefenderStrength, ToTheDeath, Outcomes) { PlausibilityFloor = 0.05; AttackerOdds; IsPlausible }`, `interface IArbiter { EncounterOutcome Resolve(Encounter, Rng) }`, `RulesArbiter`; `static class Encounters { Strength(World, Character); DuelBetween(World, a, b, toTheDeath); HuntIn(World, c, Region); DelveIn(World, c, Region) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Agency/AgencyTests.cs`:
 ```csharp
@@ -2436,12 +2436,12 @@ public class AgencyTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Agency' does not exist in the namespace 'FantasyWorld.Sim' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Agency/Decisions.cs`:
 ```csharp
@@ -2609,12 +2609,12 @@ public static class Encounters
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~AgencyTests"`
 Expected: `Passed!  - Failed: 0, Passed: 8`. Then `dotnet test sim` → `Passed: 265` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2637,7 +2637,7 @@ Each month every notable may die of old age, illness, plague, famine or old woun
 - Consumes: Tasks 1, 4–5; `Conditions` (Plan 2).
 - Produces: `static class Fates { VacantSeat = "vacantSeat"; Importance(c, baseline); Remember(...); WorldEvent Die(ctx, c, cause, causes, Character? killer = null, long lostInRegion = 0); Character? Heir(World, c, today, killer = null); HeirCandidates(World, c, killer); CanTakeSeat(World, k); Siblings(World, c); IsHeirApparent(World, c, today); MoveToHolder; MoveToTreasury; Lose; string? Injure(c, Fate, Rng) }`; `sealed class LifeSystem : ISimSystem` (name `"life"`; `NotablesPerSettlement = 4`; `Risks`, `BaseMortality(age)`, `TurnsAgeThisMonth`). Events: `CharacterDied` (payload `cause`, `age`; actors `deceased`, `killer`), `SuccessionOccurred`, `ArtifactInherited`, `ComingOfAge`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/LifeSystemTests.cs`:
 ```csharp
@@ -2870,12 +2870,12 @@ public class LifeSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'LifeSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/Fates.cs`:
 ```csharp
@@ -3192,12 +3192,12 @@ public sealed class LifeSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~LifeSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 15`. Then `dotnet test sim` → `Passed: 280` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3220,7 +3220,7 @@ Courtship is a decision point between the three best nearby matches (by opinion,
 - Consumes: `IDecider` (Task 5); `CharacterFactory` (Task 4); `Fates` (Task 6).
 - Produces: `sealed class FamilySystem(IDecider? decider = null) : ISimSystem` (name `"family"`; `CourtshipPerMonth = 0.015`, `BirthPerMonth = 0.025`; `static bool Marriageable(c, today)`; `static WorldEvent Wed(ctx, a, b)`). Events: `MarriageWed` (actors `spouse`, `partner`), `CharacterBorn` (actors `child`, `mother`, `father`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/FamilySystemTests.cs`:
 ```csharp
@@ -3337,12 +3337,12 @@ public class FamilySystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'FamilySystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/FamilySystem.cs`:
 ```csharp
@@ -3462,12 +3462,12 @@ public sealed class FamilySystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~FamilySystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 286` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3490,7 +3490,7 @@ Notables who share a settlement sometimes meet. Trait compatibility plus chance 
 - Consumes: `Relations`, `Memory`, `Traits` (Task 1); `Fates.Remember` (Task 6).
 - Produces: `sealed class RelationsSystem : ISimSystem` (name `"relations"`; `MeetingPerMonth = 0.15`, `YearlyFade = 0.8`, `ForgetBelow = 2`). Events: `FriendshipFormed`, `RivalryBegan` (payload `over`, e.g. `honest vs deceitful`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/RelationsSystemTests.cs`:
 ```csharp
@@ -3566,12 +3566,12 @@ public class RelationsSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'RelationsSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/RelationsSystem.cs`:
 ```csharp
@@ -3661,12 +3661,12 @@ public sealed class RelationsSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RelationsSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 4`. Then `dotnet test sim` → `Passed: 290` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3689,7 +3689,7 @@ What notables do with their lives. Each month some adults face a decision point 
 - Consumes: Tasks 1, 3, 5, 6.
 - Produces: `sealed class DeedsSystem(IDecider? decider = null, IArbiter? arbiter = null) : ISimSystem` (name `"deeds"`; `ActPerMonth = 0.04`; `static int ArtifactCap(World)`; `static List<DecisionOption> Options(ctx, c, neighbours?)` with keys `rest`, `hunt:<region>`, `delve:<artifact>`, `steal:<artifact>`, `study`, `forge`, `avenge:<char>`, `duel:<char>`). Events: `MonstersSlain`/`MonsterHuntFailed`, `ArtifactFound`/`DelveFailed`, `ArtifactStolen`/`TheftFoiled`, `ArtifactForged`, `DuelFought` (payload `stakes`, `outcome`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/DeedsSystemTests.cs`:
 ```csharp
@@ -3899,12 +3899,12 @@ public class DeedsSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'DeedsSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/DeedsSystem.cs`:
 ```csharp
@@ -4168,12 +4168,12 @@ public sealed class DeedsSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DeedsSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 10`. Then `dotnet test sim` → `Passed: 300` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4196,7 +4196,7 @@ Artifacts have lives too (spec §4). Hidden curses come to light, citing how the
 - Consumes: `Artifact`, `Fates` (Tasks 1, 6).
 - Produces: `sealed class ArtifactSystem : ISimSystem` (name `"artifacts"`; yearly; `CurseRevealPerYear = 0.15`; `static void Become(Character, trait)`). Events: `ArtifactCurseRevealed` (payload `curse`), `ArtifactClaimed`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/ArtifactSystemTests.cs`:
 ```csharp
@@ -4271,12 +4271,12 @@ public class ArtifactSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'ArtifactSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/ArtifactSystem.cs`:
 ```csharp
@@ -4363,12 +4363,12 @@ public sealed class ArtifactSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~ArtifactSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 4`. Then `dotnet test sim` → `Passed: 304` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4391,7 +4391,7 @@ Spec §3 promotion: when the story needs a person, one steps out of the aggregat
 - Consumes: `CharacterFactory` (Task 4); `Fates.VacantSeat` (Task 6); `Conditions` (Plan 2).
 - Produces: `sealed class PromotionSystem : ISimSystem` (name `"promotion"`; `HeroPerMonth = 0.2`, `ElderPerMonth = 0.05`). Events: `NewLordRose`, `RebelLeaderRose`, `HeroRose`, `ElderChosen`, `NotablesFled`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/PromotionSystemTests.cs`:
 ```csharp
@@ -4500,12 +4500,12 @@ public class PromotionSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'PromotionSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/PromotionSystem.cs`:
 ```csharp
@@ -4652,12 +4652,12 @@ public sealed class PromotionSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PromotionSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 309` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4681,7 +4681,7 @@ The full system order is now Life → Economy → Regions → Settlements → Fa
 - Consumes: everything above.
 - Produces: `DefaultSystems.Create()` with nine systems; `HistoryQuery.Life(EntityRef)`; `CliApp` becomes `partial` with `CliApp.People.cs`; CLI commands `characters [--settlement id]`, `life <id>`, `artifacts`, `artifact <id>`; `fw region` shows culture, faith and lords.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Cli/CliAppTests.cs` entirely with:
 ```csharp
@@ -5079,12 +5079,12 @@ public class HistoryQueryTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'HistoryQuery' does not contain a definition for 'Life' and no accessible extension method 'Life' accepting a first argument of type 'HistoryQuery' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Cli/CliApp.People.cs`:
 ```csharp
@@ -5536,12 +5536,12 @@ public static class DefaultSystems
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CliAppTests|FullyQualifiedName~HistoryQueryTests"`
 Expected: `Passed!  - Failed: 0, Passed: 28`. Then `dotnet test sim` → `Passed: 314` in total.
 
-- [ ] **Step 5: Smoke-test the real binary**
+- [x] **Step 5: Smoke-test the real binary**
 
 ```bash
 dotnet run --project sim/FantasyWorld.Cli -- new worlds/demo.fw.db --seed 7
@@ -5550,7 +5550,7 @@ dotnet run --project sim/FantasyWorld.Cli -- characters worlds/demo.fw.db
 ```
 Expected: roughly 4,000 named event lines in a few seconds (births, marriages, rivalries, hunts, duels, successions…), then a table of several hundred living notables. Pick a lord's id and run `fw life worlds/demo.fw.db <id>`: you should see a biography with traits, parents, spouse, children and a dated life timeline. Pick a `CharacterDied … cause=a duel` id and run `fw why worlds/demo.fw.db <id> --depth 5`: the chain should run death ← duel ← the grudge (a rivalry, theft or earlier killing). Then `rm -r worlds`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -5573,7 +5573,7 @@ These checks hold the character layer to its promises: across two centuries the 
 - Consumes: everything above.
 - Produces: `PeopleHealthTests` (4 tests); together with Task 1's invariants (faded people hold nothing, lords live at their seat, nobody lives in a ruin, nobody hunts themselves) these were run for 300 years on three medium worlds with invariants on, clean; README commands for people and artifacts.
 
-- [ ] **Step 1: Write the checks**
+- [x] **Step 1: Write the checks**
 
 `sim/FantasyWorld.Sim.Tests/Engine/PeopleHealthTests.cs`:
 ```csharp
@@ -5633,12 +5633,12 @@ public class PeopleHealthTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they pass against the finished stack**
+- [x] **Step 2: Run tests to verify they pass against the finished stack**
 
 Run: `dotnet test sim`
 Expected: PASS. These tests pin down behaviour built in Tasks 12–15; if one fails, fix the system it names before going on.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `README.md` entirely with:
 ````markdown
@@ -5673,17 +5673,17 @@ dotnet run --project sim/FantasyWorld.Cli -- artifact worlds/aerenmoor.fw.db <id
 `--size tiny` makes a 64×64 world with 12 regions for quick experiments.
 ````
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PeopleHealthTests"`
 Expected: `Passed!  - Failed: 0, Passed: 4`. Then `dotnet test sim` → `Passed: 318` in total.
 
-- [ ] **Step 5: Run the full suite in Release**
+- [x] **Step 5: Run the full suite in Release**
 
 Run: `dotnet test sim --configuration Release`
 Expected: `Passed!  - Failed: 0, Passed: 318`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim README.md

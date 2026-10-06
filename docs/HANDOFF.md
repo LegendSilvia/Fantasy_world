@@ -12,11 +12,16 @@ Context for picking up this project on another machine / in a new Claude session
 | Plan 1 of 6 (Sim foundation) | Written — `docs/superpowers/plans/2026-10-05-sim-foundation.md` |
 | Plan 1 execution | **Done** — Tasks 1–12 committed on `ccr-81a7454e-12gx87`; 93/93 tests pass (Debug + Release) |
 | Plan 2 of 6 (World & regions) | **Done** — `docs/superpowers/plans/2026-10-05-world-and-regions.md`, Tasks 1–16 committed on `ccr-81a7454e-12gx87`; 225/225 tests pass (Debug + Release) |
+| Plan 3 of 6 (Characters & artifacts) | **Done** — `docs/superpowers/plans/2026-10-06-characters-and-artifacts.md`, Tasks 1–13; 318/318 tests pass (Debug + Release); 300-year medium soaks with invariants clean |
 
 ## Next step
 
-1. Review and merge `ccr-81a7454e-12gx87` (Plans 1 and 2) into `main`; confirm the `ci` workflow is green.
-2. Write Plan 3 (Characters & artifacts, plus cultures & faiths deferred from Plan 2). Plan 2's "Decisions made while drafting" table lists what was deferred to it.
+1. Merge the working branch into `main` (Plan 3).
+2. Plan 4 (Realms & armies), then Plans 5–6 and sub-projects 2–5.
+
+Notes from Plan 3 execution:
+- Try it: `fw new …`, `fw advance … 60y`, `fw characters …`, `fw life … <id>`, `fw artifact … <id>`, `fw why … <duel-death-id> --depth 5`.
+- Plans are now prototyped in a scratch worktree, replayed task by task, reviewed by an independent agent, then generated from the verified commits and executed on the branch.
 
 Notes from Plan 2 execution:
 - Try it: `fw new worlds/w.fw.db --seed 7`, `fw map …`, `fw advance … 50y`, `fw regions …`, `fw why … <id>` (e.g. a revolt → its food shortage).
