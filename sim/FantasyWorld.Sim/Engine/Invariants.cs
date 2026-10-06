@@ -26,8 +26,11 @@ public static partial class Invariants
         CheckCultures(world, errors);
         CheckPeople(world, log, errors);
         CheckArtifacts(world, log, errors);
+        CheckRealms(world, log, errors);
         return errors;
     }
+
+    static partial void CheckRealms(World world, EventLog log, List<string> errors);
 
     static partial void CheckPeople(World world, EventLog log, List<string> errors);
 

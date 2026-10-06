@@ -27,6 +27,9 @@ public sealed class World
     public SortedDictionary<long, House> Houses { get; init; } = new();
     public SortedDictionary<long, Character> Characters { get; init; } = new();
     public SortedDictionary<long, Artifact> Artifacts { get; init; } = new();
+    public SortedDictionary<long, Realm> Realms { get; init; } = new();
+    public SortedDictionary<long, War> Wars { get; init; } = new();
+    public SortedDictionary<long, Army> Armies { get; init; } = new();
 
     /// <summary>Living notables (not faded), in id order.</summary>
     public IEnumerable<Character> ActiveCharacters => Characters.Values.Where(c => c.IsActive);

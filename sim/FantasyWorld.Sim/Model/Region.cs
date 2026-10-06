@@ -41,6 +41,17 @@ public sealed class Region
 
     public long FaithId { get; set; }
 
+    /// <summary>The realm that holds the region directly (0 = unclaimed).</summary>
+    public long OwnerRealmId { get; set; }
+
+    /// <summary>A realm occupying it in war (0 = none). Control is loyal, occupied or contested (see Realms).</summary>
+    public long OccupierRealmId { get; set; }
+
+    /// <summary>Progress (0–100) of a siege of the region's chief settlement, and the besieging army.</summary>
+    public double SiegeProgress { get; set; }
+
+    public long BesiegerArmyId { get; set; }
+
     // Living state, 0–100 unless noted.
     public double BaseFertility { get; init; }
     public double Fertility { get; set; }
