@@ -18,6 +18,7 @@ public partial class RealmView : DocumentPage
         Fact("Capital", Realm.Capital.Label, Realm.Capital.Ref);
         if (Realm.Liege is { } liege) Fact("Liege", liege.Name, liege.Ref);
         Fact("Succession", Realm.SuccessionLaw);
+        if (Realm.Faith is { } faith) Fact("Faith", faith.Name);
         Fact("Magic", Realm.MagicLaw);
         Fact("Legitimacy · stability", $"{Realm.Legitimacy} · {Realm.Stability}");
         Fact("Treasury", $"{Realm.Treasury:N0} crowns");

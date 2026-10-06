@@ -181,5 +181,10 @@
       "tone": "neutral"
     }
   ],
-  "followed": false
+  "followed": false,
+  "faith": {
+    "ref": "faith#2",
+    "name": "The Way of Ciscoun"
+  },
+  "saint": false
 }

@@ -354,10 +354,15 @@ public partial class Diorama : Node3D
         return node;
     }
 
-    /// <summary>Landmarks are pale obelisks, labyrinths a ring of standing walls, ruins a few broken stones.</summary>
+    /// <summary>
+    /// Landmarks are pale obelisks, labyrinths a ring of standing walls, ruins a few broken stones; fortresses a squat
+    /// curtain wall with corner towers, shrines a gilt dome on a plinth, mage towers a slender violet spire and temples
+    /// a pale hall under a gilt roof.
+    /// </summary>
     private static Node3D MarkerNode(Marker marker)
     {
-        var node = new Node3D { Name = $"{marker.Ref.Kind}{marker.Ref.Id}", Position = ToGodot(marker.Position) };
+        var name = marker.Shape is MarkerShape.Tower or MarkerShape.Temple ? $"{marker.Shape.ToString().ToLowerInvariant()}{marker.Ref.Id}" : $"{marker.Ref.Kind}{marker.Ref.Id}";
+        var node = new Node3D { Name = name, Position = ToGodot(marker.Position) };
         var s = marker.Size;
         switch (marker.Shape)
         {
@@ -375,6 +380,37 @@ public partial class Diorama : Node3D
                     node.AddChild(wall);
                 }
                 node.AddChild(Solid(new CylinderMesh { TopRadius = s * 0.16f, BottomRadius = s * 0.16f, Height = s * 0.06f }, Rgb.Lerp(marker.Colour, Stone, 0.45f), s * 0.03f));
+                break;
+            case MarkerShape.Fortress:
+                for (var k = 0; k < 4; k++)
+                {
+                    var angle = k * Mathf.Tau / 4;
+                    var wall = Solid(new BoxMesh { Size = new Vector3(s * 0.9f, s * 0.32f, s * 0.12f) }, Stone, s * 0.16f);
+                    wall.Position += new Vector3(Mathf.Cos(angle) * s * 0.45f, 0, Mathf.Sin(angle) * s * 0.45f);
+                    wall.Rotation = new Vector3(0, -angle + Mathf.Pi / 2, 0);
+                    node.AddChild(wall);
+                    var tower = Solid(new CylinderMesh { TopRadius = s * 0.13f, BottomRadius = s * 0.15f, Height = s * 0.55f, RadialSegments = 8 }, Stone, s * 0.27f);
+                    tower.Position += new Vector3(Mathf.Cos(angle + Mathf.Pi / 4) * s * 0.64f, 0, Mathf.Sin(angle + Mathf.Pi / 4) * s * 0.64f);
+                    node.AddChild(tower);
+                }
+                node.AddChild(Solid(new BoxMesh { Size = new Vector3(s * 0.3f, s * 0.7f, s * 0.3f) }, Rgb.Lerp(Stone, marker.Colour, 0.25f), s * 0.35f));
+                break;
+            case MarkerShape.Shrine:
+                node.AddChild(Solid(new BoxMesh { Size = new Vector3(s * 0.7f, s * 0.12f, s * 0.7f) }, Stone, s * 0.06f));
+                node.AddChild(Solid(new SphereMesh { Radius = s * 0.28f, Height = s * 0.56f, RadialSegments = 12, Rings = 6, IsHemisphere = true }, marker.Colour, s * 0.12f));
+                break;
+            case MarkerShape.Tower:
+                node.AddChild(Solid(new CylinderMesh { TopRadius = s * 0.16f, BottomRadius = s * 0.2f, Height = s * 1.8f, RadialSegments = 8 }, Stone, s * 0.9f));
+                node.AddChild(Solid(new CylinderMesh { TopRadius = 0, BottomRadius = s * 0.26f, Height = s * 0.6f, RadialSegments = 8 }, marker.Colour, s * 2.1f));
+                node.AddChild(new MeshInstance3D
+                {
+                    Name = "Glow", Position = new Vector3(0, s * 1.55f, 0), Mesh = new SphereMesh { Radius = s * 0.09f, Height = s * 0.18f },
+                    MaterialOverride = Flat(Rgb.Lerp(marker.Colour, Rgb.One, 0.5f)),
+                });
+                break;
+            case MarkerShape.Temple:
+                node.AddChild(Solid(new BoxMesh { Size = new Vector3(s * 0.9f, s * 0.55f, s * 0.6f) }, BlockMesh.Hex(0xe8e2d4), s * 0.28f));
+                node.AddChild(Solid(new PrismMesh { Size = new Vector3(s * 1.0f, s * 0.35f, s * 0.68f) }, marker.Colour, s * 0.72f));
                 break;
             default:
                 for (var k = 0; k < 3; k++)

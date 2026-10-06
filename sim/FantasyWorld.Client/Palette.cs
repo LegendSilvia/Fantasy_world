@@ -16,6 +16,9 @@ public static class Palette
     public static readonly Vector3 Conflict = BlockMesh.Hex(0xc4621f);
     public static readonly Vector3 Realm = BlockMesh.Hex(0x3b6fb6);
 
+    /// <summary>Holy things: temples, shrines, saints.</summary>
+    public static readonly Vector3 Gold = BlockMesh.Hex(0xc9a227);
+
     public const string DisplayFont = "Instrument Serif";
     public const string UiFont = "Geist";
 

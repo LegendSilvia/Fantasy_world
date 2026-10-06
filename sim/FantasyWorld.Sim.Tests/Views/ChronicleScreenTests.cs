@@ -43,6 +43,7 @@ public class ChronicleScreenTests
         {
             var page = RealmScreen.Build(world, sim.Log, realm.Id);
             Assert.Contains(realm.Name, page.Title);
+            Assert.Equal(world.Faiths[realm.FaithId].Name, page.Faith!.Name);
             Assert.All(page.Vassals.Concat(page.Council.Select(c => c.Member)).Concat(page.Treaties.Select(t => t.With)),
                 m => Assert.Equal(nameOf(m.Ref), m.Name));
             Assert.All(page.Eras, e => Assert.True(sim.Log.TryGet(e.EventId, out _)));

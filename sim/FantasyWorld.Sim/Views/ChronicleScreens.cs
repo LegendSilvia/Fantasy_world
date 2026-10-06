@@ -49,7 +49,7 @@ public sealed record EraRow(int Year, string Name, string Phase, long EventId);
 public sealed record RealmScreen(
     EntityRef Ref, string Title, string Rank, string Government, string SuccessionLaw, string MagicLaw, Mention? Ruler, Place Capital,
     int Legitimacy, int Stability, int Treasury, string Phase, int Regions, Mention? Liege, IReadOnlyList<Mention> Vassals,
-    IReadOnlyList<CouncilSeat> Council, IReadOnlyList<TreatyRow> Treaties, IReadOnlyList<WarRow> Wars, IReadOnlyList<EraRow> Eras)
+    IReadOnlyList<CouncilSeat> Council, IReadOnlyList<TreatyRow> Treaties, IReadOnlyList<WarRow> Wars, IReadOnlyList<EraRow> Eras, Mention? Faith = null)
 {
     public static RealmScreen Build(World world, EventLog log, long realmId)
     {
@@ -69,7 +69,8 @@ public sealed record RealmScreen(
                 log.TryGet(t.SinceEventId, out var since) ? since.Date.Year : 1)).ToList(),
             world.Wars.Values.Where(w => w.Involves(realm.Id)).OrderByDescending(w => w.Id)
                 .Select(w => new WarRow(w.Ref, w.Name, w.IsAttacker(realm.Id) ? "attacker" : "defender", w.Ended)).ToList(),
-            new HistoryQuery(log).Eras(realm.Ref).Select(e => new EraRow(e.Date.Year, e.Payload["era"], e.Payload.GetValueOrDefault("phase") ?? "", e.Id)).ToList());
+            new HistoryQuery(log).Eras(realm.Ref).Select(e => new EraRow(e.Date.Year, e.Payload["era"], e.Payload.GetValueOrDefault("phase") ?? "", e.Id)).ToList(),
+            world.Faiths.TryGetValue(realm.FaithId, out var faith) ? Of(faith.Ref) : null);
     }
 
     private static string Words(string pascal) => string.Concat(pascal.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + char.ToLowerInvariant(ch) : ch.ToString()));

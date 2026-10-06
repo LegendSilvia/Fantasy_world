@@ -17,10 +17,10 @@ public class MarkersTests
     {
         var map = MapScreen.Build(Aged.World, Aged.Log);
         var markers = Markers.For(map, Aged.World.Geography!);
-        Assert.Equal(map.Settlements.Count + map.Structures.Count, markers.Count);
+        Assert.Equal(map.Settlements.Count + map.Structures.Count + map.Settlements.Sum(s => s.Marks?.Count ?? 0), markers.Count);
         Assert.All(markers, m => Assert.True(m.Position.X is >= -1.1f and <= 1.1f && m.Position.Z is >= -1.1f and <= 1.1f && m.Position.Y >= 0));
         var city = map.Settlements.MaxBy(s => Markers.SizeOf(s.Tier))!;
-        Assert.Equal(Markers.SizeOf(city.Tier), markers.Single(m => m.Ref == city.Ref).Size);
+        Assert.Equal(Markers.SizeOf(city.Tier), markers.Single(m => m.Ref == city.Ref && m.Shape == MarkerShape.Settlement).Size);
         Assert.True(Markers.SizeOf("City") > Markers.SizeOf("Hamlet"));
         Assert.All(markers.Where(m => m.Kind == PinMarker.Conflict), m => Assert.Equal(Palette.Conflict, m.Colour));
     }
@@ -80,5 +80,31 @@ public class MarkersTests
         Assert.Equal(digest.Pins.Count, pins.Count);
         Assert.Equal(pins.Select(p => p.Number).Order(), pins.Select(p => p.Number));
         Assert.All(pins, p => Assert.True(p.Position.Y >= Markers.PinLift));
+    }
+
+    [Fact]
+    public void FortressesShrinesTemplesAndTowers_HaveTheirOwnMarkers()
+    {
+        var map = MapScreen.Build(Aged.World, Aged.Log);
+        var town = map.Settlements.First(s => s.Position is not null);
+        var at = town.Position!;
+        map = map with
+        {
+            Settlements = map.Settlements.Select(s => s.Ref == town.Ref ? s with { Marks = new[] { "temple", "mage tower" } } : s with { Marks = null }).ToList(),
+            Structures = new[]
+            {
+                new MapStructure(new EntityRef("structure", 901), "The Walls", "Fortification", "Standing", at),
+                new MapStructure(new EntityRef("structure", 902), "The Shrine", "Shrine", "Standing", at, "cleared"),
+                new MapStructure(new EntityRef("structure", 903), "The Old Deeps", "Ruin", "Ruined", at, "cleared"),
+            },
+        };
+        var markers = Markers.For(map, Aged.World.Geography!);
+        Assert.Equal(MarkerShape.Fortress, markers.Single(m => m.Ref.Id == 901).Shape);
+        Assert.Equal((MarkerShape.Shrine, Palette.Gold), (markers.Single(m => m.Ref.Id == 902).Shape, markers.Single(m => m.Ref.Id == 902).Colour));
+        Assert.Equal(MarkerShape.Ruin, markers.Single(m => m.Ref.Id == 903).Shape);
+        var beside = markers.Where(m => m.Ref == town.Ref && m.Shape != MarkerShape.Settlement).ToList();
+        Assert.Equal(new[] { MarkerShape.Temple, MarkerShape.Tower }, beside.Select(m => m.Shape));
+        var home = markers.Single(m => m.Ref == town.Ref && m.Shape == MarkerShape.Settlement);
+        Assert.All(beside, m => Assert.InRange(System.Numerics.Vector3.Distance(m.Position with { Y = 0 }, home.Position with { Y = 0 }), 0.01f, 0.05f));
     }
 }

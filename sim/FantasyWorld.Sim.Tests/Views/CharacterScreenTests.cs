@@ -64,4 +64,18 @@ public class CharacterScreenTests
             FamilyTree.Build(world, c.Id);
         }
     }
+
+    [Fact]
+    public void ACharactersPage_NamesTheirFaith_AndASaintIsCalledSo()
+    {
+        var world = TestPeople.World();
+        var log = new EventLog();
+        var holy = TestPeople.Add(world, 1, 60, role: Role.Priest);
+        var page = CharacterScreen.Build(world, log, holy.Id);
+        Assert.Equal(("The Way of Ohm", false), (page.Faith!.Name, page.Saint));
+        holy.SaintEventId = log.Append(world.Date, new EventDraft("SaintDeclared")).Id;
+        page = CharacterScreen.Build(world, log, holy.Id);
+        Assert.True(page.Saint);
+        Assert.StartsWith("Saint · ", page.Line);
+    }
 }

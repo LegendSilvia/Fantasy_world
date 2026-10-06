@@ -165,7 +165,8 @@
         "kicker": "Stesford · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 138 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#2",
@@ -181,7 +182,8 @@
         "kicker": "Thanddind · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 123 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#3",
@@ -197,7 +199,10 @@
         "kicker": "Drerithby · Town",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 2,727 · 0 events this year"
-      }
+      },
+      "marks": [
+        "temple"
+      ]
     },
     {
       "ref": "settlement#4",
@@ -213,7 +218,8 @@
         "kicker": "Wiall · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 193 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#5",
@@ -229,7 +235,8 @@
         "kicker": "Kaerhiand · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 452 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#6",
@@ -245,7 +252,8 @@
         "kicker": "Veim · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 89 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#7",
@@ -261,7 +269,8 @@
         "kicker": "Brousfiallcross · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 973 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#8",
@@ -277,7 +286,8 @@
         "kicker": "Raembridge · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 951 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#9",
@@ -293,7 +303,8 @@
         "kicker": "Gresford · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 844 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#10",
@@ -309,7 +320,8 @@
         "kicker": "Gerrouhaven · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 988 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#11",
@@ -325,7 +337,8 @@
         "kicker": "Droumkarnbridge · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 338 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#12",
@@ -341,7 +354,8 @@
         "kicker": "Fouth · Hamlet",
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 247 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#13",
@@ -357,7 +371,8 @@
         "kicker": "Veill · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 179 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#14",
@@ -373,7 +388,8 @@
         "kicker": "Toth · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 244 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#15",
@@ -389,7 +405,8 @@
         "kicker": "Fasthar · Village",
         "title": "Held by the County of Veirwold since the founding",
         "line": "Pop. 410 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#16",
@@ -405,7 +422,10 @@
         "kicker": "Greindrondcross · Town",
         "title": "Held by the County of Veirwold since the founding",
         "line": "Pop. 1,925 · 0 events this year"
-      }
+      },
+      "marks": [
+        "temple"
+      ]
     },
     {
       "ref": "settlement#17",
@@ -421,7 +441,8 @@
         "kicker": "Braestilby · Village",
         "title": "Held by the County of Veirwold since the founding",
         "line": "Pop. 479 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#18",
@@ -437,7 +458,8 @@
         "kicker": "Droukolford · Village",
         "title": "Held by the County of Veirwold since the founding",
         "line": "Pop. 679 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#19",
@@ -453,7 +475,8 @@
         "kicker": "Heith · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 993 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#20",
@@ -469,7 +492,8 @@
         "kicker": "Outh · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 1,252 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#21",
@@ -485,7 +509,8 @@
         "kicker": "Thurnstead · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 266 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#22",
@@ -501,7 +526,8 @@
         "kicker": "Caethhouston · Hamlet",
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 163 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#23",
@@ -517,7 +543,8 @@
         "kicker": "Grintiacross · Hamlet",
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 117 · 0 events this year"
-      }
+      },
+      "marks": []
     },
     {
       "ref": "settlement#24",
@@ -533,7 +560,10 @@
         "kicker": "Niar · Town",
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 1,964 · 0 events this year"
-      }
+      },
+      "marks": [
+        "temple"
+      ]
     }
   ],
   "structures": [
@@ -545,7 +575,8 @@
       "position": {
         "x": 0.4921875,
         "y": 0.4296875
-      }
+      },
+      "detail": "level 2 of 3"
     }
   ],
   "borders": [
@@ -687,7 +718,8 @@
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "roseEventId": 120
+      "roseEventId": 120,
+      "guarding": true
     }
   ]
 }

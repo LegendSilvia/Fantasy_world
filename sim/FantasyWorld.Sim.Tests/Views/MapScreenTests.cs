@@ -64,4 +64,67 @@ public class MapScreenTests
         Assert.False(map.Historical);
         Assert.Equal(world.Date.Year, map.Year);
     }
+
+    [Fact]
+    public void TemplesTowers_AndLabyrinthDepths_ShowToday_AndClearedLabyrinthsReplay()
+    {
+        var world = TestRealms.TwoKingdoms();
+        foreach (var r in world.Regions.Values) world.FoundingOwners[r.Id] = r.OwnerRealmId;
+        var log = new EventLog();
+        world.Settlements[1].Buildings.AddRange(new[] { "granary", "mage tower", "temple" });
+        var opened = log.Append(world.Date, new EventDraft("LabyrinthOpened", Place: world.Regions[2].Ref));
+        var maze = new Structure
+        {
+            Id = world.Ids.Take(Structure.Kind), Name = "The Deeps", Type = StructureKind.Labyrinth, RegionId = 2, StartedEventId = opened.Id,
+            CompletedEventId = opened.Id, Progress = 100, State = StructureState.Standing, Levels = 5, Depth = 2,
+        };
+        world.Structures[maze.Id] = maze;
+        var guardian = new Monster { Id = world.Ids.Take(Monster.Kind), Name = "The Lich", Breed = "lich", RegionId = 2, Might = 60,
+            State = MonsterState.Lairing, RoseEventId = opened.Id, LairStructureId = maze.Id };
+        world.Monsters[guardian.Id] = guardian;
+        maze.GuardianId = guardian.Id;
+
+        var map = MapScreen.Build(world, log);
+        Assert.Equal(new[] { "temple", "mage tower" }, map.Settlements.Single(s => s.Ref.Id == 1).Marks);
+        var deeps = map.Structures.Single(s => s.Ref == maze.Ref);
+        Assert.Equal(("Labyrinth", "level 2 of 5"), (deeps.Kind, deeps.Detail));
+        Assert.True(map.Monsters!.Single().Guarding);
+
+        world.Date = world.Date.AddDays(3600);
+        var cleared = log.Append(world.Date, new EventDraft("LabyrinthCleared", Place: world.Regions[2].Ref));
+        (maze.ClearedEventId, maze.Type, guardian.State, guardian.SlainEventId) = (cleared.Id, StructureKind.Shrine, MonsterState.Slain, cleared.Id);
+        world.Date = world.Date.AddDays(360);
+        var now = MapScreen.Build(world, log).Structures.Single(s => s.Ref == maze.Ref);
+        Assert.Equal(("Shrine", "cleared"), (now.Kind, now.Detail));
+        var then = MapScreen.Build(world, log, new WorldDate(360)).Structures.Single(s => s.Ref == maze.Ref);
+        Assert.Equal("Labyrinth", then.Kind);
+        Assert.Empty(MapScreen.Build(world, log, new WorldDate(360)).Settlements.Single(s => s.Ref.Id == 1).Marks!);
+    }
+
+    [Fact]
+    public void GreatWorks_ReplayTheirCollapses_AndFortressesTheirBuilding()
+    {
+        var world = TestRealms.TwoKingdoms();
+        foreach (var r in world.Regions.Values) world.FoundingOwners[r.Id] = r.OwnerRealmId;
+        var log = new EventLog();
+        Structure Work(StructureKind kind, string begun)
+        {
+            var started = log.Append(world.Date, new EventDraft(begun, Place: world.Settlements[1].Ref));
+            var work = new Structure { Id = world.Ids.Take(Structure.Kind), Name = $"The {kind}", Type = kind, RegionId = 1, SettlementId = 1, StartedEventId = started.Id };
+            world.Structures[work.Id] = work;
+            return work;
+        }
+        var spire = Work(StructureKind.Landmark, "LandmarkBegun");
+        var walls = Work(StructureKind.Fortification, "FortificationBegun");
+        world.Date = new WorldDate(720);
+        log.Append(world.Date, new EventDraft("WorksCollapsed", Actors: new Dictionary<string, EntityRef> { ["structure"] = spire.Ref },
+            Payload: new Dictionary<string, string> { ["ruined"] = "yes" }));
+        var done = log.Append(world.Date, new EventDraft("FortificationCompleted", Actors: new Dictionary<string, EntityRef> { ["structure"] = walls.Ref }));
+        (spire.State, walls.State, walls.CompletedEventId) = (StructureState.Ruined, StructureState.Standing, done.Id);
+        world.Date = new WorldDate(1440);
+
+        string At(Structure st, WorldDate? when) => MapScreen.Build(world, log, when).Structures.Single(s => s.Ref == st.Ref).State;
+        Assert.Equal(("Ruined", "Standing"), (At(spire, null), At(walls, null)));
+        Assert.Equal(("Building", "Building"), (At(spire, new WorldDate(360)), At(walls, new WorldDate(360))));
+    }
 }

@@ -6,7 +6,7 @@ using FantasyWorld.Sim.Views;
 
 namespace FantasyWorld.Client;
 
-public enum MarkerShape { Settlement, Landmark, Labyrinth, Ruin }
+public enum MarkerShape { Settlement, Landmark, Labyrinth, Ruin, Fortress, Shrine, Tower, Temple }
 
 /// <summary>One thing standing on the block: where, what shape, how big and in what colour.</summary>
 public sealed record Marker(EntityRef Ref, string Name, MarkerShape Shape, Vector3 Position, float Size, Vector3 Colour, PinMarker Kind);
@@ -20,7 +20,8 @@ public sealed record Segment(Vector3 From, Vector3 To);
 /// <summary>
 /// Lays the map screen out on the diorama (sub-project 4 §3): settlement blocks sized by tier and coloured by their
 /// holder (orange when occupied), diamonds for landmarks, nested diamonds for labyrinths, numbered pins above digest
-/// places, and realm borders along the tile edges where two differently held regions meet.
+/// places, and realm borders along the tile edges where two differently held regions meet. Fortresses, shrines, and
+/// the temples and mage towers of today's towns stand beside them (sub-project 3 §9).
 /// </summary>
 public static class Markers
 {
@@ -44,13 +45,36 @@ public static class Markers
             var region = RegionAt(geography, s.Position!);
             var colour = s.Marker == PinMarker.Conflict ? Palette.Conflict
                 : colourOf.TryGetValue(region, out var name) && name != "none" ? Palette.Heraldic(name) : Palette.Muted;
-            markers.Add(new Marker(s.Ref, s.Name, MarkerShape.Settlement, Projection.ToBlock(grid, s.Position!, 0), SizeOf(s.Tier), colour, s.Marker));
+            var at = Projection.ToBlock(grid, s.Position!, 0);
+            markers.Add(new Marker(s.Ref, s.Name, MarkerShape.Settlement, at, SizeOf(s.Tier), colour, s.Marker));
+            // Temples and towers stand on the far side from structures, one behind the other.
+            var k = 0;
+            foreach (var mark in s.Marks ?? Array.Empty<string>())
+            {
+                var beside = at + new Vector3(-0.028f, 0, -0.012f + 0.024f * k++);
+                beside = beside with { Y = Math.Max(0, BlockMesh.HeightAt(grid, (beside.X + 1) / 2, (beside.Z + 1) / 2)) };
+                markers.Add(mark == "mage tower"
+                    ? new Marker(s.Ref, $"{s.Name} mage tower", MarkerShape.Tower, beside, 0.02f, Palette.For(Category.FaithAndMagic), PinMarker.Plain)
+                    : new Marker(s.Ref, $"{s.Name} temple", MarkerShape.Temple, beside, 0.018f, Palette.Gold, PinMarker.Plain));
+            }
         }
         foreach (var st in map.Structures.Where(st => st.Position is not null))
         {
             var shape = st.State == nameof(StructureState.Ruined) ? MarkerShape.Ruin
-                : st.Kind == nameof(StructureKind.Labyrinth) ? MarkerShape.Labyrinth : MarkerShape.Landmark;
-            var colour = shape == MarkerShape.Ruin ? Palette.Muted : shape == MarkerShape.Labyrinth ? Palette.For(Category.FaithAndMagic) : Palette.Ink;
+                : st.Kind switch
+                {
+                    nameof(StructureKind.Labyrinth) => MarkerShape.Labyrinth,
+                    nameof(StructureKind.Fortification) => MarkerShape.Fortress,
+                    nameof(StructureKind.Shrine) => MarkerShape.Shrine,
+                    _ => MarkerShape.Landmark,
+                };
+            var colour = shape switch
+            {
+                MarkerShape.Ruin => Palette.Muted,
+                MarkerShape.Labyrinth => Palette.For(Category.FaithAndMagic),
+                MarkerShape.Shrine => Palette.Gold,
+                _ => Palette.Ink,
+            };
             // Structures stand beside their settlement, not inside it.
             var at = Projection.ToBlock(grid, st.Position!, 0) + new Vector3(0.03f, 0, 0.03f);
             markers.Add(new Marker(st.Ref, st.Name, shape, at with { Y = Math.Max(0, BlockMesh.HeightAt(grid, (at.X + 1) / 2, (at.Z + 1) / 2)) },

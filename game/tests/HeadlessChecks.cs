@@ -167,7 +167,9 @@ public partial class HeadlessChecks : Node
         if (character is null) return;
         var screen = character.Character;
         Check(character.GetNode<Label>("Left/Who/Title").Text == $"{screen.Name}.", "the page is titled with their name");
-        Check(character.GetNode("Left/Chips").GetChildCount() == screen.Traits.Count + (screen.Ambition.Length > 0 ? 1 : 0), "traits and ambition are chips");
+        Check(character.GetNode("Left/Chips").GetChildCount() == screen.Traits.Count + (screen.Ambition.Length > 0 ? 1 : 0) + (screen.Faith is null ? 0 : 1) + (screen.Saint ? 1 : 0),
+            "faith, traits and ambition are chips");
+        Check(screen.Faith is null || character.GetNodeOrNull("Left/Chips/Faith") is not null, "their faith is named");
         Check(character.Timeline.GetChildren().Count(c => c.Name.ToString().StartsWith("Event") || c.Name == "Highlight") == screen.Timeline.Count, "every deed is on the timeline");
         Check(character.GetNode("Ties/Column/List").GetChildCount() == Math.Max(1, screen.Ties.Count), "ties are listed");
         await Shot("character");
@@ -346,6 +348,9 @@ public partial class HeadlessChecks : Node
             "every settlement is a cluster of houses");
         Check(diorama.StructureLayer.GetChildren().Count(n => n.Name.ToString().StartsWith("structure")) == map.Structures.Count(s => s.Position is not null),
             "every landmark and labyrinth stands on the block");
+        Check(diorama.StructureLayer.GetChildren().Count(n => n.Name.ToString().StartsWith("temple") || n.Name.ToString().StartsWith("tower"))
+              == map.Settlements.Where(s => s.Position is not null).Sum(s => s.Marks?.Count ?? 0),
+            "temples and mage towers stand beside their towns");
         Check(diorama.TreeCount > 100, $"woods are planted ({diorama.TreeCount} trees)");
         Check(map.Borders.Count == 0 || diorama.BorderLines.Mesh is ArrayMesh { } lines && lines.GetSurfaceCount() == 2, "realm borders are drawn, ink over a halo");
 

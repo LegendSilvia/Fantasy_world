@@ -282,7 +282,11 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
         }
         var builder = ctx.World.Characters.GetValueOrDefault(work.BuilderId);
         ctx.Emit(new EventDraft("WorksCollapsed", Actors: actors, Place: seat.Ref,
-            Payload: new Dictionary<string, string> { ["dead"] = (before - seat.Population).ToString(System.Globalization.CultureInfo.InvariantCulture) },
+            Payload: new Dictionary<string, string>
+            {
+                ["dead"] = (before - seat.Population).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["ruined"] = work.Progress <= 0 ? "yes" : "no",
+            },
             Causes: new[] { new Cause(work.StartedEventId, CauseKind.Enabler, 0.7) },
             Importance: builder is null ? 40 : Fates.Importance(builder, 40), Tags: new[] { "Structures" }));
         if (work.Progress <= 0) work.State = StructureState.Ruined;

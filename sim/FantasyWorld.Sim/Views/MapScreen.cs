@@ -13,9 +13,12 @@ public sealed record MapRegion(EntityRef Ref, string Name, string Biome, MapPoin
 
 public sealed record MapCard(string Kicker, string Title, string Line);
 
-public sealed record MapSettlement(EntityRef Ref, string Name, string Tier, MapPoint? Position, EntityRef? Holder, PinMarker Marker, MapCard Card);
+/// <summary>A settlement pin; Marks are the buildings worth drawing beside it today ("temple", "mage tower").</summary>
+public sealed record MapSettlement(EntityRef Ref, string Name, string Tier, MapPoint? Position, EntityRef? Holder, PinMarker Marker, MapCard Card,
+    IReadOnlyList<string>? Marks = null);
 
-public sealed record MapStructure(EntityRef Ref, string Name, string Kind, string State, MapPoint? Position);
+/// <summary>A structure as it was at the date; Detail says how deep a labyrinth has been delved ("level 2 of 5").</summary>
+public sealed record MapStructure(EntityRef Ref, string Name, string Kind, string State, MapPoint? Position, string? Detail = null);
 
 public sealed record Border(EntityRef A, EntityRef B);
 
@@ -35,7 +38,8 @@ public sealed record MapArmy(
 public sealed record MapRoute(EntityRef Ref, string Name, EntityRef From, EntityRef To, string State, int Volume, IReadOnlyList<MapPoint> Path);
 
 /// <summary>A beast in its lair: what it is, how mighty, whether it is a legend or asleep, and the event of its rising.</summary>
-public sealed record MapMonster(EntityRef Ref, string Name, string Breed, int Might, bool Legendary, bool Slumbering, MapPoint Position, long RoseEventId);
+public sealed record MapMonster(EntityRef Ref, string Name, string Breed, int Might, bool Legendary, bool Slumbering, MapPoint Position, long RoseEventId,
+    bool Guarding = false);
 
 /// <summary>A battle of the last year: where, who won, and the event to explain it.</summary>
 public sealed record MapBattle(long EventId, int Year, MapPoint Position, EntityRef Victor, EntityRef Vanquished, EntityRef War);
@@ -87,11 +91,16 @@ public sealed record MapScreen(
             var line = (today ? $"Pop. {s.Population.ToString("N0", CultureInfo.InvariantCulture)} · " : "")
                        + $"{thisYear} event{(thisYear == 1 ? "" : "s")} this year";
             settlements.Add(new MapSettlement(s.Ref, s.Name, s.Tier.ToString(), MapPoint.Of(world, s.Ref), holder?.Ref, marker,
-                new MapCard($"{s.Name} · {s.Tier}", title, line)));
+                new MapCard($"{s.Name} · {s.Tier}", title, line), today ? Marked.Where(s.Buildings.Contains).ToList() : Array.Empty<string>()));
         }
 
         var structures = world.Structures.Values.Where(st => log.TryGet(st.StartedEventId, out var begun) && begun.Date <= date)
-            .Select(st => new MapStructure(st.Ref, st.Name, st.Type.ToString(), StructureState(world, log, st, date), MapPoint.Of(world, st.Ref)))
+            .Select(st => Cleared(log, st, date)
+                ? new MapStructure(st.Ref, st.Name, st.Type.ToString(), st.State.ToString(), MapPoint.Of(world, st.Ref), "cleared")
+                : st.GuardianId != 0 || st.Type == StructureKind.Labyrinth
+                    ? new MapStructure(st.Ref, st.Name, nameof(StructureKind.Labyrinth), nameof(Model.StructureState.Standing), MapPoint.Of(world, st.Ref),
+                        today && st.Levels > 0 ? $"level {st.Depth} of {st.Levels}" : null)
+                    : new MapStructure(st.Ref, st.Name, st.Type.ToString(), StructureState(world, log, st, date), MapPoint.Of(world, st.Ref)))
             .ToList();
 
         var borders = world.Geography is { } geo
@@ -116,6 +125,13 @@ public sealed record MapScreen(
         return new MapScreen(DigestScreen.DisplayName(world), char.ToUpperInvariant(summary[0]) + summary[1..], date.Year, 1, map.Historical,
             regions, settlements, structures, borders, conflicts, legend, today ? ArmiesIn(world) : Array.Empty<MapArmy>(), BattlesBefore(world, log, date), RoutesAt(world, log, date, today), MonstersAt(world, log, date));
     }
+
+    /// <summary>Buildings drawn beside their settlement.</summary>
+    public static readonly IReadOnlyList<string> Marked = new[] { "temple", "mage tower" };
+
+    /// <summary>A labyrinth cleared by the date has become a ruin or a shrine.</summary>
+    private static bool Cleared(EventLog log, Structure st, WorldDate date) =>
+        st.ClearedEventId != 0 && log.TryGet(st.ClearedEventId, out var cleared) && cleared.Date <= date;
 
     /// <summary>Hosts in the field today (armies are not kept in history, so past maps show none).</summary>
     private static IReadOnlyList<MapArmy> ArmiesIn(World world)
@@ -143,7 +159,7 @@ public sealed record MapScreen(
             .Select(m => (Beast: m, At: MapPoint.Of(world, world.Regions[m.RegionId].Ref)))
             .Where(x => x.At is not null)
             .Select(x => new MapMonster(x.Beast.Ref, x.Beast.Name, x.Beast.Breed, (int)Math.Round(x.Beast.Might), x.Beast.Legendary,
-                x.Beast.State == MonsterState.Slumbering, x.At!, x.Beast.RoseEventId))
+                x.Beast.State == MonsterState.Slumbering, x.At!, x.Beast.RoseEventId, x.Beast.State == MonsterState.Lairing))
             .ToList();
 
     /// <summary>Roads opened by the date; their state then is replayed from their severing and restoring.</summary>
@@ -158,8 +174,8 @@ public sealed record MapScreen(
             {
                 var last = log.Involving(route.Ref).LastOrDefault(e => e.Date <= date && e.Type is "RouteSevered" or "RouteRestored");
                 state = last?.Type == "RouteSevered" ? RouteState.Severed : RouteState.Open;
-                // A road closes for good when a market is abandoned.
-                if (new[] { route.FromId, route.ToId }.Any(id => log.Involving(world.Settlements[id].Ref).Any(e => e.Type == "SettlementAbandoned" && e.Date <= date)))
+                // A road closes for good when a market is abandoned or shrinks below a town.
+                if (log.Involving(route.Ref).Any(e => e.Type == "RouteClosed" && e.Date <= date))
                     state = RouteState.Closed;
             }
             if (state == RouteState.Closed) continue;
@@ -182,11 +198,17 @@ public sealed record MapScreen(
     /// <summary>A landmark is building until its completion event, and ruined once its settlement's ruin event has passed.</summary>
     private static string StructureState(World world, EventLog log, Structure st, WorldDate date)
     {
-        if (st.Type == StructureKind.Landmark && !(st.CompletedEventId != 0 && log.TryGet(st.CompletedEventId, out var done) && done.Date <= date))
-            return st.State == Model.StructureState.Ruined && RuinedBy(world, log, st, date) ? nameof(Model.StructureState.Ruined) : nameof(Model.StructureState.Building);
-        if (st.Type == StructureKind.Landmark && st.State == Model.StructureState.Ruined)
-            return RuinedBy(world, log, st, date) ? nameof(Model.StructureState.Ruined) : nameof(Model.StructureState.Standing);
-        return st.State.ToString();
+        if (st.Type is not (StructureKind.Landmark or StructureKind.Fortification)) return st.State.ToString();
+        if (RuinedBy(world, log, st, date)) return nameof(Model.StructureState.Ruined);
+        // A great work's state at a date is its latest turn by then: completed, restored, or a collapse that ruined it.
+        var turn = log.Involving(st.Ref).LastOrDefault(e => e.Date <= date
+            && e.Type is "LandmarkCompleted" or "FortificationCompleted" or "RestorationBegun" or "WorksCollapsed");
+        return turn?.Type switch
+        {
+            "LandmarkCompleted" or "FortificationCompleted" => nameof(Model.StructureState.Standing),
+            "WorksCollapsed" when turn.Payload.GetValueOrDefault("ruined") == "yes" => nameof(Model.StructureState.Ruined),
+            _ => nameof(Model.StructureState.Building),
+        };
     }
 
     private static bool RuinedBy(World world, EventLog log, Structure st, WorldDate date) =>

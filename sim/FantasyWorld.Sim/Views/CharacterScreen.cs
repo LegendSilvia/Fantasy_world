@@ -20,7 +20,8 @@ public sealed record Tie(EntityRef Ref, string Name, string Relation, string Qua
 /// </summary>
 public sealed record CharacterScreen(
     EntityRef Ref, string Name, EntityRef? House, string Kicker, string Line, IReadOnlyList<string> Traits, string Ambition,
-    Place? Location, IReadOnlyList<TimelineRow> Timeline, int Folded, int Earlier, IReadOnlyList<Tie> Ties, bool Followed)
+    Place? Location, IReadOnlyList<TimelineRow> Timeline, int Folded, int Earlier, IReadOnlyList<Tie> Ties, bool Followed,
+    Mention? Faith = null, bool Saint = false)
 {
     public const int TimelineImportance = 20;
 
@@ -37,7 +38,7 @@ public sealed record CharacterScreen(
         var born = life.FirstOrDefault(e => e.Type == "CharacterBorn" && e.Actors.GetValueOrDefault("child") == c.Ref);
         var home = world.Settlements.GetValueOrDefault(c.SettlementId);
 
-        var line = new List<string> { RoleLine(world, c) };
+        var line = new List<string> { (c.SaintEventId != 0 ? "Saint · " : "") + RoleLine(world, c) };
         var today = c.Died ?? world.Date;
         line.Add($"age {c.Age(today)}");
         var birthYear = new Core.WorldDate(c.BirthDay).Year;
@@ -58,7 +59,8 @@ public sealed record CharacterScreen(
             : new Place(home.Ref, c.IsActive ? $"Now at {home.Name}" : $"Last at {home.Name}", MapPoint.Of(world, home.Ref));
         return new CharacterScreen(c.Ref, Names.Full(world, c), house?.Ref, house is null ? "Character" : $"Character · House {house.Name}",
             string.Join(" · ", line), c.Traits.ToList(), AmbitionText(world, c), location, timeline, life.Count - notable.Count, earlier,
-            TiesOf(world, c), followed);
+            TiesOf(world, c), followed,
+            world.Faiths.TryGetValue(c.FaithId, out var faith) ? new Mention(faith.Ref, faith.Name) : null, c.SaintEventId != 0);
     }
 
     private static string RoleLine(World world, Character c)

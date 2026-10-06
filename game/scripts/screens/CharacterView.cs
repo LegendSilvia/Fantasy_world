@@ -35,6 +35,8 @@ public partial class CharacterView : Control
         var chips = new HFlowContainer { Name = "Chips" };
         chips.AddThemeConstantOverride("h_separation", 6);
         chips.AddThemeConstantOverride("v_separation", 6);
+        if (Character.Saint) chips.AddChild(Ui.Chip("Saint", filled: true, name: "Saint", dot: Palette.Gold));
+        if (Character.Faith is { } faith) chips.AddChild(Ui.Chip(faith.Name, name: "Faith", dot: Palette.Gold));
         foreach (var trait in Character.Traits) chips.AddChild(Ui.Chip(trait, name: "Trait"));
         if (Character.Ambition.Length > 0)
             chips.AddChild(Ui.Chip(Character.Ambition.StartsWith("Ambition", StringComparison.OrdinalIgnoreCase) ? Character.Ambition : $"Ambition: {Character.Ambition}",
