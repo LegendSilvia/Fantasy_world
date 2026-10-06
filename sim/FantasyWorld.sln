@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Cli", "Fantasy
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Llm", "FantasyWorld.Llm\FantasyWorld.Llm.csproj", "{EB6EE2F2-B58F-45DA-B673-EA6964D2B3DA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Bench", "FantasyWorld.Bench\FantasyWorld.Bench.csproj", "{F4A34627-0F30-4F80-80E5-6CC8DFA87619}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{EB6EE2F2-B58F-45DA-B673-EA6964D2B3DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB6EE2F2-B58F-45DA-B673-EA6964D2B3DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB6EE2F2-B58F-45DA-B673-EA6964D2B3DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4A34627-0F30-4F80-80E5-6CC8DFA87619}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4A34627-0F30-4F80-80E5-6CC8DFA87619}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4A34627-0F30-4F80-80E5-6CC8DFA87619}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4A34627-0F30-4F80-80E5-6CC8DFA87619}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -50,4 +50,19 @@ narrations per rolling day, and a $10 cap per 30 days; past it, or without crede
 `--provider openrouter` uses `OPENROUTER_API_KEY` instead. Every answer is journaled in the world file, so
 reloading or replaying a world never asks again, and `fw why` shows the motives and accounts it gave.
 
-`--size tiny` makes a 64×64 world with 12 regions for quick experiments.
+`--size tiny` makes a 64×64 world with 12 regions for quick experiments (and no prehistory; medium and large
+worlds start with 100 years of it, `--prehistory <years>` to change).
+
+## The chronicle
+
+```bash
+dotnet run --project sim/FantasyWorld.Cli -- digest worlds/aerenmoor.fw.db              # headlines since you last looked
+dotnet run --project sim/FantasyWorld.Cli -- follow worlds/aerenmoor.fw.db char#12      # their deeds lead the digest
+dotnet run --project sim/FantasyWorld.Cli -- live worlds/aerenmoor.fw.db --minutes 30   # watch it unfold in real time
+dotnet run --project sim/FantasyWorld.Cli -- structures worlds/aerenmoor.fw.db          # landmarks, labyrinths and ruins
+```
+
+`catchup` ends with the digest. Minor events older than 50 years are condensed into one summary per decade as
+the world runs. Every command that changes a world first keeps a
+backup of the last three sessions next to it (`.bak1`–`.bak3`). Benchmarks:
+`dotnet run -c Release --project sim/FantasyWorld.Bench -- --filter '*'`.

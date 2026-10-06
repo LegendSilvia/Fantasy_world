@@ -7,3 +7,6 @@ TestResults/
 *.fw.db-wal
 *.fw.db-shm
 worlds/
+
+# BenchmarkDotNet output
+BenchmarkDotNet.Artifacts/

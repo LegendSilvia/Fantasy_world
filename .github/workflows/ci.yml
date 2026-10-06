@@ -14,3 +14,13 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Test
         run: dotnet test sim --configuration Release
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Benchmark one world year (short job)
+        run: dotnet run --configuration Release --project sim/FantasyWorld.Bench -- --filter '*' --job short
