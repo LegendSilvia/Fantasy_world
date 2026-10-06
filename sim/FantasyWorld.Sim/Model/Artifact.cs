@@ -23,7 +23,11 @@ public sealed class Artifact
     public const string Kind = "artifact";
 
     public long Id { get; init; }
-    public string Name { get; init; } = "";
+    public string Name { get; set; } = "";
+
+    /// <summary>Legend invented for it (Plan 5); empty when none was.</summary>
+    public string Lore { get; set; } = "";
+
     public ArtifactType Type { get; init; }
     public string Material { get; init; } = "";
 

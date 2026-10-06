@@ -1,3 +1,4 @@
+using FantasyWorld.Sim.Agency;
 using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Events;
@@ -24,6 +25,10 @@ public sealed class RealmSystem : ISimSystem
         [RealmPhase.Stable] = new[] { "Long Peace", "Plenty", "Quiet Crowns", "Hearth" },
         [RealmPhase.Declining] = new[] { "Twilight", "Waning", "Ash", "Broken Oaths" },
     };
+
+    private readonly IInventor _inventor;
+
+    public RealmSystem(IInventor? inventor = null) => _inventor = inventor ?? new RulesInventor();
 
     public string Name => "realms";
 
@@ -225,7 +230,7 @@ public sealed class RealmSystem : ISimSystem
             Importance: rank == RealmRank.Empire && rose ? 85 : realm.LiegeId == 0 ? 50 : 25, Tags: new[] { "Politics" }));
     }
 
-    private static void ReviewPhase(SimContext ctx, Realm realm)
+    private void ReviewPhase(SimContext ctx, Realm realm)
     {
         var size = Realms.Territory(ctx.World, realm).Count();
         var phase = size > realm.RegionsAtLastReview ? RealmPhase.Expanding
@@ -238,6 +243,11 @@ public sealed class RealmSystem : ISimSystem
         realm.Phase = phase;
         if (quietStart) return;
         var era = $"The {(phase == RealmPhase.Stable ? "Age of " : "")}{words[ctx.Rng.NextInt(0, words.Length)]}{(phase == RealmPhase.Stable ? "" : " Age")} of {realm.Name}";
+        var invention = _inventor.Invent(new InventionBrief("era", $"{realm.Ref}@{ctx.Date.Year}",
+            $"{Statecraft.Title(realm)} enters a time of {phase.ToString().ToLowerInvariant()} fortunes in year {ctx.Date.Year}; "
+            + $"it holds {size} region(s) and its legitimacy stands at {realm.Legitimacy.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}/100.", era));
+        era = invention.Name;
+        using var lore = ctx.Annotate("lore", invention.Lore);
         ctx.Emit(new EventDraft("EraBegan",
             Actors: new Dictionary<string, EntityRef> { ["realm"] = realm.Ref },
             Place: ctx.World.Settlements[realm.CapitalId].Ref,

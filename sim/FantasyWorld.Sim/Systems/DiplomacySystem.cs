@@ -19,8 +19,13 @@ public sealed record CasusBelliOption(string Kind, long Against, long EventId, l
 public sealed class DiplomacySystem : ISimSystem
 {
     private readonly IDecider _decider;
+    private readonly IInventor _inventor;
 
-    public DiplomacySystem(IDecider? decider = null) => _decider = decider ?? new RulesDecider();
+    public DiplomacySystem(IDecider? decider = null, IInventor? inventor = null)
+    {
+        _decider = decider ?? new RulesDecider();
+        _inventor = inventor ?? new RulesInventor();
+    }
 
     public string Name => "diplomacy";
 
@@ -191,7 +196,7 @@ public sealed class DiplomacySystem : ISimSystem
         return options;
     }
 
-    private static void Declare(SimContext ctx, Realm attacker, CasusBelliOption cb)
+    private void Declare(SimContext ctx, Realm attacker, CasusBelliOption cb)
     {
         var world = ctx.World;
         var defender = world.Realms[cb.Against];
@@ -210,6 +215,12 @@ public sealed class DiplomacySystem : ISimSystem
             CasusBelli.Revenge => $"The War of {attacker.Name}'s Vengeance",
             _ => $"The {target?.Name ?? defender.Name} War",
         };
+        var warId = world.Ids.Peek(War.Kind);
+        var invention = _inventor.Invent(new InventionBrief("war", $"{War.Kind}#{warId}",
+            $"A war of {cb.Kind} declared by {Statecraft.Title(attacker)} on {Statecraft.Title(defender)}"
+            + (target is null ? "" : $" over {target.Name}") + $", in year {ctx.Date.Year}.", name));
+        name = invention.Name;
+        using var lore = ctx.Annotate("lore", invention.Lore);
         var war = new War
         {
             Id = world.Ids.Take(War.Kind),

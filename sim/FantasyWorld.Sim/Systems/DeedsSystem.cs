@@ -23,9 +23,11 @@ public sealed class DeedsSystem : ISimSystem
 
     private readonly IDecider _decider;
     private readonly IArbiter _arbiter;
+    private readonly IInventor _inventor;
 
-    public DeedsSystem(IDecider? decider = null, IArbiter? arbiter = null)
+    public DeedsSystem(IDecider? decider = null, IArbiter? arbiter = null, IInventor? inventor = null)
     {
+        _inventor = inventor ?? new RulesInventor();
         _decider = decider ?? new RulesDecider();
         _arbiter = arbiter ?? new RulesArbiter();
     }
@@ -171,7 +173,7 @@ public sealed class DeedsSystem : ISimSystem
         else Shame(thief);
     }
 
-    private static void Forge(SimContext ctx, Character mage)
+    private void Forge(SimContext ctx, Character mage)
     {
         var world = ctx.World;
         var region = world.Regions[world.Settlements[mage.SettlementId].RegionId];
@@ -185,6 +187,12 @@ public sealed class DeedsSystem : ISimSystem
             Importance: Fates.Importance(mage, 35), Tags: new[] { "Characters", "Artifacts" }));
         var artifact = ArtifactForge.Create(ctx.Rng, world.Ids, new NameGen(ctx.Rng, world.Cultures.GetValueOrDefault(mage.CultureId)?.Style),
             forged.Id, rareMaterials: region.Resources.Keys.Where(ResourceKinds.IsRare).ToList());
+        var powers = string.Join(", ", artifact.Powers.Select(p => p.Attribute is null ? p.Kind : $"+{p.Amount} {p.Attribute}"));
+        var invention = _inventor.Invent(new InventionBrief("artifact", artifact.Ref.ToString(),
+            $"A {artifact.Type.ToString().ToLowerInvariant()} of {artifact.Material}, granting {powers}{(artifact.Curse is null ? "" : $", bearing a hidden curse of {artifact.Curse}")}; "
+            + $"forged by {mage.Name}, a {world.Cultures.GetValueOrDefault(mage.CultureId)?.Name ?? "nameless"} mage, at {world.Settlements[mage.SettlementId].Name} in {region.Name}.",
+            artifact.Name));
+        (artifact.Name, artifact.Lore) = (invention.Name, invention.Lore ?? "");
         world.Artifacts[artifact.Id] = artifact;
         Fates.MoveToHolder(artifact, mage, forged.Id, "forged");
         Glory(ctx, mage, 10);
