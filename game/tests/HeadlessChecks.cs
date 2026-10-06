@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using FantasyWorld.Client;
+using FantasyWorld.Sim.Views;
 using FantasyWorld.Sim.WorldGen;
 using Godot;
 
@@ -47,6 +48,66 @@ public partial class HeadlessChecks : Node
         await Frames(2);
         await DioramaChecks(main);
         await DigestChecks(main);
+        await MapChecks(main);
+    }
+
+    private async Task MapChecks(Main main)
+    {
+        main.Diorama.Rig.Reset();
+        main.Router.Go(new Screen(ScreenKind.Map));
+        await Frames(30);
+        var view = main.Current as MapHudView;
+        Check(view is not null, "the map screen opens");
+        if (view is null) return;
+        var map = view.Map;
+        Check(view.GetNode<Label>("Intro/Title").Text == $"{map.WorldName}.", "the map is titled with the world's name");
+        Check(view.GetNode<Label>("Intro/Summary").Text == map.Summary, "and summarised");
+        var tagged = map.Settlements.Count(s => MapLabels.Shows(s, view.Host.Diorama.Rig.NearestZoom, main.Diorama.Layers));
+        Check(view.TagLayer.GetChildCount() == tagged, $"settlements big enough for the zoom are named ({tagged})");
+        Check(view.GetNode("Legend").GetChildCount() == map.Legend.Count, "the legend lists the realms");
+        await Shot("map");
+
+        var tags = view.TagLayer.GetChildren().OfType<SettlementTag>().ToList();
+        if (tags.Count > 0)
+        {
+            view.ShowCard(tags[0]);
+            Check(view.HoverCard.Visible && view.HoverCard.FindChildren("Title", "Label", true, false).OfType<Label>().Single().Text == tags[0].Settlement.Card.Title,
+                "hovering a settlement shows who holds it");
+            await Shot("map-card");
+        }
+
+        var borders = view.GetNode<CheckBox>("Card/Column/Layers/Borders");
+        borders.ButtonPressed = false;
+        Check(!main.Diorama.BorderLines.Visible && !main.Diorama.Layers.HasFlag(MapLayers.Borders), "the borders layer can be hidden");
+        borders.ButtonPressed = true;
+        Check(view.GetNode<CheckBox>("Card/Column/Layers/TradeRoutes").Disabled, "trade routes are not modelled yet");
+        view.GetNode<CheckBox>("Card/Column/Layers/Settlements").ButtonPressed = false;
+        Check(!main.Diorama.SettlementLayer.Visible && view.TagLayer.GetChildren().OfType<SettlementTag>().All(t => t.Settlement.Marker is PinMarker.Conflict or PinMarker.RecentEvent),
+            "hiding settlements leaves only places with news");
+        view.GetNode<CheckBox>("Card/Column/Layers/Settlements").ButtonPressed = true;
+
+        view.History.Value = 2;
+        await Frames(2);
+        Check(view.Year == 2 && view.Map.Historical && view.Map.Year == 2 && main.Diorama.ShownYear == 2, "the history slider shows the map of Year 2");
+        await Shot("map-year-2");
+        view.GetNode<Button>("Card/Column/ActionsRow/Actions/Reset").EmitSignal(BaseButton.SignalName.Pressed);
+        Check(view.Year == view.Now && main.Diorama.ShownYear is null && view.History.Value == view.Now, "reset view returns to today");
+
+        view.GetNode<Button>("Card/Column/Zoom/Presets/Region").EmitSignal(BaseButton.SignalName.Pressed);
+        await Frames(90);
+        Check(main.Diorama.Rig.NearestZoom == Zoom.Region && view.GetNode<Label>("Intro/Kicker").Text.EndsWith("REGION VIEW"), "the zoom presets descend");
+
+        view.History.Value = 2;
+        var settlement = map.Settlements.First(s => s.Position is not null);
+        main.Router.Open(settlement.Ref);
+        await Frames(2);
+        Check(main.Current is MapHudView { Focus: { } focus } && focus == settlement.Ref, "a linked place opens the map");
+        Check(main.Diorama.Rig.GoalDistance == OrbitRig.DistanceFor(Zoom.Town)
+              && Diorama.ToGodot(main.Diorama.Rig.GoalTarget).DistanceTo(Diorama.ToGodot(FantasyWorld.Client.Projection.ToBlock(main.Geography!.Terrain, settlement.Position!, 0))) < 0.01f,
+            "and flies to it");
+        main.Router.Home();
+        await Frames(2);
+        Check(main.Diorama.ShownYear is null, "leaving the map returns the diorama to today");
     }
 
     private async Task DigestChecks(Main main)
@@ -99,8 +160,8 @@ public partial class HeadlessChecks : Node
         var map = main.Session!.Map();
         Check(diorama.Block.Mesh is ArrayMesh { } block && block.GetSurfaceCount() == 2, "the block has a top and walls");
         Check(diorama.GetNodeOrNull<MeshInstance3D>("Water")?.Mesh is not null, "the sea is drawn");
-        Check(diorama.MarkerLayer.GetChildCount() == map.Settlements.Count(s => s.Position is not null) + map.Structures.Count(s => s.Position is not null),
-            $"one marker per settlement and structure ({diorama.MarkerLayer.GetChildCount()})");
+        Check(diorama.SettlementLayer.GetChildCount() + diorama.StructureLayer.GetChildCount() == map.Settlements.Count(s => s.Position is not null) + map.Structures.Count(s => s.Position is not null),
+            "one marker per settlement and structure");
         Check(map.Borders.Count == 0 || diorama.BorderLines.Mesh is ArrayMesh { } lines && lines.GetSurfaceCount() == 1, "realm borders are drawn");
 
         diorama.Rig.Reset();

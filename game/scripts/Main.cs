@@ -119,11 +119,14 @@ public partial class Main : Control
     public void Show(Screen screen)
     {
         Ui.Clear(Screens);
+        // Only the map travels in time; every other screen shows today's world.
+        if (screen.Kind != ScreenKind.Map && Diorama.ShownYear is not null) Diorama.Show(_session!.Map());
         Diorama.ShowPins(screen.Kind == ScreenKind.Digest && Digest is not null && Geography is not null
             ? Markers.Pins(Digest, Geography) : Array.Empty<Pin>());
         Current = screen.Kind switch
         {
             ScreenKind.Digest when Digest is not null => new DigestView { Host = this, Digest = Digest },
+            ScreenKind.Map => new MapHudView { Host = this, Focus = screen.Focus },
             _ => null,
         };
         if (Current is not null) Screens.AddChild(Current);

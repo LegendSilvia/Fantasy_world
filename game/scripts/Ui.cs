@@ -27,7 +27,51 @@ public static class Ui
         theme.SetStylebox("pressed", "Button", Pill(filled: true));
         theme.SetStylebox("focus", "Button", new StyleBoxEmpty());
         theme.SetColor("font_pressed_color", "Button", Colors.White);
+        theme.SetColor("font_color", "CheckBox", C(Palette.Ink));
+        theme.SetColor("font_hover_color", "CheckBox", C(Palette.Ink));
+        theme.SetColor("font_pressed_color", "CheckBox", C(Palette.Ink));
+        theme.SetColor("font_disabled_color", "CheckBox", C(Palette.Muted));
+        theme.SetIcon("checked", "CheckBox", Box(14, filled: true));
+        theme.SetIcon("unchecked", "CheckBox", Box(14, filled: false));
+        theme.SetIcon("checked_disabled", "CheckBox", Box(14, filled: true, Palette.Muted));
+        theme.SetIcon("unchecked_disabled", "CheckBox", Box(14, filled: false, Palette.Border));
+        foreach (var state in new[] { "normal", "hover", "pressed", "focus", "disabled", "hover_pressed" })
+            theme.SetStylebox(state, "CheckBox", new StyleBoxEmpty());
+        theme.SetStylebox("slider", "HSlider", new StyleBoxFlat { BgColor = C(Palette.Border), ContentMarginTop = 1.5f, ContentMarginBottom = 1.5f });
+        theme.SetStylebox("grabber_area", "HSlider", new StyleBoxFlat { BgColor = C(Palette.Ink), ContentMarginTop = 1.5f, ContentMarginBottom = 1.5f });
+        theme.SetStylebox("grabber_area_highlight", "HSlider", new StyleBoxFlat { BgColor = C(Palette.Ink), ContentMarginTop = 1.5f, ContentMarginBottom = 1.5f });
+        theme.SetIcon("grabber", "HSlider", Circle(14, Palette.Ink));
+        theme.SetIcon("grabber_highlight", "HSlider", Circle(14, Palette.Body));
         return theme;
+    }
+
+    /// <summary>A checkbox square: ink-filled with a light inset when checked, a hairline outline when not.</summary>
+    public static ImageTexture Box(int size, bool filled, Rgb? colour = null)
+    {
+        var ink = C(colour ?? Palette.Ink);
+        var image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var edge = x < 2 || y < 2 || x >= size - 2 || y >= size - 2;
+                var inset = x >= 4 && y >= 4 && x < size - 4 && y < size - 4;
+                image.SetPixel(x, y, edge ? ink : filled ? (inset ? C(Palette.Card) : ink) : new Color(0, 0, 0, 0));
+            }
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>A filled disc (slider grabbers).</summary>
+    public static ImageTexture Circle(int size, Rgb colour)
+    {
+        var image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        var r = size / 2f;
+        for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var d = new Godot.Vector2(x + 0.5f - r, y + 0.5f - r).Length();
+                image.SetPixel(x, y, C(colour, Math.Clamp(r - d, 0, 1)));
+            }
+        return ImageTexture.CreateFromImage(image);
     }
 
     public static StyleBoxFlat Pill(bool filled) => new()

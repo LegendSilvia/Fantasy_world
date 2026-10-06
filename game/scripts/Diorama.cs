@@ -26,6 +26,9 @@ public partial class Diorama : Node3D
     public Camera3D Camera { get; private set; } = null!;
     public MeshInstance3D Block { get; private set; } = null!;
     public Node3D MarkerLayer { get; private set; } = null!;
+    public Node3D SettlementLayer { get; private set; } = null!;
+    public Node3D StructureLayer { get; private set; } = null!;
+    public MapLayers Layers { get; private set; } = MapLayers.Default;
     public Node3D PinLayer { get; private set; } = null!;
     public MeshInstance3D BorderLines { get; private set; } = null!;
     public IReadOnlyList<Marker> Markers => _markers;
@@ -57,6 +60,10 @@ public partial class Diorama : Node3D
         AddChild(BorderLines);
         MarkerLayer = new Node3D { Name = "Markers" };
         AddChild(MarkerLayer);
+        SettlementLayer = new Node3D { Name = "Settlements" };
+        StructureLayer = new Node3D { Name = "Structures" };
+        MarkerLayer.AddChild(SettlementLayer);
+        MarkerLayer.AddChild(StructureLayer);
         PinLayer = new Node3D { Name = "Pins" };
         AddChild(PinLayer);
         UpdateCamera();
@@ -80,15 +87,29 @@ public partial class Diorama : Node3D
         if (sea.GetParent() is null) AddChild(sea);
     }
 
-    /// <summary>Places settlements, structures and borders for a map (today's or a past year's).</summary>
-    public void Show(MapScreen map)
+    /// <summary>Places settlements, structures and borders for a map: today's, or the given past year's.</summary>
+    public void Show(MapScreen map, int? pastYear = null)
     {
         if (_geography is null) return;
-        Ui.Clear(MarkerLayer);
+        Ui.Clear(SettlementLayer);
+        Ui.Clear(StructureLayer);
         _markers.Clear();
         _markers.AddRange(FantasyWorld.Client.Markers.For(map, _geography));
-        foreach (var marker in _markers) MarkerLayer.AddChild(MarkerNode(marker));
+        foreach (var marker in _markers) (marker.Shape == MarkerShape.Settlement ? SettlementLayer : StructureLayer).AddChild(MarkerNode(marker));
         BorderLines.Mesh = DashedLines(FantasyWorld.Client.Markers.Borders(map, _geography), Palette.Ink);
+        ShownYear = pastYear;
+    }
+
+    /// <summary>The past year the markers show, or null for today.</summary>
+    public int? ShownYear { get; private set; }
+
+    /// <summary>Shows or hides the borders, settlements and structures (news tags are the screen's).</summary>
+    public void SetLayers(MapLayers layers)
+    {
+        Layers = layers;
+        BorderLines.Visible = layers.HasFlag(MapLayers.Borders);
+        SettlementLayer.Visible = layers.HasFlag(MapLayers.Settlements);
+        StructureLayer.Visible = layers.HasFlag(MapLayers.Structures);
     }
 
     /// <summary>The digest's pins as stems over their places (the screen draws their numbered labels).</summary>
@@ -122,7 +143,8 @@ public partial class Diorama : Node3D
     /// <summary>The marker or pin drawn nearest a screen point, within <see cref="PickRadius"/> pixels.</summary>
     public EntityRef? Pick(Vector2 screen)
     {
-        var candidates = _pins.Select(p => (p.Place, p.Position)).Concat(_markers.Select(m => (m.Ref, m.Position)));
+        var candidates = _pins.Select(p => (p.Place, p.Position)).Concat(_markers
+            .Where(m => m.Shape == MarkerShape.Settlement ? SettlementLayer.Visible : StructureLayer.Visible).Select(m => (m.Ref, m.Position)));
         EntityRef? best = null;
         var bestDistance = PickRadius;
         foreach (var (entity, position) in candidates)
