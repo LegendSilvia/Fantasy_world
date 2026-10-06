@@ -7,14 +7,15 @@ using Microsoft.Data.Sqlite;
 
 namespace FantasyWorld.Sim.Persist;
 
-/// <summary>One SQLite file per world: snapshot + append-only event log.</summary>
+/// <summary>One SQLite file per world: snapshot, static geography (written once) and the append-only event log.</summary>
 public sealed class WorldStore : IDisposable
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private const string Schema = """
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS geography (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY, day INTEGER NOT NULL, type TEXT NOT NULL, json TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS ix_events_day ON events(day);
         CREATE INDEX IF NOT EXISTS ix_events_type ON events(type);
@@ -48,6 +49,8 @@ public sealed class WorldStore : IDisposable
 
     public long CountEvents() => ScalarLong("SELECT COUNT(*) FROM events");
 
+    public bool HasGeography => ScalarLong("SELECT COUNT(*) FROM geography") > 0;
+
     public void Save(World world, EventLog log, EventQueue queue)
     {
         _transaction = _connection.BeginTransaction();
@@ -55,6 +58,13 @@ public sealed class WorldStore : IDisposable
         {
             var persistedMax = ScalarLong("SELECT COALESCE(MAX(id), 0) FROM events");
             foreach (var ev in log.Since(persistedMax)) InsertEvent(ev);
+
+            if (world.Geography is { } geography && !HasGeography)
+            {
+                using var cmd = Command("INSERT INTO geography(id, json) VALUES (1, $json)");
+                cmd.Parameters.AddWithValue("$json", JsonSerializer.Serialize(geography, SimJson.Options));
+                cmd.ExecuteNonQuery();
+            }
 
             using (var cmd = Command("INSERT INTO snapshot(id, json) VALUES (1, $json) " +
                                      "ON CONFLICT(id) DO UPDATE SET json = excluded.json"))
@@ -93,7 +103,14 @@ public sealed class WorldStore : IDisposable
             while (reader.Read())
                 log.Restore(JsonSerializer.Deserialize<WorldEvent>(reader.GetString(0), SimJson.Options)!);
 
-        return (snapshot.ToWorld(), log, snapshot.ToQueue());
+        var world = snapshot.ToWorld();
+        using (var cmd = Command("SELECT json FROM geography WHERE id = 1"))
+        {
+            if (cmd.ExecuteScalar() is string geography)
+                world.Geography = JsonSerializer.Deserialize<Geography>(geography, SimJson.Options);
+        }
+
+        return (world, log, snapshot.ToQueue());
     }
 
     public void Dispose() => _connection.Dispose();
@@ -103,11 +120,13 @@ public sealed class WorldStore : IDisposable
         using (var cmd = Command("PRAGMA journal_mode=WAL;")) cmd.ExecuteNonQuery();
         using (var cmd = Command(Schema)) cmd.ExecuteNonQuery();
         var version = GetMeta("schema_version");
-        if (version is null)
-            SetMeta("schema_version", CurrentSchemaVersion.ToString(CultureInfo.InvariantCulture));
-        else if (int.Parse(version, CultureInfo.InvariantCulture) > CurrentSchemaVersion)
+        var current = version is null ? 0 : int.Parse(version, CultureInfo.InvariantCulture);
+        if (current > CurrentSchemaVersion)
             throw new InvalidOperationException(
                 $"World file schema {version} is newer than this build supports ({CurrentSchemaVersion}).");
+        // 1 → 2 only adds the geography table, which the schema script above creates.
+        if (current < CurrentSchemaVersion)
+            SetMeta("schema_version", CurrentSchemaVersion.ToString(CultureInfo.InvariantCulture));
     }
 
     private void InsertEvent(WorldEvent ev)
