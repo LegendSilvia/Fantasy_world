@@ -70,7 +70,7 @@ Spec §2: system colour is data, not style, and every visible name is a link. Ea
 - Consumes: `WorldEvent`, `EntityRef` (Plans 1–6).
 - Produces (namespace `FantasyWorld.Sim.Views`): `enum Category { Politics, War, Economy, Characters, FaithAndMagic, Structures, Nature, Chronicle }`; `static class Categories { Of(ev); Label(category); Kicker(ev) }`; `record TextLink(Start, Length, Entity)`; `record LinkedText(Text, Links) { Plain(text); Link(text, entities, nameOf); Mentions(ev) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/CategoryTests.cs`:
 ```csharp
@@ -133,12 +133,12 @@ public class CategoryTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Views' does not exist in the namespace 'FantasyWorld.Sim' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Views/Category.cs`:
 ```csharp
@@ -251,12 +251,12 @@ public sealed record LinkedText(string Text, IReadOnlyList<TextLink> Links)
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CategoryTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 460` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -280,7 +280,7 @@ Spec §3.1, the launch screen after catch-up. Built from Plan 6's `DigestView`: 
 - Consumes: Task 1; `Digest`, `DigestView`, `INarrator`, `TemplateNarrator` (Plan 6).
 - Produces: `record MapPoint(X, Y) { Of(world, entity) }` (normalised 0–1); `record DigestPin`, `Headline`, `DigestItem`, `DigestScreen { Build(world, log, digest, since, daysBehind, narrator); ForReader(world, log, followed, daysBehind, narrator); DisplayName(world) }`; `World.Name` (snapshot field); `TemplateNarrator.Sentence(ev)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/DigestScreenTests.cs`:
 ```csharp
@@ -354,12 +354,12 @@ public class DigestScreenTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'World' does not contain a definition for 'Name' and no accessible extension method 'Name' accepting a first argument of type 'World' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Model/World.cs` entirely with:
 ```csharp
@@ -865,12 +865,12 @@ public static class WorldGenerator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DigestScreenTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 463` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -893,7 +893,7 @@ Spec §3.3. A character's name, house, one-line role ("Once …" for the dead), 
 - Consumes: Tasks 1–2; `Character`, `Memories`, `HistoryQuery` (Plans 1–6).
 - Produces: `enum Tone { Warm, Neutral, Hostile }`; `record Place`, `TimelineRow`, `Tie`; `record CharacterScreen { TimelineImportance = 20; MaxTimeline = 150; Build(world, log, characterId, followed) }`; `record FamilyNode`, `FamilyEdge`, `FamilyTree { Build(world, characterId, generations = 2) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/CharacterScreenTests.cs`:
 ```csharp
@@ -966,12 +966,12 @@ public class CharacterScreenTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'CharacterScreen' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Views/CharacterScreen.cs`:
 ```csharp
@@ -1133,12 +1133,12 @@ public sealed record FamilyTree(EntityRef Root, IReadOnlyList<FamilyNode> Nodes,
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CharacterScreenTests"`
 Expected: `Passed!  - Failed: 0, Passed: 2`. Then `dotnet test sim` → `Passed: 465` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1161,7 +1161,7 @@ Spec §3.4. The causes of an event as a layered DAG: the outcome card, then laye
 - Consumes: Tasks 1–2; `HistoryQuery.Why`, `CauseKind` (Plans 1–6).
 - Produces: `record EventCard(EventId, Year, Category, Title, Note, IsRoot, HasMore)`, `CauseEdge(From, To, Kind, Label)`, `Mention(Ref, Name)`; `record WhyScreen { Build(world, log, eventId, depth = 4) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/WhyScreenTests.cs`:
 ```csharp
@@ -1208,12 +1208,12 @@ public class WhyScreenTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'WhyScreen' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Views/WhyScreen.cs`:
 ```csharp
@@ -1291,12 +1291,12 @@ public sealed record WhyScreen(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~WhyScreenTests"`
 Expected: `Passed!  - Failed: 0, Passed: 1`. Then `dotnet test sim` → `Passed: 466` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1320,7 +1320,7 @@ Spec §5: the map's history slider needs who held and occupied each region at an
 - Consumes: `World`, `EventLog`, `RealmGenerator`, `DiplomacySystem`, `WorldSnapshot` (Plans 1–6).
 - Produces: `World.FoundingOwners`, `World.FoundingLieges` (snapshot fields); `AllyJoinedWar` payload `side`; `record RegionState(RegionId, OwnerRealmId, OccupierRealmId, OccupyingWarId)`, `WarSides`, `PoliticalMap(Historical, Regions, Lieges, Fallen, Wars) { TopOf(realm) }`; `static class History { PoliticalMapAt(world, log, asOf) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/HistoryTests.cs`:
 ```csharp
@@ -1386,12 +1386,12 @@ public class HistoryTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'World' does not contain a definition for 'FoundingOwners' and no accessible extension method 'FoundingOwners' accepting a first argument of type 'World' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Model/World.cs` entirely with:
 ```csharp
@@ -2124,12 +2124,12 @@ public static class RealmGenerator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~HistoryTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 469` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2152,7 +2152,7 @@ Spec §3.2. Regions with biome, centre, owner, occupier and the realm's colour; 
 - Consumes: Tasks 1–5; `Structure`, `Settlement`, `Region` (Plans 1–6).
 - Produces: `enum PinMarker { Plain, Realm, RecentEvent, Conflict }`; `record MapRegion`, `MapCard`, `MapSettlement`, `MapStructure`, `Border`, `Conflict`, `LegendEntry`; `record MapScreen { Build(world, log, asOf = null) }` (with `Historical`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/MapScreenTests.cs`:
 ```csharp
@@ -2225,12 +2225,12 @@ public class MapScreenTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'MapScreen' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Views/MapScreen.cs`:
 ```csharp
@@ -2353,12 +2353,12 @@ public sealed record MapScreen(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~MapScreenTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 472` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2381,7 +2381,7 @@ Spec §3.5. The full chronicle (the digest's "Full chronicle" toggle) as events 
 - Consumes: Tasks 1–4; `Realm`, `Artifact`, `Eras` (Plans 1–6).
 - Produces: `record ChronicleRow`, `ChronicleSeason`, `ChronicleScreen { PageSize = 50; Build(world, log, fromYear, toYear, only, minImportance, page) }`; `record CouncilSeat`, `TreatyRow`, `WarRow`, `EraRow`, `RealmScreen { Build(world, log, realmId) }`; `record ProvenanceRow`, `ArtifactScreen { Build(world, log, artifactId) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/ChronicleScreenTests.cs`:
 ```csharp
@@ -2446,12 +2446,12 @@ public class ChronicleScreenTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'ChronicleScreen' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Views/ChronicleScreens.cs`:
 ```csharp
@@ -2565,12 +2565,12 @@ public sealed record ArtifactScreen(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~ChronicleScreenTests"`
 Expected: `Passed!  - Failed: 0, Passed: 2`. Then `dotnet test sim` → `Passed: 474` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2594,7 +2594,7 @@ Spec §4 and §6. `fw view <world> <screen> …` prints any screen as the JSON a
 - Consumes: Tasks 1–7.
 - Produces: `static class ViewJson { Options; Serialize(view) }`; CLI `view` (`CliApp.Views.cs`); `ViewJsonTests` with `Golden/{digest,map,character,why}.json`; `ViewsBenchmark` in `FantasyWorld.Bench`; README section on screens as data.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Views/Golden/character.json`:
 ```json
@@ -3684,12 +3684,12 @@ public class ViewJsonTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'ViewJson' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `README.md` entirely with:
 ````markdown
@@ -4213,12 +4213,12 @@ public static class ViewJson
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~ViewJsonTests|FullyQualifiedName~character.j|FullyQualifiedName~digest.j|FullyQualifiedName~map.j|FullyQualifiedName~why.j"`
 Expected: `Passed!  - Failed: 0, Passed: 4`. Then `dotnet test sim` → `Passed: 478` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim README.md

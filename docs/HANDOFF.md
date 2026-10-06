@@ -17,12 +17,18 @@ Context for picking up this project on another machine / in a new Claude session
 | Plan 5 of 6 (LLM layer) | **Done** — `docs/superpowers/plans/2026-10-06-llm-layer.md`, Tasks 1–10; 429/429 tests pass (Debug + Release); all LLM paths tested with a fake provider (no API key was available here) |
 | Plan 6 of 6 (Chronicle & hardening) | **Done** — `docs/superpowers/plans/2026-10-06-chronicle-and-hardening.md`, Tasks 1–9; 457/457 tests pass (Debug + Release); spec §11 criteria 1–3 and 5 checked automatically; ~50–90 ms per world year (budget 2 s) |
 | Sim core (sub-project 1) | **Complete** |
-| Sub-project 2 (Chronicle & why UI data) | Spec drafted — `docs/superpowers/specs/2026-10-06-chronicle-views-design.md`; prototype in progress |
+| Sub-project 2 (Chronicle & why UI data) | **Done** — spec `docs/superpowers/specs/2026-10-06-chronicle-views-design.md`, plan `docs/superpowers/plans/2026-10-06-chronicle-views.md`, Tasks 1–8; 478/478 tests pass; every screen well under a millisecond (budget 50 ms) |
+| Sub-project 4 (Godot diorama client) | Spec drafted — `docs/superpowers/specs/2026-10-06-godot-diorama-client-design.md`; prototype in progress (session, block mesh, camera, Godot project, diorama, digest screen) |
 
 ## Next step
 
-1. Merge the working branch into `main` (Plans 4–6).
-2. Sub-project 2 (view models for the four designed screens), then 4 (Godot client), 3 (depth) and 5 (narration evals).
+1. Merge the working branch into `main` (Plans 4–6 and sub-project 2).
+2. Sub-project 4 (Godot client), then 3 (depth) and 5 (narration evals).
+
+Notes from sub-project 2 execution:
+- Try it: `fw view worlds/w.fw.db digest`, `… map --as-of 50`, `… character char#12`, `… why <event-id>`, `… chronicle --category war`, `… realm 3`, `… artifact 2` (JSON for clients).
+- Past maps are replayed from founding owners recorded at world creation; worlds made before this show today's map at any date (`historical: false`).
+- Goldens live in `sim/FantasyWorld.Sim.Tests/Views/Golden/`; regenerate deliberately with `UPDATE_GOLDEN=1 dotnet test sim --filter ViewJsonTests` and review the diff.
 
 Notes from Plan 6 execution:
 - Try it: `fw new worlds/w.fw.db --seed 7` (100 years of prehistory, ~6 s), `fw digest …`, `fw follow … char#12`, `fw live … --minutes 10`, `fw structures …`, `fw stats …`.
