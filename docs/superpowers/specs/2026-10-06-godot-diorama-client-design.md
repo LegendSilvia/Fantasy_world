@@ -61,6 +61,10 @@ reads immutable view models produced after each step.
   (people, places, systems), Show on map, Trace further (consequences).
 - Every linked name navigates (character → Character page; place → Map focused there; war/realm →
   chronicle filtered); Back returns.
+- **War** (added after review): drawn like a strategy map on the diorama — campaign arrows along each host's road
+  (attackers red, defenders blue) that draw in and flow, banners in realm colours that wave and march as days pass,
+  fronts with teeth facing the attacker, occupied land hatched, crossed swords over the year's battles; banners open
+  their commander, battles their why chain. Knights ride with their hosts and battles touch their lives.
 
 ## 5. Style
 
