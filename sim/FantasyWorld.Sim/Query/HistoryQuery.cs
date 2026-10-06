@@ -16,6 +16,9 @@ public sealed class HistoryQuery
     /// <summary>Every event an entity took part in or that happened at it, oldest first (spec "Life"/"History").</summary>
     public IReadOnlyList<WorldEvent> Life(EntityRef entity) => _log.Involving(entity);
 
+    /// <summary>A realm's named eras, oldest first (spec "Eras").</summary>
+    public IReadOnlyList<WorldEvent> Eras(EntityRef realm) => _log.Involving(realm).Where(e => e.Type == "EraBegan").ToList();
+
     public IReadOnlyList<WorldEvent> RootCauses(long eventId)
     {
         var roots = new SortedSet<long>();

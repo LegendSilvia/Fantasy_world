@@ -34,12 +34,30 @@ public static class MapRenderer
                     ? tier switch { SettlementTier.City => '@', SettlementTier.Town => 'O', _ => 'o' }
                     : layer == "regions"
                         ? geography.RegionOf[i] == 0 ? '~' : RegionGlyphs[geography.RegionOf[i] % RegionGlyphs.Length]
-                        : Glyph(grid, i));
+                        : layer == "realms"
+                            ? RealmGlyph(world, geography.RegionOf[i])
+                            : Glyph(grid, i));
             }
             text.AppendLine();
         }
-        text.Append(layer == "regions" ? "Each glyph is a region (id mod 62); @ O o are settlements." : Legend);
+        text.Append(layer switch
+        {
+            "regions" => "Each glyph is a region (id mod 62); @ O o are settlements.",
+            "realms" => string.Join("  ", Realms.Independent(world).OrderBy(r => r.Id)
+                .Select(r => $"{RealmGlyphs[(int)(r.Id % RealmGlyphs.Length)]} {r.Rank} of {r.Name}")) + "  · unclaimed",
+            _ => Legend,
+        });
         return text.ToString();
+    }
+
+    private const string RealmGlyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    /// <summary>Each independent realm's territory (vassals included) shares a letter.</summary>
+    private static char RealmGlyph(World world, int regionId)
+    {
+        if (regionId == 0) return '~';
+        var sovereign = Realms.SovereignOf(world, world.Regions[regionId]);
+        return sovereign is null ? '·' : RealmGlyphs[(int)(sovereign.Id % RealmGlyphs.Length)];
     }
 
     private static char Glyph(TerrainGrid grid, int i) =>

@@ -20,13 +20,17 @@ public static partial class CliApp
           fw catchup <world-file>                   simulate the real time that has passed
           fw log <world-file> [--since <event-id>]
           fw why <world-file> <event-id> [--depth <n>]
-          fw map <world-file> [--layer biome|regions]
+          fw map <world-file> [--layer biome|regions|realms]
           fw regions <world-file>
           fw region <world-file> <region-id>
           fw characters <world-file> [--settlement <id>]
           fw life <world-file> <character-id>
           fw artifacts <world-file>
           fw artifact <world-file> <artifact-id>
+          fw realms <world-file>
+          fw realm <world-file> <realm-id>
+          fw wars <world-file>
+          fw war <world-file> <war-id>
         """;
 
     public static int Run(string[] args, TextWriter output, Func<DateTimeOffset> clock)
@@ -52,6 +56,10 @@ public static partial class CliApp
                 "life" => Life(path, rest, output),
                 "artifacts" => ArtifactList(path, output),
                 "artifact" => ArtifactDetail(path, rest, output),
+                "realms" => RealmList(path, output),
+                "realm" => RealmDetail(path, rest, output),
+                "wars" => WarList(path, output),
+                "war" => WarDetail(path, rest, output),
                 _ => UsageError(output),
             };
         }
@@ -136,7 +144,7 @@ public static partial class CliApp
     private static int Map(string path, string[] rest, TextWriter output)
     {
         var layer = Option(rest, "--layer") ?? "biome";
-        if (layer is not ("biome" or "regions")) throw new FormatException($"Unknown layer '{layer}'. Use biome or regions.");
+        if (layer is not ("biome" or "regions" or "realms")) throw new FormatException($"Unknown layer '{layer}'. Use biome, regions or realms.");
         using var store = OpenExisting(path);
         output.WriteLine(MapRenderer.Render(store.Load().World, layer));
         return 0;
@@ -214,6 +222,9 @@ public static partial class CliApp
         Character.Kind => world.Characters.TryGetValue(entity.Id, out var c) ? FullName(world, c) : null,
         Artifact.Kind => world.Artifacts.TryGetValue(entity.Id, out var a) ? a.Name : null,
         House.Kind => world.Houses.TryGetValue(entity.Id, out var h) ? $"House {h.Name}" : null,
+        Realm.Kind => world.Realms.TryGetValue(entity.Id, out var realm) ? Statecraft.Title(realm) : null,
+        War.Kind => world.Wars.TryGetValue(entity.Id, out var war) ? war.Name : null,
+        Army.Kind => world.Armies.TryGetValue(entity.Id, out var army) ? army.Name : null,
         _ => null,
     };
 

@@ -101,4 +101,14 @@ public class HistoryQueryTests
         log.Append(new WorldDate(3), new EventDraft("Died", Actors: new Dictionary<string, EntityRef> { ["deceased"] = hero }));
         Assert.Equal(new[] { "Born", "Died" }, new HistoryQuery(log).Life(hero).Select(e => e.Type));
     }
+
+    [Fact]
+    public void Eras_ListARealmsAges()
+    {
+        var log = new EventLog();
+        var realm = new EntityRef("realm", 1);
+        log.Append(new WorldDate(1), new EventDraft("EraBegan", Actors: new Dictionary<string, EntityRef> { ["realm"] = realm }));
+        log.Append(new WorldDate(2), new EventDraft("WarDeclared", Actors: new Dictionary<string, EntityRef> { ["attacker"] = realm }));
+        Assert.Single(new HistoryQuery(log).Eras(realm));
+    }
 }

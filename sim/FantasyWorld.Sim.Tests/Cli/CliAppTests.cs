@@ -281,4 +281,45 @@ public class CliAppTests
         Assert.Equal(1, code);
         Assert.Contains("error: No character #99999", output);
     }
+
+    [Fact]
+    public void Realms_AndTheRealmsMap()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "realms", file.Path);
+        Assert.Equal(0, code);
+        Assert.Contains("Kingdom of", output);
+        var (mapCode, map) = Run(T0, "map", file.Path, "--layer", "realms");
+        Assert.Equal(0, mapCode);
+        Assert.Contains("unclaimed", map);
+        var (detailCode, detail) = Run(T0, "realm", file.Path, "1");
+        Assert.Equal(0, detailCode);
+        Assert.Contains("(realm#1)", detail);
+        Assert.Contains("succession", detail);
+    }
+
+    [Fact]
+    public void Wars_ListAndDetail()
+    {
+        using var file = new TempFile();
+        var world = WorldGenerator.Generate(new WorldGenOptions(3, WorldSize.Tiny), T0);
+        var log = new EventLog();
+        var cb = log.Append(world.Date, new EventDraft("BorderRaid"));
+        var declared = log.Append(world.Date, new EventDraft("WarDeclared"));
+        world.Wars[1] = new War
+        {
+            Id = 1, Name = "The Test War", AttackerId = 1, DefenderId = 2, Attackers = { 1 }, Defenders = { 2 },
+            CasusBelli = CasusBelli.Revenge, CasusBelliEventId = cb.Id, DeclaredEventId = declared.Id,
+        };
+        using (var store = WorldStore.Open(file.Path)) store.Save(world, log, new EventQueue());
+
+        var (code, output) = Run(T0, "wars", file.Path);
+        Assert.Equal(0, code);
+        Assert.Contains("The Test War", output);
+        var (detailCode, detail) = Run(T0, "war", file.Path, "1");
+        Assert.Equal(0, detailCode);
+        Assert.Contains("casus belli: #1", detail);
+        Assert.Contains("attackers:", detail);
+    }
 }
