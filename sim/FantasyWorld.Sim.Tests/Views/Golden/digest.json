@@ -121,7 +121,7 @@
       "number": 5,
       "category": "characters",
       "text": {
-        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of Kingdom of Thonae.",
+        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
@@ -134,7 +134,7 @@
             "entity": "char#17"
           },
           {
-            "start": 58,
+            "start": 62,
             "length": 17,
             "entity": "realm#1"
           }
@@ -166,7 +166,7 @@
       "number": 7,
       "category": "economy",
       "text": {
-        "text": "Merchants opened The Drerithby–Greindrondcross Road between Drerithby and Greindrondcross.",
+        "text": "Merchants opened the Drerithby–Greindrondcross Road between Drerithby and Greindrondcross.",
         "links": [
           {
             "start": 17,
@@ -191,7 +191,7 @@
       "number": 8,
       "category": "structures",
       "text": {
-        "text": "Rarun of Cathreindis was driven back from level 3 of The Deeps of Taramdale.",
+        "text": "Rarun of Cathreindis was driven back from level three of the Deeps of Taramdale.",
         "links": [
           {
             "start": 0,
@@ -199,7 +199,7 @@
             "entity": "char#39"
           },
           {
-            "start": 53,
+            "start": 57,
             "length": 22,
             "entity": "structure#1"
           }

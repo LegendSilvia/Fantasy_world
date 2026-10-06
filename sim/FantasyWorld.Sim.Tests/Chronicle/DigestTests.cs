@@ -61,7 +61,7 @@ public class DigestTests
         var world = TestPeople.World();
         var log = Log((1, 50));
         var digest = Digest.Build(log, world, 0, None);
-        Assert.StartsWith("From Y1 M1 D2 to Y1 M1 D2, 1 events were recorded. The chronicle remembers:\n- In year 1, ", new TemplateNarrator(world).Digest(digest));
+        Assert.StartsWith("From Y1 M1 D2 to Y1 M1 D2, one event was recorded. The chronicle remembers:\n- In Year 1, ", new TemplateNarrator(world).Digest(digest));
         Assert.Equal("Nothing of note has happened since you last looked.", new TemplateNarrator(world).Digest(Digest.Build(log, world, 1, None)));
 
         var fake = new FakeLlmProvider(_ => "{\"text\":\"While you slept, rumours spread.\"}");

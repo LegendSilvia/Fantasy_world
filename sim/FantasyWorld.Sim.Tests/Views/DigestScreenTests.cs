@@ -51,7 +51,7 @@ public class DigestScreenTests
         Assert.All(screen.Pins, p => Assert.True(p.Position.X is > 0 and < 1 && p.Position.Y is > 0 and < 1));
         var nameOf = Names.Of(world);
         foreach (var text in screen.Items.Select(i => i.Text).Append(screen.Headline.Title))
-            Assert.All(text.Links, l => Assert.Equal(nameOf(l.Entity), text.Text.Substring(l.Start, l.Length)));
+            Assert.All(text.Links, l => Assert.True(LinkedText.Reads(text.Text.Substring(l.Start, l.Length), nameOf(l.Entity))));
     }
 
     [Fact]

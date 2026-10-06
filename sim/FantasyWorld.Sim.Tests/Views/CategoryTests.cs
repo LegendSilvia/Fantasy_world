@@ -42,7 +42,7 @@ public class CategoryTests
 
         Assert.Equal(3, linked.Links.Count);
         foreach (var link in linked.Links)
-            Assert.Equal(Names.Of(world)(link.Entity), text.Substring(link.Start, link.Length));
+            Assert.True(LinkedText.Reads(text.Substring(link.Start, link.Length), Names.Of(world)(link.Entity)));
         Assert.Equal(new[] { a.Ref, b.Ref, world.Settlements[1].Ref }, linked.Links.Select(l => l.Entity));
     }
 

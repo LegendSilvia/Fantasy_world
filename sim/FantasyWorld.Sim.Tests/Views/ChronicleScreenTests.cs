@@ -54,7 +54,7 @@ public class ChronicleScreenTests
             var page = ArtifactScreen.Build(world, sim.Log, artifact.Id);
             Assert.NotEmpty(page.Powers);
             Assert.Equal(artifact.Provenance.Count, page.Provenance.Count);
-            Assert.All(page.Made.Links, l => Assert.Equal(nameOf(l.Entity), page.Made.Text.Substring(l.Start, l.Length)));
+            Assert.All(page.Made.Links, l => Assert.True(LinkedText.Reads(page.Made.Text.Substring(l.Start, l.Length), nameOf(l.Entity))));
         }
     }
 }

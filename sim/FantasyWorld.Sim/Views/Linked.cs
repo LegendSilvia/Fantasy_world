@@ -24,6 +24,8 @@ public sealed record LinkedText(string Text, IReadOnlyList<TextLink> Links)
             while (true)
             {
                 var at = text.IndexOf(name!, from, StringComparison.Ordinal);
+                // Inside a sentence "The War of the Ash" reads "the War of the Ash".
+                if (at < 0 && name!.StartsWith("The ", StringComparison.Ordinal)) at = text.IndexOf("the " + name[4..], from, StringComparison.Ordinal);
                 if (at < 0) break;
                 if (!links.Any(l => at < l.Start + l.Length && l.Start < at + name!.Length))
                 {
@@ -35,6 +37,10 @@ public sealed record LinkedText(string Text, IReadOnlyList<TextLink> Links)
         }
         return new LinkedText(text, links.OrderBy(l => l.Start).ToList());
     }
+
+    /// <summary>Whether a linked span reads as the entity's name ("the War of the Ash" for "The War of the Ash").</summary>
+    public static bool Reads(string span, string? name) =>
+        span == name || name is not null && name.StartsWith("The ", StringComparison.Ordinal) && span == "the " + name[4..];
 
     /// <summary>All entities an event mentions: its actors and place.</summary>
     public static IEnumerable<EntityRef> Mentions(WorldEvent ev) =>

@@ -60,7 +60,7 @@ public class CharacterScreenTests
             var page = CharacterScreen.Build(world, sim.Log, c.Id);
             Assert.All(page.Ties, t => Assert.NotNull(nameOf(t.Ref)));
             foreach (var row in page.Timeline)
-                Assert.All(row.Text.Links, l => Assert.Equal(nameOf(l.Entity), row.Text.Text.Substring(l.Start, l.Length)));
+                Assert.All(row.Text.Links, l => Assert.True(LinkedText.Reads(row.Text.Text.Substring(l.Start, l.Length), nameOf(l.Entity))));
             FamilyTree.Build(world, c.Id);
         }
     }

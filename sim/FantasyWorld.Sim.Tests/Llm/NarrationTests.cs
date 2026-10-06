@@ -25,7 +25,7 @@ public class NarrationTests
 
         var text = new TemplateNarrator(world).Narrate(duel);
 
-        Assert.Equal($"In year 5, {Names.Full(world, a)} fought {Names.Full(world, b)} to first blood at {world.Settlements[1].Name}. (an old insult) It was quick.", text);
+        Assert.Equal($"In Year 5, {Names.Full(world, a)} fought {Names.Full(world, b)} to first blood at {world.Settlements[1].Name}. (an old insult) It was quick.", text);
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public class NarrationTests
         var odd = log.Append(world.Date, new EventDraft("StarFell", Actors: new Dictionary<string, EntityRef> { ["witness"] = a.Ref }));
         var partial = log.Append(world.Date, new EventDraft("MarriageWed", Actors: new Dictionary<string, EntityRef> { ["spouse"] = a.Ref }));
         var narrator = new TemplateNarrator(world);
-        Assert.Equal($"In year 1, star fell involving {Names.Full(world, a)}.", narrator.Narrate(odd));
-        Assert.Equal($"In year 1, marriage wed involving {Names.Full(world, a)}.", narrator.Narrate(partial));
+        Assert.Equal($"In Year 1, star fell involving {Names.Full(world, a)}.", narrator.Narrate(odd));
+        Assert.Equal($"In Year 1, marriage wed involving {Names.Full(world, a)}.", narrator.Narrate(partial));
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class NarrationTests
         var revolt = log.Append(world.Date, new EventDraft("RevoltBegan", Place: world.Settlements[1].Ref,
             Causes: new[] { new Cause(shortage.Id, CauseKind.Trigger, 1.0) }));
         var text = new TemplateNarrator(world).NarrateChain(new HistoryQuery(log).WhyChain(revolt.Id));
-        Assert.Equal($"In year 1, {world.Settlements[1].Name} rose in revolt. This happened because in year 1, food ran short in {world.Regions[1].Name}.", text);
+        Assert.Equal($"In Year 1, {world.Settlements[1].Name} rose in revolt. This happened because in Year 1, food ran short in {world.Regions[1].Name}.", text);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class NarrationTests
         sim.AdvanceDays(360 * 40);
         var narrator = new TemplateNarrator(world);
         foreach (var ev in sim.Log.All)
-            Assert.StartsWith("In year ", narrator.Narrate(ev));
+            Assert.StartsWith("In Year ", narrator.Narrate(ev));
     }
 
     [Fact]

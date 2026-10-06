@@ -73,7 +73,7 @@ public class CliLlmTests
         Run(null, "advance", file.Path, "10y");
         var (code, text) = Run(null, "tell", file.Path, "1");
         Assert.Equal(0, code);
-        Assert.StartsWith("In year ", text);
+        Assert.StartsWith("In Year ", text);
         Assert.Contains("error: No event #999999", Run(null, "tell", file.Path, "999999").Output);
     }
 }

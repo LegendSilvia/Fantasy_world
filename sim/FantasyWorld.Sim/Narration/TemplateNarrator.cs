@@ -34,7 +34,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["AllianceFormed"] = "{a} and {b} swore an alliance.",
         ["AllyJoinedWar"] = "{ally} took up arms in {war}.",
         ["ArmyRaised"] = "{realm} raised {army}, {=soldiers} strong, for {war}.",
-        ["ArmyRouted"] = "{army} of {realm} broke and fled at {@place}.",
+        ["ArmyRouted"] = "{army} broke and fled at {@place}.",
         ["ArtifactClaimed"] = "{claimant} claimed {artifact} from the treasury of {@place}.",
         ["ArtifactCurseRevealed"] = "The curse of {artifact} showed itself in {holder}: {=curse}.",
         ["ArtifactForged"] = "{maker} forged {artifact} at {@place}.",
@@ -49,13 +49,13 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["MonsterWoke"] = "{monster} woke in {@place}.",
         ["MonsterSlain"] = "{hunter} slew {monster} in {@place}.",
         ["RouteOpened"] = "Merchants opened {route} between {from} and {to}.",
-        ["RouteSevered"] = "{route} was cut by {=reason}.",
+        ["RouteSevered"] = "{route} was cut {=cut}.",
         ["RouteRestored"] = "Trade returned to {route}.",
         ["RouteClosed"] = "{route} fell out of use.",
         ["OccupationLapsed"] = "{realm} gave up its hold on {@place}.",
         ["SchismBegan"] = "{heresiarch} broke from {old} and founded {faith}.",
         ["SaintDeclared"] = "{faith} declared {saint} a saint.",
-        ["WildMagic"] = "Wild magic broke loose at {@place}: a {=kind}.",
+        ["WildMagic"] = "Wild magic broke loose at {@place}: a {=kind} that killed {=dead}.",
         ["MageTrained"] = "{mage} was trained in the mage tower of {@place}.",
         ["MagicLawChanged"] = "{realm} changed its law on magic from {=from} to {=law}.",
         ["MageFled"] = "{mage} fled the law against magic to {@place}.",
@@ -76,7 +76,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["WoundedInBattle"] = "{character} was {=wound} in the battle at {@place}.",
         ["CapitalMoved"] = "{realm} moved its seat to {@place}.",
         ["CharacterBorn"] = "{child} was born at {@place} to {mother} and {father}.",
-        ["CharacterDied"] = "{deceased} died of {=cause} at {=age}.",
+        ["CharacterDied"] = "{deceased} {=death}, aged {=age}.",
         ["ComingOfAge"] = "{character} came of age, dreaming of {=ambition}.",
         ["ChronicleCompacted"] = "the chronicle of {=period} was condensed ({=events} minor events: {=most common}).",
         ["CouncilAppointed"] = "{member} became {=seat} of {realm}.",
@@ -94,40 +94,80 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["MonsterHuntFailed"] = "{hunter} hunted the monsters of {@place} and was driven back.",
         ["MonstersSlain"] = "{hunter} slew the monsters of {@place}.",
         ["NewLordRose"] = "{lord} rose to rule {@place}.",
-        ["PeaceSigned"] = "{war} ended: {victor} over {vanquished} ({=terms}).",
+        ["PeaceSigned"] = "{war} ended in victory for {victor} over {vanquished}: {=terms}.",
         ["PlagueOutbreak"] = "Plague broke out in {@place}.",
         ["RealmFell"] = "{realm} fell.",
         ["RegionCeded"] = "{@place} passed from {from} to {to}.",
         ["RegionLiberated"] = "{realm} freed {@place}.",
-        ["RegionOccupied"] = "{army} of {realm} took {@place}.",
+        ["RegionOccupied"] = "{army} took {@place}.",
         ["RevoltBegan"] = "{@place} rose in revolt.",
         ["RivalryBegan"] = "{a} and {b} became rivals over {=over}.",
         ["RivalryDeclared"] = "{a} and {b} declared each other rivals.",
         ["SettlementAbandoned"] = "{@place} was abandoned.",
         ["SettlementSacked"] = "{commander} sacked {@place}; {=dead} died.",
-        ["SiegeBegan"] = "{army} of {realm} laid siege to {@place}.",
+        ["SiegeBegan"] = "{army} laid siege to {@place}.",
         ["SiegeEnded"] = "The siege of {@place} ended: it {=outcome}.",
         ["StructureRuined"] = "{@place} fell into ruin.",
         ["SuccessionOccurred"] = "{heir} succeeded {predecessor} at {@place}.",
         ["TheftFoiled"] = "{victim} caught {thief} reaching for {artifact}.",
-        ["WarDeclared"] = "{attacker} declared war on {defender} for {=casus belli}: {war}.",
+        ["WarDeclared"] = "{attacker} declared war on {defender} {=why}, and so began {war}.",
+    };
+
+    /// <summary>Templates for events whose payload changes how they read (nobody died; a white peace).</summary>
+    private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
+    {
+        ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
+        ("WildMagic", e => e.Payload.GetValueOrDefault("dead") is null or "0", "Wild magic broke loose at {@place}: a {=kind}."),
+        ("WorksCollapsed", e => e.Payload.GetValueOrDefault("dead") == "0", "{structure} collapsed while it was being built."),
+        ("PeaceSigned", e => e.Payload.GetValueOrDefault("outcome") == "white peace", "{war} ended with neither side the victor."),
+        ("CharacterDied", e => e.Payload.GetValueOrDefault("age") == "0", "{deceased} {=death} in infancy."),
     };
 
     private readonly Func<EntityRef, string?> _nameOf = Names.Of(world);
 
+    private string? TemplateFor(WorldEvent ev) =>
+        Variants.FirstOrDefault(v => v.Type == ev.Type && v.When(ev)).Template ?? Templates.GetValueOrDefault(ev.Type);
+
+    /// <summary>A name as it reads in a sentence: realms take their article, and "The …" names lower it.</summary>
+    private string? Prose(EntityRef entity) => _nameOf(entity) is not { } name ? null
+        : entity.Kind == Realm.Kind ? "the " + name : English.InProse(name);
+
+    /// <summary>A payload value in words; some keys stand for phrases (a death, a cause of war, peace terms, a cut road).</summary>
+    private string? Value(WorldEvent ev, string key) => key switch
+    {
+        // Lost in a labyrinth reads "died in the Deeps of Tael", not "was killed by" it.
+        "death" => !ev.Payload.TryGetValue("cause", out var cause) ? null
+            : world.Structures.Values.Any(s => s.Name == cause) ? $"died in {English.InProse(cause)}" : English.Death(cause),
+        "age" => ev.Payload.GetValueOrDefault("age"),
+        "stakes" => ev.Payload.GetValueOrDefault("stakes") is { } stakes ? stakes.StartsWith("to ", StringComparison.Ordinal) ? stakes : "to " + stakes : null,
+        "ambition" => ev.Payload.GetValueOrDefault("ambition") is { } dream ? English.Ambition(dream) : null,
+        "why" => ev.Payload.TryGetValue("casus belli", out var kind) ? English.CasusBelli(kind) : null,
+        "terms" => ev.Payload.TryGetValue("terms", out var terms) ? English.Terms(terms) : null,
+        "cut" => ev.Payload.GetValueOrDefault("reason") switch
+        {
+            "war" => "by war",
+            "occupation" => "where an enemy held the way",
+            "danger" => "by danger on the way",
+            "raid" => "by a beast's raids",
+            { } other => $"by {other}",
+            null => null,
+        },
+        _ => ev.Payload.TryGetValue(key, out var value) ? English.Value(value) : null,
+    };
+
     /// <summary>The event as one sentence, without date or annotations (headlines, lists).</summary>
     public string Sentence(WorldEvent ev)
     {
-        var sentence = Templates.TryGetValue(ev.Type, out var template) && Fill(template, ev) is { } filled ? filled : Generic(ev);
-        return char.ToUpperInvariant(sentence[0]) + sentence[1..];
+        var sentence = TemplateFor(ev) is { } template && Fill(template, ev) is { } filled ? filled : Generic(ev);
+        return English.Capitalise(sentence);
     }
 
     public string Narrate(WorldEvent ev)
     {
-        var sentence = Templates.TryGetValue(ev.Type, out var template) && Fill(template, ev) is { } filled
+        var sentence = TemplateFor(ev) is { } template && Fill(template, ev) is { } filled
             ? template.StartsWith('{') ? filled : LowerFirst(filled)
             : LowerFirst(Generic(ev));
-        var text = new StringBuilder($"In year {ev.Date.Year}, {sentence}");
+        var text = new StringBuilder($"In Year {ev.Date.Year}, {sentence}");
         if (ev.Payload.TryGetValue("motive", out var motive)) text.Append($" ({motive})");
         if (ev.Payload.TryGetValue("account", out var account)) text.Append($" {account}");
         return text.ToString();
@@ -143,7 +183,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     public string Digest(DigestView digest)
     {
         if (digest.EventCount == 0) return "Nothing of note has happened since you last looked.";
-        var text = new StringBuilder($"From {digest.From} to {digest.To}, {digest.EventCount} events were recorded. The chronicle remembers:");
+        var text = new StringBuilder($"From {digest.From} to {digest.To}, {English.Count(digest.EventCount, "event")} {(digest.EventCount == 1 ? "was" : "were")} recorded. The chronicle remembers:");
         foreach (var group in digest.Groups)
         {
             if (group.Label.Length > 0) text.Append($"\n{group.Label}:");
@@ -170,9 +210,9 @@ public sealed partial class TemplateNarrator(World world) : INarrator
             var key = m.Groups[1].Value;
             string? value = key switch
             {
-                "@place" => ev.Place is { } place ? _nameOf(place) : null,
-                _ when key.StartsWith('=') => ev.Payload.GetValueOrDefault(key[1..]),
-                _ => ev.Actors.TryGetValue(key, out var actor) ? _nameOf(actor) : null,
+                "@place" => ev.Place is { } place ? Prose(place) : null,
+                _ when key.StartsWith('=') => Value(ev, key[1..]),
+                _ => ev.Actors.TryGetValue(key, out var actor) ? Prose(actor) : null,
             };
             missing |= value is null;
             return value ?? "";
@@ -182,11 +222,11 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 
     private string Generic(WorldEvent ev)
     {
-        var who = ev.Actors.Select(a => _nameOf(a.Value)).Where(n => n is not null).ToList();
+        var who = ev.Actors.Select(a => Prose(a.Value)).OfType<string>().ToList();
         var text = Briefs.Spaced(ev.Type);
-        if (who.Count > 0) text += $" involving {string.Join(" and ", who)}";
-        if (ev.Place is { } place && _nameOf(place) is { } where) text += $" at {where}";
-        return char.ToUpperInvariant(text[0]) + text[1..] + ".";
+        if (who.Count > 0) text += $" involving {English.List(who)}";
+        if (ev.Place is { } place && Prose(place) is { } where) text += $" at {where}";
+        return English.Capitalise(text) + ".";
     }
 
     /// <summary>Sentences that open with a name keep their capital; others continue the "In year N," clause.</summary>
