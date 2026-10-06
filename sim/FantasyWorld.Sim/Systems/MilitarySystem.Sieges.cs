@@ -33,7 +33,7 @@ public sealed partial class MilitarySystem
             var region = world.Regions[army.RegionId];
             if (!Hostile(world, war, realm, region) || Contested(world, war, army)) continue;
             var chief = world.LivingSettlements(region).OrderByDescending(s => s.Tier).ThenByDescending(s => s.Population).ThenBy(s => s.Id).FirstOrDefault();
-            var defense = chief is null ? 0 : chief.Walls * 400 + chief.Garrison * 3 + 50;
+            var defense = chief is null ? 0 : chief.Walls * 400 + chief.Garrison * 3 + 50 + (StructureSystem.Fortified(world, chief) ? StructureSystem.FortressDefence : 0);
             if (defense <= 150)
             {
                 Occupy(ctx, war, army, region, chief, "RegionOccupied", null);

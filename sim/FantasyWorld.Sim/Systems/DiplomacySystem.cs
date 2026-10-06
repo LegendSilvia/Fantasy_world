@@ -179,6 +179,15 @@ public sealed class DiplomacySystem : ISimSystem
                 && Realms.SovereignOf(world, holy)?.Id == enemy.Id && (mine.Zeal >= 40 || tenets.Contains("zealous") || tenets.Contains("warlike")))
                 options.Add(new(CasusBelli.HolyWar, enemy.Id, mine.HolySiteLostEventId, holy.Id, 0, 40));
 
+            // Declared rivals quarrel over the land between them.
+            if (realm.Treaties.FirstOrDefault(t => t.Kind == TreatyKind.Rivalry && t.With == enemy.Id) is { } rivalry)
+                options.Add(new(CasusBelli.BorderDispute, enemy.Id, rivalry.SinceEventId, Border(world, realm, enemy), 0, 25));
+
+            // A ruler who craves renown seeks it against a weaker neighbour (their temper decides how often).
+            if (ruler is not null && ruler.Ambition == Ambitions.Renown
+                && Strength(world, realm) > Strength(world, enemy) * 1.2 && Fates.Accession(ctx.Log, ruler) is { } crowned)
+                options.Add(new(CasusBelli.Glory, enemy.Id, crowned.Id, Border(world, realm, enemy), 0, ruler.Has(Traits.Ambitious) ? 15 : 8));
+
             var hungry = Realms.Domain(world, realm).Select(r => r.Conditions.GetValueOrDefault(Conditions.Shortage)).FirstOrDefault(id => id != 0);
             var granary = theirs.Where(r => r.Fertility >= 60 && Touches(world, r, realm)).OrderByDescending(r => r.Fertility).ThenBy(r => r.Id).FirstOrDefault();
             if (hungry != 0 && granary is not null) options.Add(new(CasusBelli.ResourceNeed, enemy.Id, hungry, granary.Id, 0, 30));
@@ -219,6 +228,7 @@ public sealed class DiplomacySystem : ISimSystem
             CasusBelli.HolyWar => $"The Holy War of {world.Faiths[attacker.FaithId].Deity}",
             CasusBelli.Independence => $"The {defender.Name} Rebellion",
             CasusBelli.Revenge => $"The War of {attacker.Name}'s Vengeance",
+            CasusBelli.Glory when Realms.RulerOf(world, attacker) is { } glorious => $"The War of {glorious.Name}'s Glory",
             _ => $"The {target?.Name ?? defender.Name} War",
         };
         var warId = world.Ids.Peek(War.Kind);

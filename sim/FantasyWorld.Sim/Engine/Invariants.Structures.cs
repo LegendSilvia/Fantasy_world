@@ -16,6 +16,9 @@ public static partial class Invariants
             if (!log.TryGet(s.StartedEventId, out _)) errors.Add($"Structure #{s.Id} cites missing event #{s.StartedEventId}.");
             if (s.State == StructureState.Standing && s.Type == StructureKind.Landmark && s.CompletedEventId == 0)
                 errors.Add($"Landmark #{s.Id} stands without a completion event.");
+            if (s.ArchitectId != 0 && !world.Characters.ContainsKey(s.ArchitectId)) errors.Add($"Structure #{s.Id} has unknown architect #{s.ArchitectId}.");
+            if (s.State == StructureState.Standing && s.Type == StructureKind.Fortification && s.CompletedEventId == 0)
+                errors.Add($"Fortress #{s.Id} stands without a completion event.");
             if (s.Progress is < 0 or > 100) errors.Add($"Structure #{s.Id} has progress {s.Progress}.");
         }
 

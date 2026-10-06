@@ -27,6 +27,15 @@ public sealed class Structure
     /// <summary>The character who commissioned it, 0 if none.</summary>
     public long BuilderId { get; init; }
 
+    /// <summary>The character who designs and oversees a great work (0 if none).</summary>
+    public long ArchitectId { get; set; }
+
+    /// <summary>Pushed on by an impatient patron: faster, but it may collapse.</summary>
+    public bool Rushed { get; init; }
+
+    /// <summary>The event (war, plague, famine) holding the work up, 0 when it goes on.</summary>
+    public long DelayedByEventId { get; set; }
+
     public long StartedEventId { get; init; }
     public long CompletedEventId { get; set; }
 

@@ -13,6 +13,8 @@ public static class CasusBelli
     public const string ResourceNeed = "resource need";
     public const string ArtifactRecovery = "artifact recovery";
     public const string Independence = "independence";
+    public const string BorderDispute = "border dispute";
+    public const string Glory = "glory";
 }
 
 public sealed class War

@@ -141,4 +141,32 @@ public class DiplomacySystemTests
         var ctx = new SimContext(world, log, new EventQueue(), new Rng(1));
         Assert.DoesNotContain(DiplomacySystem.CasusBelliFor(ctx, world.Realms[1]), o => o.Kind == CasusBelli.ArtifactRecovery);
     }
+
+    [Fact]
+    public void DeclaredRivals_HaveABorderDispute()
+    {
+        var world = TestRealms.TwoKingdoms();
+        var log = new EventLog();
+        var rivalry = log.Append(world.Date, new EventDraft("RivalryDeclared"));
+        world.Realms[1].Treaties.Add(new Treaty(TreatyKind.Rivalry, 2, rivalry.Id, 0));
+        var ctx = new SimContext(world, log, new EventQueue(), new Rng(1));
+        var cb = DiplomacySystem.CasusBelliFor(ctx, world.Realms[1]).Single(o => o.Kind == CasusBelli.BorderDispute);
+        Assert.Equal((2L, rivalry.Id), (cb.Against, cb.EventId));
+    }
+
+    [Fact]
+    public void ARulerWhoCravesRenown_SeeksGlory_OnlyAgainstTheWeaker()
+    {
+        var world = TestRealms.TwoKingdoms();
+        var log = new EventLog();
+        var ruler = world.Characters[world.Settlements[1].LordId];
+        ruler.Ambition = Ambitions.Renown;
+        var crowned = log.Append(world.Date, new EventDraft("SuccessionOccurred", Actors: new Dictionary<string, EntityRef> { ["heir"] = ruler.Ref }));
+        var ctx = new SimContext(world, log, new EventQueue(), new Rng(1));
+        Assert.DoesNotContain(DiplomacySystem.CasusBelliFor(ctx, world.Realms[1]), o => o.Kind == CasusBelli.Glory);
+
+        world.Realms[1].Treasury = 100_000;
+        var cb = DiplomacySystem.CasusBelliFor(ctx, world.Realms[1]).Single(o => o.Kind == CasusBelli.Glory);
+        Assert.Equal((2L, crowned.Id), (cb.Against, cb.EventId));
+    }
 }
