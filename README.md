@@ -20,6 +20,10 @@ dotnet run --project sim/FantasyWorld.Cli -- advance worlds/aerenmoor.fw.db 50y 
 dotnet run --project sim/FantasyWorld.Cli -- regions worlds/aerenmoor.fw.db
 dotnet run --project sim/FantasyWorld.Cli -- region worlds/aerenmoor.fw.db 12
 dotnet run --project sim/FantasyWorld.Cli -- why worlds/aerenmoor.fw.db <event-id>
+dotnet run --project sim/FantasyWorld.Cli -- characters worlds/aerenmoor.fw.db       # living notables
+dotnet run --project sim/FantasyWorld.Cli -- life worlds/aerenmoor.fw.db <char-id>    # a biography
+dotnet run --project sim/FantasyWorld.Cli -- artifacts worlds/aerenmoor.fw.db
+dotnet run --project sim/FantasyWorld.Cli -- artifact worlds/aerenmoor.fw.db <id>     # powers and provenance
 ```
 
 `--size tiny` makes a 64×64 world with 12 regions for quick experiments.
