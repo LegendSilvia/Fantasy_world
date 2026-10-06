@@ -239,7 +239,7 @@ public sealed class DiplomacySystem : ISimSystem
             Actors: new Dictionary<string, EntityRef> { ["attacker"] = attacker.Ref, ["defender"] = defender.Ref, ["war"] = war.Ref },
             Place: world.Settlements[defender.CapitalId].Ref,
             Payload: new Dictionary<string, string> { ["casus belli"] = cb.Kind, ["war"] = name },
-            Causes: new[] { new Cause(cbEvent, CauseKind.Motive, 0.9) },
+            Causes: WarCauses(ctx, attacker, defender, cbEvent),
             Importance: 70, Tags: new[] { "Politics", "War" }));
         war.DeclaredEventId = declared.Id;
         world.Wars[war.Id] = war;
@@ -259,6 +259,22 @@ public sealed class DiplomacySystem : ISimSystem
                     Place: world.Settlements[ally.CapitalId].Ref,
                     Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 1.0) }, Importance: 45, Tags: new[] { "Politics", "War" }));
             }
+    }
+
+    /// <summary>
+    /// The casus belli is the motive; the realms' latest rivalry and the ruler's accession, when there are any, are
+    /// enablers, so a war's why-chain reaches back past its pretext.
+    /// </summary>
+    private static List<Cause> WarCauses(SimContext ctx, Realm attacker, Realm defender, long cbEvent)
+    {
+        var causes = new List<Cause> { new(cbEvent, CauseKind.Motive, 0.9) };
+        var rivalry = ctx.Log.Involving(attacker.Ref).LastOrDefault(e => e.Type is "RivalryDeclared" or "AllianceBroken"
+                                                                           && e.Actors.ContainsValue(defender.Ref));
+        if (rivalry is not null && rivalry.Id != cbEvent) causes.Add(new Cause(rivalry.Id, CauseKind.Enabler, 0.5));
+        if (Realms.RulerOf(ctx.World, attacker) is { } ruler
+            && Fates.Accession(ctx.Log, ruler) is { } accession && accession.Id != cbEvent)
+            causes.Add(new Cause(accession.Id, CauseKind.Enabler, 0.3));
+        return causes;
     }
 
     private static bool AtWarWith(World world, Realm a, Realm b) =>

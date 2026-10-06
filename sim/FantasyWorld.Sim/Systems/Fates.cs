@@ -101,6 +101,10 @@ public static class Fates
     /// Line of succession to a seat. A realm's capital follows its law: primogeniture (children, then
     /// siblings), seniority (siblings, then children) or elective (kin and council, adults first, ablest first).
     /// </summary>
+    /// <summary>The succession that brought this character to their seat, if they inherited it.</summary>
+    public static WorldEvent? Accession(EventLog log, Character c) =>
+        log.Involving(c.Ref).LastOrDefault(e => e.Type == "SuccessionOccurred" && e.Actors.TryGetValue("heir", out var heir) && heir == c.Ref);
+
     public static IEnumerable<Character> SeatCandidates(World world, Character c, Settlement seat, Character? killer, Core.WorldDate today)
     {
         var realm = world.Realms.Values.Where(r => !r.Destroyed && r.CapitalId == seat.Id).OrderBy(r => r.Id).FirstOrDefault();

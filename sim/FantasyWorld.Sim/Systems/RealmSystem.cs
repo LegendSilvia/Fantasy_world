@@ -206,6 +206,8 @@ public sealed class RealmSystem : ISimSystem
             var grudge = ruler.Memories.Where(m => m.About == overlord.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
             if (grudge is not null) causes.Add(new Cause(grudge.EventId, CauseKind.Motive, 0.9));
         }
+        if (overlord is not null && Fates.Accession(ctx.Log, overlord) is { } accession)
+            causes.Add(new Cause(accession.Id, CauseKind.Enabler, 0.4));
         var unhappy = liege.Conditions.ContainsKey(Statecraft.StabilityCollapsed)
                       || (ruler is not null && overlord is not null && Relations.Opinion(ruler, overlord) <= Relations.RivalAt);
         if (!unhappy || !ctx.Rng.Chance(IndependencePerYear)) return;
