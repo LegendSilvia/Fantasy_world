@@ -10,3 +10,4 @@ worlds/
 
 # BenchmarkDotNet output
 BenchmarkDotNet.Artifacts/
+evals/

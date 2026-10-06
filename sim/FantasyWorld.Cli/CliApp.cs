@@ -45,6 +45,8 @@ public static partial class CliApp
           fw stats <world-file>
           fw llm <world-file> [--provider none|anthropic|openrouter] [--model <tier>=<model>]...
                  [--story-beats <per-day>] [--narrations <per-day>] [--cap <usd-per-month>]
+          fw eval narration|decisions [--provider anthropic|openrouter] [--model <tier>=<model>]... [--samples <n>]
+                 [--draws <n>] [--seeds 1,2,3] [--cap <usd>] [--out <dir>]   live quality evals with a judge; results in evals/
         """;
 
     /// <summary>Runs one command. Providers builds the LLM backend a world's settings name (tests inject fakes).</summary>
@@ -85,6 +87,7 @@ public static partial class CliApp
                 "unfollow" => Follow(path, rest, output, follow: false),
                 "stats" => Stats(path, output, clock),
                 "llm" => LlmCommand(path, rest, output),
+                "eval" => Eval(path, rest, output, providers),
                 _ => UsageError(output),
             };
         }

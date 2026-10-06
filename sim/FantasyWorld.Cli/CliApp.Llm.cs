@@ -101,4 +101,41 @@ public static partial class CliApp
             output.WriteLine($"credentials: {variable} {(Environment.GetEnvironmentVariable(variable) is { Length: > 0 } ? "is set" : "is not set, so the game runs offline")}");
         return 0;
     }
+
+    /// <summary>
+    /// Live quality evals (sub-project 5 §5): narration graded by a judge on fixed seeds, or decisions graded for
+    /// character and arbitrations checked against their odds. Spending stops at the cap; the report is saved as JSON.
+    /// </summary>
+    private static int Eval(string suite, string[] rest, TextWriter output, Func<LlmSettings, ILlmProvider?> providers)
+    {
+        if (suite is not ("narration" or "decisions")) return UsageError(output);
+        var models = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        for (var i = 0; i < rest.Length - 1; i++)
+        {
+            if (rest[i] != "--model") continue;
+            if (rest[i + 1].Split('=', 2) is not [var tier, var model] || model.Length == 0 || !Enum.GetNames<ModelTier>().Contains(tier, StringComparer.OrdinalIgnoreCase))
+                throw new FormatException($"Use --model <tier>=<model>, with tier decide, arbitrate, invent or narrate (got '{rest[i + 1]}').");
+            models[tier.ToLowerInvariant()] = model;
+        }
+        var settings = new LlmSettings { Provider = Option(rest, "--provider") ?? "anthropic", Models = models };
+        if (providers(settings) is not { } provider)
+        {
+            output.WriteLine($"error: evals run live and need a provider; set the API key for {settings.Provider} (see fw llm).");
+            return 2;
+        }
+        var cap = decimal.Parse(Option(rest, "--cap") ?? "2", CultureInfo.InvariantCulture);
+        var count = int.Parse(Option(rest, suite == "narration" ? "--samples" : "--draws") ?? (suite == "narration" ? "8" : "40"), CultureInfo.InvariantCulture);
+        if (cap <= 0 || count <= 0) throw new FormatException("--cap, --samples and --draws must be positive.");
+        var seeds = Option(rest, "--seeds")?.Split(',').Select(s => ulong.Parse(s, CultureInfo.InvariantCulture)).ToList();
+        var report = suite == "narration"
+            ? QualityEvals.Narration(provider, settings, cap, count, seeds)
+            : QualityEvals.Decisions(provider, settings, cap, count, seeds);
+        var path = QualityEvals.Save(report, Option(rest, "--out") ?? "evals");
+        output.WriteLine($"{report.Suite}: {report.Scores.Count} graded, {report.Fallbacks} fell back to the rules; "
+                         + string.Join(", ", report.Means.Select(m => $"{m.Key} {m.Value.ToString("0.00", CultureInfo.InvariantCulture)}")));
+        foreach (var check in report.Checks) output.WriteLine($"{check.Key}: {check.Value}");
+        output.WriteLine($"spent ${report.SpendUsd.ToString("0.0000", CultureInfo.InvariantCulture)} of ${cap.ToString("0.00", CultureInfo.InvariantCulture)}"
+                         + $"{(report.Capped ? " (stopped at the cap)" : "")}; saved {path}");
+        return 0;
+    }
 }

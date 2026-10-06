@@ -110,6 +110,22 @@ narrations per rolling day, and a $10 cap per 30 days; past it, or without crede
 `--provider openrouter` uses `OPENROUTER_API_KEY` instead. Every answer is journaled in the world file, so
 reloading or replaying a world never asks again, and `fw why` shows the motives and accounts it gave.
 
+Each world has a chronicler (a name, a temperament and a diction, the same every time the world opens) whose voice
+and house style every narration follows. Narration may use only the facts it is given: one that invents a name or a
+number is rejected and journaled, and the templates speak instead. The template voice is a product in its own right
+(articles, numbers in words, several phrasings per event chosen by its id, headlines with a body that adds what the
+title leaves out, and the story of why as one paragraph); its structure is checked on every test run against a real
+history and a golden narration.
+
+Live quality evals grade the LLM voice with a judge model on fixed seeds, within a cost cap:
+
+```bash
+dotnet run --project sim/FantasyWorld.Cli -- eval narration --cap 2      # events and chains: faithful, clear, voice, varied
+dotnet run --project sim/FantasyWorld.Cli -- eval decisions --draws 40   # choices in character; arbitrations against their odds
+```
+
+Each run prints the mean scores and saves a report under `evals/`; no call is made once a run has spent its cap (default $2).
+
 `--size tiny` makes a 64×64 world with 12 regions for quick experiments (and no prehistory; medium and large
 worlds start with 100 years of it, `--prehistory <years>` to change).
 
