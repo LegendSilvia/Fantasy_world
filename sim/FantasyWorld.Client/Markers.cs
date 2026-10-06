@@ -147,7 +147,7 @@ public static class Markers
     }
 
     /// <summary>Douglas–Peucker: keeps the points that stray more than <paramref name="tolerance"/> from a straight run.</summary>
-    private static List<Vector2> Simplify(List<Vector2> points, float tolerance)
+    internal static List<Vector2> Simplify(List<Vector2> points, float tolerance)
     {
         if (points.Count < 3) return points;
         var keep = new bool[points.Count];
@@ -179,7 +179,7 @@ public static class Markers
     }
 
     /// <summary>One round of corner cutting; open lines keep their ends.</summary>
-    private static List<Vector2> Chaikin(List<Vector2> points, bool closed)
+    internal static List<Vector2> Chaikin(List<Vector2> points, bool closed)
     {
         if (points.Count < 3) return points;
         var result = new List<Vector2>(points.Count * 2);

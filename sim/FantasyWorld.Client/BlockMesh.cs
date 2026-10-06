@@ -11,6 +11,9 @@ public sealed record MeshData(Vector3[] Positions, Vector3[] Normals, Vector3[] 
 
     /// <summary>Per-vertex opacity (water); null means opaque.</summary>
     public float[]? Alphas { get; init; }
+
+    /// <summary>Per-vertex texture coordinates (across, along) for shaders that animate along a line; null if none.</summary>
+    public Vector2[]? Uvs { get; init; }
 }
 
 /// <summary>

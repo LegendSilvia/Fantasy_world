@@ -23,6 +23,13 @@ adds layers, a history slider back to Year 1, and a card for every settlement. W
 lives on (one world day every four real minutes) and announces what matters.
 
 ![A region seen from above, with realm borders and settlements](docs/images/region.png)
+
+War is drawn like a strategy map: each host's banner (in its realm's colours) marches from region to region along
+a broad campaign arrow toward its target, attackers in red and defenders in blue; fronts carry teeth facing the
+attacker, occupied land is hatched, and crossed swords mark this year's battles. Click a banner for its commander,
+a battle for why it was fought. Knights ride with their realm's host, and battles can wound, kill or make them famous.
+
+![A host on the march: campaign arrow, banner, front and occupied land](docs/images/war.png)
 ![Why a war began: the chain of causes](docs/images/why.png)
 
 Run it with [Godot 4.3 .NET](https://godotengine.org/download/archive/4.3-stable/) and the .NET 8 SDK:
@@ -37,7 +44,8 @@ Keys: **Esc** back · **H** home (the digest) · **M** the map. Worlds live in G
 
 Checks: `godot --headless --path game res://tests/HeadlessChecks.tscn` drives every screen on a fresh world and
 exits non-zero on failure (CI runs it). `godot --path game res://tests/Showcase.tscn -- --shots <dir>` renders a
-full-size world from the angles above (needs a display).
+full-size world from the angles above, and `godot --path game --write-movie war.avi --fixed-fps 30 res://tests/WarMovie.tscn`
+films a host on the march (both need a display).
 
 ## Run
 

@@ -161,11 +161,22 @@ public partial class Main : Control
             Diorama.Show(today);
         }
         Digest = digest;
-        Diorama.Picked += Router.Open;
+        Diorama.Picked += Picked;
         Router.Changed += Show;
         CaughtUp = true;
         UpdateStatus();
         Show(Router.Current);
+    }
+
+    /// <summary>A click on the diorama: a battle opens its why chain, a host its commander, anything else its page.</summary>
+    private void Picked(FantasyWorld.Sim.Events.EntityRef picked)
+    {
+        if (picked.Kind == "event") Router.Explain(picked.Id);
+        else if (picked.Kind == Army.Kind)
+        {
+            if (Diorama.War.Armies.FirstOrDefault(a => a.Ref == picked)?.Commander is { } commander) Router.Open(commander.Ref);
+        }
+        else Router.Open(picked);
     }
 
     /// <summary>Replaces the current screen's controls (and the diorama's pins) for a screen.</summary>

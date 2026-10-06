@@ -52,6 +52,52 @@ public partial class HeadlessChecks : Node
         await MapChecks(main);
         await PageChecks(main);
         await ReadingChecks(main);
+        await WarChecks(main);
+    }
+
+    /// <summary>Stages a small war (a host marching across a border into land it occupies) and checks the war layer.</summary>
+    private async Task WarChecks(Main main)
+    {
+        var session = main.Session!;
+        var (armyRef, commander) = session.Read((world, log) =>
+        {
+            var link = world.Geography!.Graph.Links.First(l => world.Regions[l.A].OwnerRealmId != 0 && world.Regions[l.B].OwnerRealmId != 0
+                                                             && world.Regions[l.A].OwnerRealmId != world.Regions[l.B].OwnerRealmId);
+            var (home, target) = (world.Regions[link.A], world.Regions[link.B]);
+            var (a, b) = (world.Realms[home.OwnerRealmId], world.Realms[target.OwnerRealmId]);
+            var war = new FantasyWorld.Sim.Model.War { Id = world.Ids.Take("war"), Name = "The Staged War", AttackerId = a.Id, DefenderId = b.Id, Attackers = { a.Id }, Defenders = { b.Id } };
+            world.Wars[war.Id] = war;
+            var leader = world.Characters.Values.First(c => c.IsActive);
+            var army = new FantasyWorld.Sim.Model.Army
+            {
+                Id = world.Ids.Take("army"), Name = $"The Host of {a.Name}", RealmId = a.Id, WarId = war.Id, CommanderId = leader.Id, Levies = 800,
+                RegionId = home.Id, Path = { target.Id }, TargetRegionId = target.Id,
+            };
+            world.Armies[army.Id] = army;
+            target.OccupierRealmId = a.Id;
+            return (army.Ref, leader.Ref);
+        });
+        main.Router.Go(new Screen(ScreenKind.Map));
+        main.Diorama.Show(session.Map());
+        (main.Current as MapHudView)?.Today(session.Map());
+        main.Diorama.Rig.Reset();
+        await Frames(90);
+        var war = main.Diorama.War;
+        Check(war.Banners.GetChildCount() == 1 && war.Arrows.GetChildCount() == 1, "a host on the march has a banner and a campaign arrow");
+        Check(war.Hatch.Mesh is not null && war.Outline.Mesh is not null, "occupied land is hatched and outlined");
+        Check(war.Fronts.Mesh is ArrayMesh { } fronts && fronts.GetSurfaceCount() >= 2, "the front between the sides is drawn with its teeth");
+        var tag = (main.Current as MapHudView)?.TagLayer.GetChildren().OfType<ArmyTag>().FirstOrDefault();
+        Check(tag is not null && tag.Army.Ref == armyRef, "the host is named on the map");
+        await Shot("war");
+        var banner = war.BannerAt(armyRef)!.Value;
+        var screen = main.Diorama.Camera.UnprojectPosition(banner + new Godot.Vector3(0, WarLayer.BannerHeight * 0.7f, 0));
+        Check(main.Diorama.Pick(screen) == armyRef, "clicking a banner picks its host");
+        main.Router.Home();
+        await Frames(2);
+        main.Router.Open(commander);
+        await Frames(2);
+        Check(main.Current is CharacterView c && c.Character.Ref == commander, "a host's commander has a page");
+        main.Router.Home();
     }
 
     private async Task ReadingChecks(Main main)
@@ -184,8 +230,8 @@ public partial class HeadlessChecks : Node
         Check(view.GetNode<Label>("Intro/Title").Text == $"{map.WorldName}.", "the map is titled with the world's name");
         Check(view.GetNode<Label>("Intro/Summary").Text == map.Summary, "and summarised");
         var tagged = map.Settlements.Count(s => MapLabels.Shows(s, view.Host.Diorama.Rig.NearestZoom, main.Diorama.Layers));
-        Check(view.TagLayer.GetChildCount() == tagged, $"settlements big enough for the zoom are named ({tagged})");
-        Check(view.GetNode("Legend").GetChildCount() == map.Legend.Count, "the legend lists the realms");
+        Check(view.TagLayer.GetChildren().OfType<SettlementTag>().Count() == tagged, $"settlements big enough for the zoom are named ({tagged})");
+        Check(view.GetNode("Legend").GetChildCount() == map.Legend.Count + (map.Armies is { Count: > 0 } ? 2 : 0), "the legend lists the realms");
         await Shot("map");
 
         var tags = view.TagLayer.GetChildren().OfType<SettlementTag>().ToList();

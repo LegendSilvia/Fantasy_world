@@ -31,6 +31,7 @@ public partial class Diorama : Node3D
     public Node3D StructureLayer { get; private set; } = null!;
     public MapLayers Layers { get; private set; } = MapLayers.Default;
     public Node3D PinLayer { get; private set; } = null!;
+    public WarLayer War { get; private set; } = null!;
     public MeshInstance3D BorderLines { get; private set; } = null!;
     public IReadOnlyList<Marker> Markers => _markers;
     public IReadOnlyList<Pin> Pins => _pins;
@@ -68,6 +69,8 @@ public partial class Diorama : Node3D
         MarkerLayer.AddChild(StructureLayer);
         PinLayer = new Node3D { Name = "Pins" };
         AddChild(PinLayer);
+        War = new WarLayer();
+        AddChild(War);
         UpdateCamera();
     }
 
@@ -152,6 +155,7 @@ public partial class Diorama : Node3D
         });
         foreach (var marker in _markers.Where(m => m.Shape != MarkerShape.Settlement)) StructureLayer.AddChild(MarkerNode(marker));
         BorderLines.Mesh = DashedRibbons(FantasyWorld.Client.Markers.BorderLines(map, _geography), Palette.Ink);
+        War.Show(map, _geography);
         ShownYear = pastYear;
     }
 
@@ -165,6 +169,7 @@ public partial class Diorama : Node3D
         BorderLines.Visible = layers.HasFlag(MapLayers.Borders);
         SettlementLayer.Visible = layers.HasFlag(MapLayers.Settlements);
         StructureLayer.Visible = layers.HasFlag(MapLayers.Structures);
+        War.Visible = layers.HasFlag(MapLayers.Armies);
     }
 
     /// <summary>The digest's pins as stems over their places (the screen draws their numbered labels).</summary>
@@ -198,7 +203,11 @@ public partial class Diorama : Node3D
     /// <summary>The marker or pin drawn nearest a screen point, within <see cref="PickRadius"/> pixels.</summary>
     public EntityRef? Pick(Vector2 screen)
     {
-        var candidates = _pins.Select(p => (p.Place, p.Position)).Concat(_markers
+        // Banners pick as their host, battle marks as the battle (an "event" ref); both above the settlements they stand on.
+        var war = !War.Visible ? Enumerable.Empty<(EntityRef, Rgb)>()
+            : War.Armies.Select(a => (a.Ref, War.BannerAt(a.Ref) is { } b ? new Rgb(b.X, b.Y + WarLayer.BannerHeight * 0.7f, b.Z) : Rgb.Zero))
+                .Concat(War.RecentBattles.Select(b => (new EntityRef("event", b.EventId), Client.Projection.ToBlock(_geography!.Terrain, b.Position, 0.018f))));
+        var candidates = war.Concat(_pins.Select(p => (p.Place, p.Position))).Concat(_markers
             .Where(m => m.Shape == MarkerShape.Settlement ? SettlementLayer.Visible : StructureLayer.Visible).Select(m => (m.Ref, m.Position)));
         EntityRef? best = null;
         var bestDistance = PickRadius;
@@ -318,7 +327,7 @@ public partial class Diorama : Node3D
     /// line (NORMAL) and which side it is on (UV.x), and the shader pushes it out in proportion to its distance from
     /// the camera. Width is in thousandths of the distance (about 1.6 px at 1440×900 per 0.001).
     /// </summary>
-    private const string LineShader = """
+    internal const string LineShader = """
         shader_type spatial;
         render_mode unshaded, cull_disabled, depth_draw_never;
         uniform vec4 colour : source_color = vec4(0.1, 0.1, 0.09, 0.9);
@@ -336,7 +345,7 @@ public partial class Diorama : Node3D
         """;
 
     /// <summary>Realm borders as dashed lines of constant screen width, ink over a pale halo so they read on any ground.</summary>
-    private static ArrayMesh DashedRibbons(IReadOnlyList<IReadOnlyList<Rgb>> lines, Rgb colour, float dash = 0.014f, float gap = 0.008f)
+    internal static ArrayMesh DashedRibbons(IReadOnlyList<IReadOnlyList<Rgb>> lines, Rgb colour, float dash = 0.014f, float gap = 0.008f, float width = 0.0016f, float halo = 0.0034f)
     {
         var mesh = new ArrayMesh();
         var vertices = new List<Vector3>();
@@ -374,12 +383,13 @@ public partial class Diorama : Node3D
         arrays[(int)Mesh.ArrayType.Normal] = normals.ToArray();
         arrays[(int)Mesh.ArrayType.TexUV] = uvs.ToArray();
         // The same dashes twice: a wide pale halo, then the ink line on top.
-        foreach (var (tint, width, priority) in new[] { (Palette.Card, 0.0034f, 0), (colour, 0.0016f, 1) })
+        foreach (var (tint, size, priority) in new[] { (Palette.Card, halo, 0), (colour, width, 1) })
         {
+            if (size <= 0) continue;
             mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
             var material = new ShaderMaterial { Shader = new Shader { Code = LineShader }, RenderPriority = priority };
             material.SetShaderParameter("colour", Ui.C(tint, priority == 0 ? 0.75f : 0.95f));
-            material.SetShaderParameter("width", width);
+            material.SetShaderParameter("width", size);
             mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, material);
         }
         return mesh;

@@ -593,5 +593,7 @@
       "label": "Event this season",
       "colour": "event"
     }
-  ]
+  ],
+  "armies": [],
+  "battles": []
 }

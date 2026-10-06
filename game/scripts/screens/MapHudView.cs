@@ -96,10 +96,17 @@ public partial class MapHudView : Control
         _summary.Text = Year != Now ? $"Year {Map.Year}. {Map.Summary}" : Map.Summary;
         _yearLabel.Text = Year == Now ? $"Year {Now}" : $"Year {Year} of {Now}";
         Ui.Clear(_legend);
-        foreach (var entry in Map.Legend)
+        var legend = Map.Legend.ToList();
+        if (Map.Armies is { Count: > 0 } && Host.Diorama.Layers.HasFlag(MapLayers.Armies))
+            legend.InsertRange(legend.Count - 2, new[] { new LegendEntry("Attacking host", "attacker"), new LegendEntry("Defending host", "defender") });
+        foreach (var entry in legend)
         {
             var row = Ui.Row("Entry", 8);
-            row.AddChild(Ui.Dot(entry.Colour switch { "conflict" => Palette.Conflict, "event" => Palette.Ink, var name => Palette.Heraldic(name) }, 10));
+            row.AddChild(Ui.Dot(entry.Colour switch
+            {
+                "conflict" => Palette.Conflict, "event" => Palette.Ink, "attacker" => WarLayout.Attacker, "defender" => WarLayout.Defender,
+                var name => Palette.Heraldic(name),
+            }, 10));
             var label = Ui.Body(entry.Label, "Label", Palette.Body, 12);
             label.AutowrapMode = TextServer.AutowrapMode.Off;
             row.AddChild(label);
@@ -115,6 +122,29 @@ public partial class MapHudView : Control
         HoverCard.Visible = false;
         foreach (var settlement in Map.Settlements.Where(s => MapLabels.Shows(s, _zoom, Host.Diorama.Layers)))
             TagLayer.AddChild(Tag(settlement));
+        if (Host.Diorama.Layers.HasFlag(MapLayers.Armies))
+            foreach (var army in Map.Armies ?? Array.Empty<MapArmy>()) TagLayer.AddChild(ArmyTag(army));
+    }
+
+    /// <summary>A host's tag above its banner: its name, strength and who leads it; clicking opens the commander.</summary>
+    private ArmyTag ArmyTag(MapArmy army)
+    {
+        var tag = new ArmyTag { Name = $"Army{army.Ref.Id}", Army = army, MouseDefaultCursorShape = CursorShape.PointingHand };
+        var pill = Ui.Capsule("Pill", Ui.C(Palette.Ink), null, 10, 4);
+        var column = Ui.Column("Column", 0);
+        column.AddChild(Ui.Line(army.Name, "Name", Palette.Card, 12));
+        var led = army.Commander is { } c ? $" · led by {c.Name}" : "";
+        var knights = army.Knights.Count > 0 ? $" · {army.Knights.Count} knight{(army.Knights.Count == 1 ? "" : "s")}" : "";
+        column.AddChild(Ui.Line($"{army.Soldiers:N0} strong{led}{knights}", "Detail", new System.Numerics.Vector3(0.78f, 0.77f, 0.74f), 11));
+        pill.AddChild(column);
+        pill.MouseFilter = MouseFilterEnum.Ignore;
+        tag.AddChild(pill);
+        tag.GuiInput += input =>
+        {
+            if (input is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } && army.Commander is { } commander)
+                Host.Router.Open(commander.Ref);
+        };
+        return tag;
     }
 
     /// <summary>A live day passed: if the map shows today, it shows the new today.</summary>
@@ -143,14 +173,32 @@ public partial class MapHudView : Control
         }
         var grid = Host.Geography?.Terrain;
         if (grid is null) return;
-        var tags = TagLayer.GetChildren().OfType<SettlementTag>().ToList();
+        var tags = TagLayer.GetChildren().OfType<Control>().ToList();
         var boxes = new List<LabelBox>(tags.Count);
         foreach (var tag in tags)
         {
-            var at = Client.Projection.ToBlock(grid, tag.Settlement.Position!, 0.02f);
-            tag.Position = Host.Diorama.ScreenOf(at) - new Vector2(11, 24);
-            var behind = Host.Diorama.Camera.IsPositionBehind(Diorama.ToGodot(at));
-            boxes.Add(behind ? new LabelBox(-1e5f, -1e5f, 0, 0, 0) : new LabelBox(tag.Position.X, tag.Position.Y, tag.Size.X, tag.Size.Y, Priority(tag.Settlement)));
+            Godot.Vector3 at;
+            int priority;
+            if (tag is SettlementTag s)
+            {
+                at = Diorama.ToGodot(Client.Projection.ToBlock(grid, s.Settlement.Position!, 0.02f));
+                tag.Position = Host.Diorama.Camera.UnprojectPosition(at) - new Vector2(11, 24);
+                priority = Priority(s.Settlement);
+            }
+            else if (tag is ArmyTag a && Host.Diorama.War.BannerTop(a.Army.Ref) is { } top)
+            {
+                // Above the banner, which may be marching.
+                at = top;
+                tag.Position = Host.Diorama.Camera.UnprojectPosition(at) - new Vector2(tag.Size.X / 2, tag.Size.Y + 4);
+                priority = 11;
+            }
+            else
+            {
+                boxes.Add(new LabelBox(-1e5f, -1e5f, 0, 0, 0));
+                continue;
+            }
+            var behind = Host.Diorama.Camera.IsPositionBehind(at);
+            boxes.Add(behind ? new LabelBox(-1e5f, -1e5f, 0, 0, 0) : new LabelBox(tag.Position.X, tag.Position.Y, tag.Size.X, tag.Size.Y, priority));
         }
         var visible = Declutter.Visible(boxes, GetViewportRect().Size.X, GetViewportRect().Size.Y, Reserved(this, "Card", "Intro", "Legend"));
         for (var i = 0; i < tags.Count; i++) tags[i].Visible = visible[i];
@@ -239,7 +287,7 @@ public partial class MapHudView : Control
         layers.AddChild(Ui.Kicker("Layers"));
         foreach (var (layer, label) in new[]
                  {
-                     (MapLayers.Borders, "Borders"), (MapLayers.Settlements, "Settlements"), (MapLayers.Events, "Events"),
+                     (MapLayers.Armies, "Armies & fronts"), (MapLayers.Borders, "Borders"), (MapLayers.Settlements, "Settlements"), (MapLayers.Events, "Events"),
                      (MapLayers.Structures, "Landmarks & labyrinths"), (MapLayers.TradeRoutes, "Trade routes"),
                  })
         {
