@@ -135,8 +135,9 @@ public sealed partial class MilitarySystem : ISimSystem
     }
 
     /// <summary>
-    /// Orders, in priority: a beaten army goes home (and rejoins the war once its morale recovers); anyone retakes their side's occupied land; defenders meet
-    /// invaders; attackers besiege the war's target, else the nearest enemy holding; strong defenders strike back.
+    /// Orders, in priority: a beaten army goes home (and rejoins the war once its morale recovers); anyone meets a host of
+    /// this war standing in their side's land; then retakes their side's occupied land; attackers besiege the war's
+    /// target, else the nearest enemy holding; strong defenders strike back.
     /// </summary>
     private static void GiveOrders(World world, Army army)
     {
@@ -145,7 +146,8 @@ public sealed partial class MilitarySystem : ISimSystem
         var graph = world.Geography!.Graph;
         long target;
         var enemies = war.EnemiesOf(Side(war, realm));
-        var invader = Active(world).Where(a => enemies.Contains(a.RealmId) && Friendly(world, war, realm, world.Regions[a.RegionId]))
+        // Only hosts of this war: battles are fought between armies of the same war, so chasing another war's army would never end.
+        var invader = Active(world).Where(a => a.WarId == war.Id && enemies.Contains(a.RealmId) && Friendly(world, war, realm, world.Regions[a.RegionId]))
             .OrderBy(a => graph.ShortestPath(army.RegionId, a.RegionId)?.Days ?? double.MaxValue).ThenBy(a => a.Id).FirstOrDefault();
         var lost = world.Regions.Values.Where(r => r.OccupierRealmId != 0 && !Hostile(world, war, realm, r)
                 && !Friendly(world, war, realm, r) && Realms.SovereignOf(world, r) is { } owner && OurSide(war, realm).Contains(owner.Id))
@@ -155,14 +157,16 @@ public sealed partial class MilitarySystem : ISimSystem
             army.Objective = ArmyObjective.Defend; // regrouped at home: back to the war
         if (army.Objective == ArmyObjective.Return)
             target = home;
+        else if (invader is not null)
+        {
+            // Meet the invader before retaking what it took: chasing lost regions while it takes the next one makes
+            // the two hosts trade places month after month without ever fighting.
+            target = invader.RegionId;
+            army.Objective = ArmyObjective.Defend;
+        }
         else if (lost is not null)
         {
             target = lost.Id;
-            army.Objective = ArmyObjective.Defend;
-        }
-        else if (invader is not null && !war.IsAttacker(Side(war, realm)))
-        {
-            target = invader.RegionId;
             army.Objective = ArmyObjective.Defend;
         }
         else

@@ -263,17 +263,21 @@ public sealed class DiplomacySystem : ISimSystem
     }
 
     /// <summary>
-    /// The casus belli is the motive; the realms' latest rivalry and the ruler's accession, when there are any, are
-    /// enablers, so a war's why-chain reaches back past its pretext.
+    /// The casus belli is the motive; the realms' latest rivalry, their latest shared grievance (a peace, a ceded
+    /// region, a declaration of independence) and the ruler's accession, when there are any, are enablers (at most
+    /// three causes in all), so a war's why-chain reaches back past its pretext.
     /// </summary>
     private static List<Cause> WarCauses(SimContext ctx, Realm attacker, Realm defender, long cbEvent)
     {
         var causes = new List<Cause> { new(cbEvent, CauseKind.Motive, 0.9) };
-        var rivalry = ctx.Log.Involving(attacker.Ref).LastOrDefault(e => e.Type is "RivalryDeclared" or "AllianceBroken"
-                                                                           && e.Actors.ContainsValue(defender.Ref));
-        if (rivalry is not null && rivalry.Id != cbEvent) causes.Add(new Cause(rivalry.Id, CauseKind.Enabler, 0.5));
-        if (Realms.RulerOf(ctx.World, attacker) is { } ruler
-            && Fates.Accession(ctx.Log, ruler) is { } accession && accession.Id != cbEvent)
+        bool Cited(long id) => causes.Any(c => c.EventId == id);
+        var shared = ctx.Log.Involving(attacker.Ref).Where(e => e.Actors.ContainsValue(defender.Ref)).ToList();
+        var rivalry = shared.LastOrDefault(e => e.Type is "RivalryDeclared" or "AllianceBroken");
+        if (rivalry is not null && !Cited(rivalry.Id)) causes.Add(new Cause(rivalry.Id, CauseKind.Enabler, 0.5));
+        var grievance = shared.LastOrDefault(e => e.Type is "PeaceSigned" or "RegionCeded" or "IndependenceDeclared");
+        if (grievance is not null && !Cited(grievance.Id)) causes.Add(new Cause(grievance.Id, CauseKind.Enabler, 0.4));
+        if (causes.Count < 3 && Realms.RulerOf(ctx.World, attacker) is { } ruler
+            && Fates.Accession(ctx.Log, ruler) is { } accession && !Cited(accession.Id))
             causes.Add(new Cause(accession.Id, CauseKind.Enabler, 0.3));
         return causes;
     }

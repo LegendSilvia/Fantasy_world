@@ -85,4 +85,18 @@ public class SuccessCriteriaTests(PrehistoricWorld fixture) : IClassFixture<Preh
         foreach (var (id, length) in before)
             Assert.Equal(length, ChainLength(new HistoryQuery(log).WhyChain(id, 10)));
     }
+
+    [Fact]
+    public void Armies_MeetEachOther_RatherThanTradePlacesForever()
+    {
+        // A defender that only chased lost regions and an invader that only took the next one used to swap places
+        // monthly for decades without a battle, freeing and retaking the same two regions.
+        // A real campaign may take and lose a region several times, but each swing is fought for.
+        var log = fixture.Sim.Log.All;
+        var battles = log.Where(e => e.Type == "BattleFought" && e.Actors.ContainsKey("war")).GroupBy(e => e.Actors["war"]).ToDictionary(g => g.Key, g => g.Count());
+        Assert.All(log.Where(e => e.Type == "RegionLiberated" && e.Actors.ContainsKey("war")).GroupBy(e => e.Actors["war"]),
+            war => Assert.True(war.Count() <= 2 * battles.GetValueOrDefault(war.Key) + 4,
+                $"{war.Key}: {war.Count()} liberations but {battles.GetValueOrDefault(war.Key)} battles"));
+        Assert.Contains(log, e => e.Type == "BattleFought");
+    }
 }

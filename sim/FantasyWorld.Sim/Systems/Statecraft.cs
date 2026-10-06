@@ -41,10 +41,23 @@ public static class Statecraft
         return true;
     }
 
-    /// <summary>A realm with no land falls: its vassals go free, its treaties lapse, its wars are left to others.</summary>
+    /// <summary>
+    /// A realm with no settlement left falls: land it still holds without one (mountains, wastes) passes to whoever
+    /// occupies it, else to the realm holding most of the land around it; its vassals go free, its treaties lapse, its
+    /// wars are left to others.
+    /// </summary>
     public static void Fall(SimContext ctx, Realm realm, IReadOnlyList<Cause> causes)
     {
         var world = ctx.World;
+        foreach (var region in world.Regions.Values.Where(r => r.OwnerRealmId == realm.Id).OrderBy(r => r.Id).ToList())
+        {
+            var heir = world.Realms.TryGetValue(region.OccupierRealmId, out var occupier) && !occupier.Destroyed && occupier.Id != realm.Id
+                ? occupier
+                : world.Geography?.Graph.Neighbours(region.Id).Select(n => world.Regions[n].OwnerRealmId)
+                    .Where(id => id != 0 && id != realm.Id && !world.Realms[id].Destroyed)
+                    .GroupBy(id => id).OrderByDescending(g => g.Count()).ThenBy(g => g.Key).Select(g => world.Realms[g.Key]).FirstOrDefault();
+            if (heir is not null) Cede(ctx, region, realm, heir, causes);
+        }
         var fell = ctx.Emit(new EventDraft("RealmFell",
             Actors: new Dictionary<string, EntityRef> { ["realm"] = realm.Ref },
             Place: world.Settlements[realm.CapitalId].Ref, Causes: causes,
