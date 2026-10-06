@@ -1,0 +1,23 @@
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="Fantasy World"
+config/description="A persistent fantasy world: the diorama client."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.3", "C#", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1440
+window/size/viewport_height=900
+
+[dotnet]
+
+project/assembly_name="FantasyWorld.Game"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.925, 0.922, 0.906, 1)

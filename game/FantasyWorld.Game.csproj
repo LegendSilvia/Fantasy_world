@@ -1,0 +1,15 @@
+<Project Sdk="Godot.NET.Sdk/4.3.0">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>FantasyWorld.Game</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\sim\FantasyWorld.Client\FantasyWorld.Client.csproj" />
+  </ItemGroup>
+
+</Project>
