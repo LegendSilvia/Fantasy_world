@@ -26,8 +26,8 @@ LLM voice a chronicler's style, and adds evals that keep both honest.
 ## 3. Template voice
 
 - **Grammar:** a small English layer: articles for titled realms ("the Kingdom of Wosmeim"), sentence-case joins
-  (no capital after a comma), plurals, numbers in words up to twelve, ordinals for years in prose ("in the second
-  year"), possessives.
+  (no capital after a comma), plurals and lists, numbers in words up to twelve, "a"/"an", and years written
+  "Year 12" as everywhere in the UI (ordinals read badly past a few dozen; decided while planning).
 - **Variety:** 2–4 phrasings for the 40 most common event types, chosen by event id; connective variety in chains
   ("because", "for", "after", "which led to").
 - **Headline and body:** the digest's headline is a short title ("The Banners Age begins in Thonae"); the body adds
