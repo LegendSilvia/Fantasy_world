@@ -1,3 +1,5 @@
+using FantasyWorld.Sim.Core;
+
 namespace FantasyWorld.Sim.Model;
 
 /// <summary>Shared population arithmetic used by world generation and the economy.</summary>
@@ -34,4 +36,24 @@ public static class Demography
         >= 300 => SettlementTier.Village,
         _ => SettlementTier.Hamlet,
     };
+
+    /// <summary>Rounds up with probability equal to the fraction, so small settlements still change.</summary>
+    public static int RoundRandom(double value, Rng rng)
+    {
+        var floor = Math.Floor(value);
+        return (int)floor + (rng.NextDouble() < value - floor ? 1 : 0);
+    }
+
+    /// <summary>Removes a share of each age band (children and elders are hit harder). Returns the dead.</summary>
+    public static int Kill(Settlement s, double fraction, Rng rng)
+    {
+        if (fraction <= 0) return 0;
+        var children = Math.Min(s.Children, RoundRandom(s.Children * Math.Min(1, fraction * 1.5), rng));
+        var adults = Math.Min(s.Adults, RoundRandom(s.Adults * Math.Min(1, fraction), rng));
+        var elders = Math.Min(s.Elders, RoundRandom(s.Elders * Math.Min(1, fraction * 1.5), rng));
+        s.Children -= children;
+        s.Adults -= adults;
+        s.Elders -= elders;
+        return children + adults + elders;
+    }
 }
