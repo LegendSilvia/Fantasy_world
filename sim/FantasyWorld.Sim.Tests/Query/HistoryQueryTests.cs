@@ -79,4 +79,15 @@ public class HistoryQueryTests
             Payload: new Dictionary<string, string> { ["grain"] = "35" }));
         Assert.Equal("#1 Y3 M2 D1 GrainShortageBegan grain=35", EventText.Describe(ev));
     }
+
+    [Fact]
+    public void EventText_NamesKnownEntities()
+    {
+        var log = new EventLog();
+        var ev = log.Append(new WorldDate(0), new EventDraft("Flood",
+            Actors: new Dictionary<string, EntityRef> { ["from"] = new("region", 2) },
+            Place: new EntityRef("region", 3)));
+        var text = EventText.Describe(ev, e => e.Id == 3 ? "Brenmoor" : null);
+        Assert.Equal("#1 Y1 M1 D1 Flood from=region#2 at Brenmoor (region#3)", text);
+    }
 }

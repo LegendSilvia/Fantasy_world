@@ -1,8 +1,11 @@
 using FantasyWorld.Cli;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Events;
+using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Persist;
+using FantasyWorld.Sim.Systems;
 using FantasyWorld.Sim.Tests.Support;
+using FantasyWorld.Sim.WorldGen;
 
 namespace FantasyWorld.Sim.Tests.Cli;
 
@@ -15,6 +18,24 @@ public class CliAppTests
         var output = new StringWriter();
         var code = CliApp.Run(args, output, () => now);
         return (code, output.ToString());
+    }
+
+    private static void NewTiny(TempFile file) => Run(T0, "new", file.Path, "--seed", "3", "--size", "tiny");
+
+    /// <summary>A tiny world whose first region starts a drought with empty, barren fields.</summary>
+    private static (long RegionId, long DroughtId) StarvingWorld(TempFile file)
+    {
+        var world = WorldGenerator.Generate(new WorldGenOptions(3, WorldSize.Tiny), T0);
+        var region = world.Regions[1];
+        var log = new EventLog();
+        var drought = log.Append(world.Date, new EventDraft("Drought", Place: region.Ref));
+        region.Conditions[Conditions.Drought] = drought.Id;
+        region.Food = 0;
+        region.Fertility = 0;
+        region.Resources.Remove(ResourceKinds.Fish);
+        using var store = WorldStore.Open(file.Path);
+        store.Save(world, log, new EventQueue());
+        return (region.Id, drought.Id);
     }
 
     [Fact]
@@ -35,22 +56,34 @@ public class CliAppTests
     }
 
     [Fact]
-    public void New_CreatesWorldFile()
+    public void New_GeneratesAWorld()
     {
         using var file = new TempFile();
-        var (code, output) = Run(T0, "new", file.Path, "--seed", "42");
+        var (code, output) = Run(T0, "new", file.Path, "--seed", "42", "--size", "tiny");
         Assert.Equal(0, code);
-        Assert.Contains("seed 42", output);
+        Assert.Contains("seed 42, tiny:", output);
         using var store = WorldStore.Open(file.Path);
-        Assert.True(store.HasWorld);
-        Assert.Equal(42UL, store.Load().World.Seed);
+        var world = store.Load().World;
+        Assert.Equal(42UL, world.Seed);
+        Assert.NotEmpty(world.Regions);
+        Assert.NotNull(world.Geography);
+    }
+
+    [Fact]
+    public void New_RejectsUnknownSize()
+    {
+        using var file = new TempFile();
+        var (code, output) = Run(T0, "new", file.Path, "--size", "enormous");
+        Assert.Equal(1, code);
+        Assert.Contains("error: Unknown size", output);
+        Assert.False(File.Exists(file.Path));
     }
 
     [Fact]
     public void New_RefusesToOverwrite()
     {
         using var file = new TempFile();
-        Run(T0, "new", file.Path, "--seed", "1");
+        NewTiny(file);
         var (code, output) = Run(T0, "new", file.Path, "--seed", "2");
         Assert.Equal(1, code);
         Assert.Contains("error:", output);
@@ -60,7 +93,7 @@ public class CliAppTests
     public void Advance_MovesTheWorldAndSaves()
     {
         using var file = new TempFile();
-        Run(T0, "new", file.Path, "--seed", "3");
+        NewTiny(file);
         var (code, output) = Run(T0, "advance", file.Path, "2y");
         Assert.Equal(0, code);
         Assert.Contains("Y3 M1 D1", output);
@@ -72,7 +105,7 @@ public class CliAppTests
     public void CatchUp_UsesTheClock()
     {
         using var file = new TempFile();
-        Run(T0, "new", file.Path, "--seed", "3");
+        NewTiny(file);
         var (code, output) = Run(T0.AddHours(8), "catchup", file.Path);
         Assert.Equal(0, code);
         Assert.Contains("Advanced 120 days", output);
@@ -88,40 +121,106 @@ public class CliAppTests
     }
 
     [Fact]
-    public void Why_PrintsTheCausalChain()
+    public void NotAWorldFile_IsAnError()
     {
         using var file = new TempFile();
-        var world = WorldFactory.CreateNew(3, T0);
-        world.Stats["grain"] = 10;
-        world.Stats["unrest"] = 45;
-        using (var store = WorldStore.Open(file.Path)) store.Save(world, new EventLog(), new EventQueue());
-
-        Run(T0, "advance", file.Path, "1mo");
-        long revoltId;
-        using (var store = WorldStore.Open(file.Path))
-            revoltId = store.Load().Log.All.Single(e => e.Type == "RevoltBegan").Id;
-
-        var (code, output) = Run(T0, "why", file.Path, revoltId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Equal(0, code);
-        var lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-        Assert.Contains("RevoltBegan", lines[0]);
-        Assert.StartsWith("  because #", lines[1]);
-        Assert.Contains("GrainShortageBegan", lines[1]);
+        File.WriteAllText(file.Path, "these are not the chronicles you are looking for");
+        var (code, output) = Run(T0, "log", file.Path);
+        Assert.Equal(1, code);
+        Assert.Contains("error:", output);
     }
 
     [Fact]
-    public void Log_ListsEventsSinceId()
+    public void OutOfRangeNumbers_AreErrors()
     {
         using var file = new TempFile();
-        var world = WorldFactory.CreateNew(3, T0);
-        world.Stats["grain"] = 10;
-        world.Stats["unrest"] = 45;
-        using (var store = WorldStore.Open(file.Path)) store.Save(world, new EventLog(), new EventQueue());
+        Assert.Equal(1, Run(T0, "new", file.Path, "--seed", "-1").Code);
+        NewTiny(file);
+        Assert.Equal(1, Run(T0, "region", file.Path, "99999999999999999999").Code);
+    }
+
+    [Fact]
+    public void Why_PrintsTheCausalChain()
+    {
+        using var file = new TempFile();
+        var (regionId, droughtId) = StarvingWorld(file);
         Run(T0, "advance", file.Path, "1mo");
+        long shortageId;
+        using (var store = WorldStore.Open(file.Path))
+            shortageId = store.Load().Log.All.First(e => e.Type == "FoodShortageBegan" && e.Place!.Value.Id == regionId).Id;
+
+        var (code, output) = Run(T0, "why", file.Path, shortageId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        Assert.Equal(0, code);
+        var lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.Contains("FoodShortageBegan", lines[0]);
+        Assert.StartsWith($"  because #{droughtId} ", lines[1]);
+        Assert.Contains("Drought", lines[1]);
+    }
+
+    [Fact]
+    public void Log_ListsEventsSinceId_WithNames()
+    {
+        using var file = new TempFile();
+        StarvingWorld(file);
+        Run(T0, "advance", file.Path, "1mo");
+        string regionName;
+        using (var store = WorldStore.Open(file.Path)) regionName = store.Load().World.Regions[1].Name;
 
         var (code, output) = Run(T0, "log", file.Path, "--since", "1");
+
         Assert.Equal(0, code);
         Assert.DoesNotContain("#1 ", output);
         Assert.Contains("#2 ", output);
+        Assert.Contains($"{regionName} (region#1)", output);
+    }
+
+    [Fact]
+    public void Map_DrawsTerrainAndSettlements()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "map", file.Path);
+        Assert.Equal(0, code);
+        var lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(33, lines.Length);
+        Assert.All(lines.Take(32), l => Assert.Equal(64, l.Length));
+        Assert.Contains('~', output);
+        Assert.Contains('@', output);
+    }
+
+    [Fact]
+    public void Regions_ListsEveryRegion()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "regions", file.Path);
+        Assert.Equal(0, code);
+        using var store = WorldStore.Open(file.Path);
+        var world = store.Load().World;
+        Assert.Equal(world.Regions.Count + 1, output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Contains(world.Regions[1].Name, output);
+    }
+
+    [Fact]
+    public void Region_ShowsSettlementsAndNeighbours()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "region", file.Path, "1");
+        Assert.Equal(0, code);
+        Assert.Contains("(region#1)", output);
+        Assert.Contains("Settlements:", output);
+        Assert.Contains("neighbours:", output);
+    }
+
+    [Fact]
+    public void Region_UnknownId_IsAnError()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "region", file.Path, "999");
+        Assert.Equal(1, code);
+        Assert.Contains("error: No region #999", output);
     }
 }

@@ -17,6 +17,9 @@ public class DurationParserTests
     [InlineData("10")]
     [InlineData("3w")]
     [InlineData("-2d")]
+    [InlineData("1001y")]
+    [InlineData("99999999999999999999d")]
+    [InlineData("25620477880152159y")]
     public void RejectsBadInput(string text) =>
         Assert.Throws<FormatException>(() => DurationParser.ParseDays(text));
 }
