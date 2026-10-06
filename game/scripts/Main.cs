@@ -25,7 +25,9 @@ public partial class Main : Control
     /// <summary>One line of state: creating, catching up, caught up.</summary>
     public Label Status { get; private set; } = null!;
 
-    public bool Ready { get; private set; }
+    public bool CaughtUp { get; private set; }
+
+    public Diorama Diorama { get; private set; } = null!;
 
     /// <summary>Lets a test (or another host) supply an open session before the node enters the tree.</summary>
     public void Use(Session session) => _session = session;
@@ -35,12 +37,14 @@ public partial class Main : Control
         Name = "Main";
         Theme = Ui.CreateTheme();
         SetAnchorsPreset(LayoutPreset.FullRect);
-        var ground = new ColorRect { Name = "Ground", Color = Ui.C(Palette.Ground), MouseFilter = MouseFilterEnum.Ignore };
-        ground.SetAnchorsPreset(LayoutPreset.FullRect);
-        AddChild(ground);
+        // The diorama draws behind every card; the root lets clicks it does not use fall through to it.
+        MouseFilter = MouseFilterEnum.Ignore;
+        Diorama = new Diorama();
+        AddChild(Diorama);
         Status = Ui.Body("Opening…", "Status", Palette.Body, 12);
-        Status.SetAnchorsPreset(LayoutPreset.BottomRight);
-        Status.Position = new Vector2(-320, -44);
+        Status.AutowrapMode = TextServer.AutowrapMode.Off;
+        Status.SetAnchorsPreset(LayoutPreset.BottomLeft);
+        Status.Position = new Vector2(28, -40);
         AddChild(Status);
         _ = StartAsync();
     }
@@ -73,13 +77,18 @@ public partial class Main : Control
     /// <summary>Called once the world is current: subclasses and later tasks show the screens here.</summary>
     protected virtual void OnCaughtUp()
     {
-        Ready = true;
+        if (_session!.Read((w, _) => w.Geography) is { } geography)
+        {
+            Diorama.Build(geography);
+            Diorama.Show(_session.Map());
+        }
+        CaughtUp = true;
         UpdateStatus();
     }
 
     public override void _Process(double delta)
     {
-        if (!Ready || _session is null) return;
+        if (!CaughtUp || _session is null) return;
         _sinceStep += delta;
         if (_sinceStep < LiveInterval) return;
         _sinceStep = 0;

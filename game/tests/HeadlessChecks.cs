@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 using FantasyWorld.Client;
 using FantasyWorld.Sim.WorldGen;
 using Godot;
@@ -26,7 +27,7 @@ public partial class HeadlessChecks : Node
             var main = GD.Load<PackedScene>("res://scenes/Main.tscn").Instantiate<Main>();
             main.Use(session);
             AddChild(main);
-            await Until(() => main.Ready, "the world catches up");
+            await Until(() => main.CaughtUp, "the world catches up");
             await RunChecks(main);
         }
         catch (System.Exception e)
@@ -44,6 +45,45 @@ public partial class HeadlessChecks : Node
     {
         Check(main.Status.Text.StartsWith("Caught up · "), $"status reads caught up (\"{main.Status.Text}\")");
         await Frames(2);
+        await DioramaChecks(main);
+    }
+
+    private async Task DioramaChecks(Main main)
+    {
+        var diorama = main.Diorama;
+        var map = main.Session!.Map();
+        Check(diorama.Block.Mesh is ArrayMesh { } block && block.GetSurfaceCount() == 2, "the block has a top and walls");
+        Check(diorama.GetNodeOrNull<MeshInstance3D>("Water")?.Mesh is not null, "the sea is drawn");
+        Check(diorama.MarkerLayer.GetChildCount() == map.Settlements.Count(s => s.Position is not null) + map.Structures.Count(s => s.Position is not null),
+            $"one marker per settlement and structure ({diorama.MarkerLayer.GetChildCount()})");
+        Check(map.Borders.Count == 0 || diorama.BorderLines.Mesh is ArrayMesh { } lines && lines.GetSurfaceCount() == 1, "realm borders are drawn");
+
+        diorama.Rig.Reset();
+        await Frames(90);
+        await Shot("diorama");
+        Check(diorama.Camera.Position.DistanceTo(Diorama.ToGodot(diorama.Rig.Eye)) < 0.01f, "the camera follows the rig");
+        var target = diorama.Markers[0];
+        var onScreen = diorama.ScreenOf(target.Position);
+        Check(diorama.Pick(onScreen) is { } picked && (picked == target.Ref || diorama.Markers.Any(m => m.Ref == picked && diorama.ScreenOf(m.Position).DistanceTo(onScreen) < 1)),
+            "clicking a marker picks it");
+        Check(diorama.Pick(new Godot.Vector2(-500, -500)) is null, "clicking empty space picks nothing");
+
+        var settlement = map.Settlements.First(s => s.Position is not null);
+        diorama.Focus(settlement.Position!, Zoom.Town);
+        await Frames(120);
+        await Shot("diorama-town");
+        Check(diorama.Rig.NearestZoom == Zoom.Town && diorama.Camera.Position.DistanceTo(Diorama.ToGodot(diorama.Rig.Target)) < 1f, "focusing descends to the town");
+    }
+
+    /// <summary>With `-- --shots &lt;dir&gt;` (and a real display), saves what the screen shows, for visual review.</summary>
+    private async Task Shot(string name)
+    {
+        var args = OS.GetCmdlineUserArgs();
+        var at = System.Array.IndexOf(args, "--shots");
+        if (at < 0 || at + 1 >= args.Length || DisplayServer.GetName() == "headless") return;
+        await Frames(4);
+        System.IO.Directory.CreateDirectory(args[at + 1]);
+        GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(args[at + 1], name + ".png"));
     }
 
     private void Check(bool ok, string what)
