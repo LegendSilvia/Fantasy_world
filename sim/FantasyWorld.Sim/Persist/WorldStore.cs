@@ -11,7 +11,7 @@ namespace FantasyWorld.Sim.Persist;
 /// <summary>One SQLite file per world: snapshot, static geography (written once), the append-only event log and the LLM journal.</summary>
 public sealed class WorldStore : IDisposable
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     private const string Schema = """
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -32,6 +32,7 @@ public sealed class WorldStore : IDisposable
             response TEXT NOT NULL, input_tokens INTEGER NOT NULL, output_tokens INTEGER NOT NULL,
             cache_read_tokens INTEGER NOT NULL, cache_write_tokens INTEGER NOT NULL, cost_usd TEXT NOT NULL,
             real_utc TEXT NOT NULL, note TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS followed (kind TEXT NOT NULL, entity_id INTEGER NOT NULL, PRIMARY KEY (kind, entity_id));
         """;
 
     private readonly SqliteConnection _connection;
@@ -158,6 +159,27 @@ public sealed class WorldStore : IDisposable
 
     public void SaveLlmSettings(LlmSettings settings) => SetMeta("llm_settings", JsonSerializer.Serialize(settings, SimJson.Options));
 
+    /// <summary>Entities the player follows (spec §9): their events rank higher in the digest.</summary>
+    public SortedSet<EntityRef> LoadFollowed()
+    {
+        var followed = new SortedSet<EntityRef>(Comparer<EntityRef>.Create((a, b) =>
+            string.CompareOrdinal(a.Kind, b.Kind) is var k and not 0 ? k : a.Id.CompareTo(b.Id)));
+        using var cmd = Command("SELECT kind, entity_id FROM followed");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) followed.Add(new EntityRef(reader.GetString(0), reader.GetInt64(1)));
+        return followed;
+    }
+
+    public void Follow(EntityRef entity, bool follow = true)
+    {
+        using var cmd = Command(follow
+            ? "INSERT OR IGNORE INTO followed(kind, entity_id) VALUES ($k, $i)"
+            : "DELETE FROM followed WHERE kind = $k AND entity_id = $i");
+        cmd.Parameters.AddWithValue("$k", entity.Kind);
+        cmd.Parameters.AddWithValue("$i", entity.Id);
+        cmd.ExecuteNonQuery();
+    }
+
     public void Dispose() => _connection.Dispose();
 
     private void Migrate()
@@ -169,7 +191,7 @@ public sealed class WorldStore : IDisposable
         if (current > CurrentSchemaVersion)
             throw new InvalidOperationException(
                 $"World file schema {version} is newer than this build supports ({CurrentSchemaVersion}).");
-        // 1 → 2 adds the geography table and 2 → 3 the llm_calls table; the schema script above creates both.
+        // 1 → 2 adds the geography table, 2 → 3 llm_calls and 3 → 4 followed; the schema script above creates them.
         if (current < CurrentSchemaVersion)
             SetMeta("schema_version", CurrentSchemaVersion.ToString(CultureInfo.InvariantCulture));
     }

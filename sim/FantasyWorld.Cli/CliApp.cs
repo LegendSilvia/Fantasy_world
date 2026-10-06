@@ -34,6 +34,8 @@ public static partial class CliApp
           fw wars <world-file>
           fw war <world-file> <war-id>
           fw tell <world-file> <event-id> [--depth <n>]   the why-chain as prose
+          fw follow <world-file> <entity>           e.g. char#12, realm#3: their events lead the digest
+          fw unfollow <world-file> <entity>
           fw stats <world-file>
           fw llm <world-file> [--provider none|anthropic|openrouter] [--model <tier>=<model>]...
                  [--story-beats <per-day>] [--narrations <per-day>] [--cap <usd-per-month>]
@@ -69,6 +71,8 @@ public static partial class CliApp
                 "wars" => WarList(path, output),
                 "war" => WarDetail(path, rest, output),
                 "tell" => Tell(path, rest, output, providers),
+                "follow" => Follow(path, rest, output, follow: true),
+                "unfollow" => Follow(path, rest, output, follow: false),
                 "stats" => Stats(path, output, clock),
                 "llm" => LlmCommand(path, rest, output),
                 _ => UsageError(output),

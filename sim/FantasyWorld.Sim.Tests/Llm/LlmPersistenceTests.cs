@@ -23,7 +23,7 @@ public class LlmPersistenceTests
         journal.Add(Call("b"));
         using (var store = WorldStore.Open(file.Path))
         {
-            Assert.Equal(3, store.SchemaVersion);
+            Assert.Equal(WorldStore.CurrentSchemaVersion, store.SchemaVersion);
             store.Save(sim.World, sim.Log, sim.Queue, journal);
             store.Save(sim.World, sim.Log, sim.Queue, journal);
         }

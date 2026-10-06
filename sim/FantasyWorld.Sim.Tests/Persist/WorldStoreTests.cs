@@ -101,7 +101,7 @@ public class WorldStoreTests
         {
             connection.Open();
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "DROP TABLE geography; DROP TABLE llm_calls; UPDATE meta SET value = '1' WHERE key = 'schema_version';";
+            cmd.CommandText = "DROP TABLE geography; DROP TABLE llm_calls; DROP TABLE followed; UPDATE meta SET value = '1' WHERE key = 'schema_version';";
             cmd.ExecuteNonQuery();
         }
 
