@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Llm;
@@ -15,6 +16,9 @@ public interface INarrator
 
     /// <summary>A why-chain as a short passage: the event, then what led to it.</summary>
     string NarrateChain(ChainNode chain);
+
+    /// <summary>The morning digest: what happened while the reader was away.</summary>
+    string Digest(DigestView digest);
 }
 
 /// <summary>
@@ -89,6 +93,18 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     {
         var text = new StringBuilder(Narrate(chain.Event));
         Causes(text, chain, first: true);
+        return text.ToString();
+    }
+
+    public string Digest(DigestView digest)
+    {
+        if (digest.EventCount == 0) return "Nothing of note has happened since you last looked.";
+        var text = new StringBuilder($"From {digest.From} to {digest.To}, {digest.EventCount} events were recorded. The chronicle remembers:");
+        foreach (var group in digest.Groups)
+        {
+            if (group.Label.Length > 0) text.Append($"\n{group.Label}:");
+            foreach (var entry in group.Entries) text.Append($"\n- {Narrate(entry.Event)} [#{entry.Event.Id}]");
+        }
         return text.ToString();
     }
 

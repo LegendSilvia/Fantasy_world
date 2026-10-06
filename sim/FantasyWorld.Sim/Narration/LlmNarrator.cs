@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Query;
@@ -34,6 +35,21 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         return Ask($"narrate|chain|{chain.Event.Id}|{depth}", chain.Event.Date.Day, facts.ToString(),
                    "Tell how this came to pass, from the earliest cause to the event itself, in one paragraph of at most six sentences.")
                ?? _templates.NarrateChain(chain);
+    }
+
+    public string Digest(DigestView digest)
+    {
+        if (digest.EventCount == 0) return _templates.Digest(digest);
+        var facts = new StringBuilder($"From {digest.From} to {digest.To}, {digest.EventCount} events; the most important:\n");
+        foreach (var group in digest.Groups)
+        {
+            if (group.Label.Length > 0) facts.AppendLine($"{group.Label}:");
+            foreach (var entry in group.Entries) facts.AppendLine($"- {Facts(entry.Event)}");
+        }
+        var ids = string.Join(",", digest.Entries.Select(e => e.Event.Id));
+        return Ask($"narrate|digest|{ids}", digest.To.Day, facts.ToString(),
+                   "Write the morning digest for a reader returning to this world: what happened while they were away, most important first, in at most three short paragraphs.")
+               ?? _templates.Digest(digest);
     }
 
     private string Facts(WorldEvent ev)

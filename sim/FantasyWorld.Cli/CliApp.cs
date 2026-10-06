@@ -19,7 +19,8 @@ public static partial class CliApp
         Usage:
           fw new <world-file> [--seed <n>] [--size tiny|medium|large]
           fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
-          fw catchup <world-file>                   simulate the real time that has passed
+          fw catchup <world-file>                   simulate the real time that has passed, then the digest
+          fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
           fw log <world-file> [--since <event-id>]
           fw why <world-file> <event-id> [--depth <n>]
           fw map <world-file> [--layer biome|regions|realms]
@@ -71,6 +72,7 @@ public static partial class CliApp
                 "wars" => WarList(path, output),
                 "war" => WarDetail(path, rest, output),
                 "tell" => Tell(path, rest, output, providers),
+                "digest" => DigestCommand(path, rest, output, providers),
                 "follow" => Follow(path, rest, output, follow: true),
                 "unfollow" => Follow(path, rest, output, follow: false),
                 "stats" => Stats(path, output, clock),
@@ -127,15 +129,15 @@ public static partial class CliApp
     {
         using var store = OpenExisting(path);
         var (sim, gateway) = LoadLive(store, providers);
-        var lastId = sim.Log.NextId - 1;
         var result = CatchUp.Run(sim, clock());
         var fresh = gateway.Journal.Pending.ToList();
+        var digest = TellDigest(store, sim, gateway, sinceEventId: null);
         store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         output.WriteLine($"Advanced {result.DaysAdvanced} days: {result.From} -> {result.To}.");
         if (result.DaysRemaining > 0)
             output.WriteLine($"The world is still {result.DaysRemaining} days behind; run catchup again later.");
         PrintLlmSummary(output, gateway, fresh);
-        PrintEvents(output, sim.World, sim.Log.Since(lastId));
+        output.WriteLine(digest);
         return 0;
     }
 
