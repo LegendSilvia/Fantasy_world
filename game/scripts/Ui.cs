@@ -27,6 +27,10 @@ public static class Ui
         theme.SetStylebox("pressed", "Button", Pill(filled: true));
         theme.SetStylebox("focus", "Button", new StyleBoxEmpty());
         theme.SetColor("font_pressed_color", "Button", Colors.White);
+        var disabled = Pill(filled: false);
+        disabled.BorderColor = C(Palette.Border);
+        theme.SetStylebox("disabled", "Button", disabled);
+        theme.SetColor("font_disabled_color", "Button", C(Palette.Muted));
         theme.SetColor("font_color", "CheckBox", C(Palette.Ink));
         theme.SetColor("font_hover_color", "CheckBox", C(Palette.Ink));
         theme.SetColor("font_pressed_color", "CheckBox", C(Palette.Ink));
@@ -216,7 +220,13 @@ public static class Ui
         label.AddThemeFontSizeOverride("normal_font_size", size);
         label.AddThemeColorOverride("default_color", C(colour ?? Palette.Body));
         if (serif) label.AddThemeFontOverride("normal_font", DisplayUpright);
-        label.MetaClicked += meta => open(Importance.ParseRef(meta.AsString()));
+        // Clicks on plain words fall through to the row or card beneath; a click on a name is the link's alone.
+        label.MouseFilter = Control.MouseFilterEnum.Pass;
+        label.MetaClicked += meta =>
+        {
+            label.AcceptEvent();
+            open(Importance.ParseRef(meta.AsString()));
+        };
         return label;
     }
 

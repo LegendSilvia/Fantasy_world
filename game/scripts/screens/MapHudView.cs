@@ -29,6 +29,7 @@ public partial class MapHudView : Control
     private Label _yearLabel = null!;
     private VBoxContainer _legend = null!;
     private Zoom _zoom;
+    private int? _pendingYear;
 
     public override void _Ready()
     {
@@ -116,8 +117,25 @@ public partial class MapHudView : Control
             TagLayer.AddChild(Tag(settlement));
     }
 
+    /// <summary>A live day passed: if the map shows today, it shows the new today.</summary>
+    public void Today(MapScreen today)
+    {
+        var wasNow = Year == Now;
+        Now = today.Year;
+        History.MaxValue = Math.Max(2, Now);
+        if (!wasNow) return;
+        (Year, Map) = (Now, today);
+        History.SetValueNoSignal(Now);
+        Refresh();
+    }
+
     public override void _Process(double delta)
     {
+        if (_pendingYear is { } pending)
+        {
+            _pendingYear = null;
+            if (pending != Year) ShowYear(pending);
+        }
         if (Host.Diorama.Rig.NearestZoom != _zoom)
         {
             _zoom = Host.Diorama.Rig.NearestZoom;
@@ -244,7 +262,8 @@ public partial class MapHudView : Control
         header.AddChild(_yearLabel);
         history.AddChild(header);
         History = new HSlider { Name = "History", MinValue = 1, MaxValue = Math.Max(2, Now), Step = 1, Value = Year, CustomMinimumSize = new Vector2(0, 18) };
-        History.ValueChanged += value => ShowYear((int)value);
+        // Dragging the slider passes many years a frame; rebuild only for the last one each frame.
+        History.ValueChanged += value => _pendingYear = (int)value;
         history.AddChild(History);
         var ends = Ui.Row("Ends", 0);
         var first = Ui.Line("Year 1", "First", Palette.Muted, 12);

@@ -24,3 +24,22 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Benchmark one world year (short job)
         run: dotnet run --configuration Release --project sim/FantasyWorld.Bench -- --filter '*' --job short
+
+  game:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Godot 4.3 (.NET)
+        run: |
+          curl -sSLo "$RUNNER_TEMP/godot.zip" https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT=$RUNNER_TEMP/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Build the game
+        run: dotnet build game/FantasyWorld.Game.csproj
+      - name: Import assets
+        run: timeout 300 "$GODOT" --headless --path game --import
+      - name: Headless checks (every screen, on a fresh tiny world)
+        run: timeout 600 "$GODOT" --headless --path game res://tests/HeadlessChecks.tscn

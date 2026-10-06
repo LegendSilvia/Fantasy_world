@@ -143,9 +143,7 @@ public partial class CharacterView : Control
     private Control Inset()
     {
         var frame = Ui.Place(new Control { Name = "Inset", CustomMinimumSize = new Vector2(320, 250), Size = new Vector2(320, 250) }, 0, 1, 56, -290);
-        if (Host.Geography is not { } geography) return frame;
-        const int size = 192;
-        var image = Image.CreateFromData(size, size, false, Image.Format.Rgba8, MiniMap.Pixels(geography.Terrain, size));
+        if (Host.MiniMap() is not { } texture) return frame;
         // The world square, framed like the design's cards.
         var border = new Panel { Name = "Frame", Size = new Vector2(252, 252), Position = new Vector2(-1, -1), MouseFilter = MouseFilterEnum.Ignore };
         border.AddThemeStyleboxOverride("panel", new StyleBoxFlat
@@ -157,7 +155,7 @@ public partial class CharacterView : Control
         frame.AddChild(border);
         var map = new TextureRect
         {
-            Name = "Map", Texture = ImageTexture.CreateFromImage(image), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            Name = "Map", Texture = texture, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.Scale, Size = new Vector2(250, 250), MouseFilter = MouseFilterEnum.Ignore,
         };
         frame.AddChild(map);

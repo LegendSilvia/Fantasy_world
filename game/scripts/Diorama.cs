@@ -75,26 +75,37 @@ public partial class Diorama : Node3D
     /// Builds the terrain block, its walls, the sea, the woods and the block's shadow (once per world). Woods leave
     /// clearings around the given points (today's settlements).
     /// </summary>
-    public void Build(Geography geography, IEnumerable<Rgb>? clearings = null, int? resolution = null)
+    public void Build(Geography geography, IEnumerable<Rgb>? clearings = null, int? resolution = null) =>
+        Build(geography, Prepare(geography, clearings, resolution));
+
+    /// <summary>The block's geometry and woods, computed without Godot so it can run on a worker thread.</summary>
+    public sealed record Parts(MeshData Top, MeshData Sides, MeshData Water, IReadOnlyList<Client.Tree> Trees);
+
+    public static Parts Prepare(Geography geography, IEnumerable<Rgb>? clearings = null, int? resolution = null)
     {
-        _geography = geography;
         var grid = geography.Terrain;
         // About one and a half vertices per tile: smooth on small worlds, detailed on large ones.
         var detail = resolution ?? Math.Clamp(grid.Width * 3 / 2, 192, 384);
+        return new Parts(BlockMesh.Top(grid, detail), BlockMesh.Sides(grid, detail), BlockMesh.Water(grid), Scatter.Trees(grid, clearings));
+    }
+
+    public void Build(Geography geography, Parts parts)
+    {
+        _geography = geography;
         var mesh = new ArrayMesh();
-        AddSurface(mesh, BlockMesh.Top(grid, detail), VertexColours());
-        AddSurface(mesh, BlockMesh.Sides(grid, detail), VertexColours());
+        AddSurface(mesh, parts.Top, VertexColours());
+        AddSurface(mesh, parts.Sides, VertexColours());
         Block.Mesh = mesh;
 
         var water = new ArrayMesh();
-        AddSurface(water, BlockMesh.Water(grid), new StandardMaterial3D
+        AddSurface(water, parts.Water, new StandardMaterial3D
         {
             VertexColorUseAsAlbedo = true, Transparency = BaseMaterial3D.TransparencyEnum.Alpha, Roughness = 0.18f,
             MetallicSpecular = 0.7f, CullMode = BaseMaterial3D.CullModeEnum.Disabled,
         });
         Child<MeshInstance3D>("Water").Mesh = water;
 
-        var trees = Scatter.Trees(grid, clearings);
+        var trees = parts.Trees;
         Child<MultiMeshInstance3D>("Broadleaves").Multimesh = Instances(
             new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 8, Rings = 4 },
             trees.Where(t => t.Kind == TreeKind.Broadleaf).Select(t => (Place(t.Position + new Rgb(0, t.Height * 0.55f, 0), new Vector3(t.Height * 0.95f, t.Height, t.Height * 0.95f), 0), t.Colour)));
@@ -237,7 +248,11 @@ public partial class Diorama : Node3D
     private void UpdateCamera()
     {
         if (Camera is null) return;
-        Camera.Position = ToGodot(Rig.Eye);
+        var eye = Rig.Eye;
+        // Never inside a mountain: keep the eye a little above the ground beneath it.
+        if (_geography is not null && Math.Abs(eye.X) <= 1 && Math.Abs(eye.Z) <= 1)
+            eye.Y = Math.Max(eye.Y, Math.Max(0, BlockMesh.HeightAt(_geography.Terrain, (eye.X + 1) / 2, (eye.Z + 1) / 2)) + 0.04f);
+        Camera.Position = ToGodot(eye);
         Camera.LookAt(ToGodot(Rig.Target), Vector3.Up);
         // The screens' cards sit on the right, so the world is framed slightly left of centre.
         Camera.HOffset = Rig.Distance * FrameOffset;

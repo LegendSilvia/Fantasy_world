@@ -6,8 +6,38 @@ A persistent fantasy world simulation — the world keeps moving while you sleep
 ## Layout
 
 - `sim/` — headless .NET 8 simulation core, tests and the `fw` CLI
+- `sim/FantasyWorld.Client/` — the game's engine-free logic (session, terrain, layout), tested with the rest
+- `game/` — the Godot 4.3 diorama client
 - `docs/superpowers/specs/` — design specs
 - `docs/superpowers/plans/` — implementation plans
+
+## The game
+
+![The morning digest over the diorama](docs/images/digest.png)
+
+The world is a floating diorama: drag to orbit, scroll to descend from the whole realm to a single town. On launch
+the world catches up on the time you were away and opens on the *morning digest*: the year, what changed, the
+headline and *why did this happen?* Every name is a link: people open their life and ties, places fly the camera
+there, realms and artifacts open their pages, and any event opens the chain of causes that led to it. The *map*
+adds layers, a history slider back to Year 1, and a card for every settlement. While the game is open the world
+lives on (one world day every four real minutes) and announces what matters.
+
+![A region seen from above, with realm borders and settlements](docs/images/region.png)
+![Why a war began: the chain of causes](docs/images/why.png)
+
+Run it with [Godot 4.3 .NET](https://godotengine.org/download/archive/4.3-stable/) and the .NET 8 SDK:
+
+```bash
+dotnet build game/FantasyWorld.Game.csproj
+godot --path game                                   # first launch creates a world with a century of prehistory
+godot --path game -- --world worlds/aerenmoor.fw.db # or open a world made with the CLI
+```
+
+Keys: **Esc** back · **H** home (the digest) · **M** the map. Worlds live in Godot's user folder unless given.
+
+Checks: `godot --headless --path game res://tests/HeadlessChecks.tscn` drives every screen on a fresh world and
+exits non-zero on failure (CI runs it). `godot --path game res://tests/Showcase.tscn -- --shots <dir>` renders a
+full-size world from the angles above (needs a display).
 
 ## Run
 

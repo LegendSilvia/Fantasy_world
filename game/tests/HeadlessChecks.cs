@@ -51,6 +51,54 @@ public partial class HeadlessChecks : Node
         await DigestChecks(main);
         await MapChecks(main);
         await PageChecks(main);
+        await ReadingChecks(main);
+    }
+
+    private async Task ReadingChecks(Main main)
+    {
+        var session = main.Session!;
+        var realm = session.Read((w, _) => w.Realms.Keys.First());
+        main.Router.Open(new FantasyWorld.Sim.Events.EntityRef("realm", realm));
+        await Frames(2);
+        Check(main.Current is RealmView r && r.GetNode<Label>("Left/Title").Text == $"{r.Realm.Title}.", "a realm link opens the realm's page");
+        await Shot("realm");
+        if (session.Read((w, _) => w.Artifacts.Keys.Cast<long?>().FirstOrDefault()) is { } artifact)
+        {
+            main.Router.Open(new FantasyWorld.Sim.Events.EntityRef("artifact", artifact));
+            await Frames(2);
+            Check(main.Current is ArtifactView a && a.GetNode<Label>("Left/Title").Text == $"{a.Artifact.Name}.", "an artifact link opens its page");
+        }
+        main.Router.Go(new Screen(ScreenKind.Chronicle));
+        await Frames(2);
+        var chronicle = main.Current as ChronicleView;
+        Check(chronicle is not null && chronicle.Page == chronicle.Chronicle.Pages && chronicle.Body.GetChildCount() == chronicle.Chronicle.Seasons.Count,
+            "the full chronicle opens at its latest page, by season");
+        if (chronicle is not null)
+        {
+            chronicle.Filter(FantasyWorld.Sim.Views.Category.War);
+            Check(chronicle.Chronicle.Seasons.SelectMany(s => s.Rows).All(r => r.Category == FantasyWorld.Sim.Views.Category.War), "the chronicle filters by system");
+            await Shot("chronicle");
+        }
+
+        main.Router.Home();
+        main.Router.Go(new Screen(ScreenKind.Map));
+        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, Pressed = true });
+        await Frames(2);
+        Check(main.Current is DigestView, "Esc goes back");
+        Input.ParseInputEvent(new InputEventKey { Keycode = Key.M, Pressed = true });
+        await Frames(2);
+        Check(main.Current is MapHudView, "M opens the map");
+        Input.ParseInputEvent(new InputEventKey { Keycode = Key.H, Pressed = true });
+        await Frames(2);
+        Check(main.Current is DigestView && !main.Router.CanGoBack, "H goes home");
+
+        var news = session.Read((w, l) => l.All.Last(e => e.Importance >= Main.LiveToastImportance).Id);
+        main.Toast("A test of the live notice.", news);
+        await Frames(2);
+        Check(main.CurrentToast is { Visible: true }, "notable events are announced while the game is open");
+        main.CurrentToast!.EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true });
+        Check(main.Router.Current == new Screen(ScreenKind.Why, news), "and the notice opens its why chain");
+        main.Router.Home();
     }
 
     private async Task PageChecks(Main main)
@@ -92,6 +140,8 @@ public partial class HeadlessChecks : Node
             "every cause is a card");
         Check(why.GetNode<Label>("Intro/Summary").Text == why.Why.Summary, "the chain is summarised");
         await Shot("why");
+        Check(why.Canvas.FindChildren("Title", "RichTextLabel", true, false).Cast<Control>().All(t => t.MouseFilter == Control.MouseFilterEnum.Pass),
+            "clicks on a card's words reach the card");
         var cause = why.Graph.Cards[1].Card.EventId;
         why.Canvas.GetNode<PanelContainer>($"Card{cause}").EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true });
         await Frames(2);
@@ -101,9 +151,25 @@ public partial class HeadlessChecks : Node
         var again = (WhyView)main.Current!;
         again.GetNode<Button>("Chain/Column/ActionsRow/Actions/TraceFurther").EmitSignal(BaseButton.SignalName.Pressed);
         Check(again.ShowingConsequences && again.Graph.Cards.Count == 1 + again.Why.Consequences.Count, "trace further shows what it led to");
+        main.Router.Explain(long.MaxValue);
+        await Frames(3);
+        Check(main.Router.Current != new Screen(ScreenKind.Why, long.MaxValue) && main.Current is not null && main.CurrentToast is not null,
+            "a page whose subject is gone says so and goes back instead of breaking");
         main.Router.Home();
         await Frames(2);
         Check(main.Diorama.Visible && main.Current is DigestView, "home is the digest over the diorama");
+
+        var rig = main.Diorama.Rig;
+        var peak = main.Diorama.Markers.Count == 0 ? Godot.Vector3.Zero : Diorama.ToGodot(main.Diorama.Markers[0].Position);
+        rig.Focus(new System.Numerics.Vector3(peak.X, 0, peak.Z), Zoom.Town);
+        rig.Drag(0, 100_000);
+        rig.Drag(0, -100_000);
+        rig.Scroll(100);
+        await Frames(120);
+        var eye = main.Diorama.Camera.Position;
+        Check(eye.Y > Math.Max(0, FantasyWorld.Client.BlockMesh.HeightAt(main.Geography!.Terrain, (eye.X + 1) / 2, (eye.Z + 1) / 2)),
+            "the camera never goes below the ground");
+        rig.Reset();
     }
 
     private async Task MapChecks(Main main)

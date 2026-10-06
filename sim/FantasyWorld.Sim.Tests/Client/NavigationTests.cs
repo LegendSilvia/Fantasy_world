@@ -43,6 +43,8 @@ public class NavigationTests
         Assert.False(router.CanGoBack);
         Assert.Equal(4, changes.Count);
         Assert.Equal(new Screen(ScreenKind.Map, Focus: new EntityRef("settlement", 1)), ScreenRouter.For(new EntityRef("settlement", 1)));
+        Assert.Equal(new Screen(ScreenKind.Chronicle, Focus: new EntityRef("war", 2)), ScreenRouter.For(new EntityRef("war", 2)));
+        Assert.Equal(new Screen(ScreenKind.Realm, 3), ScreenRouter.For(new EntityRef("realm", 3)));
     }
 
     [Fact]

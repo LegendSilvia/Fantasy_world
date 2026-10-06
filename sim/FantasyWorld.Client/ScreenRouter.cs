@@ -51,7 +51,7 @@ public sealed class ScreenRouter
         "settlement" or "region" or "structure" => new Screen(ScreenKind.Map, Focus: entity),
         "realm" => new Screen(ScreenKind.Realm, entity.Id),
         "artifact" => new Screen(ScreenKind.Artifact, entity.Id),
-        "war" => new Screen(ScreenKind.Chronicle),
+        "war" => new Screen(ScreenKind.Chronicle, Focus: entity),
         _ => null,
     };
 
