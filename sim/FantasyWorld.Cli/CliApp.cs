@@ -11,7 +11,7 @@ using FantasyWorld.Sim.WorldGen;
 
 namespace FantasyWorld.Cli;
 
-public static class CliApp
+public static partial class CliApp
 {
     public const string Usage = """
         Usage:
@@ -23,6 +23,10 @@ public static class CliApp
           fw map <world-file> [--layer biome|regions]
           fw regions <world-file>
           fw region <world-file> <region-id>
+          fw characters <world-file> [--settlement <id>]
+          fw life <world-file> <character-id>
+          fw artifacts <world-file>
+          fw artifact <world-file> <artifact-id>
         """;
 
     public static int Run(string[] args, TextWriter output, Func<DateTimeOffset> clock)
@@ -44,6 +48,10 @@ public static class CliApp
                 "map" => Map(path, rest, output),
                 "regions" => Regions(path, output),
                 "region" => RegionDetail(path, rest, output),
+                "characters" => Characters(path, rest, output),
+                "life" => Life(path, rest, output),
+                "artifacts" => ArtifactList(path, output),
+                "artifact" => ArtifactDetail(path, rest, output),
                 _ => UsageError(output),
             };
         }
@@ -160,6 +168,8 @@ public static class CliApp
         output.WriteLine($"{r.Name} (region#{r.Id}) — {r.Biome}, {r.Climate}{(r.Coastal ? ", coastal" : "")}{(r.HasRiver ? ", river" : "")}");
         output.WriteLine(string.Create(inv,
             $"  tiles {r.TileCount}, farmland {r.Farmland:0}, fertility {r.Fertility:0}/{r.BaseFertility:0}, danger {r.Danger:0}, ley {r.LeyPower:0}, food {FoodMonths(world, r):0.0} months"));
+        if (world.Cultures.TryGetValue(r.CultureId, out var culture))
+            output.WriteLine($"  culture {culture.Name}, faith {world.Faiths[r.FaithId].Name}");
         output.WriteLine("  resources: " + string.Join(", ", r.Resources.Select(p => string.Create(inv, $"{p.Key} {p.Value.Yield:0.#}/{p.Value.Capacity:0.#}"))));
         if (r.Conditions.Count > 0)
             output.WriteLine("  conditions: " + string.Join(", ", r.Conditions.Select(c => $"{c.Key} (#{c.Value})")));
@@ -169,7 +179,7 @@ public static class CliApp
         output.WriteLine("  Settlements:");
         foreach (var s in r.Settlements.Select(sid => world.Settlements[sid]))
             output.WriteLine(string.Create(inv,
-                $"    {s.Name} (settlement#{s.Id}) {(s.Abandoned ? "abandoned" : s.Tier.ToString())}, {s.Population} people, unrest {s.Unrest:0}, wealth {s.Wealth:0}, {string.Join("/", s.Buildings)}"));
+                $"    {s.Name} (settlement#{s.Id}) {(s.Abandoned ? "abandoned" : s.Tier.ToString())}{(world.Characters.TryGetValue(s.LordId, out var lord) ? $" of {FullName(world, lord)}" : "")}, {s.Population} people, unrest {s.Unrest:0}, wealth {s.Wealth:0}, {string.Join("/", s.Buildings)}"));
         if (r.Memory.Count > 0)
         {
             output.WriteLine("  Remembered for:");
@@ -201,6 +211,9 @@ public static class CliApp
     {
         Region.Kind => world.Regions.TryGetValue(entity.Id, out var r) ? r.Name : null,
         Settlement.Kind => world.Settlements.TryGetValue(entity.Id, out var s) ? s.Name : null,
+        Character.Kind => world.Characters.TryGetValue(entity.Id, out var c) ? FullName(world, c) : null,
+        Artifact.Kind => world.Artifacts.TryGetValue(entity.Id, out var a) ? a.Name : null,
+        House.Kind => world.Houses.TryGetValue(entity.Id, out var h) ? $"House {h.Name}" : null,
         _ => null,
     };
 

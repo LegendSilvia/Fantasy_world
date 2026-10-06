@@ -223,4 +223,62 @@ public class CliAppTests
         Assert.Equal(1, code);
         Assert.Contains("error: No region #999", output);
     }
+
+    [Fact]
+    public void Characters_ListsTheNotables()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "characters", file.Path);
+        Assert.Equal(0, code);
+        using var store = WorldStore.Open(file.Path);
+        var world = store.Load().World;
+        Assert.Equal(world.ActiveCharacters.Count() + 1, output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Contains("Lord", output);
+    }
+
+    [Fact]
+    public void Life_TellsABiography()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        Run(T0, "advance", file.Path, "20y");
+        long lordId;
+        using (var store = WorldStore.Open(file.Path))
+            lordId = store.Load().World.Characters.Values.First(c => c.FatherId == 0 && c.Children.Count > 0).Id;
+
+        var (code, output) = Run(T0, "life", file.Path, lordId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        Assert.Equal(0, code);
+        Assert.Contains($"(char#{lordId})", output);
+        Assert.Contains("traits:", output);
+        Assert.Contains("children:", output);
+        Assert.Contains("Life:", output);
+    }
+
+    [Fact]
+    public void Artifacts_ShowWhereaboutsAndProvenance()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "artifacts", file.Path);
+        Assert.Equal(0, code);
+        Assert.Contains("held by", output);
+
+        var (detailCode, detail) = Run(T0, "artifact", file.Path, "1");
+        Assert.Equal(0, detailCode);
+        Assert.Contains("(artifact#1)", detail);
+        Assert.Contains("powers:", detail);
+        Assert.Contains("Made before recorded history.", detail);
+    }
+
+    [Fact]
+    public void UnknownCharacter_IsAnError()
+    {
+        using var file = new TempFile();
+        NewTiny(file);
+        var (code, output) = Run(T0, "life", file.Path, "99999");
+        Assert.Equal(1, code);
+        Assert.Contains("error: No character #99999", output);
+    }
 }

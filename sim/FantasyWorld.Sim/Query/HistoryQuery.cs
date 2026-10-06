@@ -13,6 +13,9 @@ public sealed class HistoryQuery
 
     public ChainNode WhyChain(long eventId, int depth = 4) => Build(_log.Get(eventId), null, depth);
 
+    /// <summary>Every event an entity took part in or that happened at it, oldest first (spec "Life"/"History").</summary>
+    public IReadOnlyList<WorldEvent> Life(EntityRef entity) => _log.Involving(entity);
+
     public IReadOnlyList<WorldEvent> RootCauses(long eventId)
     {
         var roots = new SortedSet<long>();

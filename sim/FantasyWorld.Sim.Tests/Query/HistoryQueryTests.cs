@@ -90,4 +90,15 @@ public class HistoryQueryTests
         var text = EventText.Describe(ev, e => e.Id == 3 ? "Brenmoor" : null);
         Assert.Equal("#1 Y1 M1 D1 Flood from=region#2 at Brenmoor (region#3)", text);
     }
+
+    [Fact]
+    public void Life_ListsAnEntitysEvents()
+    {
+        var log = new EventLog();
+        var hero = new EntityRef("char", 7);
+        log.Append(new WorldDate(1), new EventDraft("Born", Actors: new Dictionary<string, EntityRef> { ["child"] = hero }));
+        log.Append(new WorldDate(2), new EventDraft("Elsewhere"));
+        log.Append(new WorldDate(3), new EventDraft("Died", Actors: new Dictionary<string, EntityRef> { ["deceased"] = hero }));
+        Assert.Equal(new[] { "Born", "Died" }, new HistoryQuery(log).Life(hero).Select(e => e.Type));
+    }
 }
