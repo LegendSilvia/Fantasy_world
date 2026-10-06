@@ -1,3 +1,4 @@
+using FantasyWorld.Sim.Agency;
 using FantasyWorld.Sim.Engine;
 
 namespace FantasyWorld.Sim.Systems;
@@ -9,18 +10,22 @@ namespace FantasyWorld.Sim.Systems;
 /// </summary>
 public static class DefaultSystems
 {
-    public static IReadOnlyList<ISimSystem> Create() => new ISimSystem[]
+    /// <summary>
+    /// All systems, sharing one decider, arbiter and inventor (the LLM ones in a live game, Plan 5); null means the
+    /// rules implementations. Both paths draw the same randomness, so offline worlds are unchanged by the choice.
+    /// </summary>
+    public static IReadOnlyList<ISimSystem> Create(IDecider? decider = null, IArbiter? arbiter = null, IInventor? inventor = null) => new ISimSystem[]
     {
         new LifeSystem(),
         new EconomySystem(),
         new RegionSystem(),
         new SettlementSystem(),
-        new RealmSystem(),
-        new DiplomacySystem(),
-        new MilitarySystem(),
-        new FamilySystem(),
+        new RealmSystem(inventor),
+        new DiplomacySystem(decider, inventor),
+        new MilitarySystem(arbiter, decider),
+        new FamilySystem(decider),
         new RelationsSystem(),
-        new DeedsSystem(),
+        new DeedsSystem(decider, arbiter, inventor),
         new ArtifactSystem(),
         new PromotionSystem(),
     };

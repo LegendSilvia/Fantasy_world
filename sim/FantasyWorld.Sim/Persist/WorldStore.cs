@@ -122,6 +122,23 @@ public sealed class WorldStore : IDisposable
         return (world, log, snapshot.ToQueue());
     }
 
+    /// <summary>Saves new LLM answers alone (narration, which changes nothing in the world).</summary>
+    public void SaveJournal(LlmJournal journal)
+    {
+        _transaction = _connection.BeginTransaction();
+        try
+        {
+            foreach (var call in journal.Pending) InsertCall(call);
+            _transaction.Commit();
+            journal.MarkSaved();
+        }
+        finally
+        {
+            _transaction.Dispose();
+            _transaction = null;
+        }
+    }
+
     public LlmJournal LoadJournal()
     {
         var journal = new LlmJournal();

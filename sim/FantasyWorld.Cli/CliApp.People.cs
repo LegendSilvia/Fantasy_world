@@ -82,6 +82,7 @@ public static partial class CliApp
         output.WriteLine($"  {Whereabouts(world, x)}");
         output.WriteLine("  powers: " + string.Join(", ", x.Powers.Select(p => p.Kind == "attribute" ? $"+{p.Amount} {p.Attribute}" : p.Kind)));
         if (x.CurseRevealed) output.WriteLine($"  cursed: {x.Curse}");
+        if (x.Lore.Length > 0) output.WriteLine($"  lore: {x.Lore}");
         output.WriteLine(x.OriginEventId == 0 ? "  Made before recorded history." : "  Made: " + EventText.Describe(log.Get(x.OriginEventId), NameOf(world)));
         if (x.Provenance.Count > 0)
         {

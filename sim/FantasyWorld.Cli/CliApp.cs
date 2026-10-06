@@ -2,7 +2,9 @@ using System.Data.Common;
 using System.Globalization;
 using System.Text.Json;
 using FantasyWorld.Sim.Engine;
+using FantasyWorld.Llm;
 using FantasyWorld.Sim.Events;
+using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Persist;
 using FantasyWorld.Sim.Query;
@@ -31,10 +33,16 @@ public static partial class CliApp
           fw realm <world-file> <realm-id>
           fw wars <world-file>
           fw war <world-file> <war-id>
+          fw tell <world-file> <event-id> [--depth <n>]   the why-chain as prose
+          fw stats <world-file>
+          fw llm <world-file> [--provider none|anthropic|openrouter] [--model <tier>=<model>]...
+                 [--story-beats <per-day>] [--narrations <per-day>] [--cap <usd-per-month>]
         """;
 
-    public static int Run(string[] args, TextWriter output, Func<DateTimeOffset> clock)
+    /// <summary>Runs one command. Providers builds the LLM backend a world's settings name (tests inject fakes).</summary>
+    public static int Run(string[] args, TextWriter output, Func<DateTimeOffset> clock, Func<LlmSettings, ILlmProvider?>? providers = null)
     {
+        providers ??= settings => LlmProviders.Create(settings);
         if (args.Length < 2)
             return UsageError(output);
 
@@ -45,8 +53,8 @@ public static partial class CliApp
             return args[0] switch
             {
                 "new" => New(path, rest, output, clock),
-                "advance" => Advance(path, rest, output),
-                "catchup" => CatchUpCommand(path, output, clock),
+                "advance" => Advance(path, rest, output, providers),
+                "catchup" => CatchUpCommand(path, output, clock, providers),
                 "log" => Log(path, rest, output),
                 "why" => Why(path, rest, output),
                 "map" => Map(path, rest, output),
@@ -60,6 +68,9 @@ public static partial class CliApp
                 "realm" => RealmDetail(path, rest, output),
                 "wars" => WarList(path, output),
                 "war" => WarDetail(path, rest, output),
+                "tell" => Tell(path, rest, output, providers),
+                "stats" => Stats(path, output, clock),
+                "llm" => LlmCommand(path, rest, output),
                 _ => UsageError(output),
             };
         }
@@ -92,30 +103,34 @@ public static partial class CliApp
         return 0;
     }
 
-    private static int Advance(string path, string[] rest, TextWriter output)
+    private static int Advance(string path, string[] rest, TextWriter output, Func<LlmSettings, ILlmProvider?> providers)
     {
         if (rest.Length < 1) return UsageError(output);
         var days = DurationParser.ParseDays(rest[0]);
         using var store = OpenExisting(path);
-        var sim = Load(store);
+        var (sim, gateway) = LoadLive(store, providers);
         var lastId = sim.Log.NextId - 1;
         sim.AdvanceDays(days);
-        store.Save(sim.World, sim.Log, sim.Queue);
+        var fresh = gateway.Journal.Pending.ToList();
+        store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         output.WriteLine($"Advanced {days} days to {sim.World.Date}.");
+        PrintLlmSummary(output, gateway, fresh);
         PrintEvents(output, sim.World, sim.Log.Since(lastId));
         return 0;
     }
 
-    private static int CatchUpCommand(string path, TextWriter output, Func<DateTimeOffset> clock)
+    private static int CatchUpCommand(string path, TextWriter output, Func<DateTimeOffset> clock, Func<LlmSettings, ILlmProvider?> providers)
     {
         using var store = OpenExisting(path);
-        var sim = Load(store);
+        var (sim, gateway) = LoadLive(store, providers);
         var lastId = sim.Log.NextId - 1;
         var result = CatchUp.Run(sim, clock());
-        store.Save(sim.World, sim.Log, sim.Queue);
+        var fresh = gateway.Journal.Pending.ToList();
+        store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         output.WriteLine($"Advanced {result.DaysAdvanced} days: {result.From} -> {result.To}.");
         if (result.DaysRemaining > 0)
             output.WriteLine($"The world is still {result.DaysRemaining} days behind; run catchup again later.");
+        PrintLlmSummary(output, gateway, fresh);
         PrintEvents(output, sim.World, sim.Log.Since(lastId));
         return 0;
     }
