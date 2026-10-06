@@ -29,6 +29,25 @@ dotnet run --project sim/FantasyWorld.Cli -- realm worlds/aerenmoor.fw.db <id>  
 dotnet run --project sim/FantasyWorld.Cli -- wars worlds/aerenmoor.fw.db
 dotnet run --project sim/FantasyWorld.Cli -- war worlds/aerenmoor.fw.db <id>          # casus belli and the course of the war
 dotnet run --project sim/FantasyWorld.Cli -- map worlds/aerenmoor.fw.db --layer realms
+dotnet run --project sim/FantasyWorld.Cli -- tell worlds/aerenmoor.fw.db <event-id>    # the why-chain as prose
+dotnet run --project sim/FantasyWorld.Cli -- stats worlds/aerenmoor.fw.db             # world summary and LLM spend
 ```
+
+## Story beats from Claude
+
+The world runs fully offline by default: rules make every choice and templates tell the story. To let Claude
+decide notables' choices, arbitrate duels, hunts and delves, name forged artifacts, wars and eras, and narrate
+with `fw tell`:
+
+```bash
+export ANTHROPIC_API_KEY=...        # never stored in the world file
+dotnet run --project sim/FantasyWorld.Cli -- llm worlds/aerenmoor.fw.db --provider anthropic --cap 5
+dotnet run --project sim/FantasyWorld.Cli -- advance worlds/aerenmoor.fw.db 2y
+```
+
+Defaults: `claude-opus-5-5` for every job (`--model narrate=<model>` changes one), 60 story beats and 200
+narrations per rolling day, and a $10 cap per 30 days; past it, or without credentials, the rules take over.
+`--provider openrouter` uses `OPENROUTER_API_KEY` instead. Every answer is journaled in the world file, so
+reloading or replaying a world never asks again, and `fw why` shows the motives and accounts it gave.
 
 `--size tiny` makes a 64×64 world with 12 regions for quick experiments.
