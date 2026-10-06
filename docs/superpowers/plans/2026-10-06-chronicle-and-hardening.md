@@ -87,7 +87,7 @@ Spec §7 "Importance and the digest": how much an event matters to the reader no
 - Consumes: `WorldEvent`, `World`, `WorldStore` (Plans 1–5).
 - Produces (namespace `FantasyWorld.Sim.Chronicle`): `static class Importance { FollowedBonus = 30; Score(ev, world, followed); ParseRef("char#12") }`; `WorldStore` schema 4 with table `followed`, `LoadFollowed()`, `Follow(entity, follow = true)`; CLI `follow <entity>`, `unfollow <entity>` (`CliApp.Chronicle.cs`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Chronicle/ImportanceTests.cs`:
 ```csharp
@@ -329,12 +329,12 @@ public class WorldStoreTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Chronicle' does not exist in the namespace 'FantasyWorld.Sim' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Cli/CliApp.Chronicle.cs`:
 ```csharp
@@ -955,12 +955,12 @@ public sealed class WorldStore : IDisposable
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~ImportanceTests|FullyQualifiedName~LlmPersistenceTests|FullyQualifiedName~WorldStoreTests"`
 Expected: `Passed!  - Failed: 0, Passed: 11`. Then `dotnet test sim` → `Passed: 432` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -984,7 +984,7 @@ Spec §11 criterion 2: come back after a night away and read 3–8 headlines. Th
 - Consumes: Task 1; `INarrator`, `TemplateNarrator`, `LlmNarrator`, `World.LastSeenEventId` (Plans 1, 5).
 - Produces: `record DigestEntry(Event, Score)`, `record DigestGroup(Label, Entries)`, `record DigestView(From, To, EventCount, Groups) { Entries }`; `static class Digest { DefaultTake = 8; Build(log, world, sinceEventId, followed, take); SeasonLabel(date) }`; `INarrator.Digest(DigestView)`; CLI `digest [--since <event-id>] [--take <n>]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Chronicle/DigestTests.cs`:
 ```csharp
@@ -1081,12 +1081,12 @@ public class DigestTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Digest' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Cli/CliApp.Chronicle.cs` entirely with:
 ```csharp
@@ -1721,12 +1721,12 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DigestTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 437` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1750,7 +1750,7 @@ Spec §5 and §11 criterion 1: a new world runs about a century before the playe
 - Consumes: `WorldGenerator`, `Simulator`, `DefaultSystems` (Plans 1–5).
 - Produces: `static class Prehistory { DefaultYears = 100; DefaultYearsFor(size); Simulator Run(world, years, progress?, checkInvariants?) }`; CLI `new … [--prehistory <years>]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/PrehistoryTests.cs`:
 ```csharp
@@ -1802,12 +1802,12 @@ public class PrehistoryTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Prehistory' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Cli/CliApp.cs` entirely with:
 ```csharp
@@ -2115,12 +2115,12 @@ public static class Prehistory
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PrehistoryTests"`
 Expected: `Passed!  - Failed: 0, Passed: 2`. Then `dotnet test sim` → `Passed: 439` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2144,7 +2144,7 @@ Spec §7 "Modes": while the game is open the world advances one day per four rea
 - Consumes: `CatchUp`, `TimeScale` (Plan 1); Tasks 1–2.
 - Produces: `record LiveTick(Days, Events)`; `sealed class LiveHost(Simulator) { NextDayAt; Step(now); Run(clock, sleep, until, onTick, ct) }`; CLI `live [--minutes <n>]` (`CliApp.LivePinImportance = 40`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Engine/LiveHostTests.cs`:
 ```csharp
@@ -2203,12 +2203,12 @@ public class LiveHostTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'LiveHost' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Cli/CliApp.Chronicle.cs` entirely with:
 ```csharp
@@ -2622,12 +2622,12 @@ public sealed class LiveHost(Simulator sim)
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~LiveHostTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 442` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2651,7 +2651,7 @@ Spec §7 "Compaction": minor events (importance under 30) older than 50 years ar
 - Consumes: `EventLog`, `Simulator`, `WorldSnapshot`, `WorldStore`, `DefaultSystems` (Plans 1–5).
 - Produces: `EventLog.Forget(ids)`, `ForgottenUnsaved`, `MarkForgottenSaved()`, `IndexAfter(id)`; `record CompactionResult(Forgotten, Summaries)`; `static class Compactor { AgeYears = 50; MinorBelow = 30; SummaryType = "ChronicleCompacted"; Compact(world, log, queue, firstYear, lastYear); References(world, queue) }`; `sealed class ChronicleSystem : ISimSystem` (name `"chronicle"`, last in `DefaultSystems`); `WorldStore.Save` deletes forgotten rows; index `ix_event_causes_effect`; template for `ChronicleCompacted`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Chronicle/CompactorTests.cs`:
 ```csharp
@@ -2736,12 +2736,12 @@ public class CompactorTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Compactor' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Chronicle/ChronicleSystem.cs`:
 ```csharp
@@ -3589,12 +3589,12 @@ public static class DefaultSystems
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CompactorTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 445` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3619,7 +3619,7 @@ Spec §9: the snapshot (and the static geography) are stored gzip-compressed, ab
 - Consumes: `WorldStore` (Plans 1–5).
 - Produces: `static class Packed { Pack(value); Unpack<T>(stored) }`; `WorldStore.BackupTo(path)` and its concurrent-session check; `static class Backups { Keep = 3; PathOf(world, n); Rotate(store, world) }` (CLI), used by `advance`, `catchup` and `live`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Persist/StorageTests.cs`:
 ```csharp
@@ -3727,12 +3727,12 @@ public sealed class TempFile : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Backups' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Cli/Backups.cs`:
 ```csharp
@@ -4488,12 +4488,12 @@ public sealed class WorldStore : IDisposable
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~StorageTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 448` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4517,7 +4517,7 @@ Spec §5 "Structures", the minimal hooks sub-project 3 will deepen. Yearly and l
 - Consumes: `IInventor` (Plan 5), `ArtifactForge`, `Fates`, `Conditions` (Plans 2–3).
 - Produces: `enum StructureKind { Landmark, Fortification, Labyrinth, Ruin }`, `enum StructureState { Building, Standing, Ruined }`, `Structure` (kind `"structure"`); `World.Structures`; `WorldSnapshot` v5; `Invariants.Structures.cs`; `sealed class StructureSystem(IInventor? inventor = null) : ISimSystem` (name `"structures"`; `CommissionPerYear = 0.02`, `LandmarkWealth = 3000`, `LabyrinthPerYear = 0.02`, `LabyrinthLey = 70`, `LabyrinthDanger = 35`; `LabyrinthCap(world)`); `DefaultSystems` gains it before the chronicle. Events: `LandmarkBegun`, `LandmarkCompleted`, `LabyrinthOpened`, `StructureRuined` (with templates); CLI `structures`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/StructureSystemTests.cs`:
 ```csharp
@@ -4615,12 +4615,12 @@ public class StructureSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'StructureSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Cli/CliApp.Chronicle.cs` entirely with:
 ```csharp
@@ -5733,12 +5733,12 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~StructureSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 4`. Then `dotnet test sim` → `Passed: 452` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -5761,7 +5761,7 @@ Spec §11 criterion 3 asks that `fw why` on a war prints a chain of linked cause
 - Consumes: everything above.
 - Produces: `Fates.Accession(log, character)`; `DiplomacySystem` war causes; `SuccessCriteriaTests` (with a shared `PrehistoricWorld` fixture and its deep `Fork()`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Engine/SuccessCriteriaTests.cs`:
 ```csharp
@@ -5855,12 +5855,12 @@ public class SuccessCriteriaTests(PrehistoricWorld fixture) : IClassFixture<Preh
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 1 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Systems/DiplomacySystem.cs` entirely with:
 ```csharp
@@ -6671,12 +6671,12 @@ public sealed class RealmSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SuccessCriteriaTests"`
 Expected: `Passed!  - Failed: 0, Passed: 4`. Then `dotnet test sim` → `Passed: 456` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -6700,7 +6700,7 @@ Spec §7 and §10: at most 2 s per world year at 120 regions, rules only. `Fanta
 - Consumes: everything above.
 - Produces: project `sim/FantasyWorld.Bench` (`BenchmarkDotNet` 0.14.0; `WorldYearBenchmark`); `PerformanceTests`; `.github/workflows/ci.yml` job `bench`; `.gitignore` for `BenchmarkDotNet.Artifacts/`; README section "The chronicle".
 
-- [ ] **Step 1: Write the checks**
+- [x] **Step 1: Write the checks**
 
 `sim/FantasyWorld.Sim.Tests/Engine/PerformanceTests.cs`:
 ```csharp
@@ -6728,12 +6728,12 @@ public class PerformanceTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they pass against the finished stack**
+- [x] **Step 2: Run tests to verify they pass against the finished stack**
 
 Run: `dotnet test sim`
 Expected: PASS. These tests pin down behaviour built in the earlier tasks; if one fails, fix the system it names before going on.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `.github/workflows/ci.yml` entirely with:
 ```yaml
@@ -6986,17 +6986,17 @@ Global
 EndGlobal
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PerformanceTests"`
 Expected: `Passed!  - Failed: 0, Passed: 1`. Then `dotnet test sim` → `Passed: 457` in total.
 
-- [ ] **Step 5: Run the full suite in Release**
+- [x] **Step 5: Run the full suite in Release**
 
 Run: `dotnet test sim --configuration Release`
 Expected: `Passed!  - Failed: 0, Passed: 457`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim README.md .github

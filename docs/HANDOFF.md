@@ -15,11 +15,19 @@ Context for picking up this project on another machine / in a new Claude session
 | Plan 3 of 6 (Characters & artifacts) | **Done** — `docs/superpowers/plans/2026-10-06-characters-and-artifacts.md`, Tasks 1–13; 318/318 tests pass (Debug + Release); 300-year medium soaks with invariants clean |
 | Plan 4 of 6 (Realms & armies) | **Done** — `docs/superpowers/plans/2026-10-06-realms-and-armies.md`, Tasks 1–11; 382/382 tests pass (Debug + Release); 200-year medium soaks (seeds 1, 7, 42) with invariants clean |
 | Plan 5 of 6 (LLM layer) | **Done** — `docs/superpowers/plans/2026-10-06-llm-layer.md`, Tasks 1–10; 429/429 tests pass (Debug + Release); all LLM paths tested with a fake provider (no API key was available here) |
+| Plan 6 of 6 (Chronicle & hardening) | **Done** — `docs/superpowers/plans/2026-10-06-chronicle-and-hardening.md`, Tasks 1–9; 457/457 tests pass (Debug + Release); spec §11 criteria 1–3 and 5 checked automatically; ~50–90 ms per world year (budget 2 s) |
+| Sim core (sub-project 1) | **Complete** |
+| Sub-project 2 (Chronicle & why UI data) | Spec drafted — `docs/superpowers/specs/2026-10-06-chronicle-views-design.md`; prototype in progress |
 
 ## Next step
 
-1. Merge the working branch into `main` (Plan 5).
-2. Plan 6 (Chronicle & hardening), then sub-projects 2–5.
+1. Merge the working branch into `main` (Plans 4–6).
+2. Sub-project 2 (view models for the four designed screens), then 4 (Godot client), 3 (depth) and 5 (narration evals).
+
+Notes from Plan 6 execution:
+- Try it: `fw new worlds/w.fw.db --seed 7` (100 years of prehistory, ~6 s), `fw digest …`, `fw follow … char#12`, `fw live … --minutes 10`, `fw structures …`, `fw stats …`.
+- Compaction runs inside the simulation (one summary per decade at fifty years old), so worlds stay deterministic however they are played.
+- Two sessions on one world file: the second to save is refused rather than silently overwriting.
 
 Notes from Plan 5 execution:
 - Turn Claude on per world: `export ANTHROPIC_API_KEY=…; fw llm <world> --provider anthropic --cap 5`; without the key everything runs offline.
