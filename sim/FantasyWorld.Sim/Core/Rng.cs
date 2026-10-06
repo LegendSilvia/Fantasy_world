@@ -26,10 +26,5 @@ public sealed class Rng
 
     public bool Chance(double probability) => NextDouble() < probability;
 
-    private static ulong Mix(ulong z)
-    {
-        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
-        z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
-        return z ^ (z >> 31);
-    }
+    private static ulong Mix(ulong z) => StableHash.Mix(z);
 }
