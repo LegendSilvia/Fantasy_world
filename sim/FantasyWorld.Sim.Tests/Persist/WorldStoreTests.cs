@@ -101,13 +101,14 @@ public class WorldStoreTests
         {
             connection.Open();
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "DROP TABLE geography; UPDATE meta SET value = '1' WHERE key = 'schema_version';";
+            cmd.CommandText = "DROP TABLE geography; DROP TABLE llm_calls; UPDATE meta SET value = '1' WHERE key = 'schema_version';";
             cmd.ExecuteNonQuery();
         }
 
         using var upgraded = WorldStore.Open(file.Path);
-        Assert.Equal(2, upgraded.SchemaVersion);
+        Assert.Equal(WorldStore.CurrentSchemaVersion, upgraded.SchemaVersion);
         Assert.False(upgraded.HasGeography);
+        Assert.Equal(0, upgraded.LoadJournal().Count);
         Assert.Equal(Hash(sim), WorldHasher.Hash(upgraded.Load().World, sim.Log, sim.Queue));
     }
 }

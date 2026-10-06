@@ -2,15 +2,16 @@ using System.Globalization;
 using System.Text.Json;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Events;
+using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Model;
 using Microsoft.Data.Sqlite;
 
 namespace FantasyWorld.Sim.Persist;
 
-/// <summary>One SQLite file per world: snapshot, static geography (written once) and the append-only event log.</summary>
+/// <summary>One SQLite file per world: snapshot, static geography (written once), the append-only event log and the LLM journal.</summary>
 public sealed class WorldStore : IDisposable
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     private const string Schema = """
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -26,6 +27,11 @@ public sealed class WorldStore : IDisposable
             event_id INTEGER NOT NULL, role TEXT NOT NULL, kind TEXT NOT NULL, entity_id INTEGER NOT NULL,
             PRIMARY KEY (event_id, role));
         CREATE INDEX IF NOT EXISTS ix_event_actors_entity ON event_actors(kind, entity_id);
+        CREATE TABLE IF NOT EXISTS llm_calls (
+            hash TEXT PRIMARY KEY, tier TEXT NOT NULL, day INTEGER NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
+            response TEXT NOT NULL, input_tokens INTEGER NOT NULL, output_tokens INTEGER NOT NULL,
+            cache_read_tokens INTEGER NOT NULL, cache_write_tokens INTEGER NOT NULL, cost_usd TEXT NOT NULL,
+            real_utc TEXT NOT NULL, note TEXT NOT NULL);
         """;
 
     private readonly SqliteConnection _connection;
@@ -51,7 +57,8 @@ public sealed class WorldStore : IDisposable
 
     public bool HasGeography => ScalarLong("SELECT COUNT(*) FROM geography") > 0;
 
-    public void Save(World world, EventLog log, EventQueue queue)
+    /// <summary>Saves the month in one transaction: new events, the snapshot and new LLM answers (spec §9).</summary>
+    public void Save(World world, EventLog log, EventQueue queue, LlmJournal? journal = null)
     {
         _transaction = _connection.BeginTransaction();
         try
@@ -74,8 +81,10 @@ public sealed class WorldStore : IDisposable
             }
             SetMeta("world_day", world.Date.Day.ToString(CultureInfo.InvariantCulture));
             SetMeta("last_real_utc", world.LastRealUtc.ToString("O", CultureInfo.InvariantCulture));
+            foreach (var call in journal?.Pending ?? Array.Empty<LlmCall>()) InsertCall(call);
 
             _transaction.Commit();
+            journal?.MarkSaved();
         }
         catch
         {
@@ -113,6 +122,25 @@ public sealed class WorldStore : IDisposable
         return (world, log, snapshot.ToQueue());
     }
 
+    public LlmJournal LoadJournal()
+    {
+        var journal = new LlmJournal();
+        using var cmd = Command("SELECT hash, tier, day, provider, model, response, input_tokens, output_tokens, " +
+                                "cache_read_tokens, cache_write_tokens, cost_usd, real_utc, note FROM llm_calls ORDER BY hash");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            journal.Restore(new LlmCall(reader.GetString(0), Enum.Parse<ModelTier>(reader.GetString(1)), reader.GetInt64(2),
+                reader.GetString(3), reader.GetString(4), reader.GetString(5), reader.GetInt64(6), reader.GetInt64(7),
+                reader.GetInt64(8), reader.GetInt64(9), decimal.Parse(reader.GetString(10), CultureInfo.InvariantCulture),
+                DateTimeOffset.Parse(reader.GetString(11), CultureInfo.InvariantCulture), reader.GetString(12)));
+        return journal;
+    }
+
+    public LlmSettings LoadLlmSettings() =>
+        GetMeta("llm_settings") is { } json ? JsonSerializer.Deserialize<LlmSettings>(json, SimJson.Options)! : new LlmSettings();
+
+    public void SaveLlmSettings(LlmSettings settings) => SetMeta("llm_settings", JsonSerializer.Serialize(settings, SimJson.Options));
+
     public void Dispose() => _connection.Dispose();
 
     private void Migrate()
@@ -124,7 +152,7 @@ public sealed class WorldStore : IDisposable
         if (current > CurrentSchemaVersion)
             throw new InvalidOperationException(
                 $"World file schema {version} is newer than this build supports ({CurrentSchemaVersion}).");
-        // 1 → 2 only adds the geography table, which the schema script above creates.
+        // 1 → 2 adds the geography table and 2 → 3 the llm_calls table; the schema script above creates both.
         if (current < CurrentSchemaVersion)
             SetMeta("schema_version", CurrentSchemaVersion.ToString(CultureInfo.InvariantCulture));
     }
@@ -159,6 +187,25 @@ public sealed class WorldStore : IDisposable
             cmd.Parameters.AddWithValue("$i", entity.Id);
             cmd.ExecuteNonQuery();
         }
+    }
+
+    private void InsertCall(LlmCall call)
+    {
+        using var cmd = Command("INSERT OR IGNORE INTO llm_calls VALUES ($h, $t, $d, $p, $m, $r, $i, $o, $cr, $cw, $c, $u, $n)");
+        cmd.Parameters.AddWithValue("$h", call.Hash);
+        cmd.Parameters.AddWithValue("$t", call.Tier.ToString());
+        cmd.Parameters.AddWithValue("$d", call.Day);
+        cmd.Parameters.AddWithValue("$p", call.Provider);
+        cmd.Parameters.AddWithValue("$m", call.Model);
+        cmd.Parameters.AddWithValue("$r", call.Json);
+        cmd.Parameters.AddWithValue("$i", call.InputTokens);
+        cmd.Parameters.AddWithValue("$o", call.OutputTokens);
+        cmd.Parameters.AddWithValue("$cr", call.CacheReadTokens);
+        cmd.Parameters.AddWithValue("$cw", call.CacheWriteTokens);
+        cmd.Parameters.AddWithValue("$c", call.CostUsd.ToString(CultureInfo.InvariantCulture));
+        cmd.Parameters.AddWithValue("$u", call.RealUtc.ToString("O", CultureInfo.InvariantCulture));
+        cmd.Parameters.AddWithValue("$n", call.Note);
+        cmd.ExecuteNonQuery();
     }
 
     private string? GetMeta(string key)
