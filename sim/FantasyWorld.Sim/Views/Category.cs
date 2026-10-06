@@ -55,6 +55,10 @@ public static class Categories
         ["MonsterSlain"] = "A beast slain",
         ["RouteOpened"] = "Trade",
         ["RouteSevered"] = "Trade cut",
+        ["RegionConverted"] = "Conversion",
+        ["RealmConverted"] = "A realm converts",
+        ["HolySiteLost"] = "Holy land lost",
+        ["HolySiteRegained"] = "Holy land regained",
     };
 
     /// <summary>A short label above a headline ("War ends"), else the event type in words.</summary>

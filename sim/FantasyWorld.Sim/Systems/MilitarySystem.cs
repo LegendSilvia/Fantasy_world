@@ -39,7 +39,17 @@ public sealed partial class MilitarySystem : ISimSystem
         // Occupations lapse when occupier and sovereign are no longer at war (the land changed hands mid-war).
         foreach (var region in world.Regions.Values.Where(r => r.OccupierRealmId != 0))
             if (Realms.SovereignOf(world, region) is not { } sovereign || !AtWarWith(world, region.OccupierRealmId, sovereign.Id))
+            {
+                // Recorded (and important enough to outlast compaction) so the history replay sees it, citing the change of hands or peace behind it.
+                var occupier = world.Realms[region.OccupierRealmId];
+                var ended = ctx.Log.Involving(region.Ref).Where(e => e.Type == "RegionCeded")
+                    .Concat(ctx.Log.Involving(occupier.Ref).Where(e => e.Type is "PeaceSigned" or "IndependenceDeclared"))
+                    .Select(e => e.Id).DefaultIfEmpty().Max();
+                ctx.Emit(new EventDraft("OccupationLapsed", Actors: new Dictionary<string, EntityRef> { ["realm"] = occupier.Ref },
+                    Place: region.Ref, Causes: ended == 0 ? null : new[] { new Cause(ended, CauseKind.Trigger, 0.8) },
+                    Importance: Chronicle.Compactor.MinorBelow, Tags: new[] { "War" }));
                 region.OccupierRealmId = 0;
+            }
 
         foreach (var army in Active(world).ToList())
         {

@@ -66,7 +66,7 @@ public static class History
                                                            && (ev.Type == "RegionOccupied" || ev.Payload.GetValueOrDefault("outcome") == "fell"):
                     occupation[region] = (realm.Id, at.Id);
                     break;
-                case "RegionLiberated" when region != 0:
+                case "RegionLiberated" or "OccupationLapsed" when region != 0:
                     occupation.Remove(region);
                     break;
                 case "PeaceSigned" when ev.Actors.TryGetValue("war", out var ended):

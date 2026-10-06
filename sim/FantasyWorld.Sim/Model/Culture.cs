@@ -34,5 +34,13 @@ public sealed class Faith
     public List<string> Tenets { get; init; } = new();
     public long HolyRegionId { get; init; }
 
+    /// <summary>0–100: how fiercely the faithful defend and spread it. Rises when the holy land is lost.</summary>
+    public double Zeal { get; set; }
+
+    /// <summary>The event that cost the faith its holy land (0 while a realm of the faith, or none, holds it).</summary>
+    public long HolySiteLostEventId { get; set; }
+
+    public bool Has(string tenet) => Tenets.Contains(tenet);
+
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
 }

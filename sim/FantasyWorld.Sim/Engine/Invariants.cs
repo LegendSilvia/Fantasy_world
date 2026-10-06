@@ -51,6 +51,11 @@ public static partial class Invariants
         foreach (var culture in world.Cultures.Values)
             if (!world.Faiths.ContainsKey(culture.FaithId))
                 errors.Add($"Culture #{culture.Id} has unknown faith #{culture.FaithId}.");
+        foreach (var faith in world.Faiths.Values)
+            if (faith.Zeal is < 0 or > 100) errors.Add($"Faith #{faith.Id} has zeal {faith.Zeal} outside 0–100.");
+        foreach (var realm in world.Realms.Values)
+            if (realm.FaithId != 0 && !world.Faiths.ContainsKey(realm.FaithId))
+                errors.Add($"Realm #{realm.Id} has unknown faith #{realm.FaithId}.");
     }
 
     private static void CheckLog(World world, EventLog log, int startIndex, List<string> errors)
