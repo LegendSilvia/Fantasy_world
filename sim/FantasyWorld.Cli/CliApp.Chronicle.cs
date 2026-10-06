@@ -1,5 +1,6 @@
 using System.Globalization;
 using FantasyWorld.Sim.Chronicle;
+using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Narration;
@@ -32,6 +33,40 @@ public static partial class CliApp
         if (sinceEventId is null) sim.World.LastSeenEventId = sim.Log.NextId - 1;
         return new LlmNarrator(new StoryContext(sim.World, sim.Log, gateway)).Digest(digest);
     }
+
+    private static int Live(string path, string[] rest, TextWriter output, Func<DateTimeOffset> clock, Func<LlmSettings, ILlmProvider?> providers)
+    {
+        var minutes = int.Parse(Option(rest, "--minutes") ?? "60", CultureInfo.InvariantCulture);
+        if (minutes < 0) throw new FormatException("--minutes cannot be negative.");
+        using var store = OpenExisting(path);
+        var (sim, gateway) = LoadLive(store, providers);
+        var followed = store.LoadFollowed();
+        var host = new LiveHost(sim);
+        using var cts = new CancellationTokenSource();
+        ConsoleCancelEventHandler stop = (_, e) => { e.Cancel = true; cts.Cancel(); };
+        Console.CancelKeyPress += stop;
+        try
+        {
+            output.WriteLine($"Live from {sim.World.Date}; one world day every {TimeScale.RealTimePerWorldDay.TotalMinutes:0} real minutes.");
+            host.Run(clock, wait => cts.Token.WaitHandle.WaitOne(wait), clock().AddMinutes(minutes), tick =>
+            {
+                store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
+                output.WriteLine($"{sim.World.Date}");
+                foreach (var ev in tick.Events.Where(e => Importance.Score(e, sim.World, followed) >= LivePinImportance))
+                    output.WriteLine("  " + EventText.Describe(ev, NameOf(sim.World)));
+            }, cts.Token);
+        }
+        finally
+        {
+            Console.CancelKeyPress -= stop;
+        }
+        store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
+        output.WriteLine($"Stopped at {sim.World.Date}.");
+        return 0;
+    }
+
+    /// <summary>Events at least this important are shown as they happen in live mode.</summary>
+    public const int LivePinImportance = 40;
 
     private static int Follow(string path, string[] rest, TextWriter output, bool follow)
     {

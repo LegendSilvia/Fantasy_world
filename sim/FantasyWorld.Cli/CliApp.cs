@@ -20,6 +20,7 @@ public static partial class CliApp
           fw new <world-file> [--seed <n>] [--size tiny|medium|large] [--prehistory <years>]   (default 100; tiny 0)
           fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
           fw catchup <world-file>                   simulate the real time that has passed, then the digest
+          fw live <world-file> [--minutes <n>]      keep the world running in real time (default 60; Ctrl+C stops)
           fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
           fw log <world-file> [--since <event-id>]
           fw why <world-file> <event-id> [--depth <n>]
@@ -73,6 +74,7 @@ public static partial class CliApp
                 "war" => WarDetail(path, rest, output),
                 "tell" => Tell(path, rest, output, providers),
                 "digest" => DigestCommand(path, rest, output, providers),
+                "live" => Live(path, rest, output, clock, providers),
                 "follow" => Follow(path, rest, output, follow: true),
                 "unfollow" => Follow(path, rest, output, follow: false),
                 "stats" => Stats(path, output, clock),
