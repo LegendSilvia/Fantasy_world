@@ -99,4 +99,19 @@ public class SuccessCriteriaTests(PrehistoricWorld fixture) : IClassFixture<Preh
                 $"{war.Key}: {war.Count()} liberations but {battles.GetValueOrDefault(war.Key)} battles"));
         Assert.Contains(log, e => e.Type == "BattleFought");
     }
+
+    [Fact]
+    public void Battles_AreFoughtByPeople_WhoCarryThemIntoTheirLives()
+    {
+        var log = fixture.Sim.Log;
+        var battles = log.All.Where(e => e.Type == "BattleFought").ToList();
+        Assert.Contains(battles, b => b.Actors.Keys.Any(k => k.Contains("knight")));
+        var glory = log.All.Where(e => e.Type == "DistinguishedInBattle").ToList();
+        Assert.NotEmpty(glory);
+        Assert.All(glory, g => Assert.Equal("BattleFought", log.Get(g.Causes[0].EventId).Type));
+        Assert.All(log.All.Where(e => e.Type == "WoundedInBattle"), w => Assert.Contains(w.Payload["wound"], new[] { "wounded", "maimed" }));
+        // A knight named on a battle finds it in their own history.
+        var knight = battles.SelectMany(b => b.Actors.Where(a => a.Key.Contains("knight")).Select(a => (a.Value, b.Id))).First();
+        Assert.Contains(log.Involving(knight.Value), e => e.Id == knight.Id);
+    }
 }

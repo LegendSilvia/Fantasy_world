@@ -53,6 +53,39 @@ public sealed class PromotionSystem : ISimSystem
     {
         foreach (var ruin in ctx.World.Settlements.Values.Where(s => s.Abandoned))
             Evacuate(ctx, ruin);
+        foreach (var realm in ctx.World.Realms.Values.Where(r => !r.Destroyed).OrderBy(r => r.Id).ToList())
+            Knight(ctx, realm);
+    }
+
+    public const int MaxKnightsPerYear = 2;
+    public const int MinKnightMartial = 8;
+
+    /// <summary>
+    /// Realms keep a household of knights, about one for every two settlements (at most eight): each year the ruler
+    /// knights up to two of the most martial adults of the realm's land who hold no other office. Knights ride with
+    /// the realm's host in war.
+    /// </summary>
+    private static void Knight(SimContext ctx, Realm realm)
+    {
+        var world = ctx.World;
+        var territory = Realms.Territory(world, realm).Select(r => r.Id).ToHashSet();
+        var settlements = world.Settlements.Values.Count(s => !s.Abandoned && territory.Contains(s.RegionId));
+        var wanted = Math.Clamp(settlements / 2, 1, 8);
+        var people = world.ActiveCharacters.Where(c => territory.Contains(world.Settlements[c.SettlementId].RegionId)).ToList();
+        var missing = Math.Min(MaxKnightsPerYear, wanted - people.Count(c => c.Role == Role.Knight));
+        if (missing <= 0) return;
+        var ruler = Realms.RulerOf(world, realm);
+        foreach (var candidate in people
+                     .Where(c => c.Role is Role.None or Role.Adventurer && c.Stage(ctx.Date) == LifeStage.Adult && c.Attributes.Martial >= MinKnightMartial
+                                 && c.Id != ruler?.Id)
+                     .OrderByDescending(c => c.Attributes.Martial + c.Renown / 10).ThenBy(c => c.Id).Take(missing).ToList())
+        {
+            candidate.Role = Role.Knight;
+            var actors = new Dictionary<string, EntityRef> { ["knight"] = candidate.Ref, ["realm"] = realm.Ref };
+            if (ruler is not null) actors["liege"] = ruler.Ref;
+            ctx.Emit(new EventDraft("Knighted", Actors: actors, Place: world.Settlements[candidate.SettlementId].Ref,
+                Importance: Fates.Importance(candidate, 22), Tags: new[] { "Characters" }));
+        }
     }
 
     /// <summary>The ablest adult already living there takes the seat; failing that, someone from the populace.</summary>

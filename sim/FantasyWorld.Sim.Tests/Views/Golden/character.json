@@ -23,6 +23,56 @@
     {
       "year": 2,
       "text": {
+        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of Kingdom of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 24,
+            "length": 15,
+            "entity": "char#17"
+          },
+          {
+            "start": 58,
+            "length": 17,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 31,
+      "highlight": false
+    },
+    {
+      "year": 2,
+      "text": {
+        "text": "Fath of Cunvei knighted End of Gil in the service of Kingdom of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 24,
+            "length": 10,
+            "entity": "char#15"
+          },
+          {
+            "start": 53,
+            "length": 17,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 32,
+      "highlight": false
+    },
+    {
+      "year": 2,
+      "text": {
         "text": "Broth of Cunvei and Fath of Cunvei became rivals over diligent vs lazy.",
         "links": [
           {
@@ -37,7 +87,32 @@
           }
         ]
       },
-      "eventId": 41,
+      "eventId": 44,
+      "highlight": false
+    },
+    {
+      "year": 16,
+      "text": {
+        "text": "Fath of Cunvei knighted Teilbeith of Bandbia in the service of Kingdom of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 24,
+            "length": 20,
+            "entity": "char#18"
+          },
+          {
+            "start": 63,
+            "length": 17,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 122,
       "highlight": false
     },
     {
@@ -57,7 +132,7 @@
           }
         ]
       },
-      "eventId": 122,
+      "eventId": 126,
       "highlight": false
     },
     {
@@ -77,7 +152,7 @@
           }
         ]
       },
-      "eventId": 127,
+      "eventId": 131,
       "highlight": false
     }
   ],

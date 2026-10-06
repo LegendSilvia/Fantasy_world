@@ -57,6 +57,13 @@ public sealed partial class MilitarySystem
         };
         if (world.Characters.TryGetValue(winner.CommanderId, out var victorious)) actors["victor commander"] = victorious.Ref;
         if (world.Characters.TryGetValue(loser.CommanderId, out var defeated)) actors["vanquished commander"] = defeated.Ref;
+        // The knights who rode with each host are named on the battle, so it is part of their lives too.
+        foreach (var (army, side) in new[] { (winner, "victor"), (loser, "vanquished") })
+        {
+            var n = 0;
+            foreach (var knight in army.Knights.Where(id => world.Characters.TryGetValue(id, out var k) && k.IsActive).Take(3))
+                actors[$"{side} knight {++n}"] = world.Characters[knight].Ref;
+        }
         var previous = ctx.Log.Involving(war.Ref).LastOrDefault(e => e.Type is "BattleFought" or "SiegeEnded");
         var causes = new List<Cause> { new(war.DeclaredEventId, CauseKind.Enabler, 0.5) };
         if (previous is not null) causes.Add(new Cause(previous.Id, CauseKind.Enabler, 0.4));
@@ -79,6 +86,16 @@ public sealed partial class MilitarySystem
             foreach (var id in army.Knights.Append(army.CommanderId).Where(id => id != 0).ToList())
                 if (world.Characters.TryGetValue(id, out var c) && c.IsActive)
                     FaceBattle(ctx, c, won, battle, world.Characters.GetValueOrDefault(foe.CommanderId));
+
+        // The day's hero: the most martial of the victors still standing.
+        if (winner.Knights.Append(winner.CommanderId).Where(id => world.Characters.TryGetValue(id, out var h) && h.IsActive)
+                .Select(id => world.Characters[id]).OrderByDescending(h => h.Attributes.Martial).ThenBy(h => h.Id).FirstOrDefault() is { } hero)
+        {
+            hero.Renown = Math.Min(100, hero.Renown + 4);
+            ctx.Emit(new EventDraft("DistinguishedInBattle", Actors: new Dictionary<string, EntityRef> { ["character"] = hero.Ref, ["war"] = war.Ref },
+                Place: region.Ref, Causes: new[] { new Cause(battle.Id, CauseKind.Trigger, 1.0) },
+                Importance: Fates.Importance(hero, 28), Tags: new[] { "War", "Characters" }));
+        }
 
         if (loser.Morale < 20 || loser.Soldiers < 50)
         {
@@ -126,6 +143,11 @@ public sealed partial class MilitarySystem
             return;
         }
         Fates.Injure(c, fate, ctx.Rng);
+        if (fate is Fate.Wounded or Fate.Maimed)
+            ctx.Emit(new EventDraft("WoundedInBattle", Actors: new Dictionary<string, EntityRef> { ["character"] = c.Ref },
+                Place: battle.Place, Causes: new[] { new Cause(battle.Id, CauseKind.Trigger, 1.0) },
+                Payload: new Dictionary<string, string> { ["wound"] = fate == Fate.Maimed ? "maimed" : "wounded" },
+                Importance: Fates.Importance(c, fate == Fate.Maimed ? 26 : 20), Tags: new[] { "War", "Characters" }));
         if (!won) return;
         c.Renown = Math.Min(100, c.Renown + 6);
         if (c.Renown >= 50 && !c.Has(Traits.Renowned))
