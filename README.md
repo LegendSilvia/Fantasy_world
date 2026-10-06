@@ -24,6 +24,11 @@ dotnet run --project sim/FantasyWorld.Cli -- characters worlds/aerenmoor.fw.db  
 dotnet run --project sim/FantasyWorld.Cli -- life worlds/aerenmoor.fw.db <char-id>    # a biography
 dotnet run --project sim/FantasyWorld.Cli -- artifacts worlds/aerenmoor.fw.db
 dotnet run --project sim/FantasyWorld.Cli -- artifact worlds/aerenmoor.fw.db <id>     # powers and provenance
+dotnet run --project sim/FantasyWorld.Cli -- realms worlds/aerenmoor.fw.db           # kingdoms and their vassals
+dotnet run --project sim/FantasyWorld.Cli -- realm worlds/aerenmoor.fw.db <id>        # laws, council, treaties, eras
+dotnet run --project sim/FantasyWorld.Cli -- wars worlds/aerenmoor.fw.db
+dotnet run --project sim/FantasyWorld.Cli -- war worlds/aerenmoor.fw.db <id>          # casus belli and the course of the war
+dotnet run --project sim/FantasyWorld.Cli -- map worlds/aerenmoor.fw.db --layer realms
 ```
 
 `--size tiny` makes a 64×64 world with 12 regions for quick experiments.
