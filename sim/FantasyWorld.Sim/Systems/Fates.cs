@@ -76,7 +76,7 @@ public static class Fates
 
         var heir = Heir(world, c, ctx.Date, killer);
         foreach (var seat in world.Settlements.Values.Where(s => s.LordId == c.Id).ToList())
-            Succeed(ctx, seat, c, HeirCandidates(world, c, killer).FirstOrDefault(k => CanTakeSeat(world, k)), death);
+            Succeed(ctx, seat, c, SeatCandidates(world, c, seat, killer, ctx.Date).FirstOrDefault(k => CanTakeSeat(world, k)), death);
         c.Role = Role.None;
 
         foreach (var artifact in world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Held && a.HolderId == c.Id).ToList())
@@ -96,6 +96,34 @@ public static class Fates
         c.Children.Select(id => world.Characters[id]).Where(k => k.IsActive && k.Id != killer?.Id)
             .OrderBy(k => k.BirthDay).ThenBy(k => k.Id)
             .Concat(Siblings(world, c).Where(k => k.IsActive && k.Id != killer?.Id).OrderBy(k => k.BirthDay).ThenBy(k => k.Id));
+
+    /// <summary>
+    /// Line of succession to a seat. A realm's capital follows its law: primogeniture (children, then
+    /// siblings), seniority (siblings, then children) or elective (kin and council, adults first, ablest first).
+    /// </summary>
+    public static IEnumerable<Character> SeatCandidates(World world, Character c, Settlement seat, Character? killer, Core.WorldDate today)
+    {
+        var realm = world.Realms.Values.Where(r => !r.Destroyed && r.CapitalId == seat.Id).OrderBy(r => r.Id).FirstOrDefault();
+        switch (realm?.SuccessionLaw)
+        {
+            case SuccessionLaw.Seniority:
+                var siblings = Siblings(world, c).Where(k => k.IsActive && k.Id != killer?.Id).OrderBy(k => k.BirthDay).ThenBy(k => k.Id);
+                var children = c.Children.Select(id => world.Characters[id]).Where(k => k.IsActive && k.Id != killer?.Id)
+                    .OrderBy(k => k.BirthDay).ThenBy(k => k.Id);
+                return siblings.Concat(children);
+            case SuccessionLaw.Elective:
+                return HeirCandidates(world, c, killer)
+                    .Concat(realm.Council.Values.Select(id => world.Characters[id]).Where(k => k.IsActive && k.Id != killer?.Id && k.Id != c.Id))
+                    .DistinctBy(k => k.Id)
+                    .OrderBy(k => k.Stage(today) == LifeStage.Child ? 1 : 0)
+                    .ThenByDescending(Electability).ThenBy(k => k.Id);
+            default:
+                return HeirCandidates(world, c, killer);
+        }
+    }
+
+    public static double Electability(Character k) =>
+        k.Attributes.Stewardship + k.Attributes.Diplomacy + k.Attributes.Martial + k.Renown / 5;
 
     /// <summary>A seat needs a lord who can live there: not already a lord, not married to one.</summary>
     public static bool CanTakeSeat(World world, Character k) =>
@@ -127,8 +155,11 @@ public static class Fates
         seat.LordId = heir.Id;
         if (world.Characters.TryGetValue(heir.SpouseId, out var consort)) consort.SettlementId = seat.Id;
         if (world.Houses.TryGetValue(heir.HouseId, out var house)) house.SeatSettlementId = seat.Id;
+        var law = world.Realms.Values.Where(r => !r.Destroyed && r.CapitalId == seat.Id).Select(r => r.SuccessionLaw.ToString()).FirstOrDefault();
+        foreach (var realm in world.Realms.Values) realm.Council.Where(s => s.Value == heir.Id).Select(s => s.Key).ToList().ForEach(s => realm.Council.Remove(s));
         ctx.Emit(new EventDraft("SuccessionOccurred",
             Actors: new Dictionary<string, EntityRef> { ["heir"] = heir.Ref, ["predecessor"] = predecessor.Ref },
+            Payload: law is null ? null : new Dictionary<string, string> { ["law"] = law },
             Place: seat.Ref,
             Causes: new[] { new Cause(death.Id, CauseKind.Trigger, 1.0) },
             Importance: seat.Tier switch { SettlementTier.City => 55, SettlementTier.Town => 40, _ => 20 },
