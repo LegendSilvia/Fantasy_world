@@ -4,20 +4,22 @@ using FantasyWorld.Sim.Model;
 
 namespace FantasyWorld.Sim.Tests.Support;
 
-/// <summary>Hand-built worlds for system tests: two regions, one settlement each.</summary>
+/// <summary>Hand-built worlds for system tests: two linked regions, one settlement each.</summary>
 public static class TestWorlds
 {
-    public static World TwoRegions(ulong seed = 1)
+    public static World TwoRegions(ulong seed = 1, double westMountainShare = 0)
     {
         var world = WorldFactory.CreateNew(seed, DateTimeOffset.UnixEpoch);
-        AddRegion(world, "Westmark");
+        AddRegion(world, "Westmark", westMountainShare);
         AddRegion(world, "Eastmoor");
         AddSettlement(world, 1, SettlementTier.Village, 1000);
         AddSettlement(world, 2, SettlementTier.Village, 1000);
+        world.Geography = new Geography(new TerrainGrid(2, 1), new[] { 1, 2 },
+            new RegionGraph(new[] { new RegionLink(1, 2, LinkKind.Land, 3, 10, false, false) }));
         return world;
     }
 
-    public static Region AddRegion(World world, string name)
+    public static Region AddRegion(World world, string name, double mountainShare = 0)
     {
         var region = new Region
         {
@@ -27,6 +29,7 @@ public static class TestWorlds
             Biome = Biome.Grassland,
             Climate = ClimateBand.Temperate,
             Farmland = 100,
+            MountainShare = mountainShare,
             BaseFertility = 60,
             Fertility = 60,
             BaseDanger = 20,
