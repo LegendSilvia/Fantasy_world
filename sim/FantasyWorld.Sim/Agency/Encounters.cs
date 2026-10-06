@@ -112,6 +112,10 @@ public static class Encounters
         Wilds(Hunt, world, hunter, Math.Max(1, beast.Might / 2), deathShare: 0.25);
 
     /// <summary>Delving for a lost artifact: the wilds' strength is danger / 3; failure is deadlier.</summary>
+    /// <summary>Delving one level of a labyrinth: each level down is harder than the land above it.</summary>
+    public static Encounter DelveLevel(World world, Character delver, Region region, int level) =>
+        Wilds(Delve, world, delver, Math.Max(1, region.Danger / 3 + level * 2), deathShare: 0.3);
+
     public static Encounter DelveIn(World world, Character delver, Region region) =>
         Wilds(Delve, world, delver, Math.Max(1, region.Danger / 3), deathShare: 0.3);
 

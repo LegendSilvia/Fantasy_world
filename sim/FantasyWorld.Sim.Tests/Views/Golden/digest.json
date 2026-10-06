@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 151 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 153 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -24,7 +24,7 @@
         "x": 0.6796875,
         "y": 0.1953125
       },
-      "eventId": 149
+      "eventId": 151
     },
     {
       "number": 4,
@@ -45,6 +45,16 @@
         "y": 0.4296875
       },
       "eventId": 32
+    },
+    {
+      "number": 8,
+      "place": "region#2",
+      "label": "Taramdale",
+      "position": {
+        "x": 0.4921875,
+        "y": 0.4296875
+      },
+      "eventId": 150
     }
   ],
   "headline": {
@@ -90,7 +100,7 @@
           }
         ]
       },
-      "eventId": 149
+      "eventId": 151
     },
     {
       "number": 4,
@@ -176,6 +186,26 @@
         ]
       },
       "eventId": 47
+    },
+    {
+      "number": 8,
+      "category": "structures",
+      "text": {
+        "text": "Rarun of Cathreindis was driven back from level 3 of The Deeps of Taramdale.",
+        "links": [
+          {
+            "start": 0,
+            "length": 20,
+            "entity": "char#39"
+          },
+          {
+            "start": 53,
+            "length": 22,
+            "entity": "structure#1"
+          }
+        ]
+      },
+      "eventId": 150
     }
   ]
 }

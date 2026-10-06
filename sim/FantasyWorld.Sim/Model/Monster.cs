@@ -4,7 +4,7 @@ using FantasyWorld.Sim.Geo;
 
 namespace FantasyWorld.Sim.Model;
 
-public enum MonsterState { Roaming, Slumbering, Slain }
+public enum MonsterState { Roaming, Slumbering, Slain, Lairing }
 
 /// <summary>
 /// A named beast (sub-project 3 §3): what breed it is, where it lairs, how mighty and how infamous it has grown, and
@@ -31,6 +31,12 @@ public sealed class Monster
     public long RoseEventId { get; init; }
     public long SlainEventId { get; set; }
     public long SlayerId { get; set; }
+
+    /// <summary>For a labyrinth's guardian (state Lairing): the labyrinth it guards; it never leaves to raid.</summary>
+    public long LairStructureId { get; init; }
+
+    /// <summary>What guards a labyrinth's deepest level.</summary>
+    public static readonly IReadOnlyList<string> GuardianBreeds = new[] { "minotaur", "lich", "golem", "dragon" };
 
     [JsonIgnore] public bool Alive => State != MonsterState.Slain;
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);

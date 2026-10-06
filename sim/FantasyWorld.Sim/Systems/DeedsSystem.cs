@@ -72,7 +72,15 @@ public sealed class DeedsSystem : ISimSystem
         else if (lair is not null)
             options.Add(new($"hunt:{lair.Id}", (c.Ambition == Ambitions.Renown ? 40 : 5) * bold, $"hunt the monsters of {lair.Name}"));
 
-        var lost = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && nearby.Any(r => r.Id == a.RegionId))
+        // A labyrinth is delved level by level; the relics lost in its land lie on its deepest level.
+        var maze = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0 && nearby.Any(r => r.Id == s.RegionId))
+            .OrderBy(s => s.Id).FirstOrDefault();
+        if (maze is not null)
+            options.Add(new($"maze:{maze.Id}", (c.Ambition == Ambitions.Artifact ? 40 : c.Ambition == Ambitions.Renown ? 25 : 2) * bold,
+                $"delve into {maze.Name}, level {Math.Min(Math.Max(maze.Levels, 3), maze.Depth + 1)}"));
+
+        var mazes = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0).Select(s => s.RegionId).ToHashSet();
+        var lost = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && nearby.Any(r => r.Id == a.RegionId) && !mazes.Contains(a.RegionId))
             .OrderByDescending(a => a.Fame).ThenBy(a => a.Id).FirstOrDefault();
         if (lost is not null)
             options.Add(new($"delve:{lost.Id}", (c.Ambition == Ambitions.Artifact ? 40 : c.Ambition == Ambitions.Renown ? 10 : 2) * bold,
@@ -112,6 +120,7 @@ public sealed class DeedsSystem : ISimSystem
         {
             case "hunt": Hunt(ctx, c, ctx.World.Regions[target]); break;
             case "delve": Delve(ctx, c, ctx.World.Artifacts[target]); break;
+            case "maze": Maze(ctx, c, ctx.World.Structures[target]); break;
             case "steal": Steal(ctx, c, ctx.World.Artifacts[target]); break;
             case "study": c.Attributes.Lore = Math.Min(20, c.Attributes.Lore + 1); break;
             case "forge": Forge(ctx, c); break;
@@ -196,6 +205,78 @@ public sealed class DeedsSystem : ISimSystem
             Glory(ctx, delver, 10);
         }
         Suffer(ctx, delver, outcome.AttackerFate, "a labyrinth's guardians", delve, lostIn: region.Id);
+    }
+
+    /// <summary>
+    /// A delve one level deeper into a labyrinth (the depth reached is shared: the way down is remembered). At the
+    /// deepest level the guardian bars the way; past it lie the relics lost in the land. Slaying the guardian and taking
+    /// the last relic clears the labyrinth: the land grows safer, and it becomes a ruin, or a shrine if a devout hand cleared it.
+    /// </summary>
+    private void Maze(SimContext ctx, Character delver, Structure maze)
+    {
+        var world = ctx.World;
+        var region = world.Regions[maze.RegionId];
+        if (maze.Levels == 0) maze.Levels = 3;
+        var actors = new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["structure"] = maze.Ref };
+        WorldEvent last;
+        if (maze.Depth < maze.Levels)
+        {
+            var level = maze.Depth + 1;
+            var outcome = _arbiter.Resolve(Encounters.DelveLevel(world, delver, region, level), ctx.Rng);
+            using (ctx.Annotate("account", outcome.Account))
+                last = ctx.Emit(new EventDraft(outcome.AttackerWins ? "LabyrinthDelved" : "LabyrinthDelveFailed", Actors: actors, Place: region.Ref,
+                    Payload: new Dictionary<string, string> { ["level"] = level.ToString(CultureInfo.InvariantCulture), ["outcome"] = outcome.Key },
+                    Causes: new[] { new Cause(ctx.Log.Involving(maze.Ref).LastOrDefault()?.Id ?? maze.StartedEventId, CauseKind.Enabler, 0.5) },
+                    Importance: Fates.Importance(delver, outcome.AttackerWins ? 15 + 3 * level : 15), Tags: new[] { "Characters", "Deeds", "Structures" }));
+            Suffer(ctx, delver, outcome.AttackerFate, maze.Name, last, lostIn: region.Id);
+            if (!outcome.AttackerWins || !delver.IsActive) return;
+            maze.Depth = level;
+            Glory(ctx, delver, 2 + level);
+            if (maze.Depth < maze.Levels) return;
+        }
+        else last = ctx.Log.Involving(maze.Ref).LastOrDefault() ?? ctx.Log.Get(maze.StartedEventId);
+
+        if (world.Monsters.GetValueOrDefault(maze.GuardianId) is { Alive: true } guardian)
+        {
+            var outcome = _arbiter.Resolve(Encounters.HuntBeast(world, delver, guardian), ctx.Rng);
+            using var account = ctx.Annotate("account", outcome.Account);
+            last = ctx.Emit(new EventDraft(outcome.AttackerWins ? "MonsterSlain" : "MonsterHuntFailed",
+                Actors: new Dictionary<string, EntityRef> { ["hunter"] = delver.Ref, ["monster"] = guardian.Ref }, Place: region.Ref,
+                Payload: new Dictionary<string, string> { ["outcome"] = outcome.Key }, Causes: new[] { new Cause(last.Id, CauseKind.Trigger, 0.8) },
+                Importance: Fates.Importance(delver, outcome.AttackerWins ? (int)(30 + guardian.Might / 3) : 18), Tags: new[] { "Characters", "Deeds", "Magic" }));
+            if (!outcome.AttackerWins)
+            {
+                guardian.Notoriety = Math.Min(100, guardian.Notoriety + 8);
+                Suffer(ctx, delver, outcome.AttackerFate, guardian.Name, last, lostIn: region.Id);
+                return;
+            }
+            (guardian.State, guardian.SlainEventId, guardian.SlayerId) = (MonsterState.Slain, last.Id, delver.Id);
+            Glory(ctx, delver, 8 + guardian.Might / 8);
+            Suffer(ctx, delver, outcome.AttackerFate, guardian.Name, last, lostIn: region.Id);
+            if (!delver.IsActive) return;
+        }
+
+        var relic = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id)
+            .OrderByDescending(a => a.Fame).ThenBy(a => a.Id).FirstOrDefault();
+        if (relic is not null)
+        {
+            last = ctx.Emit(new EventDraft("ArtifactFound", Actors: new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["artifact"] = relic.Ref },
+                Place: region.Ref, Payload: new Dictionary<string, string> { ["outcome"] = "success" }, Causes: new[] { new Cause(last.Id, CauseKind.Enabler, 0.8) },
+                Importance: Fates.Importance(delver, (int)(20 + relic.Fame / 3)), Tags: new[] { "Characters", "Deeds", "Artifacts" }));
+            Fates.MoveToHolder(relic, delver, last.Id, "found");
+            relic.Fame = Math.Min(100, relic.Fame + 5);
+            Glory(ctx, delver, 10);
+        }
+        if (world.Artifacts.Values.Any(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id)) return;
+
+        var shrine = delver.Has(Traits.Devout);
+        actors = new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["structure"] = maze.Ref };
+        maze.ClearedEventId = ctx.Emit(new EventDraft("LabyrinthCleared", Actors: actors, Place: region.Ref,
+            Payload: new Dictionary<string, string> { ["becomes"] = shrine ? "shrine" : "ruin" }, Causes: new[] { new Cause(last.Id, CauseKind.Trigger, 0.9) },
+            Importance: Fates.Importance(delver, 50), Tags: new[] { "Characters", "Deeds", "Structures" })).Id;
+        (maze.Type, maze.State) = shrine ? (StructureKind.Shrine, StructureState.Standing) : (StructureKind.Ruin, StructureState.Ruined);
+        region.Danger = Math.Max(0, region.Danger - 20);
+        Glory(ctx, delver, 10);
     }
 
     private static void Steal(SimContext ctx, Character thief, Artifact artifact)

@@ -19,6 +19,8 @@ public static partial class Invariants
             if (s.ArchitectId != 0 && !world.Characters.ContainsKey(s.ArchitectId)) errors.Add($"Structure #{s.Id} has unknown architect #{s.ArchitectId}.");
             if (s.State == StructureState.Standing && s.Type == StructureKind.Fortification && s.CompletedEventId == 0)
                 errors.Add($"Fortress #{s.Id} stands without a completion event.");
+            if (s.Depth < 0 || s.Levels > 0 && s.Depth > s.Levels) errors.Add($"Labyrinth #{s.Id} is delved to level {s.Depth} of {s.Levels}.");
+            if (s.GuardianId != 0 && !world.Monsters.ContainsKey(s.GuardianId)) errors.Add($"Labyrinth #{s.Id} has unknown guardian #{s.GuardianId}.");
             if (s.Progress is < 0 or > 100) errors.Add($"Structure #{s.Id} has progress {s.Progress}.");
         }
 
@@ -37,6 +39,7 @@ public static partial class Invariants
             if (!world.Regions.ContainsKey(m.RegionId)) errors.Add($"Monster #{m.Id} lairs in unknown region #{m.RegionId}.");
             if (m.Might is < 1 or > 100) errors.Add($"Monster #{m.Id} has might {m.Might}.");
             if (!log.TryGet(m.RoseEventId, out _)) errors.Add($"Monster #{m.Id} cites missing event #{m.RoseEventId}.");
+            if (m.State == MonsterState.Lairing && !world.Structures.ContainsKey(m.LairStructureId)) errors.Add($"Guardian #{m.Id} guards no labyrinth.");
             if (m.State == MonsterState.Slain && m.SlainEventId == 0) errors.Add($"Monster #{m.Id} is slain without a slaying.");
         }
     }

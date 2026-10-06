@@ -240,7 +240,8 @@ public sealed class FaithSystem(IInventor? inventor = null) : ISimSystem
         {
             var faith = world.Faiths[c.FaithId];
             var death = ctx.Log.Involving(c.Ref).LastOrDefault(e => e.Type == "CharacterDied");
-            var town = world.Settlements.GetValueOrDefault(c.SettlementId) is { Abandoned: false } s ? s : null;
+            var room = world.Artifacts.Values.Count(a => a.Place != ArtifactPlace.Destroyed) < DeedsSystem.ArtifactCap(world);
+            var town = room && world.Settlements.GetValueOrDefault(c.SettlementId) is { Abandoned: false } s ? s : null;
             var relicId = town is null ? 0 : world.Ids.Take(Artifact.Kind);
             var actors = new Dictionary<string, EntityRef> { ["saint"] = c.Ref, ["faith"] = faith.Ref };
             if (relicId != 0) actors["relic"] = new EntityRef(Artifact.Kind, relicId);

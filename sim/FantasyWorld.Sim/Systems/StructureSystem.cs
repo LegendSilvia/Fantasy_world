@@ -204,16 +204,20 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
         var world = ctx.World;
         var labyrinths = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth).ToList();
         if (labyrinths.Count >= LabyrinthCap(world)) return;
-        var haunted = labyrinths.Select(s => s.RegionId).ToHashSet();
+        // A land whose labyrinth was cleared does not open another.
+        var haunted = labyrinths.Select(s => s.RegionId).Concat(world.Structures.Values.Where(s => s.GuardianId != 0).Select(s => s.RegionId)).ToHashSet();
         foreach (var region in world.Regions.Values.Where(r => r.LeyPower >= LabyrinthLey && r.Danger >= LabyrinthDanger && !haunted.Contains(r.Id)).ToList())
         {
             if (!ctx.Rng.Chance(LabyrinthPerYear)) continue;
             var id = world.Ids.Take(Structure.Kind);
             var invention = _inventor.Invent(new InventionBrief("labyrinth", $"{Structure.Kind}#{id}",
                 $"A labyrinth that opened in the wild, ley-charged land of {region.Name} in year {ctx.Date.Year}.", $"The Deeps of {region.Name}"));
+            var guardianId = world.Ids.Take(Monster.Kind);
+            var levels = ctx.Rng.NextInt(3, 8);
+            var breed = Monster.GuardianBreeds[ctx.Rng.NextInt(0, Monster.GuardianBreeds.Count)];
             using var lore = ctx.Annotate("lore", invention.Lore);
             var opened = ctx.Emit(new EventDraft("LabyrinthOpened",
-                Actors: new Dictionary<string, EntityRef> { ["structure"] = new(Structure.Kind, id) },
+                Actors: new Dictionary<string, EntityRef> { ["structure"] = new(Structure.Kind, id), ["guardian"] = new(Monster.Kind, guardianId) },
                 Place: region.Ref, Payload: new Dictionary<string, string> { ["name"] = invention.Name },
                 Causes: Conditions.Cite(region.Conditions, (Conditions.LeySurge, CauseKind.Trigger, 0.7), (Conditions.Dangerous, CauseKind.Enabler, 0.5)),
                 Importance: 50, Tags: new[] { "Structures", "Magic" }));
@@ -221,6 +225,14 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
             {
                 Id = id, Name = invention.Name, Type = StructureKind.Labyrinth, RegionId = region.Id,
                 StartedEventId = opened.Id, CompletedEventId = opened.Id, Progress = 100, State = StructureState.Standing,
+                Levels = levels, GuardianId = guardianId,
+            };
+            var deeps = invention.Name.StartsWith("The ", StringComparison.Ordinal) ? "the " + invention.Name[4..] : invention.Name;
+            world.Monsters[guardianId] = new Monster
+            {
+                Id = guardianId, Name = $"The {char.ToUpperInvariant(breed[0])}{breed[1..]} of {deeps}", Breed = breed, RegionId = region.Id,
+                Might = Math.Clamp(30 + 8 * levels + ctx.Rng.NextInt(0, 11), 1, 100), BornDay = ctx.Date.Day, State = MonsterState.Lairing,
+                RoseEventId = opened.Id, LairStructureId = id,
             };
             region.Danger = Math.Min(100, region.Danger + 15);
             if (world.Artifacts.Values.Count(a => a.Place != ArtifactPlace.Destroyed) < DeedsSystem.ArtifactCap(world))

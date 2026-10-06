@@ -29,11 +29,11 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
     public void OnMonthlyTick(SimContext ctx)
     {
         var world = ctx.World;
-        foreach (var beast in world.Monsters.Values.Where(m => m.State == MonsterState.Roaming).ToList())
+        foreach (var beast in world.Monsters.Values.Where(m => m.State is MonsterState.Roaming or MonsterState.Lairing).ToList())
         {
             var lair = world.Regions[beast.RegionId];
             lair.Danger = Math.Max(lair.Danger, beast.Might / 2);
-            if (!ctx.Rng.Chance(RaidPerMonth * (0.5 + beast.Might / 100))) continue;
+            if (beast.State == MonsterState.Lairing || !ctx.Rng.Chance(RaidPerMonth * (0.5 + beast.Might / 100))) continue;
             Raid(ctx, beast, lair);
         }
     }
@@ -54,7 +54,8 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
                         Place: world.Regions[beast.RegionId].Ref, Importance: 25, Tags: new[] { "Magic" }));
                 }
             }
-            else if (world.Regions[beast.RegionId].Conditions.TryGetValue(Conditions.LeySurge, out var surge) && ctx.Rng.Chance(0.3))
+            else if (beast.State == MonsterState.Slumbering && world.Regions[beast.RegionId].Conditions.TryGetValue(Conditions.LeySurge, out var surge)
+                     && ctx.Rng.Chance(0.3))
             {
                 beast.State = MonsterState.Roaming;
                 ctx.Emit(new EventDraft("MonsterWoke", Actors: new Dictionary<string, EntityRef> { ["monster"] = beast.Ref },
@@ -70,7 +71,7 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
     private void Rise(SimContext ctx)
     {
         var world = ctx.World;
-        if (world.Monsters.Values.Count(m => m.Alive) >= Cap(world)) return;
+        if (world.Monsters.Values.Count(m => m.State is MonsterState.Roaming or MonsterState.Slumbering) >= Cap(world)) return; // guardians aside
         var haunted = world.Monsters.Values.Where(m => m.Alive).Select(m => m.RegionId).ToHashSet();
         foreach (var region in world.Regions.Values.Where(r => r.Danger >= RiseDanger && !haunted.Contains(r.Id)).ToList())
         {

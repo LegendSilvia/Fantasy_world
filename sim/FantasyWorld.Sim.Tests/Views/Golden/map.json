@@ -675,5 +675,19 @@
       ]
     }
   ],
-  "monsters": []
+  "monsters": [
+    {
+      "ref": "monster#1",
+      "name": "The Lich of the Deeps of Taramdale",
+      "breed": "lich",
+      "might": 61,
+      "legendary": false,
+      "slumbering": false,
+      "position": {
+        "x": 0.4921875,
+        "y": 0.4296875
+      },
+      "roseEventId": 120
+    }
+  ]
 }

@@ -56,6 +56,7 @@ public static class Categories
         ["RouteOpened"] = "Trade",
         ["RouteSevered"] = "Trade cut",
         ["RegionConverted"] = "Conversion",
+        ["LabyrinthCleared"] = "A labyrinth cleared",
         ["WorksCollapsed"] = "A collapse",
         ["FortificationCompleted"] = "A fortress",
         ["RestorationBegun"] = "Restoration",
