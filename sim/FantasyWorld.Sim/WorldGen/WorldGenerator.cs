@@ -29,7 +29,7 @@ public sealed record WorldGenOptions(ulong Seed, WorldSize Size = WorldSize.Medi
     }
 }
 
-/// <summary>Seed → a complete world: terrain, rivers, regions, region graph, settlements. No history yet (Plan 6).</summary>
+/// <summary>Seed → a complete world: terrain, rivers, regions, region graph, settlements, cultures and faiths. No history yet (Plan 6).</summary>
 public static class WorldGenerator
 {
     public static World Generate(WorldGenOptions options, DateTimeOffset nowUtc)
@@ -47,8 +47,12 @@ public static class WorldGenerator
         var regions = RegionProfiler.Profile(terrain, layout, seed, Stream("profile"), world.Ids, names);
         var settlements = SettlementPlacer.Place(terrain, layout, regions, Stream("settlements"), world.Ids, names);
 
+        var (cultures, faiths) = CultureGenerator.Generate(regions, graph, Stream("cultures"), world.Ids);
+
         world.Geography = new Geography(terrain, layout.RegionOf, graph);
         foreach (var region in regions) world.Regions[region.Id] = region;
+        foreach (var culture in cultures) world.Cultures[culture.Id] = culture;
+        foreach (var faith in faiths) world.Faiths[faith.Id] = faith;
         foreach (var settlement in settlements) world.Settlements[settlement.Id] = settlement;
         return world;
     }
