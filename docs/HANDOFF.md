@@ -19,13 +19,18 @@ Context for picking up this project on another machine / in a new Claude session
 | Sim core (sub-project 1) | **Complete** |
 | Sub-project 2 (Chronicle & why UI data) | **Done** — spec `docs/superpowers/specs/2026-10-06-chronicle-views-design.md`, plan `docs/superpowers/plans/2026-10-06-chronicle-views.md`, Tasks 1–8; 478/478 tests pass; every screen well under a millisecond (budget 50 ms) |
 | Sub-project 4 (Godot diorama client) | **Done** — spec `docs/superpowers/specs/2026-10-06-godot-diorama-client-design.md`, plan `docs/superpowers/plans/2026-10-06-godot-diorama-client.md`, Tasks 1–13; 512/512 tests pass; 69 headless Godot checks pass (also in CI); screenshots in `docs/images/` |
-| Sub-project 3 (Myth, magic & structures) | Spec drafted — `docs/superpowers/specs/2026-10-06-myth-magic-structures-design.md`; prototype in progress (trade routes and roads on the map, named monsters and hunts, beasts on the map, faith spread and holy sites) |
-| Sub-project 5 (Narration polish) | Spec drafted — `docs/superpowers/specs/2026-10-06-narration-polish-design.md` |
+| Sub-project 3 (Myth, magic & structures) | **Done** — spec `docs/superpowers/specs/2026-10-06-myth-magic-structures-design.md`, plan `docs/superpowers/plans/2026-10-06-myth-magic-structures.md`, Tasks 1–11; 557/557 tests pass; 73 headless Godot checks pass; a two-century medium soak with invariants checked every tick |
+| Sub-project 5 (Narration polish) | Spec drafted — `docs/superpowers/specs/2026-10-06-narration-polish-design.md`; prototype complete (English layer, phrasing variety, headline titles and the story of why, chronicler persona, guardrails, structural evals, `fw eval`), in review |
 
 ## Next step
 
-1. Merge the working branch into `main` (Plans 4–6 and sub-projects 2 and 4).
-2. Sub-project 3 (depth), then 5 (narration evals).
+1. Merge the working branch into `main` (Plans 4–6 and sub-projects 2, 3 and 4).
+2. Sub-project 5 (narration polish and evals): plan and execute.
+
+Notes from sub-project 3 execution:
+- Try it: `fw new worlds/w.fw.db --seed 7 --size medium --prehistory 200`, then `fw log … | grep -E "Monster|Holy|Schism|Saint|Wild|Labyrinth|Route"`; the map's Trade routes layer and the town view show roads, beasts, temples and mage towers.
+- Four systems joined `DefaultSystems` (trade, monsters, faith, magic); snapshot version 6 adds routes and monsters. Wars of rivalry and glory were added because some worlds went a century without a war.
+- History replays from events of importance ≥ 30 (compaction keeps them): roads reopening and closing, occupations lapsing and works collapsing are recorded at that weight.
 
 Notes from sub-project 4 execution:
 - Try it: install Godot 4.3 .NET, `dotnet build game/FantasyWorld.Game.csproj`, then open `game/` in Godot (or run it with `--path game`); it opens `worlds/default.fw.db`, catching up first.
