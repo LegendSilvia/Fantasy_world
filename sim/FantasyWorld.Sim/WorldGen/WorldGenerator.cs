@@ -56,6 +56,7 @@ public static class WorldGenerator
         foreach (var settlement in settlements) world.Settlements[settlement.Id] = settlement;
         PeopleGenerator.Populate(world, Stream("people"));
         RealmGenerator.Generate(world, Stream("realms"));
+        world.Name = new NameGen(Stream("world-name")).Region();
         return world;
     }
 }

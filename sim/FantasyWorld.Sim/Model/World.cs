@@ -6,6 +6,9 @@ namespace FantasyWorld.Sim.Model;
 public sealed class World
 {
     public required ulong Seed { get; init; }
+
+    /// <summary>The world's own name (shown on every screen); empty for worlds made before it was named.</summary>
+    public string Name { get; set; } = "";
     public WorldDate Date { get; set; }
     public DateTimeOffset LastRealUtc { get; set; }
     public long LastSeenEventId { get; set; }

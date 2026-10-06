@@ -83,6 +83,13 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 
     private readonly Func<EntityRef, string?> _nameOf = Names.Of(world);
 
+    /// <summary>The event as one sentence, without date or annotations (headlines, lists).</summary>
+    public string Sentence(WorldEvent ev)
+    {
+        var sentence = Templates.TryGetValue(ev.Type, out var template) && Fill(template, ev) is { } filled ? filled : Generic(ev);
+        return char.ToUpperInvariant(sentence[0]) + sentence[1..];
+    }
+
     public string Narrate(WorldEvent ev)
     {
         var sentence = Templates.TryGetValue(ev.Type, out var template) && Fill(template, ev) is { } filled

@@ -29,7 +29,8 @@ public sealed record WorldSnapshot(
     SortedDictionary<long, Realm>? Realms = null,
     SortedDictionary<long, War>? Wars = null,
     SortedDictionary<long, Army>? Armies = null,
-    SortedDictionary<long, Structure>? Structures = null)
+    SortedDictionary<long, Structure>? Structures = null,
+    string? Name = null)
 {
     public const int CurrentVersion = 5;
 
@@ -54,7 +55,8 @@ public sealed record WorldSnapshot(
         world.Realms,
         world.Wars,
         world.Armies,
-        world.Structures);
+        world.Structures,
+        world.Name);
 
     /// <summary>Rebuilds the world. Older snapshots lack newer entities, which load empty.</summary>
     public World ToWorld() => new()
@@ -77,6 +79,7 @@ public sealed record WorldSnapshot(
         Wars = Copy(Wars),
         Armies = Copy(Armies),
         Structures = Copy(Structures),
+        Name = Name ?? "",
     };
 
     private static SortedDictionary<long, T> Copy<T>(SortedDictionary<long, T>? source) =>
