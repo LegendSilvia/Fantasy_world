@@ -30,7 +30,9 @@ public sealed record WorldSnapshot(
     SortedDictionary<long, War>? Wars = null,
     SortedDictionary<long, Army>? Armies = null,
     SortedDictionary<long, Structure>? Structures = null,
-    string? Name = null)
+    string? Name = null,
+    SortedDictionary<long, long>? FoundingOwners = null,
+    SortedDictionary<long, long>? FoundingLieges = null)
 {
     public const int CurrentVersion = 5;
 
@@ -56,7 +58,9 @@ public sealed record WorldSnapshot(
         world.Wars,
         world.Armies,
         world.Structures,
-        world.Name);
+        world.Name,
+        world.FoundingOwners,
+        world.FoundingLieges);
 
     /// <summary>Rebuilds the world. Older snapshots lack newer entities, which load empty.</summary>
     public World ToWorld() => new()
@@ -80,6 +84,8 @@ public sealed record WorldSnapshot(
         Armies = Copy(Armies),
         Structures = Copy(Structures),
         Name = Name ?? "",
+        FoundingOwners = FoundingOwners is null ? new SortedDictionary<long, long>() : new SortedDictionary<long, long>(FoundingOwners),
+        FoundingLieges = FoundingLieges is null ? new SortedDictionary<long, long>() : new SortedDictionary<long, long>(FoundingLieges),
     };
 
     private static SortedDictionary<long, T> Copy<T>(SortedDictionary<long, T>? source) =>

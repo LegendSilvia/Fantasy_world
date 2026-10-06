@@ -256,6 +256,7 @@ public sealed class DiplomacySystem : ISimSystem
                 side.Add(ally.Id);
                 ctx.Emit(new EventDraft("AllyJoinedWar",
                     Actors: new Dictionary<string, EntityRef> { ["ally"] = ally.Ref, ["war"] = war.Ref },
+                    Payload: new Dictionary<string, string> { ["side"] = side == war.Attackers ? "attackers" : "defenders" },
                     Place: world.Settlements[ally.CapitalId].Ref,
                     Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 1.0) }, Importance: 45, Tags: new[] { "Politics", "War" }));
             }

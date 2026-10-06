@@ -35,6 +35,12 @@ public sealed class World
     public SortedDictionary<long, Army> Armies { get; init; } = new();
     public SortedDictionary<long, Structure> Structures { get; init; } = new();
 
+    /// <summary>Region → realm at world creation: the baseline that history replays from (map history slider).</summary>
+    public SortedDictionary<long, long> FoundingOwners { get; init; } = new();
+
+    /// <summary>Realm → liege at world creation (0 = independent), the baseline for replaying vassalage.</summary>
+    public SortedDictionary<long, long> FoundingLieges { get; init; } = new();
+
     /// <summary>Living notables (not faded), in id order.</summary>
     public IEnumerable<Character> ActiveCharacters => Characters.Values.Where(c => c.IsActive);
 

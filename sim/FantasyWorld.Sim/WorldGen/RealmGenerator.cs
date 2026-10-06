@@ -43,6 +43,9 @@ public static class RealmGenerator
             region.OwnerRealmId = county.Id;
         }
 
+        foreach (var region in world.Regions.Values.Where(r => r.OwnerRealmId != 0))
+            world.FoundingOwners[region.Id] = region.OwnerRealmId;
+        foreach (var realm in world.Realms.Values) world.FoundingLieges[realm.Id] = realm.LiegeId;
         foreach (var realm in world.Realms.Values)
         {
             realm.Rank = Realms.RankFor(world, realm);
