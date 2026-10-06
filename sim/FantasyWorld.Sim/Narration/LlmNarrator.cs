@@ -10,7 +10,8 @@ namespace FantasyWorld.Sim.Narration;
 /// <summary>
 /// Narration by LLM (spec §8.7), on its own budget. The prompt carries the template prose plus the facts, motives,
 /// accounts and lore stored on the events; answers are cached in the journal by event, so reading the same
-/// passage twice costs nothing. Without an answer, the template narration is returned.
+/// passage twice costs nothing. Without an answer, or with one that invents names or numbers (see
+/// <see cref="NarrationGuard"/>), the template narration is returned.
 /// </summary>
 public sealed class LlmNarrator(StoryContext story) : INarrator
 {
@@ -71,7 +72,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             additionalProperties = false,
         });
         var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: 1500);
-        var json = story.Gateway.Ask(request, day, answer => Text(answer) is not null);
+        var json = story.Gateway.Ask(request, day, answer => Text(answer) is { } text && NarrationGuard.Faithful(text, facts));
         return json is null ? null : Text(json);
     }
 
