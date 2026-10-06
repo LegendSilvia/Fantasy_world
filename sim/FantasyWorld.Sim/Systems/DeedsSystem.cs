@@ -117,6 +117,7 @@ public sealed class DeedsSystem : ISimSystem
     private void Hunt(SimContext ctx, Character hunter, Region region)
     {
         var outcome = _arbiter.Resolve(Encounters.HuntIn(ctx.World, hunter, region), ctx.Rng);
+        using var account = ctx.Annotate("account", outcome.Account);
         var hunt = ctx.Emit(new EventDraft(outcome.AttackerWins ? "MonstersSlain" : "MonsterHuntFailed",
             Actors: new Dictionary<string, EntityRef> { ["hunter"] = hunter.Ref },
             Place: region.Ref,
@@ -135,6 +136,7 @@ public sealed class DeedsSystem : ISimSystem
     {
         var region = ctx.World.Regions[artifact.RegionId];
         var outcome = _arbiter.Resolve(Encounters.DelveIn(ctx.World, delver, region), ctx.Rng);
+        using var account = ctx.Annotate("account", outcome.Account);
         var delve = ctx.Emit(new EventDraft(outcome.AttackerWins ? "ArtifactFound" : "DelveFailed",
             Actors: new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["artifact"] = artifact.Ref },
             Place: region.Ref,
@@ -192,6 +194,7 @@ public sealed class DeedsSystem : ISimSystem
     {
         var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
         var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath), ctx.Rng);
+        using var account = ctx.Annotate("account", outcome.Account);
         var duel = ctx.Emit(new EventDraft("DuelFought",
             Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
             Place: ctx.World.Settlements[defender.SettlementId].Ref,
