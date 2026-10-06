@@ -197,10 +197,3 @@ public partial class DigestView : Control
         button.AddThemeColorOverride("font_hover_color", active ? Colors.White : Ui.C(Palette.Body));
     }
 }
-
-/// <summary>A numbered pin's label on screen: the number in a black circle and the place in a pill.</summary>
-public partial class PinTag : HBoxContainer
-{
-    public int Number { get; init; }
-    public long EventId { get; init; }
-}

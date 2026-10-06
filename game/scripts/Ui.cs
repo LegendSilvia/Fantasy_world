@@ -134,6 +134,42 @@ public static class Ui
         return label;
     }
 
+    /// <summary>A pill chip: outlined (traits, systems) or filled black (the ambition).</summary>
+    public static PanelContainer Chip(string text, bool filled = false, string name = "Chip", Rgb? dot = null)
+    {
+        var chip = Capsule(name, filled ? C(Palette.Ink) : new Color(0, 0, 0, 0), filled ? null : C(Palette.Ink), 12, 5);
+        var row = Row("Row", 6);
+        if (dot is { } d) row.AddChild(Dot(d, 8));
+        row.AddChild(Line(text, "Text", filled ? Palette.Card : Palette.Ink, 12));
+        chip.AddChild(row);
+        return chip;
+    }
+
+    /// <summary>A whole name as one link.</summary>
+    public static RichTextLabel NameLink(Mention mention, string name, Action<EntityRef> open, int size = 13) =>
+        Linked(new LinkedText(mention.Name, new[] { new TextLink(0, mention.Name.Length, mention.Ref) }), name, open, size, Palette.Ink);
+
+    /// <summary>"← Back", a quiet text button.</summary>
+    public static Button BackLink(Action back)
+    {
+        var button = new Button { Name = "Back", Text = "← Back", Flat = true, Alignment = HorizontalAlignment.Left, MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+        foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) button.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
+        button.AddThemeColorOverride("font_color", C(Palette.Muted));
+        button.AddThemeColorOverride("font_hover_color", C(Palette.Ink));
+        button.AddThemeFontSizeOverride("font_size", 12);
+        button.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        button.Pressed += back;
+        return button;
+    }
+
+    /// <summary>The page ground: screens that are documents rather than the diorama cover it.</summary>
+    public static ColorRect Page()
+    {
+        var page = new ColorRect { Name = "Page", Color = C(Palette.Ground), MouseFilter = Control.MouseFilterEnum.Stop };
+        page.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        return page;
+    }
+
     public static Label Body(string text, string name = "Body", Rgb? colour = null, int size = 13)
     {
         var label = new Label { Name = name, Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };

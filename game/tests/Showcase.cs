@@ -41,6 +41,15 @@ public partial class Showcase : Node
         main.Diorama.Rig.Drag(-260, -90);
         await Shot(main, dir, "5-low-angle");
 
+        var notable = session.Read((w, l) => w.Characters.Values.Where(c => c.IsActive).MaxBy(c => l.Involving(c.Ref).Count())!.Id);
+        main.Router.Open(new FantasyWorld.Sim.Events.EntityRef("char", notable));
+        await Shot(main, dir, "6-character", 10);
+        main.Router.Go(new Screen(ScreenKind.Family, notable));
+        await Shot(main, dir, "7-family", 10);
+        var war = session.Read((w, l) => l.All.Last(e => e.Type == "WarDeclared").Id);
+        main.Router.Explain(war);
+        await Shot(main, dir, "8-why", 10);
+
         main.QueueFree();
         await Frames(2);
         foreach (var suffix in new[] { "", ".bak1", ".bak2", ".bak3", "-wal", "-shm" })
@@ -49,9 +58,9 @@ public partial class Showcase : Node
         GetTree().Quit();
     }
 
-    private async Task Shot(Main main, string dir, string name)
+    private async Task Shot(Main main, string dir, string name, int frames = 150)
     {
-        await Frames(150);
+        await Frames(frames);
         GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(dir, name + ".png"));
     }
 

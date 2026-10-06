@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System;
 using System.Linq;
 using FantasyWorld.Client;
 using FantasyWorld.Sim.Views;
@@ -49,6 +50,60 @@ public partial class HeadlessChecks : Node
         await DioramaChecks(main);
         await DigestChecks(main);
         await MapChecks(main);
+        await PageChecks(main);
+    }
+
+    private async Task PageChecks(Main main)
+    {
+        var session = main.Session!;
+        var person = session.Read((w, l) => l.All.Reverse().SelectMany(e => e.Actors.Values).First(a => a.Kind == "char" && w.Characters.ContainsKey(a.Id)).Id);
+        main.Router.Open(new FantasyWorld.Sim.Events.EntityRef("char", person));
+        await Frames(3);
+        var character = main.Current as CharacterView;
+        Check(character is not null && !main.Diorama.Visible, "a character link opens their page over the diorama");
+        if (character is null) return;
+        var screen = character.Character;
+        Check(character.GetNode<Label>("Left/Who/Title").Text == $"{screen.Name}.", "the page is titled with their name");
+        Check(character.GetNode("Left/Chips").GetChildCount() == screen.Traits.Count + (screen.Ambition.Length > 0 ? 1 : 0), "traits and ambition are chips");
+        Check(character.Timeline.GetChildren().Count(c => c.Name.ToString().StartsWith("Event") || c.Name == "Highlight") == screen.Timeline.Count, "every deed is on the timeline");
+        Check(character.GetNode("Ties/Column/List").GetChildCount() == Math.Max(1, screen.Ties.Count), "ties are listed");
+        await Shot("character");
+        var followed = session.IsFollowed(screen.Ref);
+        character.ToggleFollow();
+        Check(session.IsFollowed(screen.Ref) != followed && character.FollowButton.Text == (followed ? "Follow" : "Following"), "Follow follows");
+        character.ToggleFollow();
+
+        character.GetNode<Button>("Ties/Column/Actions/Family").EmitSignal(BaseButton.SignalName.Pressed);
+        await Frames(2);
+        var shown = (main.Current as FamilyView)?.FindChildren("Person*", "", true, false).Count ?? -1;
+        Check(shown == session.Family(person).Nodes.Count, $"the family tree shows everyone ({shown} of {session.Family(person).Nodes.Count})");
+        await Shot("family");
+        main.Router.Back();
+        await Frames(2);
+        Check(main.Current is CharacterView, "Back returns to the character");
+
+        var eventId = session.Read((w, l) => l.All.Last(e => e.Causes.Count > 0 && l.TryGet(e.Causes[0].EventId, out _)).Id);
+        main.Router.Explain(eventId);
+        await Frames(3);
+        var why = main.Current as WhyView;
+        Check(why is not null, "a why chain opens");
+        if (why is null) return;
+        Check(why.Graph.Cards.Count == 1 + why.Why.Layers.Sum(l => l.Count) && why.Canvas.FindChildren("Card*", "", false, false).Count == why.Graph.Cards.Count,
+            "every cause is a card");
+        Check(why.GetNode<Label>("Intro/Summary").Text == why.Why.Summary, "the chain is summarised");
+        await Shot("why");
+        var cause = why.Graph.Cards[1].Card.EventId;
+        why.Canvas.GetNode<PanelContainer>($"Card{cause}").EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true });
+        await Frames(2);
+        Check(main.Router.Current == new Screen(ScreenKind.Why, cause), "clicking a cause traces it further back");
+        main.Router.Back();
+        await Frames(2);
+        var again = (WhyView)main.Current!;
+        again.GetNode<Button>("Chain/Column/ActionsRow/Actions/TraceFurther").EmitSignal(BaseButton.SignalName.Pressed);
+        Check(again.ShowingConsequences && again.Graph.Cards.Count == 1 + again.Why.Consequences.Count, "trace further shows what it led to");
+        main.Router.Home();
+        await Frames(2);
+        Check(main.Diorama.Visible && main.Current is DigestView, "home is the digest over the diorama");
     }
 
     private async Task MapChecks(Main main)

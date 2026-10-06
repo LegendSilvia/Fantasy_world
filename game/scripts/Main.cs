@@ -143,8 +143,13 @@ public partial class Main : Control
         {
             ScreenKind.Digest when Digest is not null => new DigestView { Host = this, Digest = Digest },
             ScreenKind.Map => new MapHudView { Host = this, Focus = screen.Focus },
+            ScreenKind.Character => new CharacterView { Host = this, Character = _session!.Character(screen.Id) },
+            ScreenKind.Family => new FamilyView { Host = this, Tree = _session!.Family(screen.Id) },
+            ScreenKind.Why => new WhyView { Host = this, Why = _session!.Why(screen.Id) },
             _ => null,
         };
+        // Pages cover the diorama; there is no need to draw it underneath them.
+        Diorama.Visible = screen.Kind is ScreenKind.Digest or ScreenKind.Map || Current is null;
         if (Current is not null) Screens.AddChild(Current);
     }
 
