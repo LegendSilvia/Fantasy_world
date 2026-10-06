@@ -35,6 +35,7 @@ public static partial class CliApp
           fw realm <world-file> <realm-id>
           fw wars <world-file>
           fw war <world-file> <war-id>
+          fw structures <world-file>                landmarks, labyrinths and ruins
           fw tell <world-file> <event-id> [--depth <n>]   the why-chain as prose
           fw follow <world-file> <entity>           e.g. char#12, realm#3: their events lead the digest
           fw unfollow <world-file> <entity>
@@ -72,6 +73,7 @@ public static partial class CliApp
                 "realm" => RealmDetail(path, rest, output),
                 "wars" => WarList(path, output),
                 "war" => WarDetail(path, rest, output),
+                "structures" => StructureList(path, output),
                 "tell" => Tell(path, rest, output, providers),
                 "digest" => DigestCommand(path, rest, output, providers),
                 "live" => Live(path, rest, output, clock, providers),

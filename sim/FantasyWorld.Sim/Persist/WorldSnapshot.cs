@@ -28,9 +28,10 @@ public sealed record WorldSnapshot(
     SortedDictionary<long, Artifact>? Artifacts = null,
     SortedDictionary<long, Realm>? Realms = null,
     SortedDictionary<long, War>? Wars = null,
-    SortedDictionary<long, Army>? Armies = null)
+    SortedDictionary<long, Army>? Armies = null,
+    SortedDictionary<long, Structure>? Structures = null)
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public static WorldSnapshot Capture(World world, EventQueue queue) => new(
         CurrentVersion,
@@ -52,7 +53,8 @@ public sealed record WorldSnapshot(
         world.Artifacts,
         world.Realms,
         world.Wars,
-        world.Armies);
+        world.Armies,
+        world.Structures);
 
     /// <summary>Rebuilds the world. Older snapshots lack newer entities, which load empty.</summary>
     public World ToWorld() => new()
@@ -74,6 +76,7 @@ public sealed record WorldSnapshot(
         Realms = Copy(Realms),
         Wars = Copy(Wars),
         Armies = Copy(Armies),
+        Structures = Copy(Structures),
     };
 
     private static SortedDictionary<long, T> Copy<T>(SortedDictionary<long, T>? source) =>

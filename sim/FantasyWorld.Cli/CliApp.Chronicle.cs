@@ -3,6 +3,7 @@ using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Llm;
+using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Narration;
 using FantasyWorld.Sim.Persist;
 using FantasyWorld.Sim.Query;
@@ -63,6 +64,20 @@ public static partial class CliApp
         }
         store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         output.WriteLine($"Stopped at {sim.World.Date}.");
+        return 0;
+    }
+
+    private static int StructureList(string path, TextWriter output)
+    {
+        using var store = OpenExisting(path);
+        var world = store.Load().World;
+        output.WriteLine("    id kind        state     name                                  where");
+        foreach (var s in world.Structures.Values)
+        {
+            var where = s.SettlementId != 0 ? world.Settlements[s.SettlementId].Name : world.Regions[s.RegionId].Name;
+            var state = s.State == StructureState.Building ? $"{s.Progress:0}% built" : s.State.ToString().ToLowerInvariant();
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{s.Id,6} {s.Type.ToString().ToLowerInvariant(),-11} {state,-9} {s.Name,-37} {where}"));
+        }
         return 0;
     }
 

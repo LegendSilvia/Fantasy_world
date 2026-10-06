@@ -30,6 +30,7 @@ public sealed class World
     public SortedDictionary<long, Realm> Realms { get; init; } = new();
     public SortedDictionary<long, War> Wars { get; init; } = new();
     public SortedDictionary<long, Army> Armies { get; init; } = new();
+    public SortedDictionary<long, Structure> Structures { get; init; } = new();
 
     /// <summary>Living notables (not faded), in id order.</summary>
     public IEnumerable<Character> ActiveCharacters => Characters.Values.Where(c => c.IsActive);

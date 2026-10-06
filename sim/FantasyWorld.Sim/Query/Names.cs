@@ -20,6 +20,7 @@ public static class Names
         Realm.Kind => world.Realms.TryGetValue(entity.Id, out var realm) ? Statecraft.Title(realm) : null,
         War.Kind => world.Wars.TryGetValue(entity.Id, out var war) ? war.Name : null,
         Army.Kind => world.Armies.TryGetValue(entity.Id, out var army) ? army.Name : null,
+        Structure.Kind => world.Structures.TryGetValue(entity.Id, out var structure) ? structure.Name : null,
         Culture.Kind => world.Cultures.TryGetValue(entity.Id, out var culture) ? culture.Name : null,
         Faith.Kind => world.Faiths.TryGetValue(entity.Id, out var faith) ? faith.Name : null,
         _ => null,

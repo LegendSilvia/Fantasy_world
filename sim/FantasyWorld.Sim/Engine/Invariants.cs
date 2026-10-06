@@ -27,10 +27,13 @@ public static partial class Invariants
         CheckPeople(world, log, errors);
         CheckArtifacts(world, log, errors);
         CheckRealms(world, log, errors);
+        CheckStructures(world, log, errors);
         return errors;
     }
 
     static partial void CheckRealms(World world, EventLog log, List<string> errors);
+
+    static partial void CheckStructures(World world, EventLog log, List<string> errors);
 
     static partial void CheckPeople(World world, EventLog log, List<string> errors);
 

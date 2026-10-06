@@ -7,7 +7,7 @@ namespace FantasyWorld.Sim.Systems;
 /// <summary>
 /// The fixed system order for monthly and yearly ticks (spec §7: Aging → Economy → Regions →
 /// Politics → Military → Characters → Structures): settlements, realms and diplomacy are politics,
-/// then armies, then the character systems, and last the chronicle's compaction.
+/// then armies, then the character systems, then structures, and last the chronicle's compaction.
 /// </summary>
 public static class DefaultSystems
 {
@@ -29,6 +29,7 @@ public static class DefaultSystems
         new DeedsSystem(decider, arbiter, inventor),
         new ArtifactSystem(),
         new PromotionSystem(),
+        new StructureSystem(inventor),
         new ChronicleSystem(),
     };
 }
