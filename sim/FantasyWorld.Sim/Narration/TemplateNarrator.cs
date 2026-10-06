@@ -111,7 +111,85 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["SuccessionOccurred"] = "{heir} succeeded {predecessor} at {@place}.",
         ["TheftFoiled"] = "{victim} caught {thief} reaching for {artifact}.",
         ["WarDeclared"] = "{attacker} declared war on {defender} {=why}, and so began {war}.",
+        // The land and the towns.
+        ["Drought"] = "Drought parched {@place}.",
+        ["DroughtEnded"] = "The rains returned to {@place}.",
+        ["Flood"] = "The rivers of {@place} burst their banks.",
+        ["Blight"] = "Blight struck the fields of {@place}.",
+        ["BlightEnded"] = "The blight passed from {@place}.",
+        ["PlagueEnded"] = "The plague left {@place}.",
+        ["PlagueSpread"] = "Plague spread from {from} to {@place}.",
+        ["LeySurge"] = "The ley lines of {@place} surged.",
+        ["DangerRose"] = "{@place} grew dangerous.",
+        ["DangerSubsided"] = "{@place} grew safer.",
+        ["FertilityExhausted"] = "The soil of {@place} was worked out.",
+        ["FertilityRecovered"] = "The soil of {@place} recovered.",
+        ["FoodShortageEnded"] = "Food was plentiful again in {@place}.",
+        ["Earthquake"] = "An earthquake shook {@place}.",
+        ["ResourceDiscovered"] = "{=resource} was found in {@place}.",
+        ["MonstersMigrated"] = "Monsters from {from} came down into {@place}.",
+        ["ElderChosen"] = "{character} was chosen as an elder of {@place}.",
+        ["Exodus"] = "{=people} left {@place} for {to}.",
+        ["NotablesFled"] = "{=notables} of {from} fled to {@place}.",
+        ["RealmRose"] = "{realm} grew into a {=rank}.",
+        ["RealmDiminished"] = "{realm} was reduced to a {=rank}.",
+        ["StabilityCollapsed"] = "Order broke down in {realm}.",
+        ["StabilityRestored"] = "Order returned to {realm}.",
+        ["RebelLeaderRose"] = "{character} rose to lead the rebels of {@place}.",
+        ["RevoltEnded"] = "The revolt in {@place} ended.",
+        ["SettlementGrew"] = "{@place} grew into a {=tier}.",
+        ["SettlementDeclined"] = "{@place} dwindled to a {=tier}.",
+        ["BuildingCompleted"] = "{@place} finished its {=building}.",
+        ["WallsRaised"] = "{@place} raised its walls higher.",
     };
+
+    /// <summary>
+    /// Other ways to tell the most common events (sub-project 5 §3). The phrasing is chosen by the event's id, so a
+    /// world always reads the same and neighbouring entries of one kind read differently.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string[]> Alternates = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        ["MarriageWed"] = new[] { "{spouse} married {partner} at {@place}.", "At {@place}, {spouse} took {partner} in marriage." },
+        ["CharacterBorn"] = new[] { "At {@place}, {mother} bore {father} a child, {child}." },
+        ["CharacterDied"] = new[] { "{deceased} {=death} at the age of {=age}." },
+        ["WoundedInBattle"] = new[] { "{character} came away {=wound} from the battle at {@place}." },
+        ["ComingOfAge"] = new[] { "{character} came of age with dreams of {=ambition}." },
+        ["RivalryBegan"] = new[] { "{a} and {b} fell out over {=over}." },
+        ["DistinguishedInBattle"] = new[] { "{character} fought with distinction at {@place}." },
+        ["BattleFought"] = new[] { "{victor} beat {vanquished} at {@place} in {war}." },
+        ["DuelFought"] = new[] { "At {@place}, {challenger} met {defender} {=stakes}." },
+        ["FriendshipFormed"] = new[] { "{a} and {b} grew close.", "A friendship grew between {a} and {b}." },
+        ["RegionOccupied"] = new[] { "{@place} fell to {army}." },
+        ["ArtifactInherited"] = new[] { "{artifact} passed to {heir}." },
+        ["RegionCeded"] = new[] { "{to} gained {@place} from {from}." },
+        ["Drought"] = new[] { "No rain fell on {@place}.", "The fields of {@place} withered in a drought." },
+        ["Flood"] = new[] { "Floodwaters covered {@place}." },
+        ["LeySurge"] = new[] { "Power welled up in the ley lines of {@place}." },
+        ["SuccessionOccurred"] = new[] { "At {@place}, {heir} took the seat of {predecessor}." },
+        ["PlagueSpread"] = new[] { "The plague reached {@place} from {from}." },
+        ["PlagueOutbreak"] = new[] { "Sickness swept through {@place}." },
+        ["MonsterRaid"] = new[] { "{monster} attacked {@place}; {=dead} died." },
+        ["RegionLiberated"] = new[] { "{@place} was freed by {realm}." },
+        ["Knighted"] = new[] { "{knight} was knighted by {liege} to serve {realm}." },
+        ["TheftFoiled"] = new[] { "{thief} was caught trying to steal {artifact} from {victim}." },
+        ["RegionConverted"] = new[] { "{@place} turned from {old} to {faith}." },
+        ["ElderChosen"] = new[] { "{@place} chose {character} as an elder." },
+        ["SiegeBegan"] = new[] { "{army} besieged {@place}." },
+        ["WarDeclared"] = new[] { "{attacker} went to war against {defender} {=why}: {war}." },
+        ["PeaceSigned"] = new[] { "{war} ended; {victor} prevailed over {vanquished}: {=terms}." },
+        ["ArtifactStolen"] = new[] { "{artifact} was stolen from {victim} by {thief}." },
+        ["Earthquake"] = new[] { "The earth shook in {@place}." },
+        ["ResourceDiscovered"] = new[] { "Prospectors found {=resource} in {@place}." },
+        ["RouteSevered"] = new[] { "Trade on {route} stopped, cut {=cut}." },
+        ["RouteRestored"] = new[] { "Merchants took to {route} again." },
+        ["LabyrinthDelveFailed"] = new[] { "{delver} could not get past level {=level} of {structure}." },
+        ["MonstersSlain"] = new[] { "{hunter} cleared {@place} of monsters.", "{hunter} hunted down the monsters of {@place}." },
+    };
+
+    /// <summary>How a cause is joined to what it caused, by depth (the first layer, then further back).</summary>
+    private static readonly string[] FirstConnectives = { "This happened because", "It came about because" };
+
+    private static readonly string[] DeeperConnectives = { "Before that,", "That came about because", "Earlier still," };
 
     /// <summary>Templates for events whose payload changes how they read (nobody died; a white peace).</summary>
     private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
@@ -121,12 +199,24 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ("WorksCollapsed", e => e.Payload.GetValueOrDefault("dead") == "0", "{structure} collapsed while it was being built."),
         ("PeaceSigned", e => e.Payload.GetValueOrDefault("outcome") == "white peace", "{war} ended with neither side the victor."),
         ("CharacterDied", e => e.Payload.GetValueOrDefault("age") == "0", "{deceased} {=death} in infancy."),
+        ("MonsterHuntFailed", e => e.Actors.ContainsKey("monster"), "{hunter} hunted {monster} in {@place} and was driven back."),
+        ("WallsRaised", e => e.Payload.GetValueOrDefault("level") == "1", "{@place} raised walls."),
+        ("MonsterHuntFailed", e => e.Payload.GetValueOrDefault("outcome") == "failure_death" && e.Actors.ContainsKey("monster"), "{hunter} went after {monster} in {@place} and did not come back."),
+        ("MonsterHuntFailed", e => e.Payload.GetValueOrDefault("outcome") == "failure_death", "{hunter} hunted the monsters of {@place} and was killed."),
+        ("LabyrinthDelveFailed", e => e.Payload.GetValueOrDefault("outcome") == "failure_death", "{delver} went down to level {=level} of {structure} and never returned."),
+        ("DelveFailed", e => e.Payload.GetValueOrDefault("outcome") == "failure_death", "{delver} sought {artifact} in {@place} and died there."),
     };
 
     private readonly Func<EntityRef, string?> _nameOf = Names.Of(world);
 
-    private string? TemplateFor(WorldEvent ev) =>
-        Variants.FirstOrDefault(v => v.Type == ev.Type && v.When(ev)).Template ?? Templates.GetValueOrDefault(ev.Type);
+    private string? TemplateFor(WorldEvent ev)
+    {
+        if (Variants.FirstOrDefault(v => v.Type == ev.Type && v.When(ev)).Template is { } variant) return variant;
+        if (!Templates.TryGetValue(ev.Type, out var template)) return null;
+        if (!Alternates.TryGetValue(ev.Type, out var others)) return template;
+        var pick = (int)(ev.Id % (others.Length + 1));
+        return pick == 0 ? template : others[pick - 1];
+    }
 
     /// <summary>A name as it reads in a sentence: realms take their article, and "The …" names lower it.</summary>
     private string? Prose(EntityRef entity) => _nameOf(entity) is not { } name ? null
@@ -152,6 +242,12 @@ public sealed partial class TemplateNarrator(World world) : INarrator
             { } other => $"by {other}",
             null => null,
         },
+        "people" => ev.Payload.TryGetValue("people", out var many) && long.TryParse(many, out var n) ? n == 1 ? "one person" : $"{English.Number(n)} people" : null,
+        "notables" => ev.Payload.TryGetValue("people", out var few) && long.TryParse(few, out var k) ? English.Count(k, "notable") : null,
+        "most common" => ev.Payload.TryGetValue("most common", out var common)
+            ? English.List(common.Split(", ").Select(part => part.Split(' ', 2) is [var count, var type] ? $"{count} {Briefs.Spaced(type).ToLowerInvariant()}" : part).ToList())
+            : null,
+        "tier" or "building" or "resource" or "rank" => ev.Payload.TryGetValue(key, out var word) ? word.ToLowerInvariant() : null,
         _ => ev.Payload.TryGetValue(key, out var value) ? English.Value(value) : null,
     };
 
@@ -176,7 +272,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     public string NarrateChain(ChainNode chain)
     {
         var text = new StringBuilder(Narrate(chain.Event));
-        Causes(text, chain, first: true);
+        Causes(text, chain, first: true, new HashSet<long> { chain.Event.Id });
         return text.ToString();
     }
 
@@ -192,13 +288,17 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         return text.ToString();
     }
 
-    private void Causes(StringBuilder text, ChainNode node, bool first)
+    /// <summary>Each cause once, joined by a connective that varies with depth and event, so a chain does not repeat itself.</summary>
+    private void Causes(StringBuilder text, ChainNode node, bool first, HashSet<long> told)
     {
         foreach (var cause in node.Causes)
         {
-            var connective = first ? "This happened because" : "That followed from what came before:";
-            text.Append($" {connective} {LowerFirst(Narrate(cause.Event))}");
-            Causes(text, cause, first: false);
+            if (!told.Add(cause.Event.Id)) continue;
+            var choices = first ? FirstConnectives : DeeperConnectives;
+            var connective = choices[(int)(cause.Event.Id % choices.Length)];
+            var told2 = Narrate(cause.Event);
+            text.Append($" {connective} {(connective.EndsWith(',') ? told2 : LowerFirst(told2))}");
+            Causes(text, cause, first: false, told);
         }
     }
 

@@ -86,7 +86,7 @@
       "number": 3,
       "category": "characters",
       "text": {
-        "text": "Gral of Bandbia slew the monsters of Gisreach.",
+        "text": "Gral of Bandbia cleared Gisreach of monsters.",
         "links": [
           {
             "start": 0,
@@ -94,7 +94,7 @@
             "entity": "char#16"
           },
           {
-            "start": 37,
+            "start": 24,
             "length": 8,
             "entity": "region#7"
           }
@@ -146,7 +146,7 @@
       "number": 6,
       "category": "characters",
       "text": {
-        "text": "Gral of Bandbia and Nasgre of Stel became friends.",
+        "text": "Gral of Bandbia and Nasgre of Stel grew close.",
         "links": [
           {
             "start": 0,

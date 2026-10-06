@@ -43,7 +43,8 @@ public class CategoryTests
         Assert.Equal(3, linked.Links.Count);
         foreach (var link in linked.Links)
             Assert.True(LinkedText.Reads(text.Substring(link.Start, link.Length), Names.Of(world)(link.Entity)));
-        Assert.Equal(new[] { a.Ref, b.Ref, world.Settlements[1].Ref }, linked.Links.Select(l => l.Entity));
+        // Links come in reading order; this phrasing (event #1) opens with the place.
+        Assert.Equal(new[] { world.Settlements[1].Ref, a.Ref, b.Ref }, linked.Links.Select(l => l.Entity));
     }
 
     [Fact]

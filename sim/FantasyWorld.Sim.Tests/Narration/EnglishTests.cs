@@ -44,10 +44,12 @@ public class EnglishTests
             log.Append(new WorldDate(0), new EventDraft(type, Actors: actors, Place: world.Settlements[1].Ref, Payload: payload));
 
         var declared = Ev("WarDeclared", new() { ["attacker"] = a.Ref, ["defender"] = b.Ref, ["war"] = war.Ref }, new() { ["casus belli"] = "border dispute" });
-        Assert.Equal($"The {Statecraft.Title(a)} declared war on the {Statecraft.Title(b)} over a disputed border, and so began the War of the Ash.",
-            narrator.Sentence(declared));
+        var war1 = narrator.Sentence(declared); // either phrasing (chosen by event id)
+        Assert.StartsWith($"The {Statecraft.Title(a)} ", war1);
+        Assert.Contains($" the {Statecraft.Title(b)} over a disputed border", war1);
+        Assert.EndsWith("the War of the Ash.", war1);
         var died = Ev("CharacterDied", new() { ["deceased"] = lord.Ref }, new() { ["cause"] = "battle", ["age"] = "9" });
-        Assert.EndsWith(" fell in battle, aged 9.", narrator.Sentence(died));
+        Assert.Matches(" fell in battle(, aged| at the age of) 9\\.$", narrator.Sentence(died));
         var infant = Ev("CharacterDied", new() { ["deceased"] = lord.Ref }, new() { ["cause"] = "illness", ["age"] = "0" });
         Assert.EndsWith(" died of an illness in infancy.", narrator.Sentence(infant));
         var old = Ev("CharacterDied", new() { ["deceased"] = lord.Ref }, new() { ["cause"] = "old age", ["age"] = "71" });
@@ -57,7 +59,7 @@ public class EnglishTests
         var dreamer = Ev("ComingOfAge", new() { ["character"] = lord.Ref }, new() { ["ambition"] = "artifact" });
         Assert.Contains("a great treasure", narrator.Sentence(dreamer));
         var peace = Ev("PeaceSigned", new() { ["war"] = war.Ref, ["victor"] = a.Ref, ["vanquished"] = b.Ref }, new() { ["terms"] = "2 region(s) ceded; tribute", ["outcome"] = "attackers won" });
-        Assert.Equal($"The War of the Ash ended in victory for the {Statecraft.Title(a)} over the {Statecraft.Title(b)}: two regions ceded and tribute.", narrator.Sentence(peace));
+        Assert.EndsWith($"over the {Statecraft.Title(b)}: two regions ceded and tribute.", narrator.Sentence(peace));
         var white = Ev("PeaceSigned", new() { ["war"] = war.Ref, ["victor"] = a.Ref, ["vanquished"] = b.Ref }, new() { ["terms"] = "status quo", ["outcome"] = "white peace" });
         Assert.Equal("The War of the Ash ended with neither side the victor.", narrator.Sentence(white));
 

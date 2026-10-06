@@ -25,7 +25,8 @@ public class NarrationTests
 
         var text = new TemplateNarrator(world).Narrate(duel);
 
-        Assert.Equal($"In Year 5, {Names.Full(world, a)} fought {Names.Full(world, b)} to first blood at {world.Settlements[1].Name}. (an old insult) It was quick.", text);
+        // Event #1 takes the duel's second phrasing (phrasings are chosen by event id).
+        Assert.Equal($"In Year 5, at {world.Settlements[1].Name}, {Names.Full(world, a)} met {Names.Full(world, b)} to first blood. (an old insult) It was quick.", text);
     }
 
     [Fact]
@@ -50,7 +51,7 @@ public class NarrationTests
         var revolt = log.Append(world.Date, new EventDraft("RevoltBegan", Place: world.Settlements[1].Ref,
             Causes: new[] { new Cause(shortage.Id, CauseKind.Trigger, 1.0) }));
         var text = new TemplateNarrator(world).NarrateChain(new HistoryQuery(log).WhyChain(revolt.Id));
-        Assert.Equal($"In Year 1, {world.Settlements[1].Name} rose in revolt. This happened because in Year 1, food ran short in {world.Regions[1].Name}.", text);
+        Assert.Equal($"In Year 1, {world.Settlements[1].Name} rose in revolt. It came about because in Year 1, food ran short in {world.Regions[1].Name}.", text);
     }
 
     [Fact]

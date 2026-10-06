@@ -48,20 +48,20 @@
     {
       "year": 2,
       "text": {
-        "text": "Fath of Cunvei knighted End of Gil in the service of the Kingdom of Thonae.",
+        "text": "End of Gil was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 24,
             "length": 10,
             "entity": "char#15"
           },
           {
-            "start": 57,
+            "start": 27,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 55,
             "length": 17,
             "entity": "realm#1"
           }
@@ -73,7 +73,7 @@
     {
       "year": 2,
       "text": {
-        "text": "Broth of Cunvei and Fath of Cunvei became rivals over diligent vs lazy.",
+        "text": "Broth of Cunvei and Fath of Cunvei fell out over diligent vs lazy.",
         "links": [
           {
             "start": 0,
@@ -118,7 +118,7 @@
     {
       "year": 16,
       "text": {
-        "text": "Fath of Cunvei and Lond of Cunvei became rivals over calm vs wrathful.",
+        "text": "Fath of Cunvei and Lond of Cunvei fell out over calm vs wrathful.",
         "links": [
           {
             "start": 0,
@@ -138,7 +138,7 @@
     {
       "year": 18,
       "text": {
-        "text": "Broth of Cunvei and Fath of Cunvei became rivals over diligent vs lazy.",
+        "text": "Broth of Cunvei and Fath of Cunvei fell out over diligent vs lazy.",
         "links": [
           {
             "start": 0,
