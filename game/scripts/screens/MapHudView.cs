@@ -293,9 +293,6 @@ public partial class MapHudView : Control
         {
             var box = new CheckBox { Name = layer.ToString(), Text = label, ButtonPressed = Host.Diorama.Layers.HasFlag(layer) };
             box.AddThemeFontSizeOverride("font_size", 12);
-            // Trade routes are not modelled yet (sub-project 3); the layer is shown but cannot be turned on.
-            box.Disabled = layer == MapLayers.TradeRoutes;
-            box.TooltipText = box.Disabled ? "Trade routes arrive with a later update." : "";
             box.Toggled += on => SetLayer(layer, on);
             layers.AddChild(box);
         }

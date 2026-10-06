@@ -606,5 +606,73 @@
     }
   ],
   "armies": [],
-  "battles": []
+  "battles": [],
+  "routes": [
+    {
+      "ref": "route#1",
+      "name": "The Greindrondcross–Niar Road",
+      "from": "settlement#16",
+      "to": "settlement#24",
+      "state": "open",
+      "volume": 76,
+      "path": [
+        {
+          "x": 0.8828125,
+          "y": 0.4296875
+        },
+        {
+          "x": 0.2734375,
+          "y": 0.5546875
+        },
+        {
+          "x": 0.2578125,
+          "y": 0.7890625
+        }
+      ]
+    },
+    {
+      "ref": "route#2",
+      "name": "The Drerithby–Greindrondcross Road",
+      "from": "settlement#3",
+      "to": "settlement#16",
+      "state": "open",
+      "volume": 106,
+      "path": [
+        {
+          "x": 0.3515625,
+          "y": 0.1953125
+        },
+        {
+          "x": 0.4921875,
+          "y": 0.4296875
+        },
+        {
+          "x": 0.8828125,
+          "y": 0.4296875
+        }
+      ]
+    },
+    {
+      "ref": "route#3",
+      "name": "The Drerithby–Niar Road",
+      "from": "settlement#3",
+      "to": "settlement#24",
+      "state": "open",
+      "volume": 78,
+      "path": [
+        {
+          "x": 0.3515625,
+          "y": 0.1953125
+        },
+        {
+          "x": 0.2734375,
+          "y": 0.5546875
+        },
+        {
+          "x": 0.2578125,
+          "y": 0.7890625
+        }
+      ]
+    }
+  ]
 }

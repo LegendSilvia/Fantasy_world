@@ -31,6 +31,9 @@ public sealed record MapArmy(
     EntityRef Ref, string Name, EntityRef Realm, string Colour, EntityRef War, string Side, Mention? Commander, IReadOnlyList<Mention> Knights,
     int Soldiers, string Objective, bool Besieging, MapPoint Position, IReadOnlyList<MapPoint> Route);
 
+/// <summary>A trade road on the map: its markets, the way it runs (market, regions between, market) and its state.</summary>
+public sealed record MapRoute(EntityRef Ref, string Name, EntityRef From, EntityRef To, string State, int Volume, IReadOnlyList<MapPoint> Path);
+
 /// <summary>A battle of the last year: where, who won, and the event to explain it.</summary>
 public sealed record MapBattle(long EventId, int Year, MapPoint Position, EntityRef Victor, EntityRef Vanquished, EntityRef War);
 
@@ -42,7 +45,7 @@ public sealed record MapBattle(long EventId, int Year, MapPoint Position, Entity
 public sealed record MapScreen(
     string WorldName, string Summary, int Year, int FirstYear, bool Historical, IReadOnlyList<MapRegion> Regions, IReadOnlyList<MapSettlement> Settlements,
     IReadOnlyList<MapStructure> Structures, IReadOnlyList<Border> Borders, IReadOnlyList<Conflict> Conflicts, IReadOnlyList<LegendEntry> Legend,
-    IReadOnlyList<MapArmy>? Armies = null, IReadOnlyList<MapBattle>? Battles = null)
+    IReadOnlyList<MapArmy>? Armies = null, IReadOnlyList<MapBattle>? Battles = null, IReadOnlyList<MapRoute>? Routes = null)
 {
     /// <summary>Battles shown on the map: those of the last year.</summary>
     public const int BattleDays = 360;
@@ -107,7 +110,7 @@ public sealed record MapScreen(
         var summary = $"{Count(independent.Count, "realm")}, {Count(settlements.Count, "settlement")}, "
                       + $"{Count(labyrinths, "open labyrinth")}.";
         return new MapScreen(DigestScreen.DisplayName(world), char.ToUpperInvariant(summary[0]) + summary[1..], date.Year, 1, map.Historical,
-            regions, settlements, structures, borders, conflicts, legend, today ? ArmiesIn(world) : Array.Empty<MapArmy>(), BattlesBefore(world, log, date));
+            regions, settlements, structures, borders, conflicts, legend, today ? ArmiesIn(world) : Array.Empty<MapArmy>(), BattlesBefore(world, log, date), RoutesAt(world, log, date, today));
     }
 
     /// <summary>Hosts in the field today (armies are not kept in history, so past maps show none).</summary>
@@ -126,6 +129,34 @@ public sealed record MapScreen(
                 world.Regions[army.RegionId].BesiegerArmyId == army.Id, here, route));
         }
         return armies;
+    }
+
+    /// <summary>Roads opened by the date; their state then is replayed from their severing and restoring.</summary>
+    private static IReadOnlyList<MapRoute> RoutesAt(World world, EventLog log, WorldDate date, bool today)
+    {
+        var routes = new List<MapRoute>();
+        foreach (var route in world.Routes.Values)
+        {
+            if (!log.TryGet(route.OpenedEventId, out var opened) || opened.Date > date) continue;
+            var state = route.State;
+            if (!today)
+            {
+                var last = log.Involving(route.Ref).LastOrDefault(e => e.Date <= date && e.Type is "RouteSevered" or "RouteRestored");
+                state = last?.Type == "RouteSevered" ? RouteState.Severed : RouteState.Open;
+                // A road closes for good when a market is abandoned.
+                if (new[] { route.FromId, route.ToId }.Any(id => log.Involving(world.Settlements[id].Ref).Any(e => e.Type == "SettlementAbandoned" && e.Date <= date)))
+                    state = RouteState.Closed;
+            }
+            if (state == RouteState.Closed) continue;
+            var (from, to) = (world.Settlements[route.FromId], world.Settlements[route.ToId]);
+            var path = new List<MapPoint>();
+            if (MapPoint.Of(world, from.Ref) is { } start) path.Add(start);
+            path.AddRange(route.Regions.Skip(1).SkipLast(1).Select(r => MapPoint.Of(world, world.Regions[r].Ref)).OfType<MapPoint>());
+            if (MapPoint.Of(world, to.Ref) is { } end) path.Add(end);
+            if (path.Count < 2) continue;
+            routes.Add(new MapRoute(route.Ref, route.Name, from.Ref, to.Ref, state.ToString().ToLowerInvariant(), (int)Math.Round(today ? route.Volume : 0), path));
+        }
+        return routes;
     }
 
     private static IReadOnlyList<MapBattle> BattlesBefore(World world, EventLog log, WorldDate date) =>

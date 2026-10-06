@@ -94,4 +94,35 @@ public class TradeSystemTests
         Assert.Equal(RouteState.Closed, sim.World.Routes.Values.Single().State);
         Assert.Equal(0, sim.World.Routes.Values.Single().Volume);
     }
+
+    [Fact]
+    public void TheMap_ShowsRoadsAsTheyWere()
+    {
+        var (sim, a, b) = TwoMarkets();
+        sim.AdvanceDays(360 * 40);
+        var route = sim.World.Routes.Values.Single();
+        var opened = sim.Log.Get(route.OpenedEventId).Date;
+        var map = FantasyWorld.Sim.Views.MapScreen.Build(sim.World, sim.Log);
+        var road = Assert.Single(map.Routes!);
+        Assert.Equal(route.Ref, road.Ref);
+        Assert.Equal("open", road.State);
+        Assert.Equal(FantasyWorld.Sim.Views.MapPoint.Of(sim.World, sim.World.Settlements[route.FromId].Ref), road.Path[0]);
+        Assert.Equal(FantasyWorld.Sim.Views.MapPoint.Of(sim.World, sim.World.Settlements[route.ToId].Ref), road.Path[^1]);
+        Assert.Empty(FantasyWorld.Sim.Views.MapScreen.Build(sim.World, sim.Log, opened.AddDays(-1)).Routes!);
+    }
+
+    [Fact]
+    public void Roads_FollowTheGround_FromMarketToMarket()
+    {
+        var (sim, _, _) = TwoMarkets();
+        sim.AdvanceDays(360 * 40);
+        var map = FantasyWorld.Sim.Views.MapScreen.Build(sim.World, sim.Log);
+        var road = Assert.Single(FantasyWorld.Client.RouteLayout.Roads(map, sim.World.Geography!));
+        Assert.True(road.Open);
+        Assert.True(road.Line.Count > 4);
+        var grid = sim.World.Geography!.Terrain;
+        Assert.All(road.Line, p => Assert.Equal(Math.Max(0, FantasyWorld.Client.BlockMesh.HeightAt(grid, (p.X + 1) / 2, (p.Z + 1) / 2)) + FantasyWorld.Client.RouteLayout.Lift, p.Y, 3));
+        var start = FantasyWorld.Client.Projection.ToBlock(grid, map.Routes![0].Path[0], 0);
+        Assert.True(Math.Abs(road.Line[0].X - start.X) < 1e-4 && Math.Abs(road.Line[0].Z - start.Z) < 1e-4);
+    }
 }

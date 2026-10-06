@@ -33,6 +33,8 @@ public partial class Diorama : Node3D
     public Node3D PinLayer { get; private set; } = null!;
     public WarLayer War { get; private set; } = null!;
     public MeshInstance3D BorderLines { get; private set; } = null!;
+    public MeshInstance3D RoadLines { get; private set; } = null!;
+    public IReadOnlyList<Road> Roads { get; private set; } = Array.Empty<Road>();
     public IReadOnlyList<Marker> Markers => _markers;
     public IReadOnlyList<Pin> Pins => _pins;
 
@@ -61,6 +63,8 @@ public partial class Diorama : Node3D
         AddChild(Block);
         BorderLines = new MeshInstance3D { Name = "Borders" };
         AddChild(BorderLines);
+        RoadLines = new MeshInstance3D { Name = "Roads" };
+        AddChild(RoadLines);
         MarkerLayer = new Node3D { Name = "Markers" };
         AddChild(MarkerLayer);
         SettlementLayer = new Node3D { Name = "Settlements" };
@@ -156,6 +160,21 @@ public partial class Diorama : Node3D
         foreach (var marker in _markers.Where(m => m.Shape != MarkerShape.Settlement)) StructureLayer.AddChild(MarkerNode(marker));
         BorderLines.Mesh = DashedRibbons(FantasyWorld.Client.Markers.BorderLines(map, _geography), Palette.Ink);
         War.Show(map, _geography);
+        Roads = RouteLayout.Roads(map, _geography);
+        // Open roads are close-dotted in road brown; severed ones broken and reddened.
+        var roads = new ArrayMesh();
+        foreach (var (open, dash, gap, colour) in new[] { (true, 0.006f, 0.005f, BlockMesh.Hex(0x7a5a35)), (false, 0.004f, 0.012f, BlockMesh.Hex(0xa8483a)) })
+        {
+            var lines = Roads.Where(r => r.Open == open).Select(r => r.Line).ToList();
+            if (lines.Count == 0) continue;
+            var part = DashedRibbons(lines, colour, dash, gap, width: 0.0019f, halo: 0.0036f);
+            for (var s = 0; s < part.GetSurfaceCount(); s++)
+            {
+                roads.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, part.SurfaceGetArrays(s));
+                roads.SurfaceSetMaterial(roads.GetSurfaceCount() - 1, part.SurfaceGetMaterial(s));
+            }
+        }
+        RoadLines.Mesh = roads;
         ShownYear = pastYear;
     }
 
@@ -170,6 +189,7 @@ public partial class Diorama : Node3D
         SettlementLayer.Visible = layers.HasFlag(MapLayers.Settlements);
         StructureLayer.Visible = layers.HasFlag(MapLayers.Structures);
         War.Visible = layers.HasFlag(MapLayers.Armies);
+        RoadLines.Visible = layers.HasFlag(MapLayers.TradeRoutes);
     }
 
     /// <summary>The digest's pins as stems over their places (the screen draws their numbered labels).</summary>

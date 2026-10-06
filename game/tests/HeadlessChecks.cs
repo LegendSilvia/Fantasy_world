@@ -247,7 +247,11 @@ public partial class HeadlessChecks : Node
         borders.ButtonPressed = false;
         Check(!main.Diorama.BorderLines.Visible && !main.Diorama.Layers.HasFlag(MapLayers.Borders), "the borders layer can be hidden");
         borders.ButtonPressed = true;
-        Check(view.GetNode<CheckBox>("Card/Column/Layers/TradeRoutes").Disabled, "trade routes are not modelled yet");
+        var trade = view.GetNode<CheckBox>("Card/Column/Layers/TradeRoutes");
+        trade.ButtonPressed = false;
+        Check(!main.Diorama.RoadLines.Visible, "the trade routes layer can be hidden");
+        trade.ButtonPressed = true;
+        Check(main.Diorama.RoadLines.Visible && main.Diorama.Roads.Count == (map.Routes?.Count ?? 0), "every trade road is drawn");
         view.GetNode<CheckBox>("Card/Column/Layers/Settlements").ButtonPressed = false;
         Check(!main.Diorama.SettlementLayer.Visible && view.TagLayer.GetChildren().OfType<SettlementTag>().All(t => t.Settlement.Marker is PinMarker.Conflict or PinMarker.RecentEvent),
             "hiding settlements leaves only places with news");

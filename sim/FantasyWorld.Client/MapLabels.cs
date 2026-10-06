@@ -4,7 +4,7 @@ using FantasyWorld.Sim.Views;
 
 namespace FantasyWorld.Client;
 
-/// <summary>The map HUD's layer toggles (sub-project 4 §4). Trade routes are not modelled yet, so that layer stays empty; Armies covers hosts, fronts, occupation and battles.</summary>
+/// <summary>The map HUD's layer toggles (sub-project 4 §4); Armies covers hosts, fronts, occupation and battles.</summary>
 [Flags]
 public enum MapLayers
 {
@@ -15,7 +15,7 @@ public enum MapLayers
     Structures = 8,
     TradeRoutes = 16,
     Armies = 32,
-    Default = Borders | Settlements | Events | Structures | Armies,
+    Default = Borders | Settlements | Events | Structures | Armies | TradeRoutes,
 }
 
 /// <summary>Which settlements get a name tag at each zoom, and where a linked place is on the map.</summary>
