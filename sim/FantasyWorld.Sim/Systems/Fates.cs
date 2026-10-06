@@ -66,6 +66,14 @@ public static class Fates
             }
         }
 
+        foreach (var realm in world.Realms.Values)
+            foreach (var seat in realm.Council.Where(s => s.Value == c.Id).Select(s => s.Key).ToList()) realm.Council.Remove(seat);
+        foreach (var army in world.Armies.Values.Where(a => !a.Disbanded))
+        {
+            army.Knights.Remove(c.Id);
+            if (army.CommanderId == c.Id) army.CommanderId = 0;
+        }
+
         var heir = Heir(world, c, ctx.Date, killer);
         foreach (var seat in world.Settlements.Values.Where(s => s.LordId == c.Id).ToList())
             Succeed(ctx, seat, c, HeirCandidates(world, c, killer).FirstOrDefault(k => CanTakeSeat(world, k)), death);

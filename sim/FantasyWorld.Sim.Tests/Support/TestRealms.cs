@@ -30,6 +30,7 @@ public static class TestRealms
             Treasury = 500,
             CultureId = 1,
             FaithId = 1,
+            RegionsAtLastReview = 1,
         };
         world.Realms[realm.Id] = realm;
         world.Regions[world.Settlements[capitalId].RegionId].OwnerRealmId = realm.Id;

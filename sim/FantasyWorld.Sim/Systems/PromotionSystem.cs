@@ -24,9 +24,11 @@ public sealed class PromotionSystem : ISimSystem
         foreach (var ruin in world.Settlements.Values.Where(s => s.Abandoned))
             Evacuate(ctx, ruin);
         var residents = world.ActiveCharacters.ToLookup(c => c.SettlementId);
+        // A realm's capital always gets a ruler, even after it has shrunk to a village.
+        var capitals = world.Realms.Values.Where(r => !r.Destroyed).Select(r => r.CapitalId).ToHashSet();
         foreach (var s in world.Settlements.Values.Where(s => !s.Abandoned).ToList())
         {
-            if (s.Tier >= SettlementTier.Town && s.LordId == 0) RaiseLord(ctx, s, residents[s.Id]);
+            if ((s.Tier >= SettlementTier.Town || capitals.Contains(s.Id)) && s.LordId == 0) RaiseLord(ctx, s, residents[s.Id]);
             if (s.Conditions.TryGetValue(Conditions.Revolt, out var revolt) && !residents[s.Id].Any(c => c.Role == Role.Rebel))
                 RaiseRebel(ctx, s, revolt);
             if (s.Tier == SettlementTier.Village && !residents[s.Id].Any() && ctx.Rng.Chance(ElderPerMonth))
