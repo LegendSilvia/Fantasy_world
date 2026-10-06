@@ -1,0 +1,597 @@
+{
+  "worldName": "Dromothholt",
+  "summary": "Two realms, 24 settlements, no open labyrinths.",
+  "year": 21,
+  "firstYear": 1,
+  "historical": true,
+  "regions": [
+    {
+      "ref": "region#1",
+      "name": "Drannias",
+      "biome": "Swamp",
+      "center": {
+        "x": 0.0859375,
+        "y": 0.4609375
+      },
+      "owner": "realm#1",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#2",
+      "name": "Taramdale",
+      "biome": "Hills",
+      "center": {
+        "x": 0.4921875,
+        "y": 0.4296875
+      },
+      "owner": "realm#1",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#3",
+      "name": "Thonae",
+      "biome": "Grassland",
+      "center": {
+        "x": 0.3203125,
+        "y": 0.3515625
+      },
+      "owner": "realm#1",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#4",
+      "name": "Thounholt",
+      "biome": "Tundra",
+      "center": {
+        "x": 0.4921875,
+        "y": 0.1328125
+      },
+      "owner": "realm#1",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#5",
+      "name": "Dathfaelldale",
+      "biome": "Grassland",
+      "center": {
+        "x": 0.2734375,
+        "y": 0.5546875
+      },
+      "owner": "realm#1",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#6",
+      "name": "Stirvale",
+      "biome": "Hills",
+      "center": {
+        "x": 0.4140625,
+        "y": 0.7421875
+      },
+      "owner": "realm#2",
+      "occupier": null,
+      "colour": "crimson"
+    },
+    {
+      "ref": "region#7",
+      "name": "Gisreach",
+      "biome": "Tundra",
+      "center": {
+        "x": 0.6796875,
+        "y": 0.1953125
+      },
+      "owner": "realm#1",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#8",
+      "name": "Veirwold",
+      "biome": "Grassland",
+      "center": {
+        "x": 0.6953125,
+        "y": 0.4609375
+      },
+      "owner": "realm#3",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#9",
+      "name": "Driall",
+      "biome": "Forest",
+      "center": {
+        "x": 0.6171875,
+        "y": 0.6953125
+      },
+      "owner": "realm#2",
+      "occupier": null,
+      "colour": "crimson"
+    },
+    {
+      "ref": "region#10",
+      "name": "Haerrouvale",
+      "biome": "Grassland",
+      "center": {
+        "x": 0.8828125,
+        "y": 0.5703125
+      },
+      "owner": "realm#1",
+      "occupier": null,
+      "colour": "white"
+    },
+    {
+      "ref": "region#11",
+      "name": "Lam",
+      "biome": "Jungle",
+      "center": {
+        "x": 0.4765625,
+        "y": 0.9140625
+      },
+      "owner": "realm#2",
+      "occupier": null,
+      "colour": "crimson"
+    },
+    {
+      "ref": "region#12",
+      "name": "Vamholt",
+      "biome": "Savanna",
+      "center": {
+        "x": 0.2578125,
+        "y": 0.8203125
+      },
+      "owner": "realm#2",
+      "occupier": null,
+      "colour": "crimson"
+    }
+  ],
+  "settlements": [
+    {
+      "ref": "settlement#1",
+      "name": "Stesford",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.1171875,
+        "y": 0.3828125
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Stesford · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 138 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#2",
+      "name": "Thanddind",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.4296875,
+        "y": 0.4765625
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Thanddind · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 123 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#3",
+      "name": "Drerithby",
+      "tier": "Town",
+      "position": {
+        "x": 0.3515625,
+        "y": 0.1953125
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Drerithby · Town",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 2,727 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#4",
+      "name": "Wiall",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.2890625,
+        "y": 0.3203125
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Wiall · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 193 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#5",
+      "name": "Kaerhiand",
+      "tier": "Village",
+      "position": {
+        "x": 0.1171875,
+        "y": 0.3671875
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Kaerhiand · Village",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 452 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#6",
+      "name": "Veim",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.4296875,
+        "y": 0.0390625
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Veim · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 89 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#7",
+      "name": "Brousfiallcross",
+      "tier": "Village",
+      "position": {
+        "x": 0.2109375,
+        "y": 0.5078125
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Brousfiallcross · Village",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 973 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#8",
+      "name": "Raembridge",
+      "tier": "Village",
+      "position": {
+        "x": 0.3984375,
+        "y": 0.5078125
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Raembridge · Village",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 951 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#9",
+      "name": "Gresford",
+      "tier": "Village",
+      "position": {
+        "x": 0.3359375,
+        "y": 0.5546875
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Gresford · Village",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 844 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#10",
+      "name": "Gerrouhaven",
+      "tier": "Village",
+      "position": {
+        "x": 0.2421875,
+        "y": 0.5703125
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Gerrouhaven · Village",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 988 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#11",
+      "name": "Droumkarnbridge",
+      "tier": "Village",
+      "position": {
+        "x": 0.3671875,
+        "y": 0.6796875
+      },
+      "holder": "realm#2",
+      "marker": "realm",
+      "card": {
+        "kicker": "Droumkarnbridge · Village",
+        "title": "Held by the Duchy of Vamholt since the founding",
+        "line": "Pop. 338 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#12",
+      "name": "Fouth",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.3046875,
+        "y": 0.7109375
+      },
+      "holder": "realm#2",
+      "marker": "realm",
+      "card": {
+        "kicker": "Fouth · Hamlet",
+        "title": "Held by the Duchy of Vamholt since the founding",
+        "line": "Pop. 247 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#13",
+      "name": "Veill",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.7265625,
+        "y": 0.1640625
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Veill · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 179 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#14",
+      "name": "Toth",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.8046875,
+        "y": 0.2734375
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Toth · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 244 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#15",
+      "name": "Fasthar",
+      "tier": "Village",
+      "position": {
+        "x": 0.7265625,
+        "y": 0.3515625
+      },
+      "holder": "realm#3",
+      "marker": "realm",
+      "card": {
+        "kicker": "Fasthar · Village",
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 410 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#16",
+      "name": "Greindrondcross",
+      "tier": "Town",
+      "position": {
+        "x": 0.8828125,
+        "y": 0.4296875
+      },
+      "holder": "realm#3",
+      "marker": "realm",
+      "card": {
+        "kicker": "Greindrondcross · Town",
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 1,925 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#17",
+      "name": "Braestilby",
+      "tier": "Village",
+      "position": {
+        "x": 0.6953125,
+        "y": 0.4609375
+      },
+      "holder": "realm#3",
+      "marker": "realm",
+      "card": {
+        "kicker": "Braestilby · Village",
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 479 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#18",
+      "name": "Droukolford",
+      "tier": "Village",
+      "position": {
+        "x": 0.8359375,
+        "y": 0.4765625
+      },
+      "holder": "realm#3",
+      "marker": "realm",
+      "card": {
+        "kicker": "Droukolford · Village",
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 679 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#19",
+      "name": "Heith",
+      "tier": "Village",
+      "position": {
+        "x": 0.7421875,
+        "y": 0.6796875
+      },
+      "holder": "realm#2",
+      "marker": "realm",
+      "card": {
+        "kicker": "Heith · Village",
+        "title": "Held by the Duchy of Vamholt since the founding",
+        "line": "Pop. 993 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#20",
+      "name": "Outh",
+      "tier": "Village",
+      "position": {
+        "x": 0.6171875,
+        "y": 0.7734375
+      },
+      "holder": "realm#2",
+      "marker": "realm",
+      "card": {
+        "kicker": "Outh · Village",
+        "title": "Held by the Duchy of Vamholt since the founding",
+        "line": "Pop. 1,252 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#21",
+      "name": "Thurnstead",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.8203125,
+        "y": 0.6484375
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Thurnstead · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 266 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#22",
+      "name": "Caethhouston",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.9296875,
+        "y": 0.6484375
+      },
+      "holder": "realm#1",
+      "marker": "realm",
+      "card": {
+        "kicker": "Caethhouston · Hamlet",
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 163 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#23",
+      "name": "Grintiacross",
+      "tier": "Hamlet",
+      "position": {
+        "x": 0.3671875,
+        "y": 0.9609375
+      },
+      "holder": "realm#2",
+      "marker": "realm",
+      "card": {
+        "kicker": "Grintiacross · Hamlet",
+        "title": "Held by the Duchy of Vamholt since the founding",
+        "line": "Pop. 117 · 0 events this year"
+      }
+    },
+    {
+      "ref": "settlement#24",
+      "name": "Niar",
+      "tier": "Town",
+      "position": {
+        "x": 0.2578125,
+        "y": 0.7890625
+      },
+      "holder": "realm#2",
+      "marker": "realm",
+      "card": {
+        "kicker": "Niar · Town",
+        "title": "Held by the Duchy of Vamholt since the founding",
+        "line": "Pop. 1,964 · 0 events this year"
+      }
+    }
+  ],
+  "structures": [],
+  "borders": [
+    {
+      "a": "region#2",
+      "b": "region#8"
+    },
+    {
+      "a": "region#5",
+      "b": "region#6"
+    },
+    {
+      "a": "region#5",
+      "b": "region#8"
+    },
+    {
+      "a": "region#5",
+      "b": "region#12"
+    },
+    {
+      "a": "region#6",
+      "b": "region#8"
+    },
+    {
+      "a": "region#7",
+      "b": "region#8"
+    },
+    {
+      "a": "region#8",
+      "b": "region#9"
+    },
+    {
+      "a": "region#8",
+      "b": "region#10"
+    },
+    {
+      "a": "region#9",
+      "b": "region#10"
+    }
+  ],
+  "conflicts": [],
+  "legend": [
+    {
+      "label": "Thonae",
+      "colour": "white"
+    },
+    {
+      "label": "Vamholt",
+      "colour": "crimson"
+    },
+    {
+      "label": "Active conflict",
+      "colour": "conflict"
+    },
+    {
+      "label": "Event this season",
+      "colour": "event"
+    }
+  ]
+}

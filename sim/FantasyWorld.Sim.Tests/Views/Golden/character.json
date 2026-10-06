@@ -1,0 +1,110 @@
+{
+  "ref": "char#1",
+  "name": "Fath of Cunvei",
+  "house": "house#1",
+  "kicker": "Character · House Cunvei",
+  "line": "Lord of Drerithby · age 66 · born before recorded history",
+  "traits": [
+    "calm",
+    "devout",
+    "lazy",
+    "trusting"
+  ],
+  "ambition": "Ambition: mastery of magic",
+  "location": {
+    "ref": "settlement#3",
+    "label": "Now at Drerithby",
+    "position": {
+      "x": 0.3515625,
+      "y": 0.1953125
+    }
+  },
+  "timeline": [
+    {
+      "year": 2,
+      "text": {
+        "text": "Broth of Cunvei and Fath of Cunvei became rivals over diligent vs lazy.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#4"
+          },
+          {
+            "start": 20,
+            "length": 14,
+            "entity": "char#1"
+          }
+        ]
+      },
+      "eventId": 41,
+      "highlight": false
+    },
+    {
+      "year": 16,
+      "text": {
+        "text": "Fath of Cunvei and Lond of Cunvei became rivals over calm vs wrathful.",
+        "links": [
+          {
+            "start": 0,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 19,
+            "length": 14,
+            "entity": "char#3"
+          }
+        ]
+      },
+      "eventId": 122,
+      "highlight": false
+    },
+    {
+      "year": 18,
+      "text": {
+        "text": "Broth of Cunvei and Fath of Cunvei became rivals over diligent vs lazy.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#4"
+          },
+          {
+            "start": 20,
+            "length": 14,
+            "entity": "char#1"
+          }
+        ]
+      },
+      "eventId": 127,
+      "highlight": false
+    }
+  ],
+  "folded": 0,
+  "earlier": 0,
+  "ties": [
+    {
+      "ref": "char#2",
+      "name": "Farnfand of Cunvei",
+      "relation": "Spouse",
+      "qualifier": "",
+      "tone": "warm"
+    },
+    {
+      "ref": "char#3",
+      "name": "Lond of Cunvei",
+      "relation": "Child",
+      "qualifier": "",
+      "tone": "neutral"
+    },
+    {
+      "ref": "char#4",
+      "name": "Broth of Cunvei",
+      "relation": "Child",
+      "qualifier": "",
+      "tone": "neutral"
+    }
+  ],
+  "followed": false
+}

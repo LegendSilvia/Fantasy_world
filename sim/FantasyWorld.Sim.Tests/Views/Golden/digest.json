@@ -1,0 +1,171 @@
+{
+  "worldName": "Dromothholt",
+  "year": 21,
+  "title": "Year 21.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 140 events were recorded.",
+  "elapsedDays": 7200,
+  "status": "Caught up · Year 21, day 1",
+  "pins": [
+    {
+      "number": 1,
+      "place": "settlement#3",
+      "label": "Drerithby",
+      "position": {
+        "x": 0.3515625,
+        "y": 0.1953125
+      },
+      "eventId": 30
+    },
+    {
+      "number": 3,
+      "place": "region#7",
+      "label": "Gisreach",
+      "position": {
+        "x": 0.6796875,
+        "y": 0.1953125
+      },
+      "eventId": 138
+    },
+    {
+      "number": 4,
+      "place": "region#3",
+      "label": "Thonae",
+      "position": {
+        "x": 0.3203125,
+        "y": 0.3515625
+      },
+      "eventId": 58
+    },
+    {
+      "number": 5,
+      "place": "settlement#16",
+      "label": "Greindrondcross",
+      "position": {
+        "x": 0.8828125,
+        "y": 0.4296875
+      },
+      "eventId": 61
+    }
+  ],
+  "headline": {
+    "number": 1,
+    "category": "politics",
+    "kicker": "A new era",
+    "title": {
+      "text": "The Banners Age of Thonae began.",
+      "links": []
+    },
+    "body": {
+      "text": "Spring of Year 2.",
+      "links": []
+    },
+    "eventId": 30,
+    "canExplain": false
+  },
+  "items": [
+    {
+      "number": 2,
+      "category": "politics",
+      "text": {
+        "text": "The Age of Long Peace of Thonae began.",
+        "links": []
+      },
+      "eventId": 42
+    },
+    {
+      "number": 3,
+      "category": "characters",
+      "text": {
+        "text": "Gral of Bandbia slew the monsters of Gisreach.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#16"
+          },
+          {
+            "start": 37,
+            "length": 8,
+            "entity": "region#7"
+          }
+        ]
+      },
+      "eventId": 138
+    },
+    {
+      "number": 4,
+      "category": "nature",
+      "text": {
+        "text": "Plague broke out in Thonae.",
+        "links": [
+          {
+            "start": 20,
+            "length": 6,
+            "entity": "region#3"
+          }
+        ]
+      },
+      "eventId": 58
+    },
+    {
+      "number": 5,
+      "category": "characters",
+      "text": {
+        "text": "Gral of Bandbia and Nasgre of Stel became friends.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#16"
+          },
+          {
+            "start": 20,
+            "length": 14,
+            "entity": "char#19"
+          }
+        ]
+      },
+      "eventId": 61
+    },
+    {
+      "number": 6,
+      "category": "politics",
+      "text": {
+        "text": "Nei of Thisthis became spymaster of Kingdom of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#27"
+          },
+          {
+            "start": 36,
+            "length": 17,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 27
+    },
+    {
+      "number": 7,
+      "category": "characters",
+      "text": {
+        "text": "Keth of Bandbia and Nasgre of Stel became friends.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#17"
+          },
+          {
+            "start": 20,
+            "length": 14,
+            "entity": "char#19"
+          }
+        ]
+      },
+      "eventId": 43
+    }
+  ]
+}

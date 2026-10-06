@@ -62,6 +62,15 @@ dotnet run --project sim/FantasyWorld.Cli -- live worlds/aerenmoor.fw.db --minut
 dotnet run --project sim/FantasyWorld.Cli -- structures worlds/aerenmoor.fw.db          # landmarks, labyrinths and ruins
 ```
 
+Every screen of the game also exists as data, for clients (the Godot diorama) and for checking without one:
+
+```bash
+dotnet run --project sim/FantasyWorld.Cli -- view worlds/aerenmoor.fw.db digest            # the morning digest, as JSON
+dotnet run --project sim/FantasyWorld.Cli -- view worlds/aerenmoor.fw.db map --as-of 150   # the political map in Year 150
+dotnet run --project sim/FantasyWorld.Cli -- view worlds/aerenmoor.fw.db why <event-id>     # a why-chain as a layered graph
+dotnet run --project sim/FantasyWorld.Cli -- view worlds/aerenmoor.fw.db character <id>     # also: family, chronicle, realm, artifact
+```
+
 `catchup` ends with the digest. Minor events older than 50 years are condensed into one summary per decade as
 the world runs. Every command that changes a world first keeps a
 backup of the last three sessions next to it (`.bak1`–`.bak3`). Benchmarks:

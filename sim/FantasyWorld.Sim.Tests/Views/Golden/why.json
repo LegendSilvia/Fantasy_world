@@ -1,0 +1,90 @@
+{
+  "outcome": {
+    "eventId": 55,
+    "year": 5,
+    "category": "characters",
+    "title": {
+      "text": "Keth of Bandbia died of childbirth at 29.",
+      "links": [
+        {
+          "start": 0,
+          "length": 15,
+          "entity": "char#17"
+        }
+      ]
+    },
+    "note": null,
+    "isRoot": false,
+    "hasMore": false
+  },
+  "layers": [
+    [
+      {
+        "eventId": 54,
+        "year": 5,
+        "category": "characters",
+        "title": {
+          "text": "Steil of Bandbia was born at Greindrondcross to Keth of Bandbia and Gral of Bandbia.",
+          "links": [
+            {
+              "start": 0,
+              "length": 16,
+              "entity": "char#31"
+            },
+            {
+              "start": 29,
+              "length": 15,
+              "entity": "settlement#16"
+            },
+            {
+              "start": 48,
+              "length": 15,
+              "entity": "char#17"
+            },
+            {
+              "start": 68,
+              "length": 15,
+              "entity": "char#16"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": true,
+        "hasMore": false
+      }
+    ]
+  ],
+  "edges": [
+    {
+      "from": 54,
+      "to": 55,
+      "kind": "trigger",
+      "label": "because"
+    }
+  ],
+  "summary": "Traced back within the year, through one root cause.",
+  "people": [
+    {
+      "ref": "char#17",
+      "name": "Keth of Bandbia"
+    },
+    {
+      "ref": "char#31",
+      "name": "Steil of Bandbia"
+    },
+    {
+      "ref": "char#16",
+      "name": "Gral of Bandbia"
+    }
+  ],
+  "places": [
+    {
+      "ref": "settlement#16",
+      "name": "Greindrondcross"
+    }
+  ],
+  "systems": [
+    "characters"
+  ],
+  "consequences": []
+}

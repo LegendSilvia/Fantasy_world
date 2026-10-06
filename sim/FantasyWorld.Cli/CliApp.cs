@@ -36,6 +36,9 @@ public static partial class CliApp
           fw wars <world-file>
           fw war <world-file> <war-id>
           fw structures <world-file>                landmarks, labyrinths and ruins
+          fw view <world-file> digest | map [--as-of <year>] | character <id> | family <id> [--generations <n>]
+                 | why <event-id> [--depth <n>] | chronicle [--from <year>] [--to <year>] [--category <c>] [--page <n>]
+                 | realm <id> | artifact <id>         a screen's data as JSON, for clients
           fw tell <world-file> <event-id> [--depth <n>]   the why-chain as prose
           fw follow <world-file> <entity>           e.g. char#12, realm#3: their events lead the digest
           fw unfollow <world-file> <entity>
@@ -74,6 +77,7 @@ public static partial class CliApp
                 "wars" => WarList(path, output),
                 "war" => WarDetail(path, rest, output),
                 "structures" => StructureList(path, output),
+                "view" => View(path, rest, output),
                 "tell" => Tell(path, rest, output, providers),
                 "digest" => DigestCommand(path, rest, output, providers),
                 "live" => Live(path, rest, output, clock, providers),
