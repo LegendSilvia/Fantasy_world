@@ -1,4 +1,4 @@
-# Handoff — where things stand (2026-10-05)
+# Handoff — where things stand (2026-10-06)
 
 Context for picking up this project on another machine / in a new Claude session.
 
@@ -13,11 +13,17 @@ Context for picking up this project on another machine / in a new Claude session
 | Plan 1 execution | **Done** — Tasks 1–12 committed on `ccr-81a7454e-12gx87`; 93/93 tests pass (Debug + Release) |
 | Plan 2 of 6 (World & regions) | **Done** — `docs/superpowers/plans/2026-10-05-world-and-regions.md`, Tasks 1–16 committed on `ccr-81a7454e-12gx87`; 225/225 tests pass (Debug + Release) |
 | Plan 3 of 6 (Characters & artifacts) | **Done** — `docs/superpowers/plans/2026-10-06-characters-and-artifacts.md`, Tasks 1–13; 318/318 tests pass (Debug + Release); 300-year medium soaks with invariants clean |
+| Plan 4 of 6 (Realms & armies) | **Done** — `docs/superpowers/plans/2026-10-06-realms-and-armies.md`, Tasks 1–11; 382/382 tests pass (Debug + Release); 200-year medium soaks (seeds 1, 7, 42) with invariants clean |
 
 ## Next step
 
-1. Merge the working branch into `main` (Plan 3).
-2. Plan 4 (Realms & armies), then Plans 5–6 and sub-projects 2–5.
+1. Merge the working branch into `main` (Plan 4).
+2. Plan 5 (LLM layer), then Plan 6 and sub-projects 2–5.
+
+Notes from Plan 4 execution:
+- Try it: `fw advance … 100y`, `fw realms …`, `fw realm … <id>`, `fw wars …`, `fw war … <id>`, `fw map … --layer realms`, `fw why … <battle-death-id> --depth 5`.
+- Inter-region trade routes were deferred to sub-project 3; regency is implicit (a child ruler costs legitimacy, the marshal leads the army).
+- Known pre-existing cost: `PromotionSystem` and `World.ActiveCharacters` walk every character ever created; Plan 6's compaction of the dead addresses it.
 
 Notes from Plan 3 execution:
 - Try it: `fw new …`, `fw advance … 60y`, `fw characters …`, `fw life … <id>`, `fw artifact … <id>`, `fw why … <duel-death-id> --depth 5`.

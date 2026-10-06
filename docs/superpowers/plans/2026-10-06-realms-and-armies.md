@@ -80,7 +80,7 @@ All of this plan's entities, persisted from the start (snapshot v4) and guarded 
 - Consumes: `World`, `Region`, `Settlement`, `Character`, `WorldSnapshot`, `Invariants` (Plans 1–3).
 - Produces: enums `RealmRank { County, Duchy, Kingdom, Empire }`, `Government`, `SuccessionLaw { Primogeniture, Elective, Seniority }`, `MagicLaw`, `RealmPhase { Founded, Expanding, Stable, Declining, Collapsed }`, `TreatyKind { Alliance, NonAggression, TradePact, Tribute, Rivalry }`; `record Treaty(Kind, With, SinceEventId, UntilDay)`; `record RealmMemory(EventId, About, Feeling, Weight)`; `CouncilSeats` (marshal, steward, spymaster, court mage, high priest); `Realm` (kind `"realm"`: capital, liege, rank, government, laws, faith and culture, treasury, legitimacy, stability, war weariness, phase and era, council, conditions, treaties, memories, colours); `CasusBelli` constants; `War` (kind `"war"`: sides, casus belli event, target region or artifact, score, battles; `IsAttacker`, `Involves`, `LeaderOf`, `EnemiesOf`); `ArmyObjective { Defend, Siege, Return }`; `Army` (kind `"army"`); static `Realms` queries (`RulerOf`, `Top`, `Independent`, `VassalsOf`, `Domain`, `Territory`, `SovereignOf`, `Neighbours`, `IsBelow`, `RankFor`); `Region.OwnerRealmId/OccupierRealmId/BesiegerArmyId/SiegeProgress`; `World.Realms/Wars/Armies`; `WorldSnapshot` v4; `Invariants.Realms.cs`. Test support: `TestRealms.TwoKingdoms()`, `AddRealm`, `DeclareWar`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Model/RealmModelTests.cs`:
 ```csharp
@@ -217,12 +217,12 @@ public static class TestRealms
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'Realm' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Engine/Invariants.Realms.cs`:
 ```csharp
@@ -914,12 +914,12 @@ public sealed record WorldSnapshot(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RealmModelTests"`
 Expected: `Passed!  - Failed: 0, Passed: 7`. Then `dotnet test sim` → `Passed: 325` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -943,7 +943,7 @@ Spec §6: 6–8 starting realms. Every city's lord rules a kingdom whose land is
 - Consumes: Task 1; `RegionGraph`, `PeopleGenerator` (Plans 2–3).
 - Produces: `static class RealmGenerator { void Generate(World, Rng); Dictionary<long, long> NearestSource(RegionGraph, IReadOnlyList<long> sources) }`, called by `WorldGenerator` after the people.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/RealmGeneratorTests.cs`:
 ```csharp
@@ -1042,12 +1042,12 @@ public class RealmGeneratorTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 7 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/RealmGenerator.cs`:
 ```csharp
@@ -1243,12 +1243,12 @@ public static class WorldGenerator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RealmGeneratorTests"`
 Expected: `Passed!  - Failed: 0, Passed: 10`. Then `dotnet test sim` → `Passed: 335` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1273,7 +1273,7 @@ Monthly, capitals stay inside the domain (a lost capital moves, citing the loss)
 - Consumes: Tasks 1–2; `Fates` (Plan 3).
 - Produces: `static class Statecraft { LegitimacyCollapsed; StabilityCollapsed; Title(realm); Remember(...); SecureCapital(ctx, realm, causes); Fall(ctx, realm, causes); Cede(ctx, region, from, to, causes); Disband(world, army) }`; `sealed class RealmSystem : ISimSystem` (name `"realms"`; `TaxRate = 0.01`, `VassalTribute = 0.2`, `IndependencePerYear = 0.25`; `static double Aptitude(seat, character)`). `Fates.Die` now also clears council seats and army commands. Events: `CapitalMoved`, `CouncilAppointed`, `LegitimacyCollapsed`/`LegitimacyRestored`, `StabilityCollapsed`/`StabilityRestored`, `IndependenceDeclared`, `RealmRose`/`RealmDiminished`, `RealmFell`, `EraBegan`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Support/TestRealms.cs` entirely with:
 ```csharp
@@ -1478,12 +1478,12 @@ public class RealmSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'RealmSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Systems/Fates.cs` entirely with:
 ```csharp
@@ -2199,12 +2199,12 @@ public static class Statecraft
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RealmSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 9`. Then `dotnet test sim` → `Passed: 344` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2227,7 +2227,7 @@ A realm's law now decides who takes its capital's seat: primogeniture keeps Plan
 - Consumes: Tasks 1, 3; `Fates.Heir` (Plan 3).
 - Produces: `Fates.SeatCandidates(world, deceased, seat, killer, today)`, `Fates.Electability(character)`; payload `law` on `SuccessionOccurred`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/SuccessionLawTests.cs`:
 ```csharp
@@ -2300,12 +2300,12 @@ public class SuccessionLawTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 2 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Systems/Fates.cs` entirely with:
 ```csharp
@@ -2538,12 +2538,12 @@ public static class Fates
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SuccessionLawTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 347` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2566,7 +2566,7 @@ Yearly, independent realms weigh each other: the rulers' personal opinion, realm
 - Consumes: Tasks 1, 3; `IDecider`, `Relations` (Plan 3).
 - Produces: `record CasusBelliOption(Kind, Against, EventId, TargetRegionId, TargetArtifactId, Weight)`; `sealed class DiplomacySystem(IDecider? decider = null) : ISimSystem` (name `"diplomacy"`; `static Opinion(world, a, b)`, `Strength(world, realm)`, `AtWar(world, realm)`, `CasusBelliFor(ctx, realm)`). Events: `AllianceFormed`, `AllianceBroken`, `RivalryDeclared`, `HolyWarProclaimed`, `WarDeclared` (payload `casus belli`, `war`), `AllyJoinedWar`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/DiplomacySystemTests.cs`:
 ```csharp
@@ -2716,12 +2716,12 @@ public class DiplomacySystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'DiplomacySystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/DiplomacySystem.cs`:
 ```csharp
@@ -2997,12 +2997,12 @@ public sealed class DiplomacySystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DiplomacySystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 7`. Then `dotnet test sim` → `Passed: 354` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3026,7 +3026,7 @@ Monthly, every realm at war raises one army at its capital: levies borrowed from
 - Consumes: Tasks 1, 3, 5; `IArbiter`, `IDecider` (Plan 3).
 - Produces: `sealed partial class MilitarySystem(IArbiter? arbiter = null, IDecider? decider = null) : ISimSystem` (name `"military"`; `LevyShare = 0.05`, `MarchDaysPerMonth = 30`; `static Active(world)`, `ArmyOf(world, war, realm)`, `Mobilise(ctx, war, realm)`, `OurSide`, `Side`, `Friendly`, `Hostile`). Event: `ArmyRaised`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Support/TestRealms.cs` entirely with:
 ```csharp
@@ -3212,12 +3212,12 @@ public class CampaignTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'MilitarySystem' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/MilitarySystem.cs`:
 ```csharp
@@ -3496,12 +3496,12 @@ public sealed partial class MilitarySystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CampaignTests"`
 Expected: `Passed!  - Failed: 0, Passed: 7`. Then `dotnet test sim` → `Passed: 361` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3524,7 +3524,7 @@ Where hostile armies meet, the largest of each side fight. Strength weighs troop
 - Consumes: Task 6; `Encounter`, `Fates.Die`, `Fates.Injure` (Plan 3).
 - Produces: `MilitarySystem.Strength(world, army, region)`, `MilitarySystem.BattleFate(character, won)`. Events: `BattleFought` (actors `victor`, `vanquished`, `war`; payload `victor losses`, `vanquished losses`), `ArmyRouted`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/BattleTests.cs`:
 ```csharp
@@ -3603,12 +3603,12 @@ public class BattleTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0117: 'MilitarySystem' does not contain a definition for 'Strength'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/MilitarySystem.Battles.cs`:
 ```csharp
@@ -3751,12 +3751,12 @@ public sealed partial class MilitarySystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~BattleTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 364` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3779,7 +3779,7 @@ An army that reaches its target besieges the region's chief settlement: undefend
 - Consumes: Tasks 6–7.
 - Produces: siege, occupation and score logic in `MilitarySystem.Sieges.cs`. Events: `SiegeBegan`, `SiegeEnded` (payload `outcome` when the place fell), `RegionOccupied`, `SettlementSacked`, `RegionLiberated`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/SiegeTests.cs`:
 ```csharp
@@ -3864,12 +3864,12 @@ public class SiegeTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 4 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/MilitarySystem.Sieges.cs`:
 ```csharp
@@ -4010,12 +4010,12 @@ public sealed partial class MilitarySystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SiegeTests"`
 Expected: `Passed!  - Failed: 0, Passed: 4`. Then `dotnet test sim` → `Passed: 368` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4038,7 +4038,7 @@ At a war score of ±50 the losing leader weighs terms against fighting on (a dec
 - Consumes: Tasks 3, 6–8.
 - Produces: `MilitarySystem.DecisiveScore = 50`, `MilitarySystem.MakePeace(ctx, war, attackerWon, white)`. Events: `PeaceSigned` (payload `terms`, `outcome`), `RegionCeded`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/PeaceTests.cs`:
 ```csharp
@@ -4190,12 +4190,12 @@ public class PeaceTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0117: 'MilitarySystem' does not contain a definition for 'MakePeace'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/MilitarySystem.Peace.cs`:
 ```csharp
@@ -4334,12 +4334,12 @@ public sealed partial class MilitarySystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PeaceTests"`
 Expected: `Passed!  - Failed: 0, Passed: 8`. Then `dotnet test sim` → `Passed: 376` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4363,7 +4363,7 @@ The full system order is now Life → Economy → Regions → Settlements → Re
 - Consumes: everything above.
 - Produces: `DefaultSystems.Create()` with twelve systems; `HistoryQuery.Eras(EntityRef realm)`; `CliApp.Realms.cs`; CLI commands `realms`, `realm <id>`, `wars`, `war <id>`; `fw map --layer realms`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Cli/CliAppTests.cs` entirely with:
 ```csharp
@@ -4812,12 +4812,12 @@ public class HistoryQueryTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'HistoryQuery' does not contain a definition for 'Eras' and no accessible extension method 'Eras' accepting a first argument of type 'HistoryQuery' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Cli/CliApp.Realms.cs`:
 ```csharp
@@ -5348,12 +5348,12 @@ public static class DefaultSystems
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CliAppTests|FullyQualifiedName~HistoryQueryTests"`
 Expected: `Passed!  - Failed: 0, Passed: 31`. Then `dotnet test sim` → `Passed: 379` in total.
 
-- [ ] **Step 5: Smoke-test the real binary**
+- [x] **Step 5: Smoke-test the real binary**
 
 ```bash
 dotnet run --project sim/FantasyWorld.Cli -- new worlds/demo.fw.db --seed 7
@@ -5362,7 +5362,7 @@ dotnet run --project sim/FantasyWorld.Cli -- wars worlds/demo.fw.db
 ```
 Expected: a list of wars with their casus belli and outcome. Pick one and run `fw war worlds/demo.fw.db <id>`: you should see its sides, score, battles and the event that gave it its casus belli. Run `fw realms …` and `fw map … --layer realms` to see the political map, and `fw realm … <id>` for a realm's council, treaties and named eras. Pick a `BattleFought` death and run `fw why worlds/demo.fw.db <id> --depth 5`: death ← battle ← war ← casus belli. Then `rm -r worlds`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -5385,7 +5385,7 @@ These checks hold the political layer to its promises over two centuries: realms
 - Consumes: everything above.
 - Produces: `RealmHealthTests`; together with Task 1's invariants these were run for 200 years on medium worlds with invariants on, clean; README commands for realms and wars.
 
-- [ ] **Step 1: Write the checks**
+- [x] **Step 1: Write the checks**
 
 `sim/FantasyWorld.Sim.Tests/Engine/RealmHealthTests.cs`:
 ```csharp
@@ -5457,12 +5457,12 @@ public class RealmHealthTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they pass against the finished stack**
+- [x] **Step 2: Run tests to verify they pass against the finished stack**
 
 Run: `dotnet test sim`
 Expected: PASS. These tests pin down behaviour built in the earlier tasks; if one fails, fix the system it names before going on.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `README.md` entirely with:
 ````markdown
@@ -5502,17 +5502,17 @@ dotnet run --project sim/FantasyWorld.Cli -- map worlds/aerenmoor.fw.db --layer 
 `--size tiny` makes a 64×64 world with 12 regions for quick experiments.
 ````
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RealmHealthTests"`
 Expected: `Passed!  - Failed: 0, Passed: 3`. Then `dotnet test sim` → `Passed: 382` in total.
 
-- [ ] **Step 5: Run the full suite in Release**
+- [x] **Step 5: Run the full suite in Release**
 
 Run: `dotnet test sim --configuration Release`
 Expected: `Passed!  - Failed: 0, Passed: 382`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim README.md
