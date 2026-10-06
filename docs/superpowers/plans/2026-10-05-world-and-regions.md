@@ -104,7 +104,7 @@ Population growth, tier changes and migration happen once a year (spec §7 "Annu
 - Consumes: `ISimSystem`, `Simulator` (Plan 1); `Sorted` (Plan 1).
 - Produces: `ISimSystem.OnYearlyTick(SimContext ctx)` (default no-op), called on the first day of each year after every system's monthly tick, with RNG phase `"year"`; `sealed class IdGen { SortedDictionary<string,long> Next; long Take(string kind); long Peek(string kind) }` (ids start at 1 per kind; `Next` is re-sorted ordinally on deserialization).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Core/IdGenTests.cs`:
 ```csharp
@@ -286,12 +286,12 @@ public class SimulatorTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'IdGen' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Core/IdGen.cs`:
 ```csharp
@@ -421,12 +421,12 @@ public sealed class Simulator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~IdGenTests|FullyQualifiedName~SimulatorTests"`
 Expected: `Passed!  - Failed: 0, Passed: 12`. Then `dotnet test sim` → `Passed: 96` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -450,7 +450,7 @@ The tile layer (spec §5 "Two map layers") that world generation fills and the G
 - Consumes: `StableHash` (Plan 1).
 - Produces: `StableHash.Mix(ulong)`, `StableHash.Derive(ulong seed, string purpose)` (Rng now reuses `Mix`); namespace `FantasyWorld.Sim.Geo`: `readonly record struct TileCoord(int X, int Y) { int DistanceSquared(TileCoord) }`; `enum Biome : byte { Ocean, Tundra, Taiga, Grassland, Forest, Swamp, Desert, Savanna, Jungle, Hills, Mountain }`; `enum ClimateBand { Cold, Temperate, Hot }`; `[Flags] enum TileFlags : byte { None, River, Coast }`; `static class BiomeInfo { MoveCost, Farmland, BaseFertility, BaseDanger }`; `sealed class TerrainGrid` (byte channels `Elevation, Temperature, Moisture, Biomes, Flags`, `SeaLevel`, `Index/Coord/InBounds/BiomeAt/SetBiome/IsLand/Has/Set/Neighbours4/Neighbours8`, JSON round-trips as base64); `sealed class Noise2D(ulong seed) { double Fractal(x, y, octaves = 5, persistence = 0.5); double Value(x, y, octave = 0) }` in [0, 1).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Geo/NoiseTests.cs`:
 ```csharp
@@ -560,12 +560,12 @@ public class TerrainGridTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Geo' does not exist in the namespace 'FantasyWorld.Sim' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Core/Rng.cs` entirely with:
 ```csharp
@@ -843,12 +843,12 @@ public readonly record struct TileCoord(int X, int Y)
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~NoiseTests|FullyQualifiedName~TerrainGridTests"`
 Expected: `Passed!  - Failed: 0, Passed: 10`. Then `dotnet test sim` → `Passed: 106` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -871,7 +871,7 @@ Seed → a floating world block ringed by sea (spec §5 "World generation": heig
 - Consumes: `TerrainGrid`, `Noise2D`, `Biome`, `StableHash.Derive` (Task 2).
 - Produces: `sealed record TerrainOptions(int Width = 256, int Height = 256, double LandFraction = 0.55, double MountainFraction = 0.08, double HillFraction = 0.14, int MinIslandTiles = 150)`; `static class TerrainGenerator { const byte SeaLevel = 100; TerrainGrid Generate(ulong seed, TerrainOptions); Biome Classify(elevation, mountainLevel, hillLevel, temperature, moisture); List<List<int>> LandComponents(TerrainGrid); int[] DistanceToSea(TerrainGrid) }`. Islands smaller than `MinIslandTiles` are sunk; a 2-tile border is always sea.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/TerrainGeneratorTests.cs`:
 ```csharp
@@ -966,12 +966,12 @@ public class TerrainGeneratorTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'WorldGen' does not exist in the namespace 'FantasyWorld.Sim' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/TerrainGenerator.cs`:
 ```csharp
@@ -1157,12 +1157,12 @@ public static class TerrainGenerator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~TerrainGeneratorTests"`
 Expected: `Passed!  - Failed: 0, Passed: 18`. Then `dotnet test sim` → `Passed: 124` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1185,7 +1185,7 @@ Rivers drive farming, settlement sites, river crossings and floods. A priority f
 - Consumes: `TerrainGrid`, `TileFlags` (Task 2); `TerrainGenerator` (Task 3).
 - Produces: `static class Hydrology { int[] Apply(TerrainGrid grid, double riverFraction = 0.04); int[] Drainage(TerrainGrid grid, out List<int> order) }`. `Apply` sets `River` on the ~4% of land with the most accumulated flow and `Coast` on land 4-adjacent to water, and returns each tile's downstream tile (−1 for water).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/HydrologyTests.cs`:
 ```csharp
@@ -1259,12 +1259,12 @@ public class HydrologyTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Hydrology' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/Hydrology.cs`:
 ```csharp
@@ -1346,12 +1346,12 @@ public static class Hydrology
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~HydrologyTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 129` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1374,7 +1374,7 @@ Regions are the unit of movement, food and ownership (spec §5: 100–120 region
 - Consumes: `TerrainGrid`, `BiomeInfo.MoveCost` (Task 2); `TerrainGenerator.LandComponents` (Task 3); `Rng` (Plan 1).
 - Produces: `sealed class RegionLayout { int Count; int[] RegionOf; List<int>[] Tiles; TileCoord[] Centers }` (index 0 unused/water); `static class RegionPartitioner { RegionLayout Partition(TerrainGrid, int targetRegions, Rng) }`. Every land component gets at least one region; regions are contiguous.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/RegionPartitionerTests.cs`:
 ```csharp
@@ -1451,12 +1451,12 @@ public class RegionPartitionerTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'RegionLayout' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/RegionPartitioner.cs`:
 ```csharp
@@ -1578,12 +1578,12 @@ public static class RegionPartitioner
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RegionPartitionerTests"`
 Expected: `Passed!  - Failed: 0, Passed: 8`. Then `dotnet test sim` → `Passed: 137` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1606,7 +1606,7 @@ All movement — armies, trade, migration, plague, monsters — uses the adjacen
 - Consumes: `RegionLayout` (Task 5); `TerrainGrid`, `BiomeInfo` (Task 2).
 - Produces: `enum LinkKind { Land, Sea }`; `sealed record RegionLink(long A, long B, LinkKind Kind, double TravelDays, int BorderLength, bool RiverCrossing, bool MountainPass) { long Other(long) }` (A < B); `sealed class RegionGraph { IReadOnlyList<RegionLink> Links; LinksOf(long); Neighbours(long); Between(long, long); (IReadOnlyList<long> Path, double Days)? ShortestPath(long, long); IReadOnlySet<long> Reachable(long) }`; `static class RegionGraphBuilder { const double DaysPerTile = 0.5, SeaDaysPerTile = 0.25; RegionGraph Build(TerrainGrid, RegionLayout) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Model/RegionGraphTests.cs`:
 ```csharp
@@ -1751,12 +1751,12 @@ public class RegionGraphBuilderTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'RegionGraph' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Model/RegionGraph.cs`:
 ```csharp
@@ -1929,12 +1929,12 @@ public static class RegionGraphBuilder
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RegionGraphBuilderTests|FullyQualifiedName~RegionGraphTests"`
 Expected: `Passed!  - Failed: 0, Passed: 14`. Then `dotnet test sim` → `Passed: 151` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1958,7 +1958,7 @@ The world's entities (spec §5 "Region data", "Settlements"). Living state is mu
 - Consumes: `IdGen` (Task 1); `TileCoord`, `Biome`, `ClimateBand`, `TerrainGrid` (Task 2); `RegionGraph` (Task 6); `Invariants` (Plan 1).
 - Produces: `sealed class ResourceDeposit { Capacity; Yield }`; `sealed class Region` (kind `"region"`; geography fixed at generation; `Fertility/Danger/LeyPower` with `Base*` values; `Food` in person-months; `Settlements`; `Resources`; `Conditions`; `Memory`; `Ref`); `enum SettlementTier { Hamlet, Village, Town, City }`; `sealed class Settlement` (kind `"settlement"`; `Children/Adults/Elders`, `Wealth`, `Walls`, `Garrison`, `Unrest`, `Abandoned`, `Buildings`, `Conditions`, `Population`, `Ref`); `static class Demography { Consumption, FarmShare, Farmers, FarmersPerFarmland = 12, FarmCapacity(Region), TierFor(int) }`; `sealed class Geography(TerrainGrid Terrain, int[] RegionOf, RegionGraph Graph) { long RegionAt(TileCoord) }`; `World` gains `Geography?`, `Ids`, `Regions`, `Settlements`, `LivingSettlements(Region)`; `Invariants.Check` also validates regions and settlements. Test support: `TestWorlds.TwoRegions()`, `AddRegion`, `AddSettlement`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Model/EntityTests.cs`:
 ```csharp
@@ -2106,12 +2106,12 @@ public static class TestWorlds
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'SettlementTier' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Engine/Invariants.cs` entirely with:
 ```csharp
@@ -2445,12 +2445,12 @@ public sealed class World
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~EntityTests"`
 Expected: `Passed!  - Failed: 0, Passed: 10`. Then `dotnet test sim` → `Passed: 161` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2473,7 +2473,7 @@ Turns tiles into gameplay numbers: biome, climate, fertility, danger, ley power 
 - Consumes: `RegionLayout` (Task 5); `Region`, `ResourceDeposit`, `IdGen` (Tasks 1, 7); `Noise2D`, `BiomeInfo` (Task 2).
 - Produces: `static class ResourceKinds` (`grain, timber, ore, stone, horses, fish, mithril, dragonbone, arcane crystal`; `Rare`; `IsRare`); `sealed class NameGen(Rng) { string Region(); string Settlement() }` (unique per world); `static class RegionProfiler { List<Region> Profile(TerrainGrid, RegionLayout, ulong seed, Rng, IdGen, NameGen) }` (region ids follow layout order).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/NameGenTests.cs`:
 ```csharp
@@ -2577,12 +2577,12 @@ public class RegionProfilerTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'RegionProfiler' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Model/ResourceKinds.cs`:
 ```csharp
@@ -2755,12 +2755,12 @@ public static class RegionProfiler
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~NameGenTests|FullyQualifiedName~RegionProfilerTests"`
 Expected: `Passed!  - Failed: 0, Passed: 7`. Then `dotnet test sim` → `Passed: 168` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -2783,7 +2783,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `Region`, `Settlement`, `Demography` (Task 7); `RegionLayout` (Task 5); `NameGen`, `ResourceKinds` (Task 8).
 - Produces: `static class SettlementPlacer { const int MinSpacing = 4; const double StartingFoodMonths = 6, MinCityFarmland = 270, StartingFarmLoad = 0.8; const int MinPopulation = 30; List<Settlement> Place(TerrainGrid, RegionLayout, IReadOnlyList<Region>, Rng, IdGen, NameGen); double SiteScore(TerrainGrid, int tile) }`. City count = clamp(regions / 15, 2, 8). Fills `Region.Settlements` and `Region.Food`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/SettlementPlacerTests.cs`:
 ```csharp
@@ -2876,12 +2876,12 @@ public class SettlementPlacerTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'SettlementPlacer' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/SettlementPlacer.cs`:
 ```csharp
@@ -3036,12 +3036,12 @@ public static class SettlementPlacer
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SettlementPlacerTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 174` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3064,7 +3064,7 @@ One call from seed to a complete world (no prehistory yet; that is Plan 6). `Tin
 - Consumes: Tasks 3–9; `WorldFactory` (Plan 1).
 - Produces: `enum WorldSize { Tiny, Medium, Large }`; `sealed record WorldGenOptions(ulong Seed, WorldSize Size = Medium) { MapSize; TargetRegions; TerrainOptions Terrain }`; `static class WorldGenerator { World Generate(WorldGenOptions, DateTimeOffset nowUtc) }`. Each step draws from `Rng.ForStream(seed, "worldgen/<step>", 0)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/WorldGen/WorldGeneratorTests.cs`:
 ```csharp
@@ -3126,12 +3126,12 @@ public class WorldGeneratorTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'WorldGenerator' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/WorldGen/WorldGenerator.cs`:
 ```csharp
@@ -3192,12 +3192,12 @@ public static class WorldGenerator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~WorldGeneratorTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 179` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3220,7 +3220,7 @@ Regions, settlements and ids go into the monthly snapshot. The static geography 
 - Consumes: `World`, `Region`, `Settlement`, `Geography`, `IdGen` (Tasks 1, 7); `WorldGenerator` (Task 10, tests only).
 - Produces: `WorldSnapshot` version 2 with optional `Ids`, `Regions`, `Settlements` (null when reading v1 snapshots); `WorldHasher` also hashes geography; `WorldStore.CurrentSchemaVersion = 2`, table `geography(id = 1, json)`, `bool HasGeography`; `Save` writes geography only if the table is empty; `Load` restores it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Persist/WorldStoreTests.cs` entirely with:
 ```csharp
@@ -3339,12 +3339,12 @@ public class WorldStoreTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'WorldStore' does not contain a definition for 'HasGeography' and no accessible extension method 'HasGeography' accepting a first argument of type 'WorldStore' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Persist/WorldHasher.cs` entirely with:
 ```csharp
@@ -3633,12 +3633,12 @@ public sealed class WorldStore : IDisposable
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~WorldStoreTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 181` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -3662,7 +3662,7 @@ Each region pools its settlements' food. Farmers (capped by farmland) harvest by
 - Consumes: `ISimSystem.OnYearlyTick` (Task 1); `Region`, `Settlement`, `Demography`, `ResourceKinds` (Tasks 7–8); `EventDraft`, `Cause` (Plan 1).
 - Produces: `Demography.RoundRandom(double, Rng)` and `Demography.Kill(Settlement, double fraction, Rng)`; `static class Conditions` (condition names `shortage, drought, blight, flood, plague, immune, exhausted, leySurge, dangerous, revolt`; `Cite(active, params (condition, kind, weight)[])`); `sealed class EconomySystem : ISimSystem` (name `"economy"`; consts `FoodPerFarmerMonth = 3.2`, `FishFoodPerYield = 4`, `ShortageBelowMonths = 1`, `ShortageEndsAtMonths = 3`, `MaxStoreMonths = 12`, `CraftWealthPerWorker = 0.02`; `static double Production(SimContext, Region, IReadOnlyList<Settlement>)`). Events: `FoodShortageBegan` (payload `months`), `FoodShortageEnded`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/EconomySystemTests.cs`:
 ```csharp
@@ -3814,12 +3814,12 @@ public class EconomySystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'EconomySystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Model/Demography.cs` entirely with:
 ```csharp
@@ -4077,12 +4077,12 @@ public sealed class EconomySystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~EconomySystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 13`. Then `dotnet test sim` → `Passed: 194` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4106,7 +4106,7 @@ The land lives: fertility, danger and ley power drift (overfarming exhausts soil
 - Consumes: `Conditions`, `Demography.Kill` (Task 12); `RegionGraph` (Task 6); `Region`, `World.Geography` (Task 7).
 - Produces: `sealed record RegionOdds(Drought = 0.06, Flood = 0.05, Blight = 0.02, Plague = 0.008, LeySurge = 0.02, Earthquake = 0.01, Monsters = 0.08, Discovery = 0.015, PlagueSpreadLand = 0.04, PlagueSpreadSea = 0.02) { static None }` (yearly odds rolled monthly as odds / 12; spread odds are per month per link); `sealed class RegionSystem(RegionOdds? odds = null) : ISimSystem` (name `"regions"`, handles `"region.condition.end"`; consts `MemoryCursor`, `MemorySize = 12`, `MemoryImportance = 35`, `ImmunityDays = 3600`). Events: `Drought/DroughtEnded`, `Flood`, `Blight/BlightEnded`, `PlagueOutbreak/PlagueSpread/PlagueEnded`, `LeySurge`, `Earthquake`, `MonstersMigrated`, `ResourceDiscovered`, `FertilityExhausted/FertilityRecovered`, `DangerRose/DangerSubsided`. Test support: `TestWorlds.TwoRegions` now links its regions and accepts a mountain share.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Support/TestWorlds.cs` entirely with:
 ```csharp
@@ -4321,12 +4321,12 @@ public class RegionSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'RegionOdds' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/RegionSystem.cs`:
 ```csharp
@@ -4611,12 +4611,12 @@ public sealed class RegionSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RegionSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 10`. Then `dotnet test sim` → `Passed: 204` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -4639,7 +4639,7 @@ The populace's mood: unrest follows hunger, plague and danger. High unrest start
 - Consumes: `Conditions`, `Demography` (Tasks 7, 12); `RegionGraph` (Task 6).
 - Produces: `sealed class SettlementSystem(double revoltChancePerMonth = 0.35) : ISimSystem` (name `"settlements"`, handles `"settlement.revolt.end"`; consts `RevoltAt = 60`, `EmigrateAt = 50`, `AbandonBelow = 15`, `WallCost = 4000`; walls are a level (towns up to 2, cities up to 3) that is rebuilt after earthquakes, not a one-off building). Events: `RevoltBegan/RevoltEnded` (place = settlement, actor `region`), `Exodus` (actor `to`, payload `people`), `SettlementGrew/SettlementDeclined` (payload `tier`), `SettlementAbandoned`, `BuildingCompleted` (payload `building`), `WallsRaised` (payload `level`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Systems/SettlementSystemTests.cs`:
 ```csharp
@@ -4788,12 +4788,12 @@ public class SettlementSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'SettlementSystem' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Sim/Systems/SettlementSystem.cs`:
 ```csharp
@@ -5011,12 +5011,12 @@ public sealed class SettlementSystem : ISimSystem
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SettlementSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 9`. Then `dotnet test sim` → `Passed: 213` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -5041,7 +5041,7 @@ The demo harvest/unrest systems from Plan 1 are retired: the default order is no
 - Consumes: everything above.
 - Produces: `DefaultSystems.Create()` → `[EconomySystem, RegionSystem, SettlementSystem]`; `EventText.Describe(WorldEvent, Func<EntityRef, string?>? nameOf = null)`; `static class MapRenderer { string Render(World, string layer) }` (`biome` or `regions`; each character covers step × 2·step tiles, step = width / 128); CLI: `fw new <file> [--seed n] [--size tiny|medium|large]`, `fw map <file> [--layer biome|regions]`, `fw regions <file>`, `fw region <file> <id>`. `DurationParser.MaxDays` = 1000 years (overflow-safe); CLI errors for bad files, overflowing numbers and corrupt JSON print `error:` instead of a stack trace. Deletes `Systems/Demo/*` and `DemoSystemsTests`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Cli/CliAppTests.cs` entirely with:
 ```csharp
@@ -5399,12 +5399,12 @@ public class HistoryQueryTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1501: No overload for method 'Describe' takes 2 arguments`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Delete the retired demo systems and their tests:
 ```bash
@@ -5787,12 +5787,12 @@ public static class DefaultSystems
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~CliAppTests|FullyQualifiedName~DurationParserTests|FullyQualifiedName~HistoryQueryTests"`
 Expected: `Passed!  - Failed: 0, Passed: 34`. Then `dotnet test sim` → `Passed: 219` in total.
 
-- [ ] **Step 5: Smoke-test the real binary**
+- [x] **Step 5: Smoke-test the real binary**
 
 ```bash
 dotnet run --project sim/FantasyWorld.Cli -- new worlds/demo.fw.db --seed 7
@@ -5802,7 +5802,7 @@ dotnet run --project sim/FantasyWorld.Cli -- regions worlds/demo.fw.db
 ```
 Expected: `Created world at worlds/demo.fw.db (seed 7, medium: 100 regions, … settlements).`; a 128×64 map of a continent with a mountain spine, rivers (`=`) and settlements (`@ O o`); `Advanced 18000 days to Y51 M1 D1.` followed by several hundred named event lines (plague waves, droughts, revolts, buildings…), in a few seconds; a 100-row region table. Pick a `RevoltBegan` or `FoodShortageBegan` id and run `fw why worlds/demo.fw.db <id>`: you should see an indented `because …` chain (e.g. revolt ← shortage ← drought). Then `rm -r worlds`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim
@@ -5825,7 +5825,7 @@ These checks hold the whole stack to the spec's guarantees: chunk invariance and
 - Consumes: everything above.
 - Produces: `WorldHealthTests` (6 tests); README run instructions for the new commands.
 
-- [ ] **Step 1: Write the checks**
+- [x] **Step 1: Write the checks**
 
 `sim/FantasyWorld.Sim.Tests/Engine/WorldHealthTests.cs`:
 ```csharp
@@ -5915,12 +5915,12 @@ public class WorldHealthTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they pass against the finished stack**
+- [x] **Step 2: Run tests to verify they pass against the finished stack**
 
 Run: `dotnet test sim`
 Expected: PASS. These tests pin down behaviour built in Tasks 12–15; if one fails, fix the system it names before going on.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `README.md` entirely with:
 ````markdown
@@ -5951,17 +5951,17 @@ dotnet run --project sim/FantasyWorld.Cli -- why worlds/aerenmoor.fw.db <event-i
 `--size tiny` makes a 64×64 world with 12 regions for quick experiments.
 ````
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~WorldHealthTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 225` in total.
 
-- [ ] **Step 5: Run the full suite in Release**
+- [x] **Step 5: Run the full suite in Release**
 
 Run: `dotnet test sim --configuration Release`
 Expected: `Passed!  - Failed: 0, Passed: 225`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim README.md
