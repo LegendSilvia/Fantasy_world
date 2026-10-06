@@ -10,17 +10,22 @@ Context for picking up this project on another machine / in a new Claude session
 | UI design (Claude Design canvas) | Done — https://claude.ai/artifact/1q5esun6tMtyMP75sMwsvb |
 | Sim core spec | Done, approved — `docs/superpowers/specs/2026-10-05-fantasy-world-sim-core-design.md` |
 | Plan 1 of 6 (Sim foundation) | Written — `docs/superpowers/plans/2026-10-05-sim-foundation.md` |
-| Plan 1 execution | **Not started** (no code committed yet) |
+| Plan 1 execution | **Done** — Tasks 1–12 committed on `ccr-81a7454e-12gx87`; 93/93 tests pass (Debug + Release) |
+| Plan 2 of 6 (World & regions) | **Done** — `docs/superpowers/plans/2026-10-05-world-and-regions.md`, Tasks 1–16 committed on `ccr-81a7454e-12gx87`; 225/225 tests pass (Debug + Release) |
 
 ## Next step
 
-Execute Plan 1 with **subagent-driven development** (chosen), in an isolated worktree / feature branch, not on `main`:
+1. Review and merge `ccr-81a7454e-12gx87` (Plans 1 and 2) into `main`; confirm the `ci` workflow is green.
+2. Write Plan 3 (Characters & artifacts, plus cultures & faiths deferred from Plan 2). Plan 2's "Decisions made while drafting" table lists what was deferred to it.
 
-1. Install the .NET 8 SDK if missing (Plan 1, Task 1, Step 1).
-2. Start Task 1 and work through Tasks 1–12; each task is TDD + commit.
-3. Final whole-branch review, then merge.
+Notes from Plan 2 execution:
+- Try it: `fw new worlds/w.fw.db --seed 7`, `fw map …`, `fw advance … 50y`, `fw regions …`, `fw why … <id>` (e.g. a revolt → its food shortage).
+- Balance knobs live as constants in `EconomySystem`, `RegionOdds` and `SettlementSystem`; `WorldHealthTests` guards against collapse.
 
-Then write Plan 2 (World & regions). The roadmap of Plans 2–6 is in the plan file.
+Notes from Plan 1 execution:
+- Toolchain on Linux: `curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0` (installs to `~/.dotnet`).
+- The demo harvest/unrest systems revolt only occasionally (e.g. seed 7 has none in its first 20 years, 29 in 100 years); use `fw advance <file> 100y` when demoing `fw why` on a `RevoltBegan`.
+- `CliApp` does not catch `SqliteException`, so pointing `fw` at a non-SQLite file crashes with a stack trace instead of `error:`.
 
 ## Key decisions (don't re-ask)
 
