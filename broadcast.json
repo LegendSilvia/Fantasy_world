@@ -1,5 +1,4 @@
 {
-  // The daily broadcast's settings (sub-project 6). Secrets never go here: they are GitHub Actions secrets.
   "worldKey": "world.fw.db",
   "seed": 20261027,
   "size": "medium",

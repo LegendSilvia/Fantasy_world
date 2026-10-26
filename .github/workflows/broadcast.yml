@@ -1,0 +1,83 @@
+name: broadcast
+
+# The daily broadcast (sub-project 6): the world lives one more year and the episode is published, at 05:30 in
+# Bangkok every morning. GitHub runs scheduled workflows only from the default branch, and may start them late.
+on:
+  schedule:
+    - cron: '30 22 * * *'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Work under staging/ and post to the test Discord channel'
+        type: boolean
+        default: true
+      create:
+        description: 'Begin a new world if none is stored (a scheduled run never does)'
+        type: boolean
+        default: false
+
+# One run at a time, and a run in progress is never cancelled: two runs must not touch the world together.
+concurrency:
+  group: broadcast
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build
+        run: dotnet build sim/FantasyWorld.Broadcast --configuration Release
+      - name: Broadcast
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_TEST_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          DRY_RUN: ${{ inputs.dry-run }}
+          CREATE: ${{ inputs.create }}
+          REF: ${{ github.ref }}
+          DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$DRY_RUN" != "true" ] && [ "$REF" != "$DEFAULT_REF" ]; then
+            echo "error: the live broadcast runs only from the default branch; tick dry-run to try a branch."
+            exit 1
+          fi
+          args=(run --config broadcast.json)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          if [ "$CREATE" = "true" ]; then args+=(--create); fi
+          dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
+
+  # GitHub turns off the schedule of a public repository after 60 days without activity: the first scheduled run of
+  # each month (Bangkok time) commits a one-line heartbeat, unless broadcast.json turns keepAlive off. A month whose
+  # heartbeat failed is caught up by the next morning's run.
+  keep-alive:
+    needs: broadcast
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Monthly heartbeat
+        run: |
+          month="$(TZ=Asia/Bangkok date +%Y-%m)"
+          if [ "$(jq -r .keepAlive broadcast.json)" != "true" ] || [ "$(cat .github/broadcast-heartbeat 2>/dev/null)" = "$month" ]; then
+            echo "No heartbeat needed."
+            exit 0
+          fi
+          echo "$month" > .github/broadcast-heartbeat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/broadcast-heartbeat
+          git commit -m "chore: broadcast keep-alive [skip ci]" || exit 0
+          git push || (git pull --rebase -q && git push)

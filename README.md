@@ -7,6 +7,7 @@ A persistent fantasy world simulation — the world keeps moving while you sleep
 
 - `sim/` — headless .NET 8 simulation core, tests and the `fw` CLI
 - `sim/FantasyWorld.Client/` — the game's engine-free logic (session, terrain, layout), tested with the rest
+- `sim/FantasyWorld.Broadcast/` — the daily broadcast: R2 storage, the morning run and Discord (`broadcast.json`)
 - `game/` — the Godot 4.3 diorama client
 - `docs/superpowers/specs/` — design specs
 - `docs/superpowers/plans/` — implementation plans
@@ -151,3 +152,14 @@ dotnet run --project sim/FantasyWorld.Cli -- view worlds/aerenmoor.fw.db charact
 the world runs. Every command that changes a world first keeps a
 backup of the last three sessions next to it (`.bak1`–`.bak3`). Benchmarks:
 `dotnet run -c Release --project sim/FantasyWorld.Bench -- --filter '*'`.
+
+## The daily broadcast
+
+Every morning at 05:30 Bangkok time, GitHub Actions pulls the world from Cloudflare R2, lets it live the year that passed,
+builds the episode and posts it to Discord. A rerun the same day posts nothing new. Setup:
+[docs/broadcast-setup.md](docs/broadcast-setup.md).
+
+```bash
+dotnet run --project sim/FantasyWorld.Cli -- episode worlds/aerenmoor.fw.db --out ep/   # episode.json and script.txt since the last one
+dotnet run --project sim/FantasyWorld.Broadcast -- run --dry-run --create --local bucket/   # the whole morning, with a local folder for R2
+```
