@@ -49,6 +49,9 @@ public static class Statecraft
     public static void Fall(SimContext ctx, Realm realm, IReadOnlyList<Cause> causes)
     {
         var world = ctx.World;
+        // A realm falls once: marked before its land is handed on, so the cessions below do not make it fall again.
+        if (realm.Destroyed) return;
+        realm.Destroyed = true;
         foreach (var region in world.Regions.Values.Where(r => r.OwnerRealmId == realm.Id).OrderBy(r => r.Id).ToList())
         {
             var heir = world.Realms.TryGetValue(region.OccupierRealmId, out var occupier) && !occupier.Destroyed && occupier.Id != realm.Id
@@ -62,7 +65,6 @@ public static class Statecraft
             Actors: new Dictionary<string, EntityRef> { ["realm"] = realm.Ref },
             Place: world.Settlements[realm.CapitalId].Ref, Causes: causes,
             Importance: realm.LiegeId == 0 ? 80 : 40, Tags: new[] { "Politics" }));
-        realm.Destroyed = true;
         realm.Phase = RealmPhase.Collapsed;
         realm.Council.Clear();
         foreach (var vassal in Realms.VassalsOf(world, realm).ToList()) vassal.LiegeId = 0;

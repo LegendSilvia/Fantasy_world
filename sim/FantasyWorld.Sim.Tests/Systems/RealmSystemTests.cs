@@ -1,3 +1,4 @@
+using FantasyWorld.Sim.Geo;
 using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Events;
@@ -73,6 +74,25 @@ public class RealmSystemTests
         Assert.True(world.Realms[1].Destroyed);
         Assert.Equal(0, world.Realms[2].LiegeId);
         Assert.Single(sim.Log.All, e => e.Type == "RealmFell");
+    }
+
+    [Fact]
+    public void ARealmWithLandLeftButNoTown_FallsOnce_AndItsLandPassesOn()
+    {
+        // Each cession of a falling realm's leftover land used to re-check its capital and make it fall again.
+        var world = TestRealms.TwoKingdoms();
+        var wastes = new[] { TestWorlds.AddRegion(world, "Ashwaste", 0.9), TestWorlds.AddRegion(world, "Saltwaste", 0.9) };
+        foreach (var w in wastes) w.OwnerRealmId = 1;
+        world.Geography = new Geography(new TerrainGrid(4, 1), new[] { 1, 2, 3, 4 }, new RegionGraph(new[]
+        {
+            new RegionLink(1, 2, LinkKind.Land, 3, 10, false, false), new RegionLink(2, 3, LinkKind.Land, 3, 10, false, false),
+            new RegionLink(2, 4, LinkKind.Land, 3, 10, false, false),
+        }));
+        world.Regions[1].OwnerRealmId = 2;
+        var ctx = new SimContext(world, new EventLog(), new EventQueue(), new Rng(1));
+        Assert.False(Statecraft.SecureCapital(ctx, world.Realms[1], Array.Empty<Cause>()));
+        Assert.Single(ctx.Log.All, e => e.Type == "RealmFell");
+        Assert.All(wastes, w => Assert.Equal(2, w.OwnerRealmId));
     }
 
     [Fact]
