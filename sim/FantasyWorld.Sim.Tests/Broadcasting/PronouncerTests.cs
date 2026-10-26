@@ -14,6 +14,7 @@ public class PronouncerTests
         public List<IReadOnlyDictionary<string, string>> Dictionaries { get; } = [];
         public List<SpeechRequest> Spoken { get; } = [];
         public bool Fails { get; set; }
+        public bool RefusesDictionaries { get; set; }
 
         public Task<byte[]> SpeakAsync(SpeechRequest request, CancellationToken ct = default)
         {
@@ -26,6 +27,7 @@ public class PronouncerTests
 
         public Task<DictionaryRef> CreateDictionaryAsync(string name, IReadOnlyDictionary<string, string> aliases, CancellationToken ct = default)
         {
+            if (RefusesDictionaries) throw new SpeechException("ElevenLabs could not store the pronunciations: HTTP 401.");
             Dictionaries.Add(aliases);
             return Task.FromResult(new DictionaryRef($"d{Dictionaries.Count}", "v1"));
         }

@@ -202,7 +202,18 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                     return Ok;
                 }
                 await Pronouncer.LearnAsync(respeller, config.Llm.NarrateModel, manifest, episode.Script, log, ct).ConfigureAwait(false);
-                var dictionaries = await Pronouncer.DictionaryAsync(speech, manifest, episode.WorldName, ct).ConfigureAwait(false);
+                IReadOnlyList<DictionaryRef> dictionaries;
+                try
+                {
+                    dictionaries = await Pronouncer.DictionaryAsync(speech, manifest, episode.WorldName, ct).ConfigureAwait(false);
+                }
+                catch (SpeechException e)
+                {
+                    // Respellings help, but an episode is never left unspoken for want of them; tried again next run.
+                    log.WriteLine($"warning: the respellings could not be given to ElevenLabs ({e.Message}); the episode is spoken without them. "
+                                  + "An ElevenLabs key needs the Pronunciation Dictionaries permission (write) for them.");
+                    dictionaries = [];
+                }
                 await SaveAsync(store, manifest, ct).ConfigureAwait(false); // the names and the dictionary, kept whatever happens next
 
                 ledger.Characters[month] = spent + episode.Script.Length;

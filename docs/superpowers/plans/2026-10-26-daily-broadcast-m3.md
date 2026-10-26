@@ -4207,3 +4207,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Done when (M3):** each morning's post carries the narration; names are said the same way every day; the budget stops calls; with a public bucket the feed validates in a podcast validator.
 
 Deferred to M4: video (an MP4 of the map and the narration) and YouTube.
+
+## Follow-up after the first dry run on GitHub Actions
+
+ElevenLabs refused to store the respellings (HTTP 401): an ElevenLabs key can be limited per feature, and this one may
+lack **Pronunciation Dictionaries: Write**. A dictionary that cannot be stored must not leave an episode unspoken, so
+`DailyRun.SpeakAsync` now catches the `SpeechException` from `Pronouncer.DictionaryAsync`, logs a warning naming the
+permission, and speaks without the dictionary (it is tried again on the next run). Test:
+`DailyRunTests.RespellingsThatCannotBeStored_StillLeaveTheEpisodeSpoken` (the fake speech gained `RefusesDictionaries`).
+The setup guide names the two permissions the key needs.

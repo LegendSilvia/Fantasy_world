@@ -28,7 +28,7 @@ In the repository: **Settings → Secrets and variables → Actions → New repo
 | `DISCORD_WEBHOOK_URL` | the real channel's webhook |
 | `DISCORD_TEST_WEBHOOK_URL` | the test channel's webhook (optional; without it a dry run posts nowhere) |
 | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN` | optional: the daily video upload (see section 5) |
-| `ELEVENLABS_API_KEY` | from elevenlabs.io → your profile → API Keys; the narrator reads each episode with it (without it, the post goes out as text and map) |
+| `ELEVENLABS_API_KEY` | from elevenlabs.io → your profile → API Keys, with the permissions **Text to Speech** and **Pronunciation Dictionaries: Write** (without the second, episodes are spoken without the name respellings); the narrator reads each episode with it (without it, the post goes out as text and map) |
 | `ANTHROPIC_API_KEY` | from console.anthropic.com → API Keys; the chronicler writes each script with it (without it, the template script ships) |
 
 Secrets are only ever read from the environment. They are never written to R2, the world file, the logs or the repository.

@@ -146,6 +146,21 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task RespellingsThatCannotBeStored_StillLeaveTheEpisodeSpoken()
+    {
+        var speech = new PronouncerTests.FakeSpeech { RefusesDictionaries = true };
+        var respeller = new FakeLlmProvider(request => System.Text.Json.JsonSerializer.Serialize(new
+        {
+            respellings = Pronouncer.Words(request.Prompt).Select(w => new { word = w, say = $"{w[0]}-{w[1..].ToLowerInvariant()}" }),
+        }));
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), providers: _ => respeller, speech: speech));
+        var spoken = Assert.Single(speech.Spoken);
+        Assert.Empty(spoken.Dictionaries);
+        Assert.Contains("spoken without them", _log.ToString());
+        Assert.NotNull(_discord.Audio.Single());
+    }
+
+    [Fact]
     public async Task SpeechThatFails_LeavesTheTextAndMapPost_AndIsMadeUpNextRun()
     {
         var speech = new PronouncerTests.FakeSpeech { Fails = true };
