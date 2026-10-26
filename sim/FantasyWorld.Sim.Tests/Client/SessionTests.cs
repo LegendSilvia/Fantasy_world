@@ -85,7 +85,7 @@ public class SessionTests
         {
             var owed = session.DaysBehind;
             var before = session.Read((w, _) => w.Date.Day);
-            var progress = new Progress<WorldDate>(_ => cts.Cancel());
+            var progress = new ListProgress<WorldDate>(_ => cts.Cancel()); // synchronous: the cancel lands before the next day
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.CatchUpAsync(progress, cts.Token));
             var simulated = session.Read((w, _) => w.Date.Day) - before;
             Assert.InRange(simulated, 1, owed - 1);

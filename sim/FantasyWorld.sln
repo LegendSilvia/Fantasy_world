@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Bench", "Fanta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Client", "FantasyWorld.Client\FantasyWorld.Client.csproj", "{F0DD3E2C-2C7F-4E4C-9766-7F44EED518A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Broadcast", "FantasyWorld.Broadcast\FantasyWorld.Broadcast.csproj", "{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +50,9 @@ Global
 		{F0DD3E2C-2C7F-4E4C-9766-7F44EED518A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0DD3E2C-2C7F-4E4C-9766-7F44EED518A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0DD3E2C-2C7F-4E4C-9766-7F44EED518A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

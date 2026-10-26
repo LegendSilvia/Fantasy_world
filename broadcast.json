@@ -1,0 +1,15 @@
+{
+  // The daily broadcast's settings (sub-project 6). Secrets never go here: they are GitHub Actions secrets.
+  "worldKey": "world.fw.db",
+  "seed": 20261027,
+  "size": "medium",
+  "timeZone": "Asia/Bangkok",
+  "language": "en",
+  "livePrefix": "live/",
+  "stagingPrefix": "staging/",
+  "backupDays": 30,
+  "stories": 5,
+  "maxCharacters": 3600,
+  "discordName": "The Chronicle",
+  "keepAlive": true
+}

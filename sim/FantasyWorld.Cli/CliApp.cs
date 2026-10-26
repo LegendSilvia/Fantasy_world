@@ -21,7 +21,7 @@ public static partial class CliApp
           fw new <world-file> [--seed <n>] [--size tiny|medium|large] [--prehistory <years>]   (default 100; tiny 0)
           fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
           fw catchup <world-file> [--quiet]         simulate the real time that has passed, then the digest (--quiet: none)
-          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--keep-marker]   the broadcast's episode since it last aired
+          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--keep-marker]   the broadcast's episode since it last aired
           fw snapshot <world-file> <copy>           a consistent single-file copy (safe to upload)
           fw live <world-file> [--minutes <n>]      keep the world running in real time (default 60; Ctrl+C stops)
           fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
@@ -180,9 +180,13 @@ public static partial class CliApp
         var date = Option(rest, "--date") ?? clock().UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             throw new FormatException($"--date must look like 2026-10-27 (got '{date}').");
+        var stories = int.Parse(Option(rest, "--stories") ?? Episode.DefaultStories.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+        if (stories is < 0 or > 10) throw new FormatException("--stories must be between 0 and 10.");
+        var budget = int.Parse(Option(rest, "--max-characters") ?? Episode.DefaultMaxCharacters.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+        if (budget is < 300 or > 10_000) throw new FormatException("--max-characters must be between 300 and 10000.");
         using var store = OpenExisting(path);
         var (world, log, queue) = store.Load();
-        var episode = Episode.Build(world, log, world.LastBroadcastEventId, date, store.LoadFollowed());
+        var episode = Episode.Build(world, log, world.LastBroadcastEventId, date, store.LoadFollowed(), stories, budget);
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "episode.json"), episode.ToJson());
         File.WriteAllText(Path.Combine(dir, "script.txt"), episode.Script);
