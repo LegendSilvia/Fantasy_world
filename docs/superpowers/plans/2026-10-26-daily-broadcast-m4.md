@@ -2544,3 +2544,20 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Done when (M4):** with the YouTube secrets set, one upload a day; a failed upload never holds up Discord.
 
 Deferred: Godot diorama shots in the video (xvfb on the runner), chapters and thumbnails.
+
+## Follow-up after the first dry run on GitHub Actions
+
+The runner has no ffmpeg, and `apt-get update` there took over eight minutes. The workflow now installs ffmpeg only
+when a video will be made (the YouTube secrets are set, or it is a dry run), without recommended packages, and gives the
+step five minutes; a failed or slow install still costs only the video. Change in `.github/workflows/broadcast.yml`:
+
+```yaml
+    env:
+      MAKES_VIDEO: ${{ secrets.YOUTUBE_REFRESH_TOKEN != '' || inputs.dry-run == true }}
+    ...
+      - name: Install ffmpeg (for the YouTube video)
+        if: env.MAKES_VIDEO == 'true'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg)
+```

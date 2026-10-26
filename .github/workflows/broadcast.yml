@@ -28,6 +28,9 @@ jobs:
   broadcast:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # A video is made only for YouTube (with its secrets) or on a dry run; otherwise ffmpeg is not installed.
+      MAKES_VIDEO: ${{ secrets.YOUTUBE_REFRESH_TOKEN != '' || inputs.dry-run == true }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -36,9 +39,11 @@ jobs:
       - name: Build
         run: dotnet build sim/FantasyWorld.Broadcast --configuration Release
       - name: Install ffmpeg (for the YouTube video)
-        # A failed install costs only the video; the broadcast itself must still run.
+        if: env.MAKES_VIDEO == 'true'
+        # A failed or slow install costs only the video; the broadcast itself must still run.
         continue-on-error: true
-        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+        timeout-minutes: 5
+        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg)
       - name: Broadcast
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
