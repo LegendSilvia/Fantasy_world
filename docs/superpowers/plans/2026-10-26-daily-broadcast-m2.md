@@ -69,7 +69,7 @@ Spec §3.2, M2. The world's narrate-tier model (Claude Sonnet for the broadcast)
 - Consumes: `LlmNarrator`, `LlmGateway`, `NarrationGuard`, `PromptText` (Plan 5, sub-project 5); `Episode` (M1).
 - Produces: `Episode.Writer` (`TemplateWriter`, `ChroniclerWriter`); `LlmNarrator.EpisodeScript(episode, maxCharacters)`; `fw episode … --narrate` (the world is loaded live; its journal is saved, and only the journal under `--keep-marker`); `NarrationGuard.NumberWords(text)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Cli/EpisodeCliTests.cs` entirely with:
 ```csharp
@@ -328,12 +328,12 @@ public class GuardTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS1061: 'LlmNarrator' does not contain a definition for 'EpisodeScript' and no accessible extension method 'EpisodeScript' accepting a first argument of type 'LlmNarrator' could be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Cli/CliApp.cs` entirely with:
 ```csharp
@@ -1094,12 +1094,12 @@ public static partial class NarrationGuard
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~EpisodeCliTests|FullyQualifiedName~EpisodeScriptTests|FullyQualifiedName~GuardTests"`
 Expected: `Passed!  - Failed: 0, Passed: 12`. Then `dotnet test sim` → `Passed: 623` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1123,7 +1123,7 @@ Spec §4, M2. The broadcast's picture, drawn in .NET from the same map view the 
 - Consumes: `MapScreen`, `Geography`, `TerrainGrid` (sim core); `Palette`, `BlockMesh` colours (sub-project 4).
 - Produces: `static class Png { Encode(width, height, rgb); Crc(data) }`; `record Raster(Width, Height, Rgb) { At(x, y) }`; `static class MapPainter { DefaultWidth; RealmWash; Paint(world, log, width); Png(world, log, width) }`; `fw-broadcast map`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Broadcasting/MapImageTests.cs`:
 ```csharp
@@ -1204,12 +1204,12 @@ public class MapImageTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Media' does not exist in the namespace 'FantasyWorld.Broadcast' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Broadcast/BroadcastApp.cs` entirely with:
 ```csharp
@@ -1521,12 +1521,12 @@ public static class Png
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~MapImageTests"`
 Expected: `Passed!  - Failed: 0, Passed: 2`. Then `dotnet test sim` → `Passed: 625` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1549,7 +1549,7 @@ Spec §3, M2. Each morning the run applies `broadcast.json`'s `llm` section to t
 - Consumes: Tasks 1–2; `DailyRun`, `DiscordWebhook`, `BroadcastConfig` (M1).
 - Produces: `record BroadcastLlm { Narrate; NarrateModel; StoryBeatsPerDay; NarrationsPerDay; MonthlyCapUsd }`, `BroadcastConfig.Llm`; `IEpisodeChannel.PublishAsync(episode, map, ct)`; `DiscordWebhook { MapFile; Payload(episode, username, withMap); Content(episode, username, map) }`; `DailyRun.MapKey(date)` and an optional `providers` argument; `BroadcastApp.ScriptTimeout`; `LlmProviders.Create(settings, env, timeout)`; workflow and docs.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Broadcasting/BroadcastPartsTests.cs` entirely with:
 ```csharp
@@ -1977,12 +1977,12 @@ public class DailyRunTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0535: 'DailyRunTests.CountingChannel' does not implement interface member 'IEpisodeChannel.PublishAsync(Episode, CancellationToken)'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `.github/workflows/broadcast.yml` entirely with:
 ```yaml
@@ -2959,12 +2959,12 @@ public static class LlmProviders
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~BroadcastPartsTests|FullyQualifiedName~DailyRunTests"`
 Expected: `Passed!  - Failed: 0, Passed: 21`. Then `dotnet test sim` → `Passed: 629` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github README.md broadcast.json docs sim
