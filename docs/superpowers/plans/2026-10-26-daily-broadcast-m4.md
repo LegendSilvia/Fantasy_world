@@ -63,7 +63,7 @@ Spec §4, M4. The map held still for the length of the narration, as an MP4 YouT
 - Consumes: `MapPainter` (M2), the narration (M3).
 - Produces: `interface IVideoMaker { MakeAsync(mapPng, narrationMp3) }`, `VideoException`, `FfmpegVideo(ffmpeg, size) { DefaultSize; Arguments(image, audio, output, size) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Broadcasting/VideoTests.cs`:
 ```csharp
@@ -123,12 +123,12 @@ public class VideoTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'FfmpegVideo' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Broadcast/Media/Video.cs`:
 ```csharp
@@ -224,12 +224,12 @@ public sealed class FfmpegVideo : IVideoMaker
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~VideoTests"`
 Expected: `Passed!  - Failed: 0, Passed: 2`. Then `dotnet test sim` → `Passed: 652` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -253,7 +253,7 @@ Spec §4, M4. A channel that uploads the day's video at most once: it makes and 
 - Consumes: Task 1; `IEpisodeChannel` (M1–M3).
 - Produces: `record YouTubeAccount(ClientId, ClientSecret, RefreshToken) { FromEnvironment(env) }`; `record UploadState`; `YouTube(http, account, video, settings) { TokenUrl; UploadUrl; MaxTitle; MaxDescriptionBytes; Uploads; VideoKey; StateKey; Attach; Details(episode, settings) }`; `ChannelWaitingException`, `interface IStatefulChannel`; `record BroadcastYouTube { Upload; Privacy; CategoryId }`, `BroadcastConfig.YouTube`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Broadcasting/YouTubeTests.cs`:
 ```csharp
@@ -447,12 +447,12 @@ public class YouTubeTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0246: The type or namespace name 'YouTubeAccount' could not be found (are you missing a using directive or an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Broadcast/BroadcastConfig.cs` entirely with:
 ```csharp
@@ -1052,12 +1052,12 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~YouTubeTests"`
 Expected: `Passed!  - Failed: 0, Passed: 7`. Then `dotnet test sim` → `Passed: 659` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1080,7 +1080,7 @@ Spec §3–4, M4. The live broadcast adds the YouTube channel when the three You
 - Consumes: Tasks 1–2; `DailyRun`, `BroadcastApp` (M1–M3).
 - Produces: the waiting state and channel attachment in `DailyRun`; `BroadcastApp.YouTubeChannel(config, options, env, http, output)`; workflow, `broadcast.json` and docs.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Broadcasting/DailyRunTests.cs` entirely with:
 ```csharp
@@ -1553,12 +1553,12 @@ public class DailyRunTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0117: 'BroadcastApp' does not contain a definition for 'YouTubeChannel'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `.github/workflows/broadcast.yml` entirely with:
 ```yaml
@@ -2517,12 +2517,12 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DailyRunTests"`
 Expected: `Passed!  - Failed: 0, Passed: 23`. Then `dotnet test sim` → `Passed: 660` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github README.md broadcast.json docs sim
