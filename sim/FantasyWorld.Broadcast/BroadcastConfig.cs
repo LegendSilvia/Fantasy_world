@@ -46,6 +46,21 @@ public sealed record BroadcastVoice
 }
 
 /// <summary>
+/// The YouTube upload (M4): on when the three YouTube secrets are set. YouTube keeps videos uploaded through a Google
+/// app that has not passed its audit private, whatever is asked here.
+/// </summary>
+public sealed record BroadcastYouTube
+{
+    public bool Upload { get; init; } = true;
+
+    /// <summary>public, unlisted or private.</summary>
+    public string Privacy { get; init; } = "public";
+
+    /// <summary>24 is Entertainment.</summary>
+    public string CategoryId { get; init; } = "24";
+}
+
+/// <summary>
 /// The broadcast's checked-in settings (<c>broadcast.json</c>). Nothing secret lives here: keys and webhooks come from
 /// the environment (GitHub Actions secrets).
 /// </summary>
@@ -90,6 +105,8 @@ public sealed record BroadcastConfig
 
     public BroadcastVoice Voice { get; init; } = new();
 
+    public BroadcastYouTube YouTube { get; init; } = new();
+
     /// <summary>
     /// Where the bucket is public (an r2.dev address or a custom domain), for the podcast feed and the archive page; unset,
     /// they are not published.
@@ -126,6 +143,8 @@ public sealed record BroadcastConfig
         if (Voice.MaxCharactersPerRequest < 100 || Voice.MonthlyCharacterBudget < 0 || Voice.VoiceId.Length == 0 || Voice.Model.Length == 0)
             throw new FormatException("voice needs a voiceId and a model, at least 100 characters a request and a budget that is not negative.");
         _ = Speech.Voiceover.Kbps(Voice.OutputFormat);
+        if (YouTube.Privacy is not ("public" or "unlisted" or "private"))
+            throw new FormatException($"youTube.privacy must be public, unlisted or private (got \"{YouTube.Privacy}\").");
         if (PublicBaseUrl is { } url && !(Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps))
             throw new FormatException($"publicBaseUrl must be an https address (got \"{url}\").");
         _ = Zone; // throws TimeZoneNotFoundException for an unknown zone

@@ -15,7 +15,16 @@ public interface IEpisodeChannel
     Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default);
 }
 
-public sealed class ChannelException(string message) : Exception(message);
+public class ChannelException(string message) : Exception(message);
+
+/// <summary>The channel has nothing to publish yet (a video without its narration); the run is not failed, and it waits.</summary>
+public sealed class ChannelWaitingException(string message) : ChannelException(message);
+
+/// <summary>A channel that keeps its own state in the broadcast's store (YouTube's uploads); told the store, log and date each run.</summary>
+public interface IStatefulChannel
+{
+    void Attach(Storage.IObjectStore store, TextWriter log, string today);
+}
 
 /// <summary>
 /// Posts the episode to a Discord channel through a webhook: one embed with the script, and the map as its image (sent
