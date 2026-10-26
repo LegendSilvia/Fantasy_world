@@ -4,6 +4,7 @@ using FantasyWorld.Broadcast.Channels;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Cli;
 using FantasyWorld.Broadcast.Media;
+using FantasyWorld.Broadcast.Publishing;
 using FantasyWorld.Broadcast.Speech;
 using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Llm;
@@ -115,8 +116,33 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             log.WriteLine(day == date ? $"{channel.Name}: posted." : $"{channel.Name}: posted the missed episode of {day}.");
         }
 
+        await PublishFeedAsync(store, manifest, ct).ConfigureAwait(false);
         await PruneBackupsAsync(store, date, ct).ConfigureAwait(false);
         return result;
+    }
+
+    /// <summary>
+    /// The podcast feed, the archive page and the cover (the latest map), rewritten each morning when the bucket is public.
+    /// A failure here never fails the run: the next morning writes them again.
+    /// </summary>
+    private async Task PublishFeedAsync(PrefixedStore store, Manifest manifest, CancellationToken ct)
+    {
+        if (config.PublicBaseUrl is not { } baseUrl || manifest.WorldName is not { } name) return;
+        var items = Feed.Items(manifest, config);
+        if (items.Count == 0) return;
+        try
+        {
+            var root = $"{baseUrl.TrimEnd('/')}/{store.Prefix}";
+            await store.PutAsync(Feed.FeedKey, Encoding.UTF8.GetBytes(Feed.Rss(name, root, items, config.PodcastEmail)), "application/rss+xml; charset=utf-8", ct).ConfigureAwait(false);
+            await store.PutAsync(Feed.ArchiveKey, Encoding.UTF8.GetBytes(Feed.Archive(name, items)), "text/html; charset=utf-8", ct).ConfigureAwait(false);
+            var cover = _todaysMap ?? await store.GetAsync(MapKey(items[0].Date), ct).ConfigureAwait(false);
+            if (cover is not null) await store.PutAsync(Feed.CoverKey, cover, "image/png", ct).ConfigureAwait(false);
+            log.WriteLine($"Published the feed ({items.Count} episode(s)) at {root}{Feed.FeedKey}.");
+        }
+        catch (Exception e) when (!ct.IsCancellationRequested)
+        {
+            log.WriteLine($"warning: the feed could not be published ({e.Message}); the next run tries again.");
+        }
     }
 
     /// <summary>

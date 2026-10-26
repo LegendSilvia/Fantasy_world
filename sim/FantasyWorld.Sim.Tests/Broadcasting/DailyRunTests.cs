@@ -115,6 +115,22 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task APublicBucket_GetsTheFeedTheArchiveAndTheCover()
+    {
+        var speech = new PronouncerTests.FakeSpeech();
+        await Run(Morning, new RunOptions(Create: true), speech: speech);
+        Assert.Null(await Get("live/feed.xml")); // no public address: nothing published
+
+        var open = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "publicBaseUrl": "https://pub-1.r2.dev" }""");
+        await Run(Morning.AddDays(1), speech: speech, config: open);
+        var feed = Encoding.UTF8.GetString((await Get("live/feed.xml"))!);
+        Assert.Contains("https://pub-1.r2.dev/live/episodes/2026-10-28/narration.mp3", feed);
+        Assert.Contains("https://pub-1.r2.dev/live/episodes/2026-10-27/narration.mp3", feed);
+        Assert.NotNull(await Get("live/index.html"));
+        Assert.Equal(await Get("live/" + DailyRun.MapKey("2026-10-28")), await Get("live/cover.png"));
+    }
+
+    [Fact]
     public async Task SpeechThatFails_LeavesTheTextAndMapPost_AndIsMadeUpNextRun()
     {
         var speech = new PronouncerTests.FakeSpeech { Fails = true };

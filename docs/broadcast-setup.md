@@ -32,7 +32,19 @@ In the repository: **Settings → Secrets and variables → Actions → New repo
 
 Secrets are only ever read from the environment. They are never written to R2, the world file, the logs or the repository.
 
-## 4. Start it
+## 4. The podcast feed and archive page (optional)
+
+The feed (`feed.xml`) and the archive page (`index.html`) are published only once the bucket can be read from the web:
+
+1. Cloudflare → R2 → your bucket → **Settings → Public access → R2.dev subdomain → Allow** (or connect a custom domain).
+2. Copy the public address (for example `https://pub-1234abcd.r2.dev`) into `broadcast.json` as `"publicBaseUrl"` (and your
+   address as `"podcastEmail"`, if you will list the podcast in Apple Podcasts or Spotify), and merge.
+3. The next morning, add `<address>/live/feed.xml` to a podcast app, or open `<address>/live/index.html`.
+
+Everything in the bucket becomes readable by anyone with the address: the episodes, and also the world file and its
+backups. Nothing secret is stored there, but if you would rather keep the world private, leave this off.
+
+## 5. Start it
 
 1. Merge to the default branch. GitHub runs scheduled workflows only from there, and a run that is not a dry run is
    refused on any other branch.
@@ -62,6 +74,8 @@ Secrets are only ever read from the environment. They are never written to R2, t
 | `voice.voiceId`, `voice.model` | Michael C. Vincent (`uju3wxzG5OhpWcoi3SMy`), `eleven_v4_turbo` | the narrator's voice and model (the owner's choices) |
 | `voice.maxCharactersPerRequest` | `5000` | a script longer than this is spoken in parts and joined (a day's script is at most 3,600) |
 | `voice.monthlyCharacterBudget` | `150000` | characters spoken per calendar month (about 40 days of episodes); past it, episodes go out without narration |
+| `publicBaseUrl` | unset | the bucket's public address; when set, the podcast feed, the archive page and the cover are published |
+| `podcastEmail` | unset | the feed's contact address, which Apple Podcasts and Spotify use to confirm you own the feed |
 | `voice.respell` | `true` | Claude respells each new invented name once, so the narrator says it the same way every day |
 | `llm.narrationsPerDay`, `llm.monthlyCapUsd` | `10`, `5` | budget and spending cap over 30 days; past them, the template script ships |
 | `keepAlive` | `true` | a monthly heartbeat commit, so GitHub keeps the schedule of a public repository; turn it off for a private one |
@@ -75,6 +89,8 @@ live/episodes/2026-10-27/episode.json  the episode as data (years, headline, sto
 live/episodes/2026-10-27/script.txt    the script as posted
 live/episodes/2026-10-27/map.png       the political map that morning, posted as the embed's image
 live/episodes/2026-10-27/narration.mp3 the episode read aloud, attached to the post
+live/feed.xml, live/index.html         the podcast feed and the archive page (with publicBaseUrl)
+live/cover.png                         the latest map, the podcast's cover
 live/backups/2026-10-27.fw.db          the world as it was before that morning's run
 ```
 

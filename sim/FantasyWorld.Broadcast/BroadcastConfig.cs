@@ -90,6 +90,15 @@ public sealed record BroadcastConfig
 
     public BroadcastVoice Voice { get; init; } = new();
 
+    /// <summary>
+    /// Where the bucket is public (an r2.dev address or a custom domain), for the podcast feed and the archive page; unset,
+    /// they are not published.
+    /// </summary>
+    public string? PublicBaseUrl { get; init; }
+
+    /// <summary>The podcast's contact address (<c>itunes:email</c>), which directories use to confirm who owns the feed.</summary>
+    public string? PodcastEmail { get; init; }
+
     /// <summary>When on, the workflow commits a heartbeat monthly so GitHub keeps the schedule of a public repository alive.</summary>
     public bool KeepAlive { get; init; } = true;
 
@@ -117,6 +126,8 @@ public sealed record BroadcastConfig
         if (Voice.MaxCharactersPerRequest < 100 || Voice.MonthlyCharacterBudget < 0 || Voice.VoiceId.Length == 0 || Voice.Model.Length == 0)
             throw new FormatException("voice needs a voiceId and a model, at least 100 characters a request and a budget that is not negative.");
         _ = Speech.Voiceover.Kbps(Voice.OutputFormat);
+        if (PublicBaseUrl is { } url && !(Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps))
+            throw new FormatException($"publicBaseUrl must be an https address (got \"{url}\").");
         _ = Zone; // throws TimeZoneNotFoundException for an unknown zone
         return this;
     }

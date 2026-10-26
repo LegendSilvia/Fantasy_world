@@ -35,6 +35,9 @@ public sealed class Manifest
 
     public SortedDictionary<string, ManifestDay> Episodes { get; set; } = new(StringComparer.Ordinal);
 
+    /// <summary>The world's name, for the feed's title.</summary>
+    public string? WorldName { get; set; }
+
     /// <summary>How each invented name is said (word → respelling; a word said as written maps to itself). Never changed once set.</summary>
     public SortedDictionary<string, string> Pronunciations { get; set; } = new(StringComparer.Ordinal);
 
@@ -50,6 +53,7 @@ public sealed class Manifest
 
     public void Record(string date, Episode episode)
     {
+        WorldName = episode.WorldName;
         var day = Day(date);
         (day.FromYear, day.ToYear, day.Events, day.Headline) = (episode.FromYear, episode.ToYear, episode.EventCount, episode.Headline?.Text);
     }

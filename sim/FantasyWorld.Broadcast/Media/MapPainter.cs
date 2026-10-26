@@ -25,7 +25,8 @@ public sealed record Raster(int Width, int Height, byte[] Rgb)
 /// </summary>
 public static class MapPainter
 {
-    public const int DefaultWidth = 1024;
+    /// <summary>6 px a tile on a medium world: 1,536 px, big enough to serve as podcast cover art (1,400 px at least).</summary>
+    public const int DefaultWidth = 1536;
 
     /// <summary>How much of a realm's colour washes over the land it holds.</summary>
     public const float RealmWash = 0.45f;
