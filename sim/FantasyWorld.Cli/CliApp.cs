@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Globalization;
 using System.Text.Json;
+using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Llm;
 using FantasyWorld.Sim.Events;
@@ -19,7 +20,9 @@ public static partial class CliApp
         Usage:
           fw new <world-file> [--seed <n>] [--size tiny|medium|large] [--prehistory <years>]   (default 100; tiny 0)
           fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
-          fw catchup <world-file>                   simulate the real time that has passed, then the digest
+          fw catchup <world-file> [--quiet]         simulate the real time that has passed, then the digest (--quiet: none)
+          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--keep-marker]   the broadcast's episode since it last aired
+          fw snapshot <world-file> <copy>           a consistent single-file copy (safe to upload)
           fw live <world-file> [--minutes <n>]      keep the world running in real time (default 60; Ctrl+C stops)
           fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
           fw log <world-file> [--since <event-id>]
@@ -64,7 +67,9 @@ public static partial class CliApp
             {
                 "new" => New(path, rest, output, clock),
                 "advance" => Advance(path, rest, output, providers),
-                "catchup" => CatchUpCommand(path, output, clock, providers),
+                "catchup" => CatchUpCommand(path, rest, output, clock, providers),
+                "episode" => EpisodeCommand(path, rest, output, clock),
+                "snapshot" => Snapshot(path, rest, output),
                 "log" => Log(path, rest, output),
                 "why" => Why(path, rest, output),
                 "map" => Map(path, rest, output),
@@ -143,20 +148,62 @@ public static partial class CliApp
         return 0;
     }
 
-    private static int CatchUpCommand(string path, TextWriter output, Func<DateTimeOffset> clock, Func<LlmSettings, ILlmProvider?> providers)
+    /// <summary>
+    /// Simulates the real time that passed, then tells the digest and marks it seen. With --quiet (the broadcast's
+    /// unattended runs) no digest is told: nothing is narrated and the owner's reading place is left alone.
+    /// </summary>
+    private static int CatchUpCommand(string path, string[] rest, TextWriter output, Func<DateTimeOffset> clock, Func<LlmSettings, ILlmProvider?> providers)
     {
+        var quiet = rest.Contains("--quiet");
         using var store = OpenExisting(path);
         Backups.Rotate(store, path);
         var (sim, gateway) = LoadLive(store, providers);
         var result = CatchUp.Run(sim, clock());
         var fresh = gateway.Journal.Pending.ToList();
-        var digest = TellDigest(store, sim, gateway, sinceEventId: null);
+        var digest = quiet ? null : TellDigest(store, sim, gateway, sinceEventId: null);
         store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         output.WriteLine($"Advanced {result.DaysAdvanced} days: {result.From} -> {result.To}.");
         if (result.DaysRemaining > 0)
             output.WriteLine($"The world is still {result.DaysRemaining} days behind; run catchup again later.");
         PrintLlmSummary(output, gateway, fresh);
-        output.WriteLine(digest);
+        if (digest is not null) output.WriteLine(digest);
+        return 0;
+    }
+
+    /// <summary>
+    /// The daily broadcast's episode (sub-project 6): everything since the audience last listened, as episode.json and
+    /// script.txt in the --out directory. Moves the broadcast marker (never the owner's reading place) unless --keep-marker.
+    /// </summary>
+    private static int EpisodeCommand(string path, string[] rest, TextWriter output, Func<DateTimeOffset> clock)
+    {
+        var dir = Option(rest, "--out") ?? throw new FormatException("Use --out <directory>.");
+        var date = Option(rest, "--date") ?? clock().UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            throw new FormatException($"--date must look like 2026-10-27 (got '{date}').");
+        using var store = OpenExisting(path);
+        var (world, log, queue) = store.Load();
+        var episode = Episode.Build(world, log, world.LastBroadcastEventId, date, store.LoadFollowed());
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "episode.json"), episode.ToJson());
+        File.WriteAllText(Path.Combine(dir, "script.txt"), episode.Script);
+        if (!rest.Contains("--keep-marker"))
+        {
+            world.LastBroadcastEventId = episode.LastEventId;
+            world.LastBroadcastDate = date;
+            store.Save(world, log, queue);
+        }
+        output.WriteLine($"Episode {date}: {episode.EventCount} events, Years {episode.FromYear}–{episode.ToYear}, {episode.Script.Length} characters; written to {dir}.");
+        return 0;
+    }
+
+    /// <summary>A consistent single-file copy of the world (SQLite's online backup), safe to upload while WAL is in use.</summary>
+    private static int Snapshot(string path, string[] rest, TextWriter output)
+    {
+        if (rest.Length < 1) return UsageError(output);
+        using var store = OpenExisting(path);
+        if (File.Exists(rest[0])) File.Delete(rest[0]);
+        store.BackupTo(rest[0]);
+        output.WriteLine($"Snapshot written to {rest[0]}.");
         return 0;
     }
 

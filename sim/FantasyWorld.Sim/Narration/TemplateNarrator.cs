@@ -296,6 +296,9 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         return English.Capitalise(sentence);
     }
 
+    /// <summary>Whether the event type has a headline title of its own (the kinds of news that lead a broadcast).</summary>
+    public static bool IsHeadline(string type) => Titles.ContainsKey(type);
+
     /// <summary>A short headline title ("The War of the Ash begins"), else the event's sentence without its full stop.</summary>
     public string Title(WorldEvent ev)
     {
@@ -305,18 +308,20 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 
     /// <summary>
     /// What a headline's title leaves out: the event told in full (when the title is short), what led to it, and the
-    /// engine's note on why or how — never the title again.
+    /// engine's note on why or how — never the title again. Without the cause when a story of why follows.
     /// </summary>
-    public string Body(WorldEvent ev, EventLog log)
+    public string Body(WorldEvent ev, EventLog log, bool withCause = true)
     {
         var parts = new List<string>();
         // The full sentence only when it names someone or somewhere the title leaves out.
         var title = Title(ev);
         var sentence = Sentence(ev);
         var names = ev.Actors.Values.Concat(ev.Place is { } at ? new[] { at } : Array.Empty<EntityRef>()).Select(Prose).OfType<string>();
-        if (Titles.ContainsKey(ev.Type) && names.Any(n => sentence.Contains(n, StringComparison.OrdinalIgnoreCase) && !title.Contains(n, StringComparison.OrdinalIgnoreCase)))
+        // ... or when it tells how (a death's cause).
+        if (Titles.ContainsKey(ev.Type) && (ev.Payload.ContainsKey("cause")
+                || names.Any(n => sentence.Contains(n, StringComparison.OrdinalIgnoreCase) && !title.Contains(n, StringComparison.OrdinalIgnoreCase))))
             parts.Add(sentence);
-        if (ev.Causes.OrderByDescending(c => c.Weight).ThenBy(c => c.EventId).Select(c => log.TryGet(c.EventId, out var cause) ? cause : null)
+        if (withCause && ev.Causes.OrderByDescending(c => c.Weight).ThenBy(c => c.EventId).Select(c => log.TryGet(c.EventId, out var cause) ? cause : null)
                 .FirstOrDefault(c => c is not null) is { } first)
         {
             parts.Add($"{(first.Date.Year == ev.Date.Year ? "Earlier that year," : $"Before it, in Year {first.Date.Year},")} {Clause(first)}");

@@ -13,6 +13,34 @@ public sealed class World
     public DateTimeOffset LastRealUtc { get; set; }
     public long LastSeenEventId { get; set; }
 
+    public const string BroadcastMarker = "broadcast.lastEventId";
+
+    /// <summary>
+    /// Where the daily broadcast's audience left off (sub-project 6): separate from <see cref="LastSeenEventId"/>, so the
+    /// owner reading a digest never changes what the audience hears. Kept in <see cref="Markers"/>.
+    /// </summary>
+    public long LastBroadcastEventId
+    {
+        get => Markers.GetValueOrDefault(BroadcastMarker);
+        set => Markers[BroadcastMarker] = value;
+    }
+
+    public const string BroadcastDateMarker = "broadcast.date";
+
+    /// <summary>
+    /// The broadcast date (yyyy-MM-dd) of the episode the marker was last moved for, or null before the first. Saved with
+    /// the world, so the stored world itself says which day's episode it already holds.
+    /// </summary>
+    public string? LastBroadcastDate
+    {
+        get => Markers.TryGetValue(BroadcastDateMarker, out var d) ? $"{d / 10000:D4}-{d / 100 % 100:D2}-{d % 100:D2}" : null;
+        set
+        {
+            if (value is null) Markers.Remove(BroadcastDateMarker);
+            else Markers[BroadcastDateMarker] = long.Parse(value.Replace("-", ""), System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+
     /// <summary>Named scalar state for systems without entities of their own.</summary>
     public SortedDictionary<string, double> Stats { get; init; } = new(StringComparer.Ordinal);
 
