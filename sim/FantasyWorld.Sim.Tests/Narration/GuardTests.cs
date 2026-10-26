@@ -40,4 +40,17 @@ public class GuardTests
         Assert.Equal(new TemplateNarrator(world).Narrate(ev), narrator.Narrate(ev));
         Assert.Contains(gateway.Journal.All, entry => entry.Note == "rejected");
     }
+
+    [Fact]
+    public void NumbersInWords_MustComeFromTheBrief()
+    {
+        const string brief = "Three years have passed in Aerenmoor. 10,000 soldiers marched; two hundred and six died at Fiar.";
+        Assert.True(NarrationGuard.Faithful("After three years, ten thousand marched, and two hundred and six fell at Fiar.", brief));
+        Assert.Contains("number four", NarrationGuard.Problems("After four years of war, the host marched.", brief));
+        Assert.Contains("number Twenty-one", NarrationGuard.Problems("Twenty-one died at Fiar.", brief));
+        Assert.Contains("number Nine thousand", NarrationGuard.Problems("Nine thousand fell.", brief));
+        Assert.True(NarrationGuard.Faithful("No one at Fiar forgot it, and one of them wept.", brief)); // "one" is not a count
+        Assert.Equal(new[] { (206L, "two hundred and six"), (3L, "three") },
+            NarrationGuard.NumberWords("two hundred and six men and three horses"));
+    }
 }

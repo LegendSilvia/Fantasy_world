@@ -7,6 +7,7 @@ using FantasyWorld.Llm;
 using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Model;
+using FantasyWorld.Sim.Narration;
 using FantasyWorld.Sim.Persist;
 using FantasyWorld.Sim.Query;
 using FantasyWorld.Sim.Systems;
@@ -21,7 +22,7 @@ public static partial class CliApp
           fw new <world-file> [--seed <n>] [--size tiny|medium|large] [--prehistory <years>]   (default 100; tiny 0)
           fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
           fw catchup <world-file> [--quiet]         simulate the real time that has passed, then the digest (--quiet: none)
-          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--keep-marker]   the broadcast's episode since it last aired
+          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--keep-marker]   the broadcast's episode since it last aired
           fw snapshot <world-file> <copy>           a consistent single-file copy (safe to upload)
           fw live <world-file> [--minutes <n>]      keep the world running in real time (default 60; Ctrl+C stops)
           fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
@@ -68,7 +69,7 @@ public static partial class CliApp
                 "new" => New(path, rest, output, clock),
                 "advance" => Advance(path, rest, output, providers),
                 "catchup" => CatchUpCommand(path, rest, output, clock, providers),
-                "episode" => EpisodeCommand(path, rest, output, clock),
+                "episode" => EpisodeCommand(path, rest, output, clock, providers),
                 "snapshot" => Snapshot(path, rest, output),
                 "log" => Log(path, rest, output),
                 "why" => Why(path, rest, output),
@@ -174,7 +175,7 @@ public static partial class CliApp
     /// The daily broadcast's episode (sub-project 6): everything since the audience last listened, as episode.json and
     /// script.txt in the --out directory. Moves the broadcast marker (never the owner's reading place) unless --keep-marker.
     /// </summary>
-    private static int EpisodeCommand(string path, string[] rest, TextWriter output, Func<DateTimeOffset> clock)
+    private static int EpisodeCommand(string path, string[] rest, TextWriter output, Func<DateTimeOffset> clock, Func<LlmSettings, ILlmProvider?> providers)
     {
         var dir = Option(rest, "--out") ?? throw new FormatException("Use --out <directory>.");
         var date = Option(rest, "--date") ?? clock().UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -185,18 +186,25 @@ public static partial class CliApp
         var budget = int.Parse(Option(rest, "--max-characters") ?? Episode.DefaultMaxCharacters.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
         if (budget is < 300 or > 10_000) throw new FormatException("--max-characters must be between 300 and 10000.");
         using var store = OpenExisting(path);
-        var (world, log, queue) = store.Load();
+        var (sim, gateway) = LoadLive(store, providers);
+        var (world, log, queue) = (sim.World, sim.Log, sim.Queue);
         var episode = Episode.Build(world, log, world.LastBroadcastEventId, date, store.LoadFollowed(), stories, budget);
+        // --narrate: the chronicler (the world's narrate model) writes the script; the template's stands if it cannot.
+        if (rest.Contains("--narrate")) episode = new LlmNarrator(new StoryContext(world, log, gateway)).EpisodeScript(episode, budget);
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "episode.json"), episode.ToJson());
         File.WriteAllText(Path.Combine(dir, "script.txt"), episode.Script);
+        var fresh = gateway.Journal.Pending.ToList();
         if (!rest.Contains("--keep-marker"))
         {
             world.LastBroadcastEventId = episode.LastEventId;
             world.LastBroadcastDate = date;
-            store.Save(world, log, queue);
+            store.Save(world, log, queue, gateway.Journal);
         }
-        output.WriteLine($"Episode {date}: {episode.EventCount} events, Years {episode.FromYear}–{episode.ToYear}, {episode.Script.Length} characters; written to {dir}.");
+        else if (fresh.Count > 0) store.SaveJournal(gateway.Journal); // the world stays as it was; what was paid for is kept
+        output.WriteLine($"Episode {date}: {episode.EventCount} events, Years {episode.FromYear}–{episode.ToYear}, {episode.Script.Length} characters "
+                         + $"by the {episode.Writer}; written to {dir}.");
+        PrintLlmSummary(output, gateway, fresh);
         return 0;
     }
 

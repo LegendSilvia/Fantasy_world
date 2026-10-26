@@ -1,5 +1,6 @@
 using FantasyWorld.Cli;
 using FantasyWorld.Sim.Chronicle;
+using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Persist;
 using FantasyWorld.Sim.Tests.Support;
 
@@ -45,6 +46,29 @@ public class EpisodeCliTests
         Assert.Equal(episode.LastEventId, Marker(file.Path, w => w.LastBroadcastEventId));
         using (var store = WorldStore.Open(file.Path)) Assert.Equal("2026-10-27", store.Load().World.LastBroadcastDate);
         Assert.Equal(1, Run(T0, "episode", file.Path, "--out", dir.Path, "--date", "28/10/2026").Code);
+    }
+
+    [Fact]
+    public void FwEpisodeNarrate_LetsTheChroniclerWriteTheScript_WithTheTemplateAsFallback()
+    {
+        using var file = new TempFile();
+        using var dir = new TempDir();
+        Run(T0, "new", file.Path, "--seed", "3", "--size", "tiny");
+        var output = new StringWriter();
+        CliApp.Run(["episode", file.Path, "--out", dir.Path, "--date", "2026-10-27", "--narrate", "--keep-marker"], output, () => T0, _ => null);
+        Assert.Contains("by the template", output.ToString()); // provider "none": offline
+
+        Run(T0, "llm", file.Path, "--provider", "anthropic", "--model", "narrate=claude-sonnet-5-5");
+        var template = Episode.FromJson(File.ReadAllText(Path.Combine(dir.Path, "episode.json")));
+        var retold = template.Script.Replace("Elsewhere in the chronicle:", "And elsewhere, in brief:");
+        var provider = new FakeLlmProvider(_ => System.Text.Json.JsonSerializer.Serialize(new { text = retold }));
+        output = new StringWriter();
+        Assert.Equal(0, CliApp.Run(["episode", file.Path, "--out", dir.Path, "--date", "2026-10-27", "--narrate"], output, () => T0, _ => provider));
+        Assert.Contains("by the chronicler", output.ToString());
+        Assert.Contains("LLM: 1 new answer(s)", output.ToString());
+        Assert.Equal(retold, File.ReadAllText(Path.Combine(dir.Path, "script.txt")));
+        using var store = WorldStore.Open(file.Path);
+        Assert.Equal(1, store.LoadJournal().Count);
     }
 
     [Fact]

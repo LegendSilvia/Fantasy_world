@@ -19,6 +19,26 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
 
     private readonly TemplateNarrator _templates = new(story.World);
 
+    /// <summary>
+    /// The daily broadcast's spoken script (sub-project 6 §3.2), in the chronicler's voice. The brief is the template
+    /// episode itself, so the guard holds the chronicler to its names and numbers; offline, over budget, refused, unfaithful
+    /// or the wrong length, the episode keeps its template script. Keyed by date and events, so a rebuilt episode asks anew.
+    /// </summary>
+    public Episode EpisodeScript(Episode episode, int maxCharacters)
+    {
+        var task = "Write the script of today's spoken episode of the chronicle, to be read aloud. Keep its order: the opening line, "
+                   + "the headline told in full, the other stories briefly, how it came to this (the chain of causes, earliest first) "
+                   + $"when the brief tells one, and a closing line from {episode.Chronicler}. Plain prose for the ear: no headings, lists, "
+                   + $"markup or stage directions, no dates written as digits other than the years given. At most {maxCharacters} characters.";
+        // A script much shorter than the template has dropped stories: that is a failed answer, not a retelling.
+        var minimum = episode.Script.Length * 3 / 5;
+        // Names (some invented by the LLM earlier) enter the prompt only as data, paragraph by paragraph (spec §8.6).
+        var brief = string.Join("\n\n", episode.Script.Split("\n\n").Select(p => PromptText.Data(p, maxCharacters)));
+        var script = Ask($"narrate|episode|{episode.Date}|{episode.FirstEventId}-{episode.LastEventId}", story.World.Date.Day, brief,
+            task, maxCharacters, minimum);
+        return script is null ? episode : episode with { Script = script, Writer = Episode.ChroniclerWriter };
+    }
+
     public string Narrate(WorldEvent ev) =>
         Ask($"narrate|event|{ev.Id}", ev.Date.Day, Facts(ev), "Retell this event in two or three sentences.") ?? _templates.Narrate(ev);
 
@@ -60,7 +80,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         return line.ToString();
     }
 
-    private string? Ask(string key, long day, string facts, string task)
+    private string? Ask(string key, long day, string facts, string task, int maxLength = MaxLength, int minLength = 1)
     {
         if (!story.Gateway.MayAnswer(ModelTier.Narrate, key)) return null;
         var prompt = PromptText.Section("brief", facts) + $"\n\n{task} Write as the world's chronicler; use only the facts given.";
@@ -71,12 +91,12 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             required = new[] { "text" },
             additionalProperties = false,
         });
-        var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: 1500);
-        var json = story.Gateway.Ask(request, day, answer => Text(answer) is { } text && NarrationGuard.Faithful(text, facts));
-        return json is null ? null : Text(json);
+        var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(1500, maxLength / 2));
+        var json = story.Gateway.Ask(request, day, answer => Text(answer, maxLength, minLength) is { } text && NarrationGuard.Faithful(text, facts));
+        return json is null ? null : Text(json, maxLength, minLength);
     }
 
-    private static string? Text(string json)
+    private static string? Text(string json, int maxLength, int minLength)
     {
         try
         {
@@ -84,7 +104,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("text", out var t)
                 || t.ValueKind != JsonValueKind.String) return null;
             var text = t.GetString()!.Trim();
-            return text.Length is > 0 and <= MaxLength ? text : null;
+            return text.Length >= Math.Max(1, minLength) && text.Length <= maxLength ? text : null;
         }
         catch (JsonException)
         {

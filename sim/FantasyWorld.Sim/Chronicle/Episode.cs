@@ -15,12 +15,16 @@ public sealed record EpisodeStory(long EventId, int Year, string Category, strin
 /// <summary>
 /// One episode of the daily broadcast (sub-project 6 §3.2): what happened since the audience last listened, as data
 /// (the cold open, the headline, the other stories, the headline's chain of causes, the sign-off) and as a script to
-/// read aloud. Built from the digest's ranking, so the broadcast and the morning digest agree on what mattered.
+/// read aloud. Built from the digest's ranking, so the broadcast and the morning digest agree on what mattered. Writer says
+/// who wrote the script: the template voice, or the chronicler (the LLM, held to the template's facts).
 /// </summary>
 public sealed record Episode(
     string Date, string WorldName, string Chronicler, int FromYear, int ToYear, int EventCount, long FirstEventId, long LastEventId,
-    string ColdOpen, EpisodeStory? Headline, string HeadlineBody, IReadOnlyList<EpisodeStory> Stories, string? Why, string SignOff, string Script)
+    string ColdOpen, EpisodeStory? Headline, string HeadlineBody, IReadOnlyList<EpisodeStory> Stories, string? Why, string SignOff, string Script,
+    string Writer = Episode.TemplateWriter)
 {
+    public const string TemplateWriter = "template", ChroniclerWriter = "chronicler";
+
     public const int DefaultStories = 5;
 
     /// <summary>The template script stays under this many characters (about four minutes read aloud).</summary>

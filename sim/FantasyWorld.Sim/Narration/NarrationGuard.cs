@@ -4,8 +4,8 @@ using System.Text.RegularExpressions;
 namespace FantasyWorld.Sim.Narration;
 
 /// <summary>
-/// Guardrails for LLM narration (sub-project 5 §4): a narration may only use the facts in its brief. Every number
-/// must appear in the brief (as digits or in words), and every capitalised word (a name) must be a word of the brief,
+/// Guardrails for LLM narration (sub-project 5 §4): a narration may only use the facts in its brief. Every number,
+/// written in digits or in words ("four years", "ten thousand fell"), must appear in the brief (as digits or in words), and every capitalised word (a name) must be a word of the brief,
 /// a title or one of the plain words a sentence may open with; possessives and hyphenated names are checked by their
 /// parts. A narration that invents one is rejected, journaled as rejected (for evals) and the template prose is used.
 /// </summary>
@@ -41,6 +41,13 @@ public static partial class NarrationGuard
             var inWords = long.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? English.Number(n) : digits;
             if (!briefNumbers.Contains(digits) && !lowerBrief.Contains(inWords)) problems.Add($"number {digits}");
         }
+        var briefValues = NumberWords(brief).Select(n => n.Value).ToHashSet();
+        foreach (var (value, text) in NumberWords(narration))
+        {
+            // "one" is as often a pronoun ("no one", "one of them") as a count.
+            if (value == 1) continue;
+            if (!briefNumbers.Contains(value.ToString(CultureInfo.InvariantCulture)) && !briefValues.Contains(value)) problems.Add($"number {text}");
+        }
         foreach (Match m in Capitalised().Matches(narration))
         {
             var opening = m.Index == 0 || Regex.IsMatch(narration[..m.Index], @"[.!?:;""“]\s*$");
@@ -55,6 +62,54 @@ public static partial class NarrationGuard
     }
 
     public static bool Faithful(string narration, string brief) => Problems(narration, brief).Count == 0;
+
+    private static readonly Dictionary<string, long> Units = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["zero"] = 0, ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5, ["six"] = 6, ["seven"] = 7, ["eight"] = 8,
+        ["nine"] = 9, ["ten"] = 10, ["eleven"] = 11, ["twelve"] = 12, ["thirteen"] = 13, ["fourteen"] = 14, ["fifteen"] = 15,
+        ["sixteen"] = 16, ["seventeen"] = 17, ["eighteen"] = 18, ["nineteen"] = 19, ["twenty"] = 20, ["thirty"] = 30, ["forty"] = 40,
+        ["fifty"] = 50, ["sixty"] = 60, ["seventy"] = 70, ["eighty"] = 80, ["ninety"] = 90,
+    };
+
+    private static readonly Dictionary<string, long> Scales = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["hundred"] = 100, ["thousand"] = 1_000, ["million"] = 1_000_000,
+    };
+
+    /// <summary>Numbers written in words ("four", "twenty-one", "two hundred and six", "ten thousand"), with their text.</summary>
+    public static IReadOnlyList<(long Value, string Text)> NumberWords(string text)
+    {
+        var found = new List<(long, string)>();
+        var words = Words().Matches(text).ToList();
+        for (var i = 0; i < words.Count;)
+        {
+            if (!IsNumberWord(words[i].Value)) { i++; continue; }
+            long total = 0, current = 0;
+            var (start, end) = (words[i].Index, i);
+            for (; end < words.Count; end++)
+            {
+                var word = words[end].Value;
+                if (end > i)
+                {
+                    var gap = text[(words[end - 1].Index + words[end - 1].Length)..words[end].Index];
+                    if (gap.Trim() is not ("" or "-")) break;
+                }
+                if (Units.TryGetValue(word, out var unit)) current += unit;
+                else if (word.Equals("hundred", StringComparison.OrdinalIgnoreCase)) current = Math.Max(1, current) * 100;
+                else if (Scales.TryGetValue(word, out var scale)) { total += Math.Max(1, current) * scale; current = 0; }
+                // "and" joins inside a number ("two hundred and six"), not two numbers.
+                else if (word.Equals("and", StringComparison.OrdinalIgnoreCase) && end + 1 < words.Count && IsNumberWord(words[end + 1].Value)
+                         && current >= 100) continue;
+                else break;
+            }
+            var last = words[end - 1];
+            found.Add((total + current, text[start..(last.Index + last.Length)]));
+            i = end;
+        }
+        return found;
+    }
+
+    private static bool IsNumberWord(string word) => Units.ContainsKey(word) || Scales.ContainsKey(word);
 
     /// <summary>A whole number, its thousands separators inside it (a trailing comma is punctuation).</summary>
     [GeneratedRegex(@"(?<![\p{L}\d])\d(?:[\d,]*\d)?(?![\p{L}\d])")]
