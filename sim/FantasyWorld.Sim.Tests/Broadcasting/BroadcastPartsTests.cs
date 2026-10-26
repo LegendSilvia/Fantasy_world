@@ -46,6 +46,8 @@ public class BroadcastPartsTests
     public void Config_HasSafeDefaults_AndRefusesWhatItCannotDo()
     {
         var config = BroadcastConfig.Parse("{}");
+        Assert.Equal(("claude-sonnet-5-5", 0, true), (config.Llm.NarrateModel, config.Llm.StoryBeatsPerDay, config.Llm.Narrate));
+        Assert.Throws<FormatException>(() => BroadcastConfig.Parse("""{ "llm": { "monthlyCapUsd": -1 } }"""));
         Assert.Equal("2026-10-27", config.DateAt(new DateTimeOffset(2026, 10, 26, 22, 30, 0, TimeSpan.Zero)));
         Assert.Equal("2026-10-26", config.DateAt(new DateTimeOffset(2026, 10, 26, 16, 59, 0, TimeSpan.Zero)));
         Assert.Throws<FormatException>(() => BroadcastConfig.Parse("""{ "language": "th" }"""));
@@ -75,15 +77,32 @@ public class BroadcastPartsTests
 
         var http = new StorageTests.FakeHttp((HttpStatusCode.OK, "{}"), (HttpStatusCode.TooManyRequests, ""));
         var discord = new DiscordWebhook(new HttpClient(http), "https://discord.test/api/webhooks/1/SECRET-TOKEN", "The Chronicle");
-        await discord.PublishAsync(SampleEpisode());
+        await discord.PublishAsync(SampleEpisode(), null);
+        Assert.Null(JsonNode.Parse(http.Seen[0].Body)!["embeds"]![0]!["image"]);
         Assert.Equal("https://discord.test/api/webhooks/1/SECRET-TOKEN?wait=true", http.Seen[0].Request.RequestUri!.ToString());
         Assert.Equal("The Chronicle", (string)JsonNode.Parse(http.Seen[0].Body)!["username"]!);
-        var error = await Assert.ThrowsAsync<ChannelException>(() => discord.PublishAsync(SampleEpisode()));
+        var error = await Assert.ThrowsAsync<ChannelException>(() => discord.PublishAsync(SampleEpisode(), null));
         Assert.Equal("Discord answered HTTP 429.", error.Message);
 
         var slow = new DiscordWebhook(new HttpClient(new ThrowingHttp()), "https://discord.test/api/webhooks/1/SECRET-TOKEN", "x");
-        var late = await Assert.ThrowsAsync<ChannelException>(() => slow.PublishAsync(SampleEpisode()));
+        var late = await Assert.ThrowsAsync<ChannelException>(() => slow.PublishAsync(SampleEpisode(), null));
         Assert.DoesNotContain("SECRET", late.Message);
+    }
+
+    [Fact]
+    public async Task Discord_SendsTheMapAsTheEmbedsImage_InOneRequest()
+    {
+        var http = new StorageTests.FakeHttp((HttpStatusCode.OK, "{}"));
+        var discord = new DiscordWebhook(new HttpClient(http), "https://discord.test/api/webhooks/1/T", "The Chronicle");
+        byte[] map = [0x89, 0x50, 0x4e, 0x47, 1, 2, 3];
+        await discord.PublishAsync(SampleEpisode(), map);
+        var (request, body) = http.Seen.Single();
+        Assert.Equal("multipart/form-data", request.Content!.Headers.ContentType!.MediaType);
+        var text = System.Text.Encoding.Latin1.GetString(body!);
+        Assert.Contains("name=payload_json", text);
+        Assert.Contains("\"url\":\"attachment://map.png\"", text);
+        Assert.Contains("filename=map.png", text);
+        Assert.Contains(System.Text.Encoding.Latin1.GetString(map), text);
     }
 
     private sealed class ThrowingHttp : HttpMessageHandler

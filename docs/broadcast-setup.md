@@ -27,6 +27,7 @@ In the repository: **Settings → Secrets and variables → Actions → New repo
 | `R2_SECRET_ACCESS_KEY` | the token's secret access key |
 | `DISCORD_WEBHOOK_URL` | the real channel's webhook |
 | `DISCORD_TEST_WEBHOOK_URL` | the test channel's webhook (optional; without it a dry run posts nowhere) |
+| `ANTHROPIC_API_KEY` | from console.anthropic.com → API Keys; the chronicler writes each script with it (without it, the template script ships) |
 
 Secrets are only ever read from the environment. They are never written to R2, the world file, the logs or the repository.
 
@@ -53,6 +54,10 @@ Secrets are only ever read from the environment. They are never written to R2, t
 | `backupDays` | `30` | daily backups kept; the first backup of each month is kept for good |
 | `stories`, `maxCharacters` | `5`, `3600` | episode length (about 2–4 minutes read aloud) |
 | `discordName` | `The Chronicle` | the name posts appear under |
+| `llm.narrate` | `true` | the chronicler (Claude) writes the script; off, the template script ships |
+| `llm.narrateModel` | `claude-sonnet-5-5` | the model that writes it |
+| `llm.storyBeatsPerDay` | `0` | the sim's own LLM decisions while it catches up; off by default, so the daily cost is one script (a few cents) |
+| `llm.narrationsPerDay`, `llm.monthlyCapUsd` | `10`, `5` | budget and spending cap over 30 days; past them, the template script ships |
 | `keepAlive` | `true` | a monthly heartbeat commit, so GitHub keeps the schedule of a public repository; turn it off for a private one |
 
 ## What is in the bucket
@@ -62,6 +67,7 @@ live/world.fw.db                       the world (a consistent single-file copy)
 live/manifest.json                     per date, which steps finished: a rerun repeats none of them
 live/episodes/2026-10-27/episode.json  the episode as data (years, headline, stories, why)
 live/episodes/2026-10-27/script.txt    the script as posted
+live/episodes/2026-10-27/map.png       the political map that morning, posted as the embed's image
 live/backups/2026-10-27.fw.db          the world as it was before that morning's run
 ```
 

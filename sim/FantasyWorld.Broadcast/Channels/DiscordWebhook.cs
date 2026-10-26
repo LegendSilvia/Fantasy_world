@@ -4,19 +4,23 @@ using FantasyWorld.Sim.Chronicle;
 
 namespace FantasyWorld.Broadcast.Channels;
 
-/// <summary>Somewhere an episode is published. Throws <see cref="ChannelException"/> when it could not be.</summary>
+/// <summary>
+/// Somewhere an episode is published, with its map when there is one. Throws <see cref="ChannelException"/> when it
+/// could not be.
+/// </summary>
 public interface IEpisodeChannel
 {
     string Name { get; }
 
-    Task PublishAsync(Episode episode, CancellationToken ct = default);
+    Task PublishAsync(Episode episode, byte[]? map, CancellationToken ct = default);
 }
 
 public sealed class ChannelException(string message) : Exception(message);
 
 /// <summary>
-/// Posts the episode to a Discord channel through a webhook: one embed with the script. The webhook URL is a secret
-/// (it carries its token), so errors name the status code only.
+/// Posts the episode to a Discord channel through a webhook: one embed with the script, and the map as its image (sent
+/// as an attachment in the same request). The webhook URL is a secret (it carries its token), so errors name the status
+/// code only.
 /// </summary>
 public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string username) : IEpisodeChannel
 {
@@ -25,7 +29,16 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
 
     public string Name => "discord";
 
-    public static JsonObject Payload(Episode episode, string username)
+    public const string MapFile = "map.png";
+
+    public static JsonObject Payload(Episode episode, string username, bool withMap = false)
+    {
+        var payload = Embed(episode, username);
+        if (withMap) payload["embeds"]![0]!["image"] = new JsonObject { ["url"] = $"attachment://{MapFile}" };
+        return payload;
+    }
+
+    private static JsonObject Embed(Episode episode, string username)
     {
         var years = episode.FromYear == episode.ToYear ? $"Year {episode.ToYear}" : $"Years {episode.FromYear}–{episode.ToYear}";
         return new JsonObject
@@ -45,10 +58,24 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
         };
     }
 
-    public async Task PublishAsync(Episode episode, CancellationToken ct = default)
+    public static HttpContent Content(Episode episode, string username, byte[]? map)
+    {
+        var json = Payload(episode, username, map is not null).ToJsonString();
+        if (map is null) return new StringContent(json, Encoding.UTF8, "application/json");
+        var form = new MultipartFormDataContent
+        {
+            { new StringContent(json, Encoding.UTF8, "application/json"), "payload_json" },
+        };
+        var image = new ByteArrayContent(map);
+        image.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        form.Add(image, "files[0]", MapFile);
+        return form;
+    }
+
+    public async Task PublishAsync(Episode episode, byte[]? map, CancellationToken ct = default)
     {
         var url = webhookUrl + (webhookUrl.Contains('?') ? "&" : "?") + "wait=true";
-        using var content = new StringContent(Payload(episode, username).ToJsonString(), Encoding.UTF8, "application/json");
+        using var content = Content(episode, username, map);
         HttpResponseMessage response;
         try
         {

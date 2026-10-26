@@ -4,6 +4,8 @@ using FantasyWorld.Broadcast;
 using FantasyWorld.Broadcast.Channels;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Sim.Chronicle;
+using FantasyWorld.Sim.Llm;
+using FantasyWorld.Sim.Persist;
 using FantasyWorld.Sim.Tests.Support;
 
 namespace FantasyWorld.Sim.Tests.Broadcasting;
@@ -18,13 +20,15 @@ public class DailyRunTests : IDisposable
     private sealed class CountingChannel(bool fails = false) : IEpisodeChannel
     {
         public List<Episode> Posts { get; } = [];
+        public List<byte[]?> Maps { get; } = [];
         public bool Fails { get; set; } = fails;
         public string Name => "discord";
 
-        public Task PublishAsync(Episode episode, CancellationToken ct = default)
+        public Task PublishAsync(Episode episode, byte[]? map, CancellationToken ct = default)
         {
             if (Fails) throw new ChannelException("Discord answered HTTP 500.");
             Posts.Add(episode);
+            Maps.Add(map);
             return Task.CompletedTask;
         }
     }
@@ -38,13 +42,52 @@ public class DailyRunTests : IDisposable
 
     public void Dispose() => _dir.Dispose();
 
-    private Task<int> Run(DateTimeOffset now, RunOptions? options = null, IEpisodeChannel? channel = null) =>
-        new DailyRun(Config, _root, [channel ?? _discord], () => now, _log, options).RunAsync();
+    private Task<int> Run(DateTimeOffset now, RunOptions? options = null, IEpisodeChannel? channel = null,
+        Func<LlmSettings, ILlmProvider?>? providers = null) =>
+        new DailyRun(Config, _root, [channel ?? _discord], () => now, _log, options, providers ?? (_ => null)).RunAsync();
 
     private async Task<byte[]?> Get(string key) => await _root.GetAsync(key);
 
     private async Task<Episode> StoredEpisode(string prefix, string date) =>
         Episode.FromJson(Encoding.UTF8.GetString((await Get(prefix + DailyRun.EpisodeKey(date)))!));
+
+    [Fact]
+    public async Task TheChroniclerWritesTheScript_AndTheMapGoesOutWithIt()
+    {
+        await Run(Morning, new RunOptions(Create: true)); // offline: the template ships
+        Assert.Equal(Episode.TemplateWriter, _discord.Posts[0].Writer);
+        Assert.Contains("warning: the chronicler could not write today's script", _log.ToString());
+        var map = await Get("live/" + DailyRun.MapKey("2026-10-27"));
+        Assert.Equal(map, _discord.Maps[0]);
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4e, 0x47 }, map![..4]);
+
+        FakeLlmProvider? provider = null;
+        provider = new FakeLlmProvider(request =>
+        {
+            var brief = request.Prompt;
+            var script = brief[(brief.IndexOf('\n') + 1)..brief.LastIndexOf("</brief>", StringComparison.Ordinal)].Trim();
+            return System.Text.Json.JsonSerializer.Serialize(new { text = script.Replace("Elsewhere in the chronicle:", "And elsewhere, in brief:") });
+        });
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1), providers: settings => settings.Provider == "anthropic" ? provider : null));
+        var request = Assert.Single(provider.Requests); // the script only: story beats are off
+        Assert.Equal(ModelTier.Narrate, request.Tier);
+        Assert.Equal(Episode.ChroniclerWriter, _discord.Posts[1].Writer);
+        Assert.Contains("And elsewhere, in brief:", _discord.Posts[1].Script);
+        Assert.Equal(_discord.Posts[1].Script, Encoding.UTF8.GetString((await Get("live/" + DailyRun.ScriptKey("2026-10-28")))!));
+        Assert.NotNull(_discord.Maps[1]);
+        Assert.Contains("by the chronicler", _log.ToString());
+
+        // The answer was saved in the world: a rerun after a lost manifest finds it there.
+        using var copy = new TempFile();
+        await File.WriteAllBytesAsync(copy.Path, (await Get("live/world.fw.db"))!);
+        using (var store = WorldStore.Open(copy.Path))
+        {
+            Assert.Equal(1, store.LoadJournal().Count);
+            Assert.Equal("claude-sonnet-5-5", store.LoadLlmSettings().ModelFor(ModelTier.Narrate));
+            Assert.Equal(0, store.LoadLlmSettings().StoryBeatsPerDay);
+        }
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+    }
 
     [Fact]
     public async Task AScheduledRun_NeverBeginsAWorld()
@@ -173,6 +216,25 @@ public class DailyRunTests : IDisposable
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1).AddHours(1)));
         Assert.Equal(new[] { "2026-10-27", "2026-10-28" }, _discord.Posts.Select(p => p.Date));
         Assert.True(_discord.Posts[1].EventCount > 0);
+    }
+
+    [Fact]
+    public async Task AMapThatCannotBeStored_StillGoesOutWithThePost()
+    {
+        var flaky = new FlakyStore(_root) { Failing = "map.png" };
+        Assert.Equal(DailyRun.Ok, await new DailyRun(Config, flaky, [_discord], () => Morning, _log, new RunOptions(Create: true), _ => null).RunAsync());
+        Assert.Contains("warning: the map could not be stored", _log.ToString());
+        Assert.NotNull(_discord.Maps.Single());
+        Assert.Null(await Get("live/" + DailyRun.MapKey("2026-10-27")));
+    }
+
+    [Fact]
+    public void TheLlmKey_IsReadOnlyFromTheEnvironmentGiven()
+    {
+        var anthropic = new LlmSettings { Provider = "anthropic" };
+        Assert.Null(FantasyWorld.Llm.LlmProviders.Create(anthropic, _ => null, BroadcastApp.ScriptTimeout));
+        Assert.IsType<FantasyWorld.Llm.AnthropicProvider>(
+            FantasyWorld.Llm.LlmProviders.Create(anthropic, name => name == "ANTHROPIC_API_KEY" ? "test-key" : null, BroadcastApp.ScriptTimeout));
     }
 
     /// <summary>A store whose writes to one key fail, as if the run stopped there.</summary>

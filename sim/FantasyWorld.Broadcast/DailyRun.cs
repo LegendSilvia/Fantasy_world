@@ -3,7 +3,9 @@ using System.Text;
 using FantasyWorld.Broadcast.Channels;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Cli;
+using FantasyWorld.Broadcast.Media;
 using FantasyWorld.Sim.Chronicle;
+using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Persist;
 
 namespace FantasyWorld.Broadcast;
@@ -17,7 +19,7 @@ public sealed record RunOptions(bool DryRun = false, bool Create = false);
 /// manifest at once, so a rerun repeats nothing that already happened.
 /// </summary>
 public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnlyList<IEpisodeChannel> channels,
-    Func<DateTimeOffset> clock, TextWriter log, RunOptions? options = null)
+    Func<DateTimeOffset> clock, TextWriter log, RunOptions? options = null, Func<LlmSettings, ILlmProvider?>? providers = null)
 {
     /// <summary>Exit codes: published; nothing published (the world is untouched); the episode is out but a channel failed.</summary>
     public const int Ok = 0, Failed = 1, Partial = 2;
@@ -32,6 +34,10 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
 
     public static string ScriptKey(string date) => $"episodes/{date}/script.txt";
 
+    public static string MapKey(string date) => $"episodes/{date}/map.png";
+
+    private byte[]? _todaysMap;
+
     public async Task<int> RunAsync(CancellationToken ct = default)
     {
         var store = new PrefixedStore(root, _options.DryRun ? config.StagingPrefix : config.LivePrefix);
@@ -41,6 +47,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         Manifest manifest;
         Episode episode;
         _worldSaved = false;
+        _todaysMap = null;
         try
         {
             manifest = Manifest.FromBytes(await store.GetAsync(Manifest.Key, ct).ConfigureAwait(false));
@@ -79,7 +86,9 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             try
             {
                 var told = day == date ? episode : await StoredEpisodeAsync(store, day, ct).ConfigureAwait(false);
-                await channel.PublishAsync(told, ct).ConfigureAwait(false);
+                // Episodes from before the map (or whose map failed) are posted without one.
+                var map = day == date && _todaysMap is not null ? _todaysMap : await store.GetAsync(MapKey(day), ct).ConfigureAwait(false);
+                await channel.PublishAsync(told, map, ct).ConfigureAwait(false);
             }
             catch (Exception e) when (e is ChannelException or IOException or InvalidOperationException && !ct.IsCancellationRequested)
             {
@@ -154,14 +163,26 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 }
             }
 
+            // The world's LLM settings follow broadcast.json each morning: the chronicler on the narrate tier, story beats
+            // off unless budgeted. Without ANTHROPIC_API_KEY the world runs offline and the template script ships.
+            var llm = config.Llm;
+            Fw("llm", worldPath, "--provider", llm.Narrate ? "anthropic" : "none", "--model", $"narrate={llm.NarrateModel}",
+                "--story-beats", llm.StoryBeatsPerDay.ToString(CultureInfo.InvariantCulture),
+                "--narrations", llm.NarrationsPerDay.ToString(CultureInfo.InvariantCulture),
+                "--cap", llm.MonthlyCapUsd.ToString(CultureInfo.InvariantCulture));
             Fw("catchup", worldPath, "--quiet");
             var dir = Path.Combine(work.FullName, "episode");
-            Fw("episode", worldPath, "--out", dir, "--date", date,
+            Fw(["episode", worldPath, "--out", dir, "--date", date,
                 "--stories", config.Stories.ToString(CultureInfo.InvariantCulture),
-                "--max-characters", config.MaxCharacters.ToString(CultureInfo.InvariantCulture));
+                "--max-characters", config.MaxCharacters.ToString(CultureInfo.InvariantCulture), .. llm.Narrate ? ["--narrate"] : Array.Empty<string>()]);
             var episode = Episode.FromJson(await File.ReadAllTextAsync(Path.Combine(dir, "episode.json"), ct).ConfigureAwait(false));
+            if (llm.Narrate && episode.Writer != Episode.ChroniclerWriter)
+                log.WriteLine("warning: the chronicler could not write today's script (see the LLM line above); the template script goes out.");
             var snapshot = Path.Combine(work.FullName, "upload.fw.db");
             Fw("snapshot", worldPath, snapshot);
+
+            _todaysMap = PaintMap(snapshot);
+            await StoreMapAsync(store, date, ct).ConfigureAwait(false);
 
             // The episode first, then the world that holds its marker: a world in the store always has its episode.
             await store.PutAsync(EpisodeKey(date), Encoding.UTF8.GetBytes(episode.ToJson()), "application/json", ct).ConfigureAwait(false);
@@ -187,6 +208,39 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             ? Episode.FromJson(Encoding.UTF8.GetString(bytes))
             : throw new InvalidOperationException($"The manifest says today's episode was built, but {store.Prefix}{EpisodeKey(date)} is missing.");
 
+    /// <summary>
+    /// Stores today's map, or removes one an earlier run of the day left for a different episode; a map that cannot be
+    /// stored never stops the episode (it is still posted from memory).
+    /// </summary>
+    private async Task StoreMapAsync(IObjectStore store, string date, CancellationToken ct)
+    {
+        try
+        {
+            if (_todaysMap is not null) await store.PutAsync(MapKey(date), _todaysMap, "image/png", ct).ConfigureAwait(false);
+            else await store.DeleteAsync(MapKey(date), ct).ConfigureAwait(false);
+        }
+        catch (IOException e)
+        {
+            log.WriteLine($"warning: the map could not be stored ({e.Message}).");
+        }
+    }
+
+    /// <summary>The political map of the saved world; a map that cannot be drawn never stops the episode.</summary>
+    private byte[]? PaintMap(string worldPath)
+    {
+        try
+        {
+            using var world = WorldStore.Open(worldPath);
+            var (w, l, _) = world.Load();
+            return MapPainter.Png(w, l);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            log.WriteLine($"warning: the map could not be drawn ({e.Message}); the episode goes out without it.");
+            return null;
+        }
+    }
+
     private static string? BroadcastDateOf(string worldPath)
     {
         using var world = WorldStore.Open(worldPath);
@@ -200,7 +254,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
     private void Fw(params string[] args)
     {
         var output = new StringWriter();
-        var code = CliApp.Run(args, output, clock);
+        var code = CliApp.Run(args, output, clock, providers);
         foreach (var line in output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             log.WriteLine($"  fw {args[0]}: {line}");
         if (code != 0) throw new InvalidOperationException($"fw {args[0]} failed (exit code {code}).");

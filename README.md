@@ -156,10 +156,12 @@ backup of the last three sessions next to it (`.bak1`–`.bak3`). Benchmarks:
 ## The daily broadcast
 
 Every morning at 05:30 Bangkok time, GitHub Actions pulls the world from Cloudflare R2, lets it live the year that passed,
-builds the episode and posts it to Discord. A rerun the same day posts nothing new. Setup:
+builds the episode (the script written by the world's chronicler, Claude, held to the facts; the template voice when it
+cannot) and posts it to Discord with the political map. A rerun the same day posts nothing new. Setup:
 [docs/broadcast-setup.md](docs/broadcast-setup.md).
 
 ```bash
-dotnet run --project sim/FantasyWorld.Cli -- episode worlds/aerenmoor.fw.db --out ep/   # episode.json and script.txt since the last one
+dotnet run --project sim/FantasyWorld.Cli -- episode worlds/aerenmoor.fw.db --out ep/ --narrate   # episode.json and script.txt since the last one
 dotnet run --project sim/FantasyWorld.Broadcast -- run --dry-run --create --local bucket/   # the whole morning, with a local folder for R2
+dotnet run --project sim/FantasyWorld.Broadcast -- map worlds/aerenmoor.fw.db map.png     # the map as the broadcast posts it
 ```

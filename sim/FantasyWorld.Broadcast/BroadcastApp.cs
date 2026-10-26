@@ -62,7 +62,9 @@ public static class BroadcastApp
             return DailyRun.Failed;
         }
 
-        return await new DailyRun(config, store, channels, clock, output, options).RunAsync(ct).ConfigureAwait(false);
+        // The LLM key, like every secret, comes from the environment given (never the process's own, so tests cannot spend).
+        return await new DailyRun(config, store, channels, clock, output, options,
+            settings => Llm.LlmProviders.Create(settings, env, ScriptTimeout)).RunAsync(ct).ConfigureAwait(false);
     }
 
     private static int Map(string worldPath, string pngPath, TextWriter output)
@@ -78,6 +80,9 @@ public static class BroadcastApp
         output.WriteLine($"Map written to {pngPath}.");
         return DailyRun.Ok;
     }
+
+    /// <summary>A whole script with adaptive thinking can take minutes; the run itself has 45.</summary>
+    public static readonly TimeSpan ScriptTimeout = TimeSpan.FromMinutes(5);
 
     private static string? Option(string[] args, string name)
     {

@@ -10,5 +10,12 @@
   "stories": 5,
   "maxCharacters": 3600,
   "discordName": "The Chronicle",
+  "llm": {
+    "narrate": true,
+    "narrateModel": "claude-sonnet-5-5",
+    "storyBeatsPerDay": 0,
+    "narrationsPerDay": 10,
+    "monthlyCapUsd": 5
+  },
   "keepAlive": true
 }
