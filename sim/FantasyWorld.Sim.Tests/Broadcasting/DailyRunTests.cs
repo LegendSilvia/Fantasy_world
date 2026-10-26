@@ -47,8 +47,23 @@ public class DailyRunTests : IDisposable
     public void Dispose() => _dir.Dispose();
 
     private Task<int> Run(DateTimeOffset now, RunOptions? options = null, IEpisodeChannel? channel = null,
-        Func<LlmSettings, ILlmProvider?>? providers = null, ISpeech? speech = null, BroadcastConfig? config = null) =>
-        new DailyRun(config ?? Config, _root, [channel ?? _discord], () => now, _log, options, providers ?? (_ => null), speech).RunAsync();
+        Func<LlmSettings, ILlmProvider?>? providers = null, ISpeech? speech = null, BroadcastConfig? config = null, IEpisodeChannel? also = null) =>
+        new DailyRun(config ?? Config, _root, also is null ? [channel ?? _discord] : [channel ?? _discord, also], () => now, _log, options,
+            providers ?? (_ => null), speech).RunAsync();
+
+    /// <summary>A video channel: nothing to show until the episode has its narration.</summary>
+    private sealed class VideoChannel : IEpisodeChannel
+    {
+        public List<string> Uploaded { get; } = [];
+        public string Name => "youtube";
+
+        public Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default)
+        {
+            if (audio is null) throw new ChannelWaitingException("the video waits for the episode's narration and map.");
+            Uploaded.Add(episode.Date);
+            return Task.CompletedTask;
+        }
+    }
 
     private async Task<byte[]?> Get(string key) => await _root.GetAsync(key);
 
@@ -193,6 +208,23 @@ public class DailyRunTests : IDisposable
             throw new NotSupportedException();
         public Task<DictionaryRef> AddRulesAsync(string dictionaryId, IReadOnlyDictionary<string, string> aliases, CancellationToken ct = default) =>
             throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task TheVideo_WaitsForItsNarration_WithoutHoldingUpDiscordOrFailingTheRun()
+    {
+        var youtube = new VideoChannel();
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), also: youtube)); // no speech service
+        Assert.Single(_discord.Posts);
+        Assert.Empty(youtube.Uploaded);
+        Assert.Contains("youtube: the episode of 2026-10-27 is not posted yet", _log.ToString());
+        Assert.False(Manifest.FromBytes(await Get("live/" + Manifest.Key)).Day("2026-10-27").Done("youtube"));
+
+        var speech = new PronouncerTests.FakeSpeech();
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(1), speech: speech, also: youtube));
+        Assert.Equal(new[] { "2026-10-27" }, youtube.Uploaded);
+        Assert.Single(_discord.Posts); // Discord is not posted again
+        Assert.True(Manifest.FromBytes(await Get("live/" + Manifest.Key)).Day("2026-10-27").Done("youtube"));
     }
 
     [Fact]
@@ -405,8 +437,12 @@ public class DailyRunTests : IDisposable
     public async Task TheApp_TakesSecretsOnlyFromTheEnvironment_AndNeverPrintsThem()
     {
         using var config = new TempFile();
-        await File.WriteAllTextAsync(config.Path, """{ "seed": 3, "size": "tiny" }""");
-        var env = new Dictionary<string, string> { ["DISCORD_TEST_WEBHOOK_URL"] = "https://discord.test/api/webhooks/9/SECRET-TOKEN" };
+        await File.WriteAllTextAsync(config.Path, """{ "seed": 3, "size": "tiny", "youTube": { "upload": false } }""");
+        var env = new Dictionary<string, string>
+        {
+            ["DISCORD_TEST_WEBHOOK_URL"] = "https://discord.test/api/webhooks/9/SECRET-TOKEN",
+            ["YOUTUBE_CLIENT_ID"] = "id", ["YOUTUBE_CLIENT_SECRET"] = "s", ["YOUTUBE_REFRESH_TOKEN"] = "r", // a dry run never uploads
+        };
         var output = new StringWriter();
 
         Assert.Equal(DailyRun.Failed, await BroadcastApp.RunAsync(["run", "--config", config.Path], output, () => Morning, env.GetValueOrDefault));
@@ -419,6 +455,12 @@ public class DailyRunTests : IDisposable
             output, () => Morning, env.GetValueOrDefault, http);
         Assert.Equal(DailyRun.Ok, code);
         Assert.Single(http.Seen);
+        Assert.Equal("discord.test", http.Seen[0].Request.RequestUri!.Host);
+        Assert.False(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(DryRun: true), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Uploads);
+        Assert.True(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Uploads);
+        var quiet = new StringWriter();
+        Assert.Null(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), _ => null, new HttpClient(), quiet));
+        Assert.Contains("YouTube secrets are not set", quiet.ToString());
         Assert.DoesNotContain("SECRET-TOKEN", output.ToString());
         Assert.Equal(DailyRun.Failed, await BroadcastApp.RunAsync(["publish"], output, () => Morning, env.GetValueOrDefault));
     }

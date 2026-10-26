@@ -35,6 +35,10 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Build
         run: dotnet build sim/FantasyWorld.Broadcast --configuration Release
+      - name: Install ffmpeg (for the YouTube video)
+        # A failed install costs only the video; the broadcast itself must still run.
+        continue-on-error: true
+        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
       - name: Broadcast
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
@@ -45,6 +49,9 @@ jobs:
           DISCORD_TEST_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           DRY_RUN: ${{ inputs.dry-run }}
           CREATE: ${{ inputs.create }}
           REF: ${{ github.ref }}

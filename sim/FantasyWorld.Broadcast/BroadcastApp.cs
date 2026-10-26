@@ -53,6 +53,7 @@ public static class BroadcastApp
         }
 
         var webhookName = options.DryRun ? "DISCORD_TEST_WEBHOOK_URL" : "DISCORD_WEBHOOK_URL";
+        var youtube = YouTubeChannel(config, options, env, http, output);
         var channels = new List<IEpisodeChannel>();
         if (env(webhookName) is { Length: > 0 } webhook)
             channels.Add(new DiscordWebhook(http, webhook, config.DiscordName));
@@ -61,6 +62,7 @@ public static class BroadcastApp
             output.WriteLine($"error: {webhookName} is not set, so the episode could not be posted.");
             return DailyRun.Failed;
         }
+        if (youtube is not null) channels.Add(youtube);
 
         // The LLM key, like every secret, comes from the environment given (never the process's own, so tests cannot spend).
         return await new DailyRun(config, store, channels, clock, output, options,
@@ -79,6 +81,23 @@ public static class BroadcastApp
         File.WriteAllBytes(pngPath, Media.MapPainter.Png(world, log));
         output.WriteLine($"Map written to {pngPath}.");
         return DailyRun.Ok;
+    }
+
+    /// <summary>
+    /// The YouTube channel: the live broadcast uploads with the three YouTube secrets; a dry run (YouTube has no test
+    /// channel) only makes and stores the video, so the first real video is not made in production.
+    /// </summary>
+    public static Channels.YouTube? YouTubeChannel(BroadcastConfig config, RunOptions options, Func<string, string?> env, HttpClient http, TextWriter output)
+    {
+        if (!config.YouTube.Upload) return null;
+        var account = options.DryRun ? null : Channels.YouTubeAccount.FromEnvironment(env);
+        if (!options.DryRun && account is null)
+        {
+            output.WriteLine("YouTube: the YouTube secrets are not set, so no video is uploaded.");
+            return null;
+        }
+        if (!config.Voice.Speak) output.WriteLine("warning: YouTube is set up but voice.speak is off, so there is no narration to make a video of.");
+        return new Channels.YouTube(http, account, new Media.FfmpegVideo(), config.YouTube);
     }
 
     /// <summary>A whole script with adaptive thinking can take minutes; the run itself has 45.</summary>

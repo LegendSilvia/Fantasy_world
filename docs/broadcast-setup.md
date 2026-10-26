@@ -27,6 +27,7 @@ In the repository: **Settings → Secrets and variables → Actions → New repo
 | `R2_SECRET_ACCESS_KEY` | the token's secret access key |
 | `DISCORD_WEBHOOK_URL` | the real channel's webhook |
 | `DISCORD_TEST_WEBHOOK_URL` | the test channel's webhook (optional; without it a dry run posts nowhere) |
+| `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN` | optional: the daily video upload (see section 5) |
 | `ELEVENLABS_API_KEY` | from elevenlabs.io → your profile → API Keys; the narrator reads each episode with it (without it, the post goes out as text and map) |
 | `ANTHROPIC_API_KEY` | from console.anthropic.com → API Keys; the chronicler writes each script with it (without it, the template script ships) |
 
@@ -44,7 +45,29 @@ The feed (`feed.xml`) and the archive page (`index.html`) are published only onc
 Everything in the bucket becomes readable by anyone with the address: the episodes, and also the world file and its
 backups. Nothing secret is stored there, but if you would rather keep the world private, leave this off.
 
-## 5. Start it
+## 5. YouTube (optional)
+
+Each morning's map and narration can also go to YouTube as a video. It needs three more secrets:
+
+1. In the Google Cloud console, create a project and enable the **YouTube Data API v3**.
+2. Set up the **OAuth consent screen** (External), add yourself as a test user, then **Publish app** (to production).
+   While the app is in testing, Google lets a refresh token live only seven days, and the upload stops after a week.
+3. Under **Credentials**, create an **OAuth client ID** of type *Web application*, with the authorised redirect URI
+   `https://developers.google.com/oauthplayground`. Note its client id and secret.
+4. Get a refresh token for the channel's Google account in the OAuth 2.0 Playground: gear icon → *Use your own OAuth
+   credentials* (paste the id and secret), select the scope `https://www.googleapis.com/auth/youtube.upload`, *Authorize
+   APIs*, sign in as the channel, then *Exchange authorization code for tokens* and copy the refresh token.
+5. Add the secrets `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` and `YOUTUBE_REFRESH_TOKEN`.
+
+YouTube keeps videos uploaded through a Google app that has not passed its API audit **private**, whatever `privacy`
+says (the run log warns when that happens); request the audit (the YouTube API Services form) to publish them.
+
+One video a run, of the day's episode (or yesterday's, if it was missed): turning YouTube on never uploads a backlog.
+An upload is recorded before it starts and finished, never begun again, on a later run if it was cut short, so a video
+never goes up twice. Dry runs make and store the video (`staging/episodes/<date>/episode.mp4`) but never upload. An
+episode without narration waits for it; a failed upload never holds up Discord.
+
+## 6. Start it
 
 1. Merge to the default branch. GitHub runs scheduled workflows only from there, and a run that is not a dry run is
    refused on any other branch.
@@ -74,6 +97,7 @@ backups. Nothing secret is stored there, but if you would rather keep the world 
 | `voice.voiceId`, `voice.model` | Michael C. Vincent (`uju3wxzG5OhpWcoi3SMy`), `eleven_v4_turbo` | the narrator's voice and model (the owner's choices) |
 | `voice.maxCharactersPerRequest` | `5000` | a script longer than this is spoken in parts and joined (a day's script is at most 3,600) |
 | `voice.monthlyCharacterBudget` | `150000` | characters spoken per calendar month (about 40 days of episodes); past it, episodes go out without narration |
+| `youTube.upload`, `youTube.privacy`, `youTube.categoryId` | `true`, `public`, `24` | the daily video (with the three YouTube secrets); 24 is Entertainment |
 | `publicBaseUrl` | unset | the bucket's public address; when set, the podcast feed, the archive page and the cover are published |
 | `podcastEmail` | unset | the feed's contact address, which Apple Podcasts and Spotify use to confirm you own the feed |
 | `voice.respell` | `true` | Claude respells each new invented name once, so the narrator says it the same way every day |
@@ -91,6 +115,7 @@ live/episodes/2026-10-27/map.png       the political map that morning, posted as
 live/episodes/2026-10-27/narration.mp3 the episode read aloud, attached to the post
 live/feed.xml, live/index.html         the podcast feed and the archive page (with publicBaseUrl)
 live/cover.png                         the latest map, the podcast's cover
+live/episodes/2026-10-27/episode.mp4   the video (with YouTube), and youtube.json, where its upload stands
 live/backups/2026-10-27.fw.db          the world as it was before that morning's run
 ```
 

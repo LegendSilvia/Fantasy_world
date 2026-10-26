@@ -26,5 +26,10 @@
     "monthlyCharacterBudget": 150000,
     "respell": true
   },
+  "youTube": {
+    "upload": true,
+    "privacy": "public",
+    "categoryId": "24"
+  },
   "keepAlive": true
 }

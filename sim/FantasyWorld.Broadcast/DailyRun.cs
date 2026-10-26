@@ -79,6 +79,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             .Where(d => d.Value.Done(Manifest.EpisodeStep) && string.CompareOrdinal(d.Key, earliest) >= 0 && string.CompareOrdinal(d.Key, date) <= 0)
             .Select(d => d.Key).ToList();
         var result = await SpeakAsync(store, manifest, dates, date, episode, ct).ConfigureAwait(false);
+        foreach (var stateful in channels.OfType<IStatefulChannel>()) stateful.Attach(store, log, date);
         if (channels.Count == 0) log.WriteLine("No channel is configured: the episode is stored but posted nowhere.");
         foreach (var channel in channels)
         foreach (var day in dates)
@@ -96,6 +97,11 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 // The narration, when it was made in time; a post never waits for speech that failed.
                 var audio = manifest.Day(day).Done(Manifest.AudioStep) ? await store.GetAsync(NarrationKey(day), ct).ConfigureAwait(false) : null;
                 await channel.PublishAsync(told, map, audio, ct).ConfigureAwait(false);
+            }
+            catch (ChannelWaitingException e)
+            {
+                log.WriteLine($"{channel.Name}: the episode of {day} is not posted yet: {e.Message}");
+                continue;
             }
             catch (Exception e) when (e is ChannelException or IOException or InvalidOperationException && !ct.IsCancellationRequested)
             {
