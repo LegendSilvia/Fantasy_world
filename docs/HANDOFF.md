@@ -22,12 +22,20 @@ Context for picking up this project on another machine / in a new Claude session
 | Sub-project 3 (Myth, magic & structures) | **Done** — spec `docs/superpowers/specs/2026-10-06-myth-magic-structures-design.md`, plan `docs/superpowers/plans/2026-10-06-myth-magic-structures.md`, Tasks 1–11; 557/557 tests pass; 73 headless Godot checks pass; a two-century medium soak with invariants checked every tick |
 | Sub-project 5 (Narration polish & evals) | **Done** — spec `docs/superpowers/specs/2026-10-06-narration-polish-design.md`, plan `docs/superpowers/plans/2026-10-06-narration-polish.md`, Tasks 1–7; 586/586 tests pass; 74 headless Godot checks pass |
 | **All five sub-projects** | **Complete** |
+| Sub-project 6 (Daily broadcast) | **M1 built** — brief `docs/superpowers/specs/2026-10-26-daily-broadcast-brief.md`, spec `docs/superpowers/specs/2026-10-26-daily-broadcast-design.md`, plan `docs/superpowers/plans/2026-10-26-daily-broadcast-m1.md`, Tasks 1–4; 617/617 tests pass; 74 headless Godot checks pass. **Waiting on the owner's setup** (R2, Discord, secrets, merge, first `create` run), then three unattended mornings before M2 |
 
 ## Next step
 
-1. Merge the working branch into `main` (Plans 4–6 and sub-projects 2–5).
-2. With an API key, run the live evals once (`fw eval narration --cap 2`, `fw eval decisions`) and read the reports in `evals/`; the LLM voice has only been exercised against scripted providers here.
-3. Later work noted in the plans' Deferred lines: sound, settings and world management screens, desktop exports, sea trade, possessives and plural agreement in the template voice.
+1. Daily broadcast M1: follow `docs/broadcast-setup.md` (R2 bucket and token, Discord webhooks, GitHub secrets, merge to `main`, a dry run, then a `create` run). Then confirm three scheduled mornings post one episode each, and a same-day rerun posts nothing.
+2. Then plan M2 (Sonnet script with guard and template fallback; the map as PNG), then M3 (ElevenLabs v4 Turbo narration, pronunciation, RSS and archive).
+3. With an API key, run the live evals once (`fw eval narration --cap 2`, `fw eval decisions`) and read the reports in `evals/`; the LLM voice has only been exercised against scripted providers here.
+4. Later work noted in the plans' Deferred lines: sound, settings and world management screens, desktop exports, sea trade, possessives and plural agreement in the template voice.
+
+Notes from sub-project 6 (M1) execution:
+- Try it locally: `dotnet run --project sim/FantasyWorld.Broadcast -- run --dry-run --create --local bucket/` (a folder stands in for R2); `fw episode <world> --out ep/` writes one episode by hand.
+- The stored world records which day's episode it holds (`World.LastBroadcastDate`), so a run stopped anywhere is picked up; failed posts are made up by the next run, oldest first, for up to a week.
+- Found and fixed a sim bug: a fallen realm fell again for each region it ceded (triple headlines).
+- Owner decisions after the spec: ElevenLabs model `eleven_v4_turbo`; proposed voice "Stephen" (`RbNTU8eTHcsao6T0f1ve`), to confirm in M3.
 
 Notes from sub-project 5 execution:
 - Try it: `fw tell <world> <event-id>` and `fw digest <world>` read in the new voice; the why page shows the story of why.
@@ -98,3 +106,4 @@ Notes from Plan 1 execution:
 3. Myth, magic & structures (depth)
 4. Godot 3D diorama client
 5. Narration polish
+6. Daily broadcast (GitHub Actions, R2, Discord; later Sonnet scripts, ElevenLabs narration, RSS, YouTube)

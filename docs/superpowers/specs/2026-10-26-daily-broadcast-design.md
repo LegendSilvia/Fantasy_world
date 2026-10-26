@@ -22,6 +22,7 @@ and anything on the owner's computer.
 | Storage | Cloudflare R2 for the world file, backups and published media |
 | Script writer | Claude Sonnet (`claude-sonnet-5-5`) on the `narrate` tier |
 | Narrator voice | ElevenLabs text-to-speech |
+| Speech model | ElevenLabs v4 Turbo (`eleven_v4_turbo`), chosen by the owner after review |
 | Hosting | Nothing on the owner's computer; fully automated |
 
 ### 2.2 Proposed defaults (flagged for review)
@@ -32,9 +33,9 @@ and anything on the owner's computer.
 | Episode length | 2–4 minutes (a script budget of 1,800–3,600 characters) | A morning listen |
 | Episode key | The broadcast date in Asia/Bangkok (`2026-10-27`), not the world year | A rerun hours later advances the world and can cross into a new year; keying by year would publish twice. The world years covered are recorded in the episode, and the RSS GUID combines the world's id and the date |
 | Publish time | 05:30 Asia/Bangkok (`30 22 * * *` UTC) | Owner's suggestion; GitHub may start late under load, which is fine |
-| ElevenLabs model | `eleven_multilingual_v2` (long-form stability, 10,000 characters a request), fallback `eleven_flash_v2_5` (cheaper, 40,000) | From ElevenLabs' models page at the time of writing; both are config values, and chunking reads the limit from config, not from code |
+| ElevenLabs model | Superseded: the owner chose `eleven_v4_turbo` (see 2.1). The per-request character limit is checked against ElevenLabs' docs when M3 is planned | Model and chunk limit stay config values; chunking reads the limit from config, not from code |
 | Pronunciation | Respelling ("alias") rules for invented names, sent as a pronunciation dictionary | ElevenLabs documents alias rules for all models; phoneme rules are model-specific |
-| Voice | Owner's choice (`voiceId` in config); the chronicler's temperament is printed beside it as a hint | |
+| Voice | Owner's choice (`voiceId` in config). Proposed: "Stephen – Well spoken narrator" (`RbNTU8eTHcsao6T0f1ve`, British, a polite storyteller, matching the house style's British spelling) | Picked from the ElevenLabs library for narrative storytelling; a library voice may need adding to the account's voices before the API can use it |
 | Channels (v1) | Discord webhook, podcast RSS feed, archive page | YouTube is milestone 4 |
 | New worlds | Created only by a manual run with `create: true` | If R2 is unreachable or a key is wrong, a scheduled run must fail, never quietly start a new world |
 | Keep-alive | A `keepAlive` config switch: when on, the job commits a one-line heartbeat on the 1st of each month | GitHub turns off scheduled workflows in public repositories after 60 days without activity; a private repository needs no heartbeat |

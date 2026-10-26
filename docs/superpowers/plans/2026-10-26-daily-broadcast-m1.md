@@ -82,7 +82,7 @@ Found while drafting episodes: a realm left with land but no town fell, ceded it
 - Consumes: `Statecraft` (Plan 4).
 - Produces: no new API; `Statecraft.Fall` returns early for a destroyed realm.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Systems/RealmSystemTests.cs` entirely with:
 ```csharp
@@ -264,12 +264,12 @@ public class RealmSystemTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: FAILS: 1 failing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Sim/Systems/Statecraft.cs` entirely with:
 ```csharp
@@ -393,12 +393,12 @@ public static class Statecraft
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~RealmSystemTests"`
 Expected: `Passed!  - Failed: 0, Passed: 10`. Then `dotnet test sim` → `Passed: 587` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -422,7 +422,7 @@ Spec §3.1–3.2. The audience's place is `World.LastBroadcastEventId`, separate
 - Consumes: `TemplateNarrator`, `Chronicler`, `Importance`, `Digest` (sub-projects 2 and 5).
 - Produces: `World { LastBroadcastEventId; LastBroadcastDate }`; `record EpisodeStory`; `record Episode { ToJson(); FromJson(json); Build(world, log, since, date, followed?, stories, maxCharacters); Thread(log, outcome, steps) }`; `TemplateNarrator.IsHeadline(type)`, `Body(ev, log, withCause)`; `fw episode <world> --out <dir> [--date] [--stories] [--max-characters] [--keep-marker]`, `fw catchup --quiet`, `fw snapshot <world> <copy>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Chronicle/EpisodeTests.cs`:
 ```csharp
@@ -597,12 +597,12 @@ public class EpisodeCliTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Episode' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Cli/CliApp.cs` entirely with:
 ```csharp
@@ -1628,12 +1628,12 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~EpisodeCliTests|FullyQualifiedName~EpisodeTests"`
 Expected: `Passed!  - Failed: 0, Passed: 8`. Then `dotnet test sim` → `Passed: 595` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -1658,7 +1658,7 @@ Spec §3. A new console project, `FantasyWorld.Broadcast` (`fw-broadcast run`), 
 - Consumes: Task 2; `CliApp.Run`, `WorldStore` (sim core).
 - Produces: `interface IObjectStore`, `PrefixedStore`, `LocalObjectStore`, `R2ObjectStore { FromEnvironment(http, env) }`, `static class SigV4`; `record BroadcastConfig { Load; Parse; DateAt(now) }`; `Manifest`, `ManifestDay`; `static class BackupRetention { KeyFor; ToDelete }`; `interface IEpisodeChannel`, `ChannelException`, `DiscordWebhook { Payload }`; `record RunOptions(DryRun, Create)`; `DailyRun { Ok, Failed, Partial; MissedDays; RunAsync() }`; `BroadcastApp.RunAsync(args, output, clock, env, handler?)`; `broadcast.json`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Broadcasting/BroadcastPartsTests.cs`:
 ```csharp
@@ -2274,12 +2274,12 @@ Replace `sim/FantasyWorld.Sim.Tests/FantasyWorld.Sim.Tests.csproj` entirely with
 </Project>
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Broadcast' does not exist in the namespace 'FantasyWorld' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `broadcast.json`:
 ```json
@@ -3530,12 +3530,12 @@ Global
 EndGlobal
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~BroadcastPartsTests|FullyQualifiedName~DailyRunTests|FullyQualifiedName~SessionTests|FullyQualifiedName~StorageTests"`
 Expected: `Passed!  - Failed: 0, Passed: 30`. Then `dotnet test sim` → `Passed: 617` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add broadcast.json sim
@@ -3558,7 +3558,7 @@ Spec §3.4–3.5, §6. `.github/workflows/broadcast.yml` runs at 22:30 UTC (05:3
 - Consumes: Task 3.
 - Produces: `.github/workflows/broadcast.yml`; `docs/broadcast-setup.md`; README section.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 `.github/workflows/broadcast.yml`:
 ```yaml
@@ -3916,11 +3916,11 @@ live/backups/2026-10-27.fw.db          the world as it was before that morning's
   The next run carries on from the restored world. Never delete the manifest: it is what stops a day being posted twice.
 ````
 
-- [ ] **Step 2: Run tests to verify they pass**
+- [x] **Step 2: Run tests to verify they pass**
 
 Run: `dotnet test sim` → `Passed: 617` in total.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .github README.md broadcast.json docs
