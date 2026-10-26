@@ -44,8 +44,12 @@ public sealed class LlmGateway
     /// <summary>Worth building a prompt for: the answer is journaled, or a provider may be asked within budget.</summary>
     public bool MayAnswer(ModelTier tier, string key) => Knows(tier, key) || Online && WithinBudget(tier);
 
-    /// <summary>Returns a valid JSON answer, or null for the offline path.</summary>
-    public string? Ask(LlmRequest request, long worldDay, Func<string, bool> isValid, Func<string, string>? noteFor = null)
+    /// <summary>
+    /// Returns a valid JSON answer, or null for the offline path. <paramref name="whyInvalid"/> says what was wrong with a
+    /// rejected answer; it is kept in the journal's note ("rejected: …") so a failed answer can be diagnosed.
+    /// </summary>
+    public string? Ask(LlmRequest request, long worldDay, Func<string, bool> isValid, Func<string, string>? noteFor = null,
+        Func<string, string>? whyInvalid = null)
     {
         if (Journal.TryGet(request.Hash, out var known))
         {
@@ -80,7 +84,8 @@ public sealed class LlmGateway
             Asked++;
             if (!isValid(response.Json))
             {
-                Record(request, $"!rejected{attempt}", worldDay, response, "rejected");
+                var why = whyInvalid?.Invoke(response.Json);
+                Record(request, $"!rejected{attempt}", worldDay, response, string.IsNullOrEmpty(why) ? "rejected" : $"rejected: {why}");
                 continue;
             }
             Record(request, "", worldDay, response, noteFor?.Invoke(response.Json) ?? "");

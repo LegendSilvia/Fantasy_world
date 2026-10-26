@@ -30,6 +30,8 @@ public static partial class CliApp
         var spend = fresh.Sum(c => c.CostUsd);
         output.WriteLine($"LLM: {fresh.Count} new answer(s) (${spend.ToString("0.0000", CultureInfo.InvariantCulture)}), "
                          + $"{gateway.Replayed} replayed, {gateway.Fallbacks} by the rules{(gateway.Online ? "" : " (offline)")}.");
+        foreach (var rejected in fresh.Where(c => c.Note.StartsWith("rejected: ", StringComparison.Ordinal)))
+            output.WriteLine($"LLM answer rejected ({rejected.Tier.ToString().ToLowerInvariant()}): {rejected.Note["rejected: ".Length..]}.");
         if (gateway.Failure is { } failure) output.WriteLine($"LLM provider unavailable, continued offline: {failure}");
     }
 

@@ -66,6 +66,14 @@ public class LlmGatewayTests
     }
 
     [Fact]
+    public void ARejectedAnswer_KeepsWhyInItsNote()
+    {
+        var gateway = new LlmGateway(new FakeLlmProvider(_ => "nonsense"), On, new LlmJournal());
+        Assert.Null(gateway.Ask(Request(), 10, Valid, whyInvalid: json => $"not JSON: {json}"));
+        Assert.All(gateway.Journal.All, c => Assert.Equal("rejected: not JSON: nonsense", c.Note));
+    }
+
+    [Fact]
     public void ProviderFailures_FallBack()
     {
         var failing = new Failing();

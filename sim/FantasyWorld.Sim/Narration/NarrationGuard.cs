@@ -25,7 +25,15 @@ public static partial class NarrationGuard
         "The", "A", "An", "In", "On", "At", "And", "But", "So", "Then", "When", "While", "After", "Before", "Once", "It", "He", "She", "They",
         "His", "Her", "Their", "Its", "This", "That", "These", "Those", "There", "Here", "Of", "For", "With", "From", "To", "By", "As", "No", "None",
         "Not", "All", "Few", "Many", "Some", "Only", "Even", "Yet", "Thus", "Still", "Since", "Until", "Though", "Although", "Where", "What",
-        "Who", "Whom", "Whose", "Why", "How", "Each", "Every", "Both", "Neither", "Nor", "Or", "If", "Now", "Long", "Later", "Soon", "Few",
+        "Who", "Whom", "Whose", "Why", "How", "Each", "Every", "Both", "Neither", "Nor", "Or", "If", "Now", "Long", "Later", "Soon",
+        // A script read aloud greets, links its stories and takes its leave.
+        "We", "Our", "Us", "You", "Your", "My", "Me", "Him", "Them", "Today", "Tonight", "Welcome", "Farewell", "Good", "Greetings", "Hail",
+        "Listen", "Hear", "Remember", "Behold", "Let", "Know", "See", "Meanwhile", "Elsewhere", "Also", "Finally", "First", "Next", "Last",
+        "Indeed", "Perhaps", "Such", "Alas", "Sadly", "Truly", "Surely", "Never", "Ever", "Again", "More", "Most", "Much", "Less", "Other",
+        "Another", "Any", "Just", "Too", "Instead", "Because", "Despite", "Against", "Among", "Across", "Over", "Under", "Near", "Beyond",
+        "Through", "During", "Within", "Without", "Upon", "Into", "Above", "Below", "Around", "Behind", "Between", "Like", "Which", "Is", "Was",
+        "Were", "Be", "Will", "Would", "Shall", "May", "Might", "Can", "Could", "Must", "Did", "Do", "Does", "Has", "Have", "Had", "Word", "News",
+        "Old", "Young", "Great", "Far",
     };
 
     /// <summary>What the narration says that the brief does not: invented numbers and names.</summary>

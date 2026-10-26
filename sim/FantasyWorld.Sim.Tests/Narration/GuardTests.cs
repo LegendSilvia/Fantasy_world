@@ -38,7 +38,18 @@ public class GuardTests
         var narrator = new LlmNarrator(new StoryContext(world, log, gateway));
 
         Assert.Equal(new TemplateNarrator(world).Narrate(ev), narrator.Narrate(ev));
-        Assert.Contains(gateway.Journal.All, entry => entry.Note == "rejected");
+        Assert.Contains(gateway.Journal.All, entry => entry.Note.StartsWith("rejected: ", StringComparison.Ordinal) && entry.Note.Contains("name Orrin"));
+    }
+
+    [Fact]
+    public void AScriptForTheEar_MayGreetLinkAndTakeItsLeave_ButNotInventAName()
+    {
+        const string brief = "The chronicle of Moumgrillfell begins in Year 101.\n\nDendbreil of Veloundard is dead.\n\n"
+                             + "So it was set down by Grurcun of the Ound. May the gods keep Moumgrillfell until we meet again.";
+        const string script = "Welcome back to the chronicle of Moumgrillfell, in Year 101. Our gravest news: Dendbreil of Veloundard is dead. "
+                              + "So it was set down by Grurcun of the Ound. May the gods keep Moumgrillfell until we meet again. Farewell.";
+        Assert.Empty(NarrationGuard.Problems(script, brief));
+        Assert.Equal(["name Orrin"], NarrationGuard.Problems(script + " Orrin wept.", brief));
     }
 
     [Fact]

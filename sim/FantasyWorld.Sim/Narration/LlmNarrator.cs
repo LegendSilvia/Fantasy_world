@@ -29,7 +29,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         var task = "Write the script of today's spoken episode of the chronicle, to be read aloud. Keep its order: the opening line, "
                    + "the headline told in full, the other stories briefly, how it came to this (the chain of causes, earliest first) "
                    + $"when the brief tells one, and a closing line from {episode.Chronicler}. Plain prose for the ear: no headings, lists, "
-                   + $"markup or stage directions, no dates written as digits other than the years given. At most {maxCharacters} characters.";
+                   + $"markup or stage directions, no dates written as digits other than the years given. Name no one and nothing the brief does "
+                   + $"not name, and give no number it does not give. At most {maxCharacters} characters.";
         // A script much shorter than the template has dropped stories: that is a failed answer, not a retelling.
         var minimum = episode.Script.Length * 3 / 5;
         // Names (some invented by the LLM earlier) enter the prompt only as data, paragraph by paragraph (spec §8.6).
@@ -92,7 +93,10 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             additionalProperties = false,
         });
         var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(1500, maxLength / 2));
-        var json = story.Gateway.Ask(request, day, answer => Text(answer, maxLength, minLength) is { } text && NarrationGuard.Faithful(text, facts));
+        var json = story.Gateway.Ask(request, day, answer => Text(answer, maxLength, minLength) is { } text && NarrationGuard.Faithful(text, facts),
+            whyInvalid: answer => Text(answer, maxLength, minLength) is { } text
+                ? string.Join(", ", NarrationGuard.Problems(text, facts).Distinct().Take(8))
+                : $"not a text of {minLength} to {maxLength} characters");
         return json is null ? null : Text(json, maxLength, minLength);
     }
 
