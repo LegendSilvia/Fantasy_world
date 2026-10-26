@@ -23,6 +23,29 @@ public sealed record BroadcastLlm
 }
 
 /// <summary>
+/// The narrator's voice (M3): ElevenLabs speaks each script. The per-request limit and the monthly character budget
+/// are settings, not assumptions about the model; past the budget the episode goes out as text.
+/// </summary>
+public sealed record BroadcastVoice
+{
+    public bool Speak { get; init; } = true;
+
+    /// <summary>"Michael C. Vincent – Confident, Expressive", from the ElevenLabs library: the owner's choice.</summary>
+    public string VoiceId { get; init; } = "uju3wxzG5OhpWcoi3SMy";
+
+    public string Model { get; init; } = "eleven_v4_turbo";
+
+    public string OutputFormat { get; init; } = "mp3_44100_128";
+
+    public int MaxCharactersPerRequest { get; init; } = 5000;
+
+    public int MonthlyCharacterBudget { get; init; } = 150_000;
+
+    /// <summary>Ask the chronicler's model, once per invented name, how to say it; the answers are kept for good.</summary>
+    public bool Respell { get; init; } = true;
+}
+
+/// <summary>
 /// The broadcast's checked-in settings (<c>broadcast.json</c>). Nothing secret lives here: keys and webhooks come from
 /// the environment (GitHub Actions secrets).
 /// </summary>
@@ -65,6 +88,8 @@ public sealed record BroadcastConfig
 
     public BroadcastLlm Llm { get; init; } = new();
 
+    public BroadcastVoice Voice { get; init; } = new();
+
     /// <summary>When on, the workflow commits a heartbeat monthly so GitHub keeps the schedule of a public repository alive.</summary>
     public bool KeepAlive { get; init; } = true;
 
@@ -89,6 +114,9 @@ public sealed record BroadcastConfig
             throw new FormatException("livePrefix and stagingPrefix must differ and end with '/'.");
         if (Llm.StoryBeatsPerDay < 0 || Llm.NarrationsPerDay < 0 || Llm.MonthlyCapUsd < 0 || Llm.NarrateModel.Length == 0)
             throw new FormatException("llm budgets and the cap cannot be negative, and narrateModel must be named.");
+        if (Voice.MaxCharactersPerRequest < 100 || Voice.MonthlyCharacterBudget < 0 || Voice.VoiceId.Length == 0 || Voice.Model.Length == 0)
+            throw new FormatException("voice needs a voiceId and a model, at least 100 characters a request and a budget that is not negative.");
+        _ = Speech.Voiceover.Kbps(Voice.OutputFormat);
         _ = Zone; // throws TimeZoneNotFoundException for an unknown zone
         return this;
     }

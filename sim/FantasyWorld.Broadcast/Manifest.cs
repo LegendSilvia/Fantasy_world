@@ -13,6 +13,10 @@ public sealed class ManifestDay
     public string? Headline { get; set; }
     public SortedDictionary<string, DateTimeOffset> Steps { get; set; } = new(StringComparer.Ordinal);
 
+    /// <summary>The narration's size and length, for the feed (M3).</summary>
+    public long AudioBytes { get; set; }
+    public int AudioSeconds { get; set; }
+
     public bool Done(string step) => Steps.ContainsKey(step);
 }
 
@@ -25,10 +29,22 @@ public sealed class Manifest
     public const string Key = "manifest.json";
     public const string EpisodeStep = "episode";
     public const string DiscordStep = "discord";
+    public const string AudioStep = "audio";
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
 
     public SortedDictionary<string, ManifestDay> Episodes { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>How each invented name is said (word → respelling; a word said as written maps to itself). Never changed once set.</summary>
+    public SortedDictionary<string, string> Pronunciations { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>Words asked about without a usable answer, and how often; after a few tries one is said as written.</summary>
+    public SortedDictionary<string, int> PronunciationTries { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>The ElevenLabs dictionary holding the respellings, its current version, and the words already in it.</summary>
+    public string? DictionaryId { get; set; }
+    public string? DictionaryVersionId { get; set; }
+    public SortedSet<string> DictionaryWords { get; set; } = new(StringComparer.Ordinal);
 
     public ManifestDay Day(string date) => Episodes.TryGetValue(date, out var day) ? day : Episodes[date] = new ManifestDay();
 
