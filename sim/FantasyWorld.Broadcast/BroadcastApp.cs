@@ -12,6 +12,7 @@ public static class BroadcastApp
 {
     public const string Usage = """
         usage: fw-broadcast run [--dry-run] [--create] [--config <broadcast.json>] [--local <dir>]
+               fw-broadcast map <world-file> <out.png>   the political map as the broadcast posts it
           --dry-run   every step, under the staging prefix, posting to DISCORD_TEST_WEBHOOK_URL (if set)
           --create    begin a new world when none is stored (never done by a scheduled run)
           --local     keep the world in a local directory instead of R2
@@ -20,6 +21,8 @@ public static class BroadcastApp
     public static async Task<int> RunAsync(string[] args, TextWriter output, Func<DateTimeOffset> clock,
         Func<string, string?> env, HttpMessageHandler? handler = null, CancellationToken ct = default)
     {
+        if (args is ["map", var worldPath, var pngPath])
+            return Map(worldPath, pngPath, output);
         if (args is not ["run", ..] || args.Skip(1).Any(a => a.StartsWith("--", StringComparison.Ordinal)
                                                              && a is not ("--dry-run" or "--create" or "--config" or "--local")))
         {
@@ -60,6 +63,20 @@ public static class BroadcastApp
         }
 
         return await new DailyRun(config, store, channels, clock, output, options).RunAsync(ct).ConfigureAwait(false);
+    }
+
+    private static int Map(string worldPath, string pngPath, TextWriter output)
+    {
+        if (!File.Exists(worldPath))
+        {
+            output.WriteLine($"error: {worldPath} does not exist.");
+            return DailyRun.Failed;
+        }
+        using var store = Sim.Persist.WorldStore.Open(worldPath);
+        var (world, log, _) = store.Load();
+        File.WriteAllBytes(pngPath, Media.MapPainter.Png(world, log));
+        output.WriteLine($"Map written to {pngPath}.");
+        return DailyRun.Ok;
     }
 
     private static string? Option(string[] args, string name)
