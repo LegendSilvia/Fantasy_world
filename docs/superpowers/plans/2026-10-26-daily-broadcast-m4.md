@@ -2559,5 +2559,7 @@ step five minutes; a failed or slow install still costs only the video. Change i
         if: env.MAKES_VIDEO == 'true'
         continue-on-error: true
         timeout-minutes: 5
-        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg)
+        run: command -v ffmpeg || (sudo rm -f /var/lib/man-db/auto-update && sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg)
 ```
+
+The slow part was apt's man-db trigger rebuilding the manual index; removing `/var/lib/man-db/auto-update` skips it.

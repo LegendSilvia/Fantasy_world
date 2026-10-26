@@ -43,7 +43,8 @@ jobs:
         # A failed or slow install costs only the video; the broadcast itself must still run.
         continue-on-error: true
         timeout-minutes: 5
-        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg)
+        # Removing man-db's auto-update stops apt rebuilding the manual index, which takes many minutes on these runners.
+        run: command -v ffmpeg || (sudo rm -f /var/lib/man-db/auto-update && sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg)
       - name: Broadcast
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
