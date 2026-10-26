@@ -46,7 +46,7 @@ public sealed class LlmGateway
 
     /// <summary>
     /// Returns a valid JSON answer, or null for the offline path. <paramref name="whyInvalid"/> says what was wrong with a
-    /// rejected answer; it is kept in the journal's note ("rejected: …") so a failed answer can be diagnosed.
+    /// rejected answer; it is kept in the journal's note ("rejected: …") so a failed answer can be diagnosed, and the retry is told.
     /// </summary>
     public string? Ask(LlmRequest request, long worldDay, Func<string, bool> isValid, Func<string, string>? noteFor = null,
         Func<string, string>? whyInvalid = null)
@@ -61,12 +61,13 @@ public sealed class LlmGateway
             Fallbacks++;
             return null;
         }
+        var asked = request;
         for (var attempt = 0; attempt < 2 && _provider is not null; attempt++)
         {
             LlmResponse response;
             try
             {
-                response = _provider.CompleteJsonAsync(request, Settings.ModelFor(request.Tier)).GetAwaiter().GetResult();
+                response = _provider.CompleteJsonAsync(asked, Settings.ModelFor(request.Tier)).GetAwaiter().GetResult();
             }
             catch (LlmRefusedException refused)
             {
@@ -86,6 +87,9 @@ public sealed class LlmGateway
             {
                 var why = whyInvalid?.Invoke(response.Json);
                 Record(request, $"!rejected{attempt}", worldDay, response, string.IsNullOrEmpty(why) ? "rejected" : $"rejected: {why}");
+                // The retry is told what was wrong, so it can mend it rather than repeat it (the question, and its hash, stay the same).
+                if (!string.IsNullOrEmpty(why))
+                    asked = request with { Prompt = request.Prompt + $"\n\nAn earlier answer was rejected for: {why}. Write it again without these." };
                 continue;
             }
             Record(request, "", worldDay, response, noteFor?.Invoke(response.Json) ?? "");

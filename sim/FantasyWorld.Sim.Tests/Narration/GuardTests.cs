@@ -50,6 +50,7 @@ public class GuardTests
                               + "So it was set down by Grurcun of the Ound. May the gods keep Moumgrillfell until we meet again. Farewell.";
         Assert.Empty(NarrationGuard.Problems(script, brief));
         Assert.Equal(["name Orrin"], NarrationGuard.Problems(script + " Orrin wept.", brief));
+        Assert.Equal(["number Nineteen"], NarrationGuard.Problems(script + " Nineteen years passed.", brief));
     }
 
     [Fact]

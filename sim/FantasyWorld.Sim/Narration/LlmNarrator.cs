@@ -30,7 +30,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
                    + "the headline told in full, the other stories briefly, how it came to this (the chain of causes, earliest first) "
                    + $"when the brief tells one, and a closing line from {episode.Chronicler}. Plain prose for the ear: no headings, lists, "
                    + $"markup or stage directions, no dates written as digits other than the years given. Name no one and nothing the brief does "
-                   + $"not name, and give no number it does not give. At most {maxCharacters} characters.";
+                   + $"not name, and give no number it does not give: work out no counts, ages or spans of years. At most {maxCharacters} characters.";
         // A script much shorter than the template has dropped stories: that is a failed answer, not a retelling.
         var minimum = episode.Script.Length * 3 / 5;
         // Names (some invented by the LLM earlier) enter the prompt only as data, paragraph by paragraph (spec §8.6).

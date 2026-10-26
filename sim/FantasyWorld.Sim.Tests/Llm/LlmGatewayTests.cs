@@ -74,6 +74,18 @@ public class LlmGatewayTests
     }
 
     [Fact]
+    public void TheRetry_IsToldWhyTheFirstAnswerWasRejected()
+    {
+        var prompts = new List<string>();
+        var answers = new Queue<string>(new[] { "nonsense", "{\"ok\":1}" });
+        var gateway = new LlmGateway(new FakeLlmProvider(r => { prompts.Add(r.Prompt); return answers.Dequeue(); }), On, new LlmJournal());
+        Assert.Equal("{\"ok\":1}", gateway.Ask(Request(), 10, Valid, whyInvalid: _ => "number 19"));
+        Assert.DoesNotContain("rejected", prompts[0]);
+        Assert.Contains("An earlier answer was rejected for: number 19.", prompts[1]);
+        Assert.True(gateway.Knows(ModelTier.Decide, "decide|char#1|day 10"));
+    }
+
+    [Fact]
     public void ProviderFailures_FallBack()
     {
         var failing = new Failing();

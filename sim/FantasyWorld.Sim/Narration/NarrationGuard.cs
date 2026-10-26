@@ -61,7 +61,8 @@ public static partial class NarrationGuard
             var opening = m.Index == 0 || Regex.IsMatch(narration[..m.Index], @"[.!?:;""“]\s*$");
             foreach (var part in Possessive().Replace(m.Value, "").Split('-', StringSplitOptions.RemoveEmptyEntries))
             {
-                if (part.Length == 0 || !char.IsUpper(part[0]) || Titles.Contains(part) || briefWords.Contains(part)) continue;
+                // A number word ("Nineteen fell") is checked as a number above, not as a name.
+                if (part.Length == 0 || !char.IsUpper(part[0]) || Titles.Contains(part) || briefWords.Contains(part) || IsNumberWord(part)) continue;
                 if (opening && (Openings.Contains(part) || lowerBrief.Contains(part.ToLowerInvariant()))) continue;
                 problems.Add($"name {part}");
             }
