@@ -5,14 +5,14 @@ using FantasyWorld.Sim.Chronicle;
 namespace FantasyWorld.Broadcast.Channels;
 
 /// <summary>
-/// Somewhere an episode is published, with its map when there is one. Throws <see cref="ChannelException"/> when it
+/// Somewhere an episode is published, with its map and its narration when there are. Throws <see cref="ChannelException"/> when it
 /// could not be.
 /// </summary>
 public interface IEpisodeChannel
 {
     string Name { get; }
 
-    Task PublishAsync(Episode episode, byte[]? map, CancellationToken ct = default);
+    Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default);
 }
 
 public sealed class ChannelException(string message) : Exception(message);
@@ -29,7 +29,13 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
 
     public string Name => "discord";
 
-    public const string MapFile = "map.png";
+    public const string MapFile = "map.png", AudioFile = "narration.mp3";
+
+    /// <summary>
+    /// Discord's upload limit for a webhook (8 MiB, the smallest across server tiers), for everything sent together; when
+    /// the narration would pass it, the narration is left off.
+    /// </summary>
+    public const int MaxAttachmentBytes = 8 * 1024 * 1024;
 
     public static JsonObject Payload(Episode episode, string username, bool withMap = false)
     {
@@ -58,28 +64,42 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
         };
     }
 
-    public static HttpContent Content(Episode episode, string username, byte[]? map)
+    public static HttpContent Content(Episode episode, string username, byte[]? map, byte[]? audio = null)
     {
         var json = Payload(episode, username, map is not null).ToJsonString();
-        if (map is null) return new StringContent(json, Encoding.UTF8, "application/json");
+        if (audio is not null && Encoding.UTF8.GetByteCount(json) + (map?.Length ?? 0) + audio.Length > MaxAttachmentBytes) audio = null;
+        if (map is null && audio is null) return new StringContent(json, Encoding.UTF8, "application/json");
         var form = new MultipartFormDataContent
         {
             { new StringContent(json, Encoding.UTF8, "application/json"), "payload_json" },
         };
-        var image = new ByteArrayContent(map);
-        image.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
-        form.Add(image, "files[0]", MapFile);
+        var files = 0;
+        void Attach(byte[] bytes, string type, string name)
+        {
+            var file = new ByteArrayContent(bytes);
+            file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(type);
+            form.Add(file, $"files[{files++}]", name);
+        }
+        if (map is not null) Attach(map, "image/png", MapFile);
+        if (audio is not null) Attach(audio, "audio/mpeg", AudioFile);
         return form;
     }
 
-    public async Task PublishAsync(Episode episode, byte[]? map, CancellationToken ct = default)
+    public async Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default)
     {
         var url = webhookUrl + (webhookUrl.Contains('?') ? "&" : "?") + "wait=true";
-        using var content = Content(episode, username, map);
         HttpResponseMessage response;
         try
         {
-            response = await http.PostAsync(url, content, ct).ConfigureAwait(false);
+            using (var content = Content(episode, username, map, audio))
+                response = await http.PostAsync(url, content, ct).ConfigureAwait(false);
+            // Too large for this server after all: the post goes out without the narration.
+            if (response.StatusCode == System.Net.HttpStatusCode.RequestEntityTooLarge && audio is not null)
+            {
+                response.Dispose();
+                using var smaller = Content(episode, username, map, null);
+                response = await http.PostAsync(url, smaller, ct).ConfigureAwait(false);
+            }
         }
         catch (HttpRequestException e)
         {

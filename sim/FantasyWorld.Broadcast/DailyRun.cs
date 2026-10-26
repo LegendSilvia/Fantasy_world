@@ -4,6 +4,7 @@ using FantasyWorld.Broadcast.Channels;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Cli;
 using FantasyWorld.Broadcast.Media;
+using FantasyWorld.Broadcast.Speech;
 using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Llm;
 using FantasyWorld.Sim.Persist;
@@ -19,7 +20,8 @@ public sealed record RunOptions(bool DryRun = false, bool Create = false);
 /// manifest at once, so a rerun repeats nothing that already happened.
 /// </summary>
 public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnlyList<IEpisodeChannel> channels,
-    Func<DateTimeOffset> clock, TextWriter log, RunOptions? options = null, Func<LlmSettings, ILlmProvider?>? providers = null)
+    Func<DateTimeOffset> clock, TextWriter log, RunOptions? options = null, Func<LlmSettings, ILlmProvider?>? providers = null,
+    ISpeech? speech = null)
 {
     /// <summary>Exit codes: published; nothing published (the world is untouched); the episode is out but a channel failed.</summary>
     public const int Ok = 0, Failed = 1, Partial = 2;
@@ -35,6 +37,8 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
     public static string ScriptKey(string date) => $"episodes/{date}/script.txt";
 
     public static string MapKey(string date) => $"episodes/{date}/map.png";
+
+    public static string NarrationKey(string date) => $"episodes/{date}/narration.mp3";
 
     private byte[]? _todaysMap;
 
@@ -73,7 +77,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         var dates = manifest.Episodes
             .Where(d => d.Value.Done(Manifest.EpisodeStep) && string.CompareOrdinal(d.Key, earliest) >= 0 && string.CompareOrdinal(d.Key, date) <= 0)
             .Select(d => d.Key).ToList();
-        var result = Ok;
+        var result = await SpeakAsync(store, manifest, dates, date, episode, ct).ConfigureAwait(false);
         if (channels.Count == 0) log.WriteLine("No channel is configured: the episode is stored but posted nowhere.");
         foreach (var channel in channels)
         foreach (var day in dates)
@@ -88,7 +92,9 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 var told = day == date ? episode : await StoredEpisodeAsync(store, day, ct).ConfigureAwait(false);
                 // Episodes from before the map (or whose map failed) are posted without one.
                 var map = day == date && _todaysMap is not null ? _todaysMap : await store.GetAsync(MapKey(day), ct).ConfigureAwait(false);
-                await channel.PublishAsync(told, map, ct).ConfigureAwait(false);
+                // The narration, when it was made in time; a post never waits for speech that failed.
+                var audio = manifest.Day(day).Done(Manifest.AudioStep) ? await store.GetAsync(NarrationKey(day), ct).ConfigureAwait(false) : null;
+                await channel.PublishAsync(told, map, audio, ct).ConfigureAwait(false);
             }
             catch (Exception e) when (e is ChannelException or IOException or InvalidOperationException && !ct.IsCancellationRequested)
             {
@@ -111,6 +117,86 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
 
         await PruneBackupsAsync(store, date, ct).ConfigureAwait(false);
         return result;
+    }
+
+    /// <summary>
+    /// The narration (M3): every episode of the window still without audio is spoken, oldest first, within the monthly
+    /// character budget (the shared ledger), after learning how its new names are said. Each is stored and marked at once;
+    /// one found already stored is adopted, never spoken again; one that fails is left unmarked for the next run, and the
+    /// posts go out as text and map meanwhile.
+    /// </summary>
+    private async Task<int> SpeakAsync(PrefixedStore store, Manifest manifest, IReadOnlyList<string> dates, string date, Episode today,
+        CancellationToken ct)
+    {
+        var voice = config.Voice;
+        var waiting = dates.Where(d => !manifest.Day(d).Done(Manifest.AudioStep)).ToList();
+        if (!voice.Speak || waiting.Count == 0) return Ok;
+        if (speech is null)
+        {
+            log.WriteLine("warning: ELEVENLABS_API_KEY is not set, so the episode goes out without its narration.");
+            return Ok;
+        }
+        var month = date[..7];
+        SpeechLedger ledger;
+        try
+        {
+            ledger = SpeechLedger.FromBytes(await root.GetAsync(SpeechLedger.Key, ct).ConfigureAwait(false));
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            log.WriteLine($"warning: the speech ledger could not be read ({e.Message}); no narration today.");
+            return Partial;
+        }
+        var respeller = voice.Respell && config.Llm.Narrate
+            ? providers?.Invoke(new LlmSettings { Provider = "anthropic", Models = new(StringComparer.Ordinal) { ["narrate"] = config.Llm.NarrateModel } })
+            : null;
+        foreach (var day in waiting)
+        {
+            try
+            {
+                var episode = day == date ? today : await StoredEpisodeAsync(store, day, ct).ConfigureAwait(false);
+                // Stored by a run that stopped before marking it: adopt it rather than pay for it again.
+                if (await store.GetAsync(NarrationKey(day), ct).ConfigureAwait(false) is { } stored)
+                {
+                    await MarkNarratedAsync(store, manifest, day, stored, ct).ConfigureAwait(false);
+                    log.WriteLine($"The narration of {day} was already stored; it is used as it is.");
+                    continue;
+                }
+                var spent = ledger.Characters.GetValueOrDefault(month);
+                if (spent + episode.Script.Length > voice.MonthlyCharacterBudget)
+                {
+                    log.WriteLine($"warning: this month's speech budget ({voice.MonthlyCharacterBudget:N0} characters, {spent:N0} used) "
+                                  + $"would not cover the episode of {day}; it goes out without narration.");
+                    return Ok;
+                }
+                await Pronouncer.LearnAsync(respeller, config.Llm.NarrateModel, manifest, episode.Script, log, ct).ConfigureAwait(false);
+                var dictionaries = await Pronouncer.DictionaryAsync(speech, manifest, episode.WorldName, ct).ConfigureAwait(false);
+                await SaveAsync(store, manifest, ct).ConfigureAwait(false); // the names and the dictionary, kept whatever happens next
+
+                ledger.Characters[month] = spent + episode.Script.Length;
+                await root.PutAsync(SpeechLedger.Key, ledger.ToBytes(), "application/json", ct).ConfigureAwait(false);
+                var audio = await Voiceover.SpeakAsync(speech, episode.Script, voice, dictionaries, ct).ConfigureAwait(false);
+                await store.PutAsync(NarrationKey(day), audio, "audio/mpeg", ct).ConfigureAwait(false);
+                await MarkNarratedAsync(store, manifest, day, audio, ct).ConfigureAwait(false);
+                var seconds = manifest.Day(day).AudioSeconds;
+                log.WriteLine($"Narrated the episode of {day}: {seconds / 60}:{seconds % 60:00}, {episode.Script.Length:N0} characters.");
+            }
+            catch (Exception e) when (!ct.IsCancellationRequested)
+            {
+                log.WriteLine($"warning: the episode of {day} could not be narrated ({e.Message}); it goes out as text and map, "
+                              + "and the narration is tried again on the next run.");
+                return Partial;
+            }
+        }
+        return Ok;
+    }
+
+    private Task MarkNarratedAsync(IObjectStore store, Manifest manifest, string day, byte[] audio, CancellationToken ct)
+    {
+        var entry = manifest.Day(day);
+        (entry.AudioBytes, entry.AudioSeconds) = (audio.Length, Voiceover.Seconds(audio.Length, Voiceover.Kbps(config.Voice.OutputFormat)));
+        entry.Steps[Manifest.AudioStep] = clock();
+        return SaveAsync(store, manifest, ct);
     }
 
     private async Task<Episode> MakeEpisodeAsync(PrefixedStore store, Manifest manifest, string date, CancellationToken ct)

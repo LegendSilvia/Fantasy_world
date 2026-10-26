@@ -17,5 +17,14 @@
     "narrationsPerDay": 10,
     "monthlyCapUsd": 5
   },
+  "voice": {
+    "speak": true,
+    "voiceId": "uju3wxzG5OhpWcoi3SMy",
+    "model": "eleven_v4_turbo",
+    "outputFormat": "mp3_44100_128",
+    "maxCharactersPerRequest": 5000,
+    "monthlyCharacterBudget": 150000,
+    "respell": true
+  },
   "keepAlive": true
 }

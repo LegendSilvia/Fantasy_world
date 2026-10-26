@@ -27,6 +27,7 @@ In the repository: **Settings → Secrets and variables → Actions → New repo
 | `R2_SECRET_ACCESS_KEY` | the token's secret access key |
 | `DISCORD_WEBHOOK_URL` | the real channel's webhook |
 | `DISCORD_TEST_WEBHOOK_URL` | the test channel's webhook (optional; without it a dry run posts nowhere) |
+| `ELEVENLABS_API_KEY` | from elevenlabs.io → your profile → API Keys; the narrator reads each episode with it (without it, the post goes out as text and map) |
 | `ANTHROPIC_API_KEY` | from console.anthropic.com → API Keys; the chronicler writes each script with it (without it, the template script ships) |
 
 Secrets are only ever read from the environment. They are never written to R2, the world file, the logs or the repository.
@@ -57,6 +58,11 @@ Secrets are only ever read from the environment. They are never written to R2, t
 | `llm.narrate` | `true` | the chronicler (Claude) writes the script; off, the template script ships |
 | `llm.narrateModel` | `claude-sonnet-5-5` | the model that writes it |
 | `llm.storyBeatsPerDay` | `0` | the sim's own LLM decisions while it catches up; off by default, so the daily cost is one script (a few cents) |
+| `voice.speak` | `true` | ElevenLabs reads each episode; the MP3 is attached to the post and stored |
+| `voice.voiceId`, `voice.model` | Michael C. Vincent (`uju3wxzG5OhpWcoi3SMy`), `eleven_v4_turbo` | the narrator's voice and model (the owner's choices) |
+| `voice.maxCharactersPerRequest` | `5000` | a script longer than this is spoken in parts and joined (a day's script is at most 3,600) |
+| `voice.monthlyCharacterBudget` | `150000` | characters spoken per calendar month (about 40 days of episodes); past it, episodes go out without narration |
+| `voice.respell` | `true` | Claude respells each new invented name once, so the narrator says it the same way every day |
 | `llm.narrationsPerDay`, `llm.monthlyCapUsd` | `10`, `5` | budget and spending cap over 30 days; past them, the template script ships |
 | `keepAlive` | `true` | a monthly heartbeat commit, so GitHub keeps the schedule of a public repository; turn it off for a private one |
 
@@ -68,6 +74,7 @@ live/manifest.json                     per date, which steps finished: a rerun r
 live/episodes/2026-10-27/episode.json  the episode as data (years, headline, stories, why)
 live/episodes/2026-10-27/script.txt    the script as posted
 live/episodes/2026-10-27/map.png       the political map that morning, posted as the embed's image
+live/episodes/2026-10-27/narration.mp3 the episode read aloud, attached to the post
 live/backups/2026-10-27.fw.db          the world as it was before that morning's run
 ```
 
@@ -78,6 +85,8 @@ live/backups/2026-10-27.fw.db          the world as it was before that morning's
 - **"Discord answered HTTP …"**: the episode was saved and the world moved on. The post is made by the next run, before
   that morning's own (re-run the workflow to post it now); posts missed for up to a week are made up, oldest first. A
   post is never made twice, except when Discord took it but timed out before answering.
+- **"could not be narrated"**: the post went out as text and map; the narration is made by the next run (and kept for the
+  feed). Check the ElevenLabs key, credits and the voice id. **"speech budget"**: raise `voice.monthlyCharacterBudget`.
 - **A run stopped part-way** (a timeout, an R2 hiccup): re-run it. Each step it finished is recorded, and the stored world
   says which day's episode it holds, so nothing is told twice or skipped.
 - **The world misbehaves**: copy a file from `live/backups/` over `live/world.fw.db` and leave `live/manifest.json` alone.

@@ -157,7 +157,7 @@ backup of the last three sessions next to it (`.bak1`–`.bak3`). Benchmarks:
 
 Every morning at 05:30 Bangkok time, GitHub Actions pulls the world from Cloudflare R2, lets it live the year that passed,
 builds the episode (the script written by the world's chronicler, Claude, held to the facts; the template voice when it
-cannot) and posts it to Discord with the political map. A rerun the same day posts nothing new. Setup:
+cannot), has it read aloud by ElevenLabs, and posts it to Discord with the narration and the political map. A rerun the same day posts nothing new. Setup:
 [docs/broadcast-setup.md](docs/broadcast-setup.md).
 
 ```bash

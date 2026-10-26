@@ -77,15 +77,15 @@ public class BroadcastPartsTests
 
         var http = new StorageTests.FakeHttp((HttpStatusCode.OK, "{}"), (HttpStatusCode.TooManyRequests, ""));
         var discord = new DiscordWebhook(new HttpClient(http), "https://discord.test/api/webhooks/1/SECRET-TOKEN", "The Chronicle");
-        await discord.PublishAsync(SampleEpisode(), null);
+        await discord.PublishAsync(SampleEpisode(), null, null);
         Assert.Null(JsonNode.Parse(http.Seen[0].Body)!["embeds"]![0]!["image"]);
         Assert.Equal("https://discord.test/api/webhooks/1/SECRET-TOKEN?wait=true", http.Seen[0].Request.RequestUri!.ToString());
         Assert.Equal("The Chronicle", (string)JsonNode.Parse(http.Seen[0].Body)!["username"]!);
-        var error = await Assert.ThrowsAsync<ChannelException>(() => discord.PublishAsync(SampleEpisode(), null));
+        var error = await Assert.ThrowsAsync<ChannelException>(() => discord.PublishAsync(SampleEpisode(), null, null));
         Assert.Equal("Discord answered HTTP 429.", error.Message);
 
         var slow = new DiscordWebhook(new HttpClient(new ThrowingHttp()), "https://discord.test/api/webhooks/1/SECRET-TOKEN", "x");
-        var late = await Assert.ThrowsAsync<ChannelException>(() => slow.PublishAsync(SampleEpisode(), null));
+        var late = await Assert.ThrowsAsync<ChannelException>(() => slow.PublishAsync(SampleEpisode(), null, null));
         Assert.DoesNotContain("SECRET", late.Message);
     }
 
@@ -95,7 +95,7 @@ public class BroadcastPartsTests
         var http = new StorageTests.FakeHttp((HttpStatusCode.OK, "{}"));
         var discord = new DiscordWebhook(new HttpClient(http), "https://discord.test/api/webhooks/1/T", "The Chronicle");
         byte[] map = [0x89, 0x50, 0x4e, 0x47, 1, 2, 3];
-        await discord.PublishAsync(SampleEpisode(), map);
+        await discord.PublishAsync(SampleEpisode(), map, null);
         var (request, body) = http.Seen.Single();
         Assert.Equal("multipart/form-data", request.Content!.Headers.ContentType!.MediaType);
         var text = System.Text.Encoding.Latin1.GetString(body!);
@@ -103,6 +103,30 @@ public class BroadcastPartsTests
         Assert.Contains("\"url\":\"attachment://map.png\"", text);
         Assert.Contains("filename=map.png", text);
         Assert.Contains(System.Text.Encoding.Latin1.GetString(map), text);
+        Assert.DoesNotContain("narration.mp3", text);
+    }
+
+    [Fact]
+    public async Task Discord_AttachesTheNarration_UnlessItIsTooBig()
+    {
+        var http = new StorageTests.FakeHttp((HttpStatusCode.OK, "{}"));
+        var discord = new DiscordWebhook(new HttpClient(http), "https://discord.test/api/webhooks/1/T", "The Chronicle");
+        await discord.PublishAsync(SampleEpisode(), [0x89, 0x50], [0xFF, 0xFB, 0x90]);
+        var text = System.Text.Encoding.Latin1.GetString(http.Seen[0].Body!);
+        Assert.Contains("name=\"files[0]\"; filename=map.png", text);
+        Assert.Contains("name=\"files[1]\"; filename=narration.mp3", text);
+        Assert.Contains("audio/mpeg", text);
+
+        using var big = DiscordWebhook.Content(SampleEpisode(), "x", null, new byte[DiscordWebhook.MaxAttachmentBytes + 1]);
+        Assert.Equal("application/json", big.Headers.ContentType!.MediaType);
+        using var together = DiscordWebhook.Content(SampleEpisode(), "x", new byte[DiscordWebhook.MaxAttachmentBytes / 2], new byte[DiscordWebhook.MaxAttachmentBytes / 2]);
+        Assert.DoesNotContain("narration.mp3", await together.ReadAsStringAsync());
+
+        // A server that refuses the size after all: the post goes again without the narration.
+        var refusing = new StorageTests.FakeHttp((HttpStatusCode.RequestEntityTooLarge, ""), (HttpStatusCode.OK, "{}"));
+        await new DiscordWebhook(new HttpClient(refusing), "https://discord.test/api/webhooks/1/T", "x").PublishAsync(SampleEpisode(), [1], [2]);
+        Assert.Equal(2, refusing.Seen.Count);
+        Assert.DoesNotContain("narration.mp3", System.Text.Encoding.Latin1.GetString(refusing.Seen[1].Body!));
     }
 
     private sealed class ThrowingHttp : HttpMessageHandler

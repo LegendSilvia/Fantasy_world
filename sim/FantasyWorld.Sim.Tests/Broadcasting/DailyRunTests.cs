@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using FantasyWorld.Broadcast;
 using FantasyWorld.Broadcast.Channels;
+using FantasyWorld.Broadcast.Speech;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Llm;
@@ -24,11 +25,14 @@ public class DailyRunTests : IDisposable
         public bool Fails { get; set; } = fails;
         public string Name => "discord";
 
-        public Task PublishAsync(Episode episode, byte[]? map, CancellationToken ct = default)
+        public List<byte[]?> Audio { get; } = [];
+
+        public Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default)
         {
             if (Fails) throw new ChannelException("Discord answered HTTP 500.");
             Posts.Add(episode);
             Maps.Add(map);
+            Audio.Add(audio);
             return Task.CompletedTask;
         }
     }
@@ -43,8 +47,8 @@ public class DailyRunTests : IDisposable
     public void Dispose() => _dir.Dispose();
 
     private Task<int> Run(DateTimeOffset now, RunOptions? options = null, IEpisodeChannel? channel = null,
-        Func<LlmSettings, ILlmProvider?>? providers = null) =>
-        new DailyRun(Config, _root, [channel ?? _discord], () => now, _log, options, providers ?? (_ => null)).RunAsync();
+        Func<LlmSettings, ILlmProvider?>? providers = null, ISpeech? speech = null, BroadcastConfig? config = null) =>
+        new DailyRun(config ?? Config, _root, [channel ?? _discord], () => now, _log, options, providers ?? (_ => null), speech).RunAsync();
 
     private async Task<byte[]?> Get(string key) => await _root.GetAsync(key);
 
@@ -87,6 +91,105 @@ public class DailyRunTests : IDisposable
             Assert.Equal(0, store.LoadLlmSettings().StoryBeatsPerDay);
         }
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+    }
+
+    [Fact]
+    public async Task TheNarrator_SpeaksEachEpisodeOnce_WithItsNamesLearned()
+    {
+        var speech = new PronouncerTests.FakeSpeech();
+        var respeller = PronouncerTests.Respeller();
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), providers: _ => respeller, speech: speech));
+        var spoken = Assert.Single(speech.Spoken);
+        Assert.Equal(("uju3wxzG5OhpWcoi3SMy", "eleven_v4_turbo"), (spoken.VoiceId, spoken.Model));
+        var audio = await Get("live/" + DailyRun.NarrationKey("2026-10-27"));
+        Assert.Equal(audio, _discord.Audio.Single());
+        var manifest = Manifest.FromBytes(await Get("live/" + Manifest.Key));
+        Assert.True(manifest.Day("2026-10-27").Done(Manifest.AudioStep));
+        Assert.Equal(_discord.Posts[0].Script.Length, SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"]);
+        Assert.NotEmpty(manifest.PronunciationTries.Keys.Concat(manifest.Pronunciations.Keys)); // the names were asked about
+        Assert.Contains("Narrated the episode of 2026-10-27", _log.ToString());
+
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(1), speech: speech, providers: _ => respeller));
+        Assert.Single(speech.Spoken);
+        Assert.Single(respeller.Requests, r => r.Key.StartsWith("pronounce|", StringComparison.Ordinal)); // names already known
+    }
+
+    [Fact]
+    public async Task SpeechThatFails_LeavesTheTextAndMapPost_AndIsMadeUpNextRun()
+    {
+        var speech = new PronouncerTests.FakeSpeech { Fails = true };
+        Assert.Equal(DailyRun.Partial, await Run(Morning, new RunOptions(Create: true), speech: speech));
+        Assert.Null(_discord.Audio.Single());
+        Assert.NotNull(_discord.Maps.Single());
+        Assert.Contains("could not be narrated", _log.ToString());
+
+        speech.Fails = false;
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1), speech: speech));
+        Assert.Equal(2, speech.Spoken.Count); // yesterday's narration, then today's
+        Assert.NotNull(await Get("live/" + DailyRun.NarrationKey("2026-10-27")));
+        Assert.NotNull(_discord.Audio[1]);
+    }
+
+    [Fact]
+    public async Task ANarrationStoredBeforeACrash_IsUsed_NotPaidForAgain()
+    {
+        var speech = new PronouncerTests.FakeSpeech();
+        var flaky = new FlakyStore(_root) { Failing = Manifest.Key };
+        await new DailyRun(Config, flaky, [_discord], () => Morning, _log, new RunOptions(Create: true), _ => null, speech).RunAsync();
+        Assert.Empty(speech.Spoken); // the episode itself never got its manifest
+
+        await Run(Morning, new RunOptions(Create: true), speech: speech);
+        Assert.Single(speech.Spoken);
+        // Stopped after storing the narration but before marking it: the next run adopts it.
+        var manifest = Manifest.FromBytes(await Get("live/" + Manifest.Key));
+        manifest.Day("2026-10-27").Steps.Remove(Manifest.AudioStep);
+        await _root.PutAsync("live/" + Manifest.Key, manifest.ToBytes(), "application/json");
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(1), speech: speech));
+        Assert.Single(speech.Spoken);
+        Assert.Contains("already stored", _log.ToString());
+    }
+
+    [Fact]
+    public async Task DryRuns_ShareTheLiveBudget()
+    {
+        var tight = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "voice": { "monthlyCharacterBudget": 5000 } }""");
+        var speech = new PronouncerTests.FakeSpeech();
+        await Run(Morning, new RunOptions(Create: true), speech: speech, config: tight);
+        var used = SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"];
+        await Run(Morning, new RunOptions(DryRun: true), speech: speech, config: tight, channel: new CountingChannel());
+        Assert.Equal(2, speech.Spoken.Count);
+        Assert.Equal(2 * used, SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"]);
+    }
+
+    [Fact]
+    public async Task ASpeechServiceThatAnswersNonsense_NeverStopsThePost()
+    {
+        var garbled = new GarbledSpeech();
+        Assert.Equal(DailyRun.Partial, await Run(Morning, new RunOptions(Create: true), speech: garbled));
+        Assert.Single(_discord.Posts);
+        Assert.Contains("could not be narrated", _log.ToString());
+    }
+
+    private sealed class GarbledSpeech : ISpeech
+    {
+        public Task<byte[]> SpeakAsync(SpeechRequest request, CancellationToken ct = default) => throw new System.Text.Json.JsonException("not json");
+        public Task<DictionaryRef> CreateDictionaryAsync(string name, IReadOnlyDictionary<string, string> aliases, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<DictionaryRef> AddRulesAsync(string dictionaryId, IReadOnlyDictionary<string, string> aliases, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task TheMonthlyBudget_StopsSpeech_AndNoKeyMeansNoNarration()
+    {
+        var tight = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "voice": { "monthlyCharacterBudget": 100 } }""");
+        var speech = new PronouncerTests.FakeSpeech();
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), speech: speech, config: tight));
+        Assert.Empty(speech.Spoken);
+        Assert.Contains("speech budget", _log.ToString());
+
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1)));
+        Assert.Contains("ELEVENLABS_API_KEY is not set", _log.ToString());
     }
 
     [Fact]
