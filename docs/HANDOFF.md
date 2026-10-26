@@ -31,6 +31,10 @@ Context for picking up this project on another machine / in a new Claude session
 3. With an API key, run the live evals once (`fw eval narration --cap 2`, `fw eval decisions`) and read the reports in `evals/`; the LLM voice has only been exercised against scripted providers here.
 4. Later work noted in the plans' Deferred lines: sound, settings and world management screens, desktop exports, sea trade, possessives and plural agreement in the template voice.
 
+Notes from the first M2–M4 dry runs on GitHub Actions (2026-10-26, branch):
+- ffmpeg is not on the runner and apt's man-db rebuild hung the install; fixed (installed only for a video, man-db skipped, 5-minute limit).
+- Sonnet respelled the staging world's names (24 asked, about $0.0066). ElevenLabs then refused the dictionary (HTTP 401: the key likely lacks "Pronunciation Dictionaries: Write") and the speech itself (**HTTP 402, Payment Required**): the ElevenLabs plan cannot use the chosen Voice Library voice through the API, or has no credits. Episodes go out as text and map until the owner upgrades the plan (or picks a premade voice) and gives the key both permissions. A dictionary refusal no longer stops the narration.
+
 Notes from sub-project 6 (M1) execution:
 - Try it locally: `dotnet run --project sim/FantasyWorld.Broadcast -- run --dry-run --create --local bucket/` (a folder stands in for R2); `fw episode <world> --out ep/` writes one episode by hand.
 - The stored world records which day's episode it holds (`World.LastBroadcastDate`), so a run stopped anywhere is picked up; failed posts are made up by the next run, oldest first, for up to a week.
