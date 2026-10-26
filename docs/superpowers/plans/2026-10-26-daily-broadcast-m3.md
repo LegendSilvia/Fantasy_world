@@ -64,7 +64,7 @@ Spec §4, M3. An `ISpeech` over ElevenLabs' HTTP API: text to speech (`POST /v1/
 - Consumes: `BroadcastConfig` (M1).
 - Produces: `record DictionaryRef(Id, VersionId)`, `record SpeechRequest`, `interface ISpeech { SpeakAsync; CreateDictionaryAsync; AddRulesAsync }`, `SpeechException`, `ElevenLabs { Api; FromEnvironment(http, env) }`; `static class Voiceover { Chunks; Join; Seconds; Kbps; SpeakAsync }`; `record BroadcastVoice`, `BroadcastConfig.Voice`; manifest fields for speech (`AudioBytes`, `AudioSeconds`, `Pronunciations`, `PronunciationTries`, the dictionary and its words).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Broadcasting/SpeechTests.cs`:
 ```csharp
@@ -160,12 +160,12 @@ public class SpeechTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Speech' does not exist in the namespace 'FantasyWorld.Broadcast' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `sim/FantasyWorld.Broadcast/BroadcastConfig.cs` entirely with:
 ```csharp
@@ -568,12 +568,12 @@ public static partial class Voiceover
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~SpeechTests"`
 Expected: `Passed!  - Failed: 0, Passed: 6`. Then `dotnet test sim` → `Passed: 635` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -596,7 +596,7 @@ Spec §4, M3 (pronunciation hints). The first time a name appears in a script (a
 - Consumes: Task 1; `ILlmProvider`, `LlmRequest`, `PromptText` (Plan 5).
 - Produces: `static class Pronouncer { MaxNewWords; MaxTries; System; Words(script); LearnAsync(provider, model, manifest, script, log); Parse(json, asked); LooksLike(say, word); Rules(manifest); DictionaryAsync(speech, manifest, worldName) }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sim/FantasyWorld.Sim.Tests/Broadcasting/PronouncerTests.cs`:
 ```csharp
@@ -724,12 +724,12 @@ public class PronouncerTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0103: The name 'Pronouncer' does not exist in the current context`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `sim/FantasyWorld.Broadcast/Speech/Pronouncer.cs`:
 ```csharp
@@ -919,12 +919,12 @@ public static partial class Pronouncer
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~PronouncerTests"`
 Expected: `Passed!  - Failed: 0, Passed: 5`. Then `dotnet test sim` → `Passed: 640` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sim
@@ -948,7 +948,7 @@ Spec §3–3.4, M3. After the episode, every day of the posting window still wit
 - Consumes: Tasks 1–2; `DailyRun`, `DiscordWebhook` (M1–M2).
 - Produces: `class SpeechLedger { Key; Characters }`; `DailyRun.NarrationKey(date)` and an optional `speech` argument; `IEpisodeChannel.PublishAsync(episode, map, audio, ct)`; `DiscordWebhook { AudioFile; MaxAttachmentBytes; Content(episode, username, map, audio) }`; workflow and docs.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Broadcasting/BroadcastPartsTests.cs` entirely with:
 ```csharp
@@ -1503,12 +1503,12 @@ public class DailyRunTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0535: 'DailyRunTests.CountingChannel' does not implement interface member 'IEpisodeChannel.PublishAsync(Episode, byte`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `.github/workflows/broadcast.yml` entirely with:
 ```yaml
@@ -2512,12 +2512,12 @@ public sealed class SpeechLedger
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~BroadcastPartsTests|FullyQualifiedName~DailyRunTests"`
 Expected: `Passed!  - Failed: 0, Passed: 28`. Then `dotnet test sim` → `Passed: 647` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github README.md broadcast.json docs sim
@@ -2542,7 +2542,7 @@ Spec §4, M3. When the bucket is public (`publicBaseUrl`), each morning rewrites
 - Consumes: Task 3; `Manifest` (M1).
 - Produces: `record FeedItem`; `static class Feed { FeedKey; ArchiveKey; CoverKey; MaxItems; Clean; Title; Items(manifest, config); MorningOf(date, config); Rss(worldName, baseUrl, items, ownerEmail); ItemTitle; Archive(worldName, items) }`; `BroadcastConfig.PublicBaseUrl`, `PodcastEmail`; `Manifest.WorldName`; `MapPainter.DefaultWidth` = 1,536.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `sim/FantasyWorld.Sim.Tests/Broadcasting/DailyRunTests.cs` entirely with:
 ```csharp
@@ -3038,12 +3038,12 @@ public class FeedTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test sim`
 Expected: build FAILS with `CS0234: The type or namespace name 'Publishing' does not exist in the namespace 'FantasyWorld.Broadcast' (are you missing an assembly reference?)`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `README.md` entirely with:
 ````markdown
@@ -4177,12 +4177,12 @@ public static class Feed
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test sim --filter "FullyQualifiedName~DailyRunTests|FullyQualifiedName~FeedTests"`
 Expected: `Passed!  - Failed: 0, Passed: 24`. Then `dotnet test sim` → `Passed: 650` in total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md docs sim
