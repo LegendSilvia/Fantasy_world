@@ -4,28 +4,46 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FantasyWorld.Web</title>
-    <base href="/" />
-    <link rel="stylesheet" href="css/app.css" />
-    <!-- If you add any scoped CSS files, uncomment the following to load them
-    <link href="FantasyWorld.Web.styles.css" rel="stylesheet" /> -->
+    <title>The Chronicle</title>
+    <base href="./" />
+    <link rel="stylesheet" href="css/site.css" />
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 
 <body>
-    <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+    <canvas id="world"></canvas>
+    <div id="labels"></div>
+
+    <header id="bar">
+        <div class="title">
+            <div class="kicker">The Chronicle</div>
+            <h1 id="name">Opening the world…</h1>
+        </div>
+        <label class="year">
+            <span>Year <b id="year-label">–</b></span>
+            <input id="year" type="range" min="1" max="1" value="1" disabled />
+        </label>
+    </header>
+
+    <aside id="panel" hidden>
+        <button id="close" aria-label="Close">×</button>
+        <div id="panel-body"></div>
+    </aside>
+
+    <div id="loading">
+        <div class="kicker">The Chronicle</div>
+        <p id="loading-text">Waking the world…</p>
     </div>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
-    </div>
-    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script type="module" src="js/world.js"></script>
 </body>
 
 </html>

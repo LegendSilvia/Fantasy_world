@@ -11,6 +11,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+    <!-- The sim's JSON is read by reflection, which needs the nullability metadata a trimmed browser build turns off. -->
+    <NullabilityInfoContextSupport>true</NullabilityInfoContextSupport>
   </PropertyGroup>
 
   <ItemGroup>
