@@ -80,12 +80,35 @@ public static class Likenesses
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
 
-    /// <summary>Where a side's image is kept, from its reference (<c>char#12</c>, <c>realm#3</c>).</summary>
-    public static string? KeyFor(string reference) =>
+    /// <summary>
+    /// Where a side's image is kept: by who it is and a fingerprint of what the picture shows (<c>char-12-3f9a1c0b.png</c>).
+    /// The picture names a person's decade of age, role, colours, scars and bearing, and a realm's rank, colours and
+    /// government; so a person entering a new decade or changing in a major way, or a realm changing its standing, is
+    /// drawn anew, while the same person in the same decade keeps one image. Superseded images stop being used and are the
+    /// first the bucket's limit lets go.
+    /// </summary>
+    public static string? KeyFor(World world, string reference) =>
         reference.Split('#') is [var kind, var id] && long.TryParse(id, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
-                                                   && kind is Character.Kind or Realm.Kind
-            ? $"{Prefix}{kind}-{id}.png"
+                                                   && kind is Character.Kind or Realm.Kind && Ask(world, reference, "") is { } request
+            ? $"{Prefix}{kind}-{id}-{Fingerprint(request.Prompt)}.png"
             : null;
+
+    /// <summary>A stable short fingerprint of a picture's description (FNV-1a, 32 bits, as hex).</summary>
+    public static string Fingerprint(string text)
+    {
+        var hash = 2166136261u;
+        foreach (var b in System.Text.Encoding.UTF8.GetBytes(text)) hash = (hash ^ b) * 16777619u;
+        return hash.ToString("x8", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>A person's age as a painter needs it: the decade, not the year.</summary>
+    public static string Decade(int age) => age switch
+    {
+        < 13 => "a child",
+        < 20 => "in their teens",
+        < 80 => $"in their {(age / 10) switch { 2 => "twenties", 3 => "thirties", 4 => "forties", 5 => "fifties", 6 => "sixties", _ => "seventies" }}",
+        _ => "in great old age",
+    };
 
     public static async Task<Dictionary<string, Likeness>> IndexAsync(IObjectStore store, CancellationToken ct = default)
     {
@@ -122,7 +145,8 @@ public static class Likenesses
         var fights = episode.Parts.Where(p => p.Scene is { Length: > 0 } && p.EventId != 0).ToList();
         if (sides.Count == 0 && fights.Count == 0) return episode;
         // Every image wanted: each face-off side's (kept for good, reused), then each fight's still (made for its day).
-        var wanted = sides.Select(side => (Key: KeyFor(side.Ref), Label: side.Name, Ask: (Func<ImageRequest?>)(() => Ask(world, side.Ref, style))))
+        var keys = sides.ToDictionary(side => side.Ref, side => KeyFor(world, side.Ref));
+        var wanted = sides.Select(side => (Key: keys[side.Ref], Label: side.Name, Ask: (Func<ImageRequest?>)(() => Ask(world, side.Ref, style))))
             .Concat(fights.Select(f => (Key: (string?)StillKey(f.EventId), Label: f.Title,
                 Ask: (Func<ImageRequest?>)(() => new ImageRequest(f.Scene!, "environment", style, false, f.EventId, StillWidth, StillHeight)))))
             .Where(w => w.Key is not null).ToList();
@@ -169,7 +193,7 @@ public static class Likenesses
         }
         if (had.Count > 0) await SaveAsync(store, index, ct).ConfigureAwait(false);
 
-        FaceOffSide With(FaceOffSide side) => KeyFor(side.Ref) is { } key && had.Contains(key) ? side with { Image = key } : side;
+        FaceOffSide With(FaceOffSide side) => keys.GetValueOrDefault(side.Ref) is { } key && had.Contains(key) ? side with { Image = key } : side;
         var sections = episode.Parts.Select(p =>
         {
             if (p.FaceOff is { } f) p = p with { FaceOff = f with { A = With(f.A), B = With(f.B) } };
@@ -208,7 +232,7 @@ public static class Likenesses
             var gear = c.Attributes.Prowess >= 14 || c.Role is Role.Knight ? "in battle-worn armour with a sword" : c.Role == Role.Mage ? "in robes with a staff" : "with a sword at the hip";
             var traits = c.Traits.Count > 0 ? $", {string.Join(", ", c.Traits.Take(3))} in bearing" : "";
             var scars = c.Wounds.Count > 0 ? ", scarred from old wounds" : "";
-            return new ImageRequest($"a {c.Age(world.Date)}-year-old {who}, a {role}{culture}, {gear}, clothes in {dress}{traits}{scars}, medieval fantasy duellist",
+            return new ImageRequest($"a {who} {Decade(c.Age(world.Date)).Replace("their", c.Sex == Sex.Female ? "her" : "his")}, a {role}{culture}, {gear}, clothes in {dress}{traits}{scars}, medieval fantasy duellist",
                 "character", style, true, id);
         }
         if (kind == Realm.Kind && world.Realms.TryGetValue(id, out var r2))

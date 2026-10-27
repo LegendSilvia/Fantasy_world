@@ -40,13 +40,14 @@ public class LikenessTests
 
         var told = await Likenesses.AttachAsync(episode, world, store, maker, "hand-painted", "2026-10-27", _ => Task.FromResult(true), output);
         var f = told.Parts.Single(p => p.FaceOff is not null).FaceOff!;
-        Assert.Equal(($"images/char-{strong.Id}.png", $"images/char-{sly.Id}.png"), (f.A.Image, f.B.Image));
+        Assert.Equal((Likenesses.KeyFor(world, strong.Ref.ToString()), Likenesses.KeyFor(world, sly.Ref.ToString())), (f.A.Image, f.B.Image));
+        Assert.StartsWith($"images/char-{strong.Id}-", f.A.Image);
         Assert.NotNull(await store.GetAsync(f.A.Image!));
         // A full figure, standing beside the card, seeded by the person, the subject only.
         Assert.All(maker.Asked, r => Assert.Equal(("character", "hand-painted", true), (r.Scenario, r.Style, r.Transparent)));
         Assert.Equal([strong.Id, sly.Id], maker.Asked.Select(r => r.Seed));
         Assert.All(maker.Asked, r => Assert.DoesNotMatch("(?i)background|transparen|frame|portrait of", r.Prompt));
-        Assert.Contains("30-year-old", maker.Asked[0].Prompt);
+        Assert.Contains("man in his thirties", maker.Asked[0].Prompt);
 
         // The next time these two are shown, nothing is made again; the index says when each was last used.
         var again = await Likenesses.AttachAsync(episode, world, store, maker, "hand-painted", "2026-10-29", _ => Task.FromResult(true), output);
@@ -106,7 +107,7 @@ public class LikenessTests
         Assert.Equal(("game-asset", true, realm.Id), (request.Scenario, request.Transparent, request.Seed));
         Assert.Contains(realm.Name, request.Prompt);
         Assert.Contains(realm.Colors[0], request.Prompt);
-        Assert.Equal($"images/realm-{realm.Id}.png", Likenesses.KeyFor(realm.Ref.ToString()));
+        Assert.StartsWith($"images/realm-{realm.Id}-", Likenesses.KeyFor(world, realm.Ref.ToString()));
     }
 
     private static StoredObject O(string key, double megabytes) => new(key, (long)(megabytes * 1_000_000));
@@ -211,5 +212,27 @@ public class LikenessTests
         // An answer without pictures keeps the template's.
         var plain = Narrator(new { sections = episode.Parts.Select(p => p.Text) }, out _).EpisodeScript(episode, 20_000);
         Assert.Equal(episode.Parts.Single(p => p.Scene is not null).Scene, plain.Parts.Single(p => p.Scene is not null).Scene);
+    }
+
+    [Fact]
+    public void APortrait_IsDrawnAnew_EachDecade_AndOnMajorChanges_NotEachYear()
+    {
+        var world = TestPeople.World();
+        var at31 = TestPeople.Add(world, 1, 31);
+        var at38 = TestPeople.Add(world, 1, 38);
+        var at41 = TestPeople.Add(world, 1, 41);
+        string Picture(Character c) => Likenesses.Ask(world, c.Ref.ToString(), "hand-painted")!.Prompt;
+        // The same kind of person: one picture through a decade, a new one in the next.
+        Assert.Equal(Picture(at31), Picture(at38));
+        Assert.NotEqual(Picture(at38), Picture(at41));
+
+        var key = Likenesses.KeyFor(world, at31.Ref.ToString());
+        Assert.Equal(key, Likenesses.KeyFor(world, at31.Ref.ToString()));
+        at31.Wounds.Add("a scar across the face");
+        var scarred = Likenesses.KeyFor(world, at31.Ref.ToString());
+        Assert.NotEqual(key, scarred);
+        at31.Role = Role.Knight;
+        Assert.NotEqual(scarred, Likenesses.KeyFor(world, at31.Ref.ToString()));
+        Assert.Equal("in great old age", Likenesses.Decade(84));
     }
 }
