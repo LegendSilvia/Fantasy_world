@@ -99,13 +99,20 @@ async function showYear(year) {
     labels = [];
 
     dynamic.add(houses(s.houses));
-    const lines = (list, colour, opacity) => list.forEach(points => {
+    const lines = (list, material, group = dynamic) => list.forEach(points => {
         const geometry = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(Float32Array.from(points), 3));
-        dynamic.add(new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: colour, transparent: true, opacity })));
+        const line = new THREE.Line(geometry, material);
+        line.computeLineDistances();
+        group.add(line);
     });
-    lines(s.borders, INK, 0.75);
-    lines(s.roads.filter(r => r.open).map(r => r.points), 0x7a5a35, 0.8);
-    lines(s.roads.filter(r => !r.open).map(r => r.points), 0xa8483a, 0.8);
+    lines(s.borders, new THREE.LineBasicMaterial({ color: INK, transparent: true, opacity: 0.75 }));
+    // Roads as the game draws them: close-dotted in road brown, severed ones broken and reddened; a layer of their own.
+    const roads = new THREE.Group();
+    roads.visible = $("roads").checked;
+    roads.userData.layer = "roads";
+    lines(s.roads.filter(r => r.open).map(r => r.points), new THREE.LineDashedMaterial({ color: 0x7a5a35, dashSize: 0.006, gapSize: 0.005, transparent: true, opacity: 0.7 }), roads);
+    lines(s.roads.filter(r => !r.open).map(r => r.points), new THREE.LineDashedMaterial({ color: 0xa8483a, dashSize: 0.004, gapSize: 0.012, transparent: true, opacity: 0.7 }), roads);
+    dynamic.add(roads);
     for (const arrow of s.arrows)
         dynamic.add(new THREE.Mesh(unpack(arrow.mesh), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthTest: false, side: THREE.DoubleSide })));
 
@@ -342,6 +349,7 @@ async function boot() {
         await buildStage();
         slider.addEventListener("input", () => { $("year-label").textContent = slider.value; });
         slider.addEventListener("change", () => setHash({ year: +slider.value }));
+        $("roads").addEventListener("change", () => dynamic.children.filter(c => c.userData.layer === "roads").forEach(c => { c.visible = $("roads").checked; }));
         window.addEventListener("hashchange", route);
         $("close").addEventListener("click", () => setHash({ panel: null }));
         await route();

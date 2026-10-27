@@ -74,6 +74,8 @@ h1 { margin: 2px 0 0; font-size: 20px; color: var(--ink); font-weight: normal; }
 h2 { margin: 4px 0 6px; font-size: 22px; color: var(--ink); font-weight: normal; }
 h3 { margin: 16px 0 6px; font: 11px/1.2 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
 
+.toggle { display: flex; gap: 6px; align-items: center; font: 13px system-ui, sans-serif; color: var(--body); cursor: pointer; }
+.toggle input { accent-color: var(--ink); }
 .year { display: flex; gap: 10px; align-items: center; font: 13px system-ui, sans-serif; flex: 1 1 220px; max-width: 520px; }
 .year input { flex: 1; accent-color: var(--ink); }
 

@@ -125,4 +125,30 @@ public class TradeSystemTests
         var start = FantasyWorld.Client.Projection.ToBlock(grid, map.Routes![0].Path[0], 0);
         Assert.True(Math.Abs(road.Line[0].X - start.X) < 1e-4 && Math.Abs(road.Line[0].Z - start.Z) < 1e-4);
     }
+
+    [Fact]
+    public void Roads_AreOneNetwork_SoRoutesSharingAWayDrawItOnce()
+    {
+        var (sim, _, _) = TwoMarkets();
+        var map = FantasyWorld.Sim.Views.MapScreen.Build(sim.World, sim.Log);
+        FantasyWorld.Sim.Views.MapPoint P(double x, double y) => new(x, y);
+        var (west, east, fork, end) = (P(0.2, 0.5), P(0.3, 0.2), P(0.5, 0.5), P(0.8, 0.5));
+        var a = new FantasyWorld.Sim.Views.MapRoute(new("route", 1), "West road", new("settlement", 1), new("settlement", 2), "open", 10, [west, fork, end]);
+        var b = new FantasyWorld.Sim.Views.MapRoute(new("route", 2), "North road", new("settlement", 3), new("settlement", 2), "open", 5, [east, fork, end]);
+        var roads = FantasyWorld.Client.RouteLayout.Roads(map with { Routes = [a, b] }, sim.World.Geography!);
+
+        // Three roads meet at the fork: west to fork, north to fork, and the shared way on, drawn once.
+        Assert.Equal(3, roads.Count);
+        var grid = sim.World.Geography!.Terrain;
+        System.Numerics.Vector3 On(FantasyWorld.Sim.Views.MapPoint p) => FantasyWorld.Client.Projection.ToBlock(grid, p, 0);
+        bool Near(System.Numerics.Vector3 v, FantasyWorld.Sim.Views.MapPoint p) => Math.Abs(v.X - On(p).X) < 1e-4 && Math.Abs(v.Z - On(p).Z) < 1e-4;
+        Assert.All(roads, r => Assert.True(Near(r.Line[0], fork) || Near(r.Line[^1], fork)));
+        Assert.Single(roads, r => Near(r.Line[0], end) || Near(r.Line[^1], end));
+
+        // A way only closed routes travel is drawn closed; one any open route travels stays open.
+        var closed = roads.Count(r => !r.Open);
+        Assert.Equal(0, closed);
+        var shut = FantasyWorld.Client.RouteLayout.Roads(map with { Routes = [a with { State = "severed" }, b] }, sim.World.Geography!);
+        Assert.Single(shut, r => !r.Open);
+    }
 }
