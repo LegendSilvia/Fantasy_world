@@ -22,7 +22,7 @@ Non-goals: changing the simulation, interactive features, music, and anything on
 | Sections | One per story: an opening flyover, the headline, each other story, "how it came to this", a character spotlight, the closing. Each is a YouTube chapter |
 | Action | The camera flies to each event's place and the diorama shows it with its live markers (hosts, sieges, ceded regions, fallen towns), with a caption naming who and where |
 | Character focus | A spotlight section: one notable character per episode, the camera at their home and an on-screen card (portrait, name, house banner, age, traits, deeds this episode, kin) while the narrator tells their story |
-| Portraits | Only for characters worth mentioning (those named in the episode's sections), from an image API the owner provides |
+| Portraits | Only for characters worth mentioning (those named in the episode's sections), from the owner's image API (§5) |
 | Length | 3–5 minutes (about three times today's narration) |
 
 ### 2.2 Proposed defaults (flagged for review)
@@ -80,10 +80,15 @@ run.
 
 **The card:** portrait, name, house banner, age (or "died aged …"), traits, ambition, this episode's deeds, closest kin.
 
-**The image API:** the owner provides it. The broadcast talks to it through one small interface
-(`IPortraitMaker.MakeAsync(prompt) → PNG`), configured in `broadcast.json` (`portraits.endpoint`, `portraits.style`,
-`portraits.size`) with the key in a repository secret (`PORTRAIT_API_KEY`). **Needed from the owner:** which API, its
-request and response shape, and the key as a secret.
+**The image API (the owner's, 2026-10-27):** the owner's Cloudflare Worker `flux-playground` (FLUX.2 [klein] 4B on Workers
+AI), `POST https://flux-playground.tanwa-tharathep.workers.dev/generate`, key in the header `x-access-key` from the
+repository secret `FLUX_ACCESS_KEY`. JSON request `{ prompt, scenario: "custom", style: "hand-painted", width: 768,
+height: 768, transparent: true, seed }`; JSON response `{ image: <base64>, mime, … }`; 429 when its daily budget (9,500
+neurons, reset 00:00 UTC) is used, which the broadcast treats as "try tomorrow". The prompt asks for a head-and-shoulders
+portrait (the `character` scenario frames a full figure, too small for a card); the seed is the character's id, so a
+portrait made again looks the same. A 768×768 portrait costs about 105 neurons, so 4 a day is about 420. The endpoint,
+style and size live in `broadcast.json` (`portraits`), so the API can be swapped through one small interface
+(`IPortraitMaker.MakeAsync(prompt, seed) → PNG`).
 
 ## 6. Making the film
 
@@ -120,6 +125,6 @@ portraits fail, banners stand in; if speech fails, the episode goes out as text 
 - **F1 — Sections and the still film:** sectioned script and narration, chapters on YouTube and Discord, the film made of
   per-section stills of the political map with slow pans (no Godot). Proves timing, chapters and cost.
 - **F2 — The diorama film:** the spike, then `Film.tscn` rendering the shot list on the runner; camera flights and markers.
-- **F3 — Spotlight and portraits:** the spotlight pick, the card, the portrait API (once the owner has provided it).
+- **F3 — Spotlight and portraits:** the spotlight pick, the card, portraits from the owner's API (§5).
 
 Each milestone is planned, reviewed and executed as before, and is live only after a dry run on the runner.
