@@ -327,10 +327,11 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             }
 
             // The world's LLM settings follow broadcast.json each morning: the chronicler on the narrate tier, story beats
-            // off unless budgeted. Without ANTHROPIC_API_KEY the world runs offline and the template script ships.
+            // (the characters' choices and the fights, on the decide and arbitrate tiers' default model) off unless budgeted. Without ANTHROPIC_API_KEY the world runs offline and the template script ships.
             var llm = config.Llm;
             Fw("llm", worldPath, "--provider", llm.Narrate ? "anthropic" : "none", "--model", $"narrate={llm.NarrateModel}",
                 "--story-beats", llm.StoryBeatsPerDay.ToString(CultureInfo.InvariantCulture),
+                "--fight-beats", llm.FightBeatsPerDay.ToString(CultureInfo.InvariantCulture),
                 "--narrations", llm.NarrationsPerDay.ToString(CultureInfo.InvariantCulture),
                 "--cap", llm.MonthlyCapUsd.ToString(CultureInfo.InvariantCulture));
             Fw("catchup", worldPath, "--quiet");

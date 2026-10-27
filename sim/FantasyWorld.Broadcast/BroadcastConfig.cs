@@ -6,7 +6,8 @@ namespace FantasyWorld.Broadcast;
 
 /// <summary>
 /// The broadcast's LLM (spec §3.2, M2): the chronicler writes the script on the narrate tier. Story beats (the sim's
-/// own LLM decisions while it catches up) stay off unless given a budget, so the daily cost is one script.
+/// own LLM decisions while it catches up: the characters' choices and the fights, sub-project 8) stay off unless given
+/// a budget, so the daily cost is one script; of them, <see cref="FightBeatsPerDay"/> are kept for fights.
 /// </summary>
 public sealed record BroadcastLlm
 {
@@ -16,6 +17,8 @@ public sealed record BroadcastLlm
     public string NarrateModel { get; init; } = "claude-sonnet-5-5";
 
     public int StoryBeatsPerDay { get; init; }
+
+    public int FightBeatsPerDay { get; init; }
 
     public int NarrationsPerDay { get; init; } = 10;
 
@@ -146,6 +149,8 @@ public sealed record BroadcastConfig
             throw new FormatException("livePrefix and stagingPrefix must differ and end with '/'.");
         if (Llm.StoryBeatsPerDay < 0 || Llm.NarrationsPerDay < 0 || Llm.MonthlyCapUsd < 0 || Llm.NarrateModel.Length == 0)
             throw new FormatException("llm budgets and the cap cannot be negative, and narrateModel must be named.");
+        if (Llm.FightBeatsPerDay < 0 || Llm.FightBeatsPerDay > Llm.StoryBeatsPerDay)
+            throw new FormatException("llm fightBeatsPerDay must be between 0 and storyBeatsPerDay.");
         if (Voice.MaxCharactersPerRequest < 100 || Voice.MonthlyCharacterBudget < 0 || Voice.VoiceId.Length == 0 || Voice.Model.Length == 0)
             throw new FormatException("voice needs a voiceId and a model, at least 100 characters a request and a budget that is not negative.");
         _ = Speech.Voiceover.Kbps(Voice.OutputFormat);

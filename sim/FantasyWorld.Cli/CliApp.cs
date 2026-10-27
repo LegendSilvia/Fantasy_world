@@ -48,7 +48,7 @@ public static partial class CliApp
           fw unfollow <world-file> <entity>
           fw stats <world-file>
           fw llm <world-file> [--provider none|anthropic|openrouter] [--model <tier>=<model>]...
-                 [--story-beats <per-day>] [--narrations <per-day>] [--cap <usd-per-month>]
+                 [--story-beats <per-day>] [--fight-beats <of-them>] [--narrations <per-day>] [--cap <usd-per-month>]
           fw eval narration|decisions [--provider anthropic|openrouter] [--model <tier>=<model>]... [--samples <n>]
                  [--draws <n>] [--seeds 1,2,3] [--cap <usd>] [--out <dir>]   live quality evals with a judge; results in evals/
         """;

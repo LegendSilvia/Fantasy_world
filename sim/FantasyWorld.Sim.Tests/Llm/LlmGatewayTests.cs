@@ -111,6 +111,23 @@ public class LlmGatewayTests
     }
 
     [Fact]
+    public void FightBeats_AreKeptForFights_SoChoicesCannotStarveThem()
+    {
+        var clock = new Clock(DateTimeOffset.UnixEpoch);
+        var gateway = new LlmGateway(new FakeLlmProvider(_ => "{}"), On with { StoryBeatsPerDay = 4, FightBeatsReserved = 2 }, new LlmJournal(), clock);
+        Assert.NotNull(gateway.Ask(Request("a"), 1, Valid));
+        Assert.NotNull(gateway.Ask(Request("b", ModelTier.Invent), 1, Valid));
+        // Two choices have used the unreserved share: the third waits, but fights still get theirs.
+        Assert.Null(gateway.Ask(Request("c"), 1, Valid));
+        Assert.False(gateway.MayAnswer(ModelTier.Decide, "c2"));
+        Assert.True(gateway.MayAnswer(ModelTier.Arbitrate, "f"));
+        Assert.NotNull(gateway.Ask(Request("f1", ModelTier.Arbitrate), 1, Valid));
+        Assert.NotNull(gateway.Ask(Request("f2", ModelTier.Arbitrate), 1, Valid));
+        // And the whole budget still bounds them.
+        Assert.Null(gateway.Ask(Request("f3", ModelTier.Arbitrate), 1, Valid));
+    }
+
+    [Fact]
     public void TheMonthlySpendCap_StopsNewCalls()
     {
         var clock = new Clock(DateTimeOffset.UnixEpoch);

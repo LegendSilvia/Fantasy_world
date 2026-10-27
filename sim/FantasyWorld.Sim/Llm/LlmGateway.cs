@@ -108,8 +108,11 @@ public sealed class LlmGateway
     {
         var now = _time.GetUtcNow();
         if (Journal.SpendSince(now.AddDays(-30)) >= Settings.MonthlySpendCapUsd) return false;
-        var story = IsStoryBeat(tier);
-        var used = Journal.CountSince(now.AddDays(-1), t => IsStoryBeat(t) == story);
-        return used < (story ? Settings.StoryBeatsPerDay : Settings.NarrationsPerDay);
+        var since = now.AddDays(-1);
+        if (!IsStoryBeat(tier)) return Journal.CountSince(since, t => !IsStoryBeat(t)) < Settings.NarrationsPerDay;
+        if (Journal.CountSince(since, IsStoryBeat) >= Settings.StoryBeatsPerDay) return false;
+        // Fights may use every story beat; the other beats stop short of the share kept for fights.
+        return tier == ModelTier.Arbitrate
+               || Journal.CountSince(since, t => IsStoryBeat(t) && t != ModelTier.Arbitrate) < Settings.StoryBeatsPerDay - Settings.FightBeatsReserved;
     }
 }

@@ -86,17 +86,20 @@ public static partial class CliApp
             Provider = provider,
             Models = models,
             StoryBeatsPerDay = int.Parse(Option(rest, "--story-beats") ?? settings.StoryBeatsPerDay.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture),
+            FightBeatsReserved = int.Parse(Option(rest, "--fight-beats") ?? settings.FightBeatsReserved.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture),
             NarrationsPerDay = int.Parse(Option(rest, "--narrations") ?? settings.NarrationsPerDay.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture),
             MonthlySpendCapUsd = decimal.Parse(Option(rest, "--cap") ?? settings.MonthlySpendCapUsd.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture),
         };
         if (settings.StoryBeatsPerDay < 0 || settings.NarrationsPerDay < 0 || settings.MonthlySpendCapUsd < 0)
             throw new FormatException("Budgets and the spend cap cannot be negative.");
+        if (settings.FightBeatsReserved < 0 || settings.FightBeatsReserved > settings.StoryBeatsPerDay)
+            throw new FormatException("--fight-beats must be between 0 and the story beats.");
         if (rest.Length > 0) store.SaveLlmSettings(settings);
 
         output.WriteLine($"provider: {settings.Provider}");
         foreach (var tier in Enum.GetValues<ModelTier>())
             output.WriteLine($"  {tier.ToString().ToLowerInvariant(),-9} {settings.ModelFor(tier)}");
-        output.WriteLine($"budget: {settings.StoryBeatsPerDay} story beats and {settings.NarrationsPerDay} narrations per day; "
+        output.WriteLine($"budget: {settings.StoryBeatsPerDay} story beats ({settings.FightBeatsReserved} kept for fights) and {settings.NarrationsPerDay} narrations per day; "
                          + $"cap ${settings.MonthlySpendCapUsd.ToString("0.00", CultureInfo.InvariantCulture)} per 30 days");
         var variable = settings.Provider switch { "anthropic" => "ANTHROPIC_API_KEY", "openrouter" => "OPENROUTER_API_KEY", _ => null };
         if (variable is not null)

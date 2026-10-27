@@ -94,7 +94,8 @@ the Discord post carries the video's link (and Discord plays it) in place of the
 | `discordName` | `The Chronicle` | the name posts appear under |
 | `llm.narrate` | `true` | the chronicler (Claude) writes the script; off, the template script ships |
 | `llm.narrateModel` | `claude-sonnet-5-5` | the model that writes it |
-| `llm.storyBeatsPerDay` | `0` | the sim's own LLM decisions while it catches up; off by default, so the daily cost is one script (a few cents) |
+| `llm.storyBeatsPerDay` | `120` | the sim's own LLM decisions while it catches up (sub-project 8): the characters' choices and the fights, on Claude Opus; `0` turns them off, so the daily cost is one script (a few cents) |
+| `llm.fightBeatsPerDay` | `40` | of the story beats, the ones only fights (duels, battles, hunts, delves) may use, so choices never starve them; past the budget the rules decide as before |
 | `voice.speak` | `true` | ElevenLabs reads each episode; the MP3 is attached to the post and stored |
 | `voice.voiceId`, `voice.model` | Michael C. Vincent (`uju3wxzG5OhpWcoi3SMy`), `eleven_v4_turbo` | the narrator's voice and model (the owner's choices) |
 | `voice.maxCharactersPerRequest` | `5000` | a script longer than this is spoken in parts and joined (a day's script is at most 3,600) |
@@ -103,7 +104,7 @@ the Discord post carries the video's link (and Discord plays it) in place of the
 | `publicBaseUrl` | unset | the bucket's public address; when set, the podcast feed, the archive page and the cover are published |
 | `podcastEmail` | unset | the feed's contact address, which Apple Podcasts and Spotify use to confirm you own the feed |
 | `voice.respell` | `true` | Claude respells each new invented name once, so the narrator says it the same way every day |
-| `llm.narrationsPerDay`, `llm.monthlyCapUsd` | `10`, `5` | budget and spending cap over 30 days; past them, the template script ships |
+| `llm.narrationsPerDay`, `llm.monthlyCapUsd` | `10`, `25` | budget and spending cap over 30 days (narration, choices and fights together); past them, the template script ships and the rules decide |
 | `keepAlive` | `true` | a monthly heartbeat commit, so GitHub keeps the schedule of a public repository; turn it off for a private one |
 
 ## What is in the bucket

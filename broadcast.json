@@ -13,9 +13,10 @@
   "llm": {
     "narrate": true,
     "narrateModel": "claude-sonnet-5-5",
-    "storyBeatsPerDay": 0,
+    "storyBeatsPerDay": 120,
+    "fightBeatsPerDay": 40,
     "narrationsPerDay": 10,
-    "monthlyCapUsd": 5
+    "monthlyCapUsd": 25
   },
   "voice": {
     "speak": true,
