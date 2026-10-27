@@ -20,6 +20,13 @@ public static class Png
     }).ToArray();
 
     /// <summary>Encodes <paramref name="rgb"/> (three bytes a pixel, rows top to bottom).</summary>
+    /// <summary>A PNG's width and height, from its header.</summary>
+    public static (int Width, int Height) Size(byte[] png) =>
+        png.Length >= 24 && png[12] == 'I' && png[13] == 'H' && png[14] == 'D' && png[15] == 'R'
+            ? ((int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(png.AsSpan(16, 4)),
+               (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(png.AsSpan(20, 4)))
+            : throw new FormatException("Not a PNG.");
+
     public static byte[] Encode(int width, int height, byte[] rgb)
     {
         if (width <= 0 || height <= 0 || rgb.Length != width * height * 3)

@@ -115,7 +115,10 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             byte[] mp4;
             try
             {
-                mp4 = await video.MakeAsync(map, audio, ct).ConfigureAwait(false);
+                // The camera follows the sections when the run kept a shot list and the narration its chapters.
+                var shots = Shots.Timed(await Shots.LoadAsync(store, day, ct).ConfigureAwait(false),
+                    await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false));
+                mp4 = await video.MakeAsync(map, audio, shots, ct).ConfigureAwait(false);
             }
             catch (VideoException e)
             {

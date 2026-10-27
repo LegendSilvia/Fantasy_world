@@ -51,4 +51,48 @@ public class VideoTests
         Assert.Equal("ftyp", System.Text.Encoding.ASCII.GetString(video, 4, 4));
         await Assert.ThrowsAsync<VideoException>(() => new FfmpegVideo().MakeAsync([1, 2, 3], [4, 5, 6])); // not a picture
     }
+
+    [Fact]
+    public async Task ThePanFilm_FollowsTheShots_At720p()
+    {
+        if (!Has("ffmpeg") || !Has("ffprobe")) return;
+        var mp3 = Path.GetTempFileName() + ".mp3";
+        using (var make = Process.Start("ffmpeg", $"-hide_banner -loglevel error -y -f lavfi -i anullsrc=r=44100:cl=mono -t 8 -b:a 128k {mp3}")) make.WaitForExit();
+        var sim = Prehistory.Run(WorldGenerator.Generate(new WorldGenOptions(3, WorldSize.Tiny), DateTimeOffset.UnixEpoch), 5);
+        var town = sim.World.Settlements.Values.OrderBy(s => s.Id).First();
+        var at = FantasyWorld.Sim.Views.MapPoint.Of(sim.World, town.Ref)!;
+        TimedShot[] shots = [new(0, Shot.Whole), new(2, new Shot(at.X, at.Y, 3)), new(6, Shot.Whole)];
+        var video = await new FfmpegVideo().MakeAsync(MapPainter.Png(sim.World, sim.Log, 512), await File.ReadAllBytesAsync(mp3), shots);
+        File.Delete(mp3);
+        var mp4 = Path.GetTempFileName() + ".mp4";
+        await File.WriteAllBytesAsync(mp4, video);
+        try
+        {
+            Assert.Equal("1280,720,24/1", Probe(mp4, "stream=width,height,r_frame_rate"));
+            // Whole map at 1 s, close on the town at 5 s: the frames differ.
+            Assert.NotEqual(Frame(mp4, 1), Frame(mp4, 5));
+        }
+        finally
+        {
+            File.Delete(mp4);
+        }
+    }
+
+    private static string Probe(string file, string entries)
+    {
+        using var probe = Process.Start(new ProcessStartInfo("ffprobe", $"-v error -select_streams v:0 -show_entries {entries} -of csv=p=0 {file}")
+            { RedirectStandardOutput = true })!;
+        var text = probe.StandardOutput.ReadToEnd().Trim();
+        probe.WaitForExit();
+        return text;
+    }
+
+    private static string Frame(string file, double seconds)
+    {
+        var png = Path.GetTempFileName() + ".png";
+        using (var grab = Process.Start("ffmpeg", $"-hide_banner -loglevel error -y -ss {seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)} -i {file} -frames:v 1 {png}")) grab.WaitForExit();
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(png)));
+        File.Delete(png);
+        return hash;
+    }
 }

@@ -316,8 +316,16 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             var snapshot = Path.Combine(work.FullName, "upload.fw.db");
             Fw("snapshot", worldPath, snapshot);
 
-            _todaysMap = PaintMap(snapshot);
+            (_todaysMap, var shots) = PaintMap(snapshot, episode);
             await StoreMapAsync(store, date, ct).ConfigureAwait(false);
+            try
+            {
+                await Shots.SaveAsync(store, date, shots, ct).ConfigureAwait(false);
+            }
+            catch (IOException e)
+            {
+                log.WriteLine($"warning: the shot list could not be stored ({e.Message}); the video holds the whole map.");
+            }
 
             // The episode first, then the world that holds its marker: a world in the store always has its episode.
             await store.PutAsync(EpisodeKey(date), Encoding.UTF8.GetBytes(episode.ToJson()), "application/json", ct).ConfigureAwait(false);
@@ -360,19 +368,22 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         }
     }
 
-    /// <summary>The political map of the saved world; a map that cannot be drawn never stops the episode.</summary>
-    private byte[]? PaintMap(string worldPath)
+    /// <summary>
+    /// The political map of the saved world and the episode's shot list over it; a map that cannot be drawn never stops
+    /// the episode (and without it, there is nothing to look at: no shots).
+    /// </summary>
+    private (byte[]? Map, IReadOnlyList<Shot> Shots) PaintMap(string worldPath, Episode episode)
     {
         try
         {
             using var world = WorldStore.Open(worldPath);
             var (w, l, _) = world.Load();
-            return MapPainter.Png(w, l);
+            return (MapPainter.Png(w, l), Shots.For(w, l, episode));
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
             log.WriteLine($"warning: the map could not be drawn ({e.Message}); the episode goes out without it.");
-            return null;
+            return (null, []);
         }
     }
 

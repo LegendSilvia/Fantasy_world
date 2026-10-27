@@ -48,7 +48,7 @@ public class YouTubeTests : IDisposable
     {
         public int Made { get; private set; }
 
-        public Task<byte[]> MakeAsync(byte[] mapPng, byte[] narrationMp3, CancellationToken ct = default)
+        public Task<byte[]> MakeAsync(byte[] mapPng, byte[] narrationMp3, IReadOnlyList<TimedShot>? shots = null, CancellationToken ct = default)
         {
             if (fails) throw new VideoException("ffmpeg could not be started; is it installed?");
             Made++;
