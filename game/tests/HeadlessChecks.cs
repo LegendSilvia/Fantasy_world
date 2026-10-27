@@ -276,6 +276,9 @@ public partial class HeadlessChecks : Node
         await Shot("map-year-2");
         view.GetNode<Button>("Card/Column/ActionsRow/Actions/Reset").EmitSignal(BaseButton.SignalName.Pressed);
         Check(view.Year == view.Now && main.Diorama.ShownYear is null && view.History.Value == view.Now, "reset view returns to today");
+        view.ShowsControls = false;
+        Check(!view.GetNode<Control>("Card").Visible && view.GetNode<Control>("Tags").Visible, "a filmed map hides its control card, not its labels");
+        view.ShowsControls = true;
 
         view.GetNode<Button>("Card/Column/Zoom/Presets/Region").EmitSignal(BaseButton.SignalName.Pressed);
         await Frames(90);

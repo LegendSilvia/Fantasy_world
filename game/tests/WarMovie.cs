@@ -48,6 +48,8 @@ public partial class WarMovie : Node
         AddChild(main);
         while (!main.CaughtUp) await Frames(1);
         main.Router.Go(new Screen(ScreenKind.Map));
+        // A film shows the world, not the player's controls.
+        if (main.Current is MapHudView hud) hud.ShowsControls = false;
         var at = session.Read((w, _) => FantasyWorld.Sim.Views.MapPoint.Of(w, w.Regions[army.Path[1]].Ref)!);
         main.Diorama.Focus(at, Zoom.Region);
         main.Diorama.Rig.Drag(-80, 30);

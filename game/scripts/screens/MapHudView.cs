@@ -28,6 +28,14 @@ public partial class MapHudView : Control
     private Label _summary = null!;
     private Label _yearLabel = null!;
     private VBoxContainer _legend = null!;
+    private PanelContainer _controls = null!;
+
+    /// <summary>The control card (zoom, layers, history, actions); hidden when the map is filmed rather than played.</summary>
+    public bool ShowsControls
+    {
+        get => _controls.Visible;
+        set => _controls.Visible = value;
+    }
     private Zoom _zoom;
     private int? _pendingYear;
 
@@ -55,7 +63,8 @@ public partial class MapHudView : Control
         intro.AddChild(_summary);
         AddChild(intro);
 
-        AddChild(ControlCard());
+        _controls = ControlCard();
+        AddChild(_controls);
 
         _legend = Ui.Place(Ui.Column("Legend", 8), 0, 1, 56, -44);
         AddChild(_legend);

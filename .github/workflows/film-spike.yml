@@ -2,7 +2,8 @@ name: film-spike
 
 # Episode film (sub-project 7), spike: how fast can GitHub's runners (no GPU) render the diorama? Films the war movie at
 # 1280x720, 24 fps, as PNG frames under a virtual display, with each software renderer, and reports seconds per frame.
-# Runs when this file is pushed on the broadcast branch; it touches no secret and no bucket.
+# Runs when this file is pushed on the broadcast branch; it touches no secret and no bucket. (Run 1 compared OpenGL
+# compatibility, 0.72 s a frame, with Vulkan, 0.46 s; Vulkan also looked better, so only Vulkan is filmed now.)
 on:
   push:
     branches: [ccr-81a7454e-12gx87]
@@ -19,7 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         renderer:
-          - { name: opengl, args: '--rendering-driver opengl3 --rendering-method gl_compatibility' }
           - { name: vulkan, args: '--rendering-driver vulkan --rendering-method forward_plus' }
     steps:
       - uses: actions/checkout@v4
