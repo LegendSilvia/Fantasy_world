@@ -47,7 +47,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         var schema = JsonSerializer.Serialize(new
         {
             type = "object",
-            properties = new { sections = new { type = "array", items = new { type = "string" }, minItems = parts.Count, maxItems = parts.Count } },
+            // The count is checked on the answer: the API's structured output takes no item counts above one.
+            properties = new { sections = new { type = "array", items = new { type = "string" } } },
             required = new[] { "sections" },
             additionalProperties = false,
         });

@@ -46,6 +46,9 @@ public class EpisodeScriptTests
         Assert.StartsWith("narrate|episode-sections|2026-10-27|", request.Key);
         Assert.All(Template().Parts, p => Assert.Contains(p.Text, request.Prompt)); // the brief is the template episode
         Assert.Contains($"exactly {Template().Parts.Count} sections", request.Prompt);
+        // The API's structured output refuses item counts above one: the schema states none, the answer is counted instead.
+        Assert.DoesNotContain("minItems", request.Schema);
+        Assert.DoesNotContain("maxItems", request.Schema);
         Assert.Equal(1, journal.Count);
 
         // Asked again (a rerun): the journal answers, the provider is not asked.
