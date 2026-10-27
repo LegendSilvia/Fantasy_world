@@ -94,7 +94,8 @@ public sealed record Episode(
         var headline = top is null ? null : new EpisodeStory(top.Id, top.Date.Year, Categories.Label(Categories.Of(top)), narrator.Title(top));
         var others = chosen.OrderBy(e => e.Id).Select(Story).ToList();
         // A why needs at least one cause still in the log (old minor events are condensed away).
-        IReadOnlyList<WorldEvent> thread = top is null ? [] : Thread(log, top);
+        // Only news that shapes the world (a war, a fall, a legend) earns "how did it come to this"; a quiet year's headline does not.
+        IReadOnlyList<WorldEvent> thread = top is null || !TemplateNarrator.IsHeadline(top.Type) ? [] : Thread(log, top);
         var why = thread.Count > 1 ? narrator.Story(thread) : null;
         // The body leaves the cause to the story of why when there is one, and says nothing if all it has is when.
         var body = top is null ? "" : narrator.Body(top, log, withCause: why is null);

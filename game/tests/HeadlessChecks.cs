@@ -279,6 +279,14 @@ public partial class HeadlessChecks : Node
         view.ShowsControls = false;
         Check(!view.GetNode<Control>("Card").Visible && view.GetNode<Control>("Tags").Visible, "a filmed map hides its control card, not its labels");
         view.ShowsControls = true;
+        view.NamesOnly = _ => false;
+        await Frames(2);
+        Check(view.TagLayer.GetChildren().OfType<SettlementTag>().All(t => !t.Visible), "a filmed map names only the towns it is asked to");
+        view.NamesOnly = null;
+        view.NamesArmies = false;
+        await Frames(2);
+        Check(view.TagLayer.GetChildren().OfType<ArmyTag>().All(t => !t.Visible), "a filmed map shows hosts by their banners alone");
+        view.NamesArmies = true;
 
         view.GetNode<Button>("Card/Column/Zoom/Presets/Region").EmitSignal(BaseButton.SignalName.Pressed);
         await Frames(90);

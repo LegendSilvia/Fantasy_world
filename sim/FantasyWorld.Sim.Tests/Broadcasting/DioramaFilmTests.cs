@@ -10,19 +10,19 @@ namespace FantasyWorld.Sim.Tests.Broadcasting;
 public class DioramaFilmTests
 {
     [Fact]
-    public void TheFilm_IsCutIntoStretchesOfAtMostTwentySeconds_AlongTheSections()
+    public void TheFilm_IsCutIntoStretchesOfAtMostTwelveSeconds_AlongTheSections()
     {
-        var timeline = new Timeline(75, [new("Opening", 0), new("Headline", 6), new("Until tomorrow", 70)]);
+        var timeline = new Timeline(75, [new("Opening", 0), new("Headline", 6), new("Until tomorrow", 66)]);
         var chunks = DioramaFilm.Chunks(timeline);
-        // The 64-second headline is cut in four equal parts; the opening and the closing are one each.
-        Assert.Equal(new[] { (0d, 6d), (6d, 22d), (22d, 38d), (38d, 54d), (54d, 70d), (70d, 75d) }, chunks.Select(c => (c.From, c.To)));
-        Assert.Equal(Enumerable.Range(0, 6), chunks.Select(c => c.Index));
+        // The 60-second headline is cut in five equal parts; the opening and the closing are one each.
+        Assert.Equal(new[] { (0d, 6d), (6d, 18d), (18d, 30d), (30d, 42d), (42d, 54d), (54d, 66d), (66d, 75d) }, chunks.Select(c => (c.From, c.To)));
+        Assert.Equal(Enumerable.Range(0, 7), chunks.Select(c => c.Index));
         Assert.All(chunks, c => Assert.True(c.To - c.From <= DioramaFilm.MaxChunkSeconds));
         Assert.Empty(DioramaFilm.Chunks(Timeline.None));
         Assert.Equal("episodes/2026-10-27/film/chunk-04.mp4", DioramaFilm.ChunkKey("2026-10-27", 4));
 
         var shots = DioramaFilm.Timed([Shot.Whole, new Shot(0.2, 0.7, Shot.StoryZoom), Shot.Whole], timeline);
-        Assert.Equal(new FilmShot(6, 0.2, 0.7, Shot.StoryZoom), shots[1]);
+        Assert.Equal(new FilmShot(6, 0.2, 0.7, Shot.StoryZoom, "Headline"), shots[1]);
         // As the game's film reads them.
         Assert.Contains("\"start\": 6", System.Text.Encoding.UTF8.GetString(DioramaFilm.ToBytes(shots)));
     }

@@ -53,7 +53,7 @@ public class VideoTests
     }
 
     [Fact]
-    public async Task ThePanFilm_FollowsTheShots_At720p()
+    public async Task ThePanFilm_FollowsTheShots_At1080p()
     {
         if (!Has("ffmpeg") || !Has("ffprobe")) return;
         var mp3 = Path.GetTempFileName() + ".mp3";
@@ -68,7 +68,7 @@ public class VideoTests
         await File.WriteAllBytesAsync(mp4, video);
         try
         {
-            Assert.Equal("1280,720,24/1", Probe(mp4, "stream=width,height,r_frame_rate"));
+            Assert.Equal("1920,1080,24/1", Probe(mp4, "stream=width,height,r_frame_rate"));
             // Whole map at 1 s, close on the town at 5 s: the frames differ.
             Assert.NotEqual(Frame(mp4, 1), Frame(mp4, 5));
         }

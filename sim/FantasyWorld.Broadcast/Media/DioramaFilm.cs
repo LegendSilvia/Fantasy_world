@@ -10,8 +10,8 @@ public sealed record FilmChunk(int Index, double From, double To);
 /// <summary>What the film jobs need: the day, the store's prefix (live or staging) and the stretches to film.</summary>
 public sealed record FilmPlan(string Date, string Prefix, IReadOnlyList<FilmChunk> Chunks);
 
-/// <summary>A shot as the diorama film reads it: from a moment on, a point on the map (0–1) and how close.</summary>
-public sealed record FilmShot(double Start, double X, double Y, double Zoom);
+/// <summary>A shot as the diorama film reads it: from a moment on, a point on the map (0–1), how close, and the section's title (for the film's log).</summary>
+public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "");
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). The daily run plans it once the narration's chapters exist: the
@@ -22,8 +22,8 @@ public sealed record FilmShot(double Start, double X, double Y, double Zoom);
 /// </summary>
 public static class DioramaFilm
 {
-    /// <summary>About eight minutes of filming on a GitHub runner at ~1 s a frame and 24 frames a second.</summary>
-    public const double MaxChunkSeconds = 20;
+    /// <summary>About ten minutes of filming on a GitHub runner at 1080p (~2 s a frame) and 24 frames a second.</summary>
+    public const double MaxChunkSeconds = 12;
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
 
@@ -48,7 +48,7 @@ public static class DioramaFilm
 
     /// <summary>The shots as the film reads them, each from its chapter's start.</summary>
     public static IReadOnlyList<FilmShot> Timed(IReadOnlyList<Shot> shots, Timeline timeline) =>
-        Shots.Timed(shots, timeline).Select(s => new FilmShot(s.Start, s.Shot.X, s.Shot.Y, s.Shot.Zoom)).ToList();
+        Shots.Timed(shots, timeline).Select((s, i) => new FilmShot(s.Start, s.Shot.X, s.Shot.Y, s.Shot.Zoom, timeline.Chapters[i].Title)).ToList();
 
     public static byte[] ToBytes<T>(T value) => JsonSerializer.SerializeToUtf8Bytes(value, Json);
 

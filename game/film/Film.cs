@@ -11,7 +11,7 @@ using Godot;
 namespace FantasyWorld.Game.Film;
 
 /// <summary>A shot of the episode film from a moment on: a point on the map (0–1) and how close (1 = the whole map).</summary>
-public sealed record FilmShot(double Start, double X, double Y, double Zoom);
+public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "");
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). Renders one stretch of an episode's timed shot list from the day's
@@ -30,6 +30,16 @@ public partial class Film : Node
 
     /// <summary>The camera's turn when the film starts.</summary>
     public const float StartYaw = 0.785f;
+
+    /// <summary>How far round the place in view (as a share of the map's width) towns are named; the whole map names none.</summary>
+    public const double NamedWithin = 0.09;
+
+    /// <summary>The place in view when the camera is close, else none.</summary>
+    private MapPoint? _focus;
+
+    private VBoxContainer _log = null!;
+    private PanelContainer _logCard = null!;
+    private int _logged;
 
     public override void _Ready() => _ = RunAsync();
 
@@ -71,12 +81,24 @@ public partial class Film : Node
         while (!main.CaughtUp) await Frames(1);
         main.Router.Go(new Screen(ScreenKind.Map));
         await Frames(2);
-        if (main.Current is MapHudView hud) hud.ShowsControls = false;
+        if (main.Current is not MapHudView hud) throw new InvalidOperationException("film: the map screen did not open.");
+        // A film shows the world, not the player's controls; it names only the place in view and its neighbours, and keeps
+        // a log of the episode's sections at the top right, a line added as each is narrated.
+        hud.ShowsControls = false;
+        hud.NamesArmies = false;
+        hud.NamesOnly = s => _focus is { } f && s.Position is { } p && Math.Abs(p.X - f.X) <= NamedWithin && Math.Abs(p.Y - f.Y) <= NamedWithin;
+        _logCard = Ui.Place(Ui.Card("Log", 320), 1, 0, -40, 40);
+        _log = Ui.Column("Lines", 6);
+        _log.AddChild(Ui.Kicker("In this episode"));
+        _logCard.AddChild(_log);
+        _logCard.Visible = false;
+        hud.AddChild(_logCard);
 
         // Settled on the shot the film's camera would be holding at the stretch's start, then a few frames for the
         // diorama's meshes and labels to settle before the first frame is kept.
         Aim(main.Diorama, Settled(shots, from), from);
         main.Diorama.Rig.Snap();
+        Log(shots, from);
         await Frames(6);
 
         var count = (int)Math.Round((to - from) * fps);
@@ -84,6 +106,7 @@ public partial class Film : Node
         {
             var t = from + n / (double)fps;
             Aim(main.Diorama, ShotAt(shots, t), t);
+            Log(shots, t);
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             var image = GetViewport().GetTexture().GetImage();
             var error = image.SavePng(System.IO.Path.Combine(framesDir, $"frame{n:000000}.png"));
@@ -104,10 +127,21 @@ public partial class Film : Node
     private static FilmShot Settled(IReadOnlyList<FilmShot> shots, double t) =>
         shots.LastOrDefault(s => s.Start < t) ?? shots[0];
 
-    /// <summary>Sets the camera's goal: the shot's place, close or far by its zoom, and the orbit's turn at time t.</summary>
-    private static void Aim(Diorama diorama, FilmShot shot, double t)
+    /// <summary>The log holds a line for every section begun by <paramref name="t"/>, the opening aside (it names the world).</summary>
+    private void Log(IReadOnlyList<FilmShot> shots, double t)
     {
-        diorama.Focus(new MapPoint(shot.X, shot.Y), shot.Zoom >= 2 ? Zoom.Region : Zoom.Realm);
+        var due = shots.Skip(1).Where(s => s.Start <= t && s.Title.Length > 0).ToList();
+        for (; _logged < due.Count; _logged++)
+            _log.AddChild(Ui.Body(due[_logged].Title, $"Line{_logged}", Palette.Body, 14));
+        _logCard.Visible = _logged > 0;
+    }
+
+    /// <summary>Sets the camera's goal: the shot's place, close or far by its zoom, and the orbit's turn at time t.</summary>
+    private void Aim(Diorama diorama, FilmShot shot, double t)
+    {
+        var close = shot.Zoom >= 2;
+        _focus = close ? new MapPoint(shot.X, shot.Y) : null;
+        diorama.Focus(new MapPoint(shot.X, shot.Y), close ? Zoom.Region : Zoom.Realm);
         diorama.Rig.Turn(StartYaw + OrbitSpeed * (float)t);
     }
 

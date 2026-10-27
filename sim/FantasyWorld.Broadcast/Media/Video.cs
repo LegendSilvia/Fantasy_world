@@ -49,7 +49,7 @@ public sealed class FfmpegVideo : IVideoMaker
     ];
 
     /// <summary>The pan film's frame (16:9, as the diorama film will be) and rate.</summary>
-    public const int FilmWidth = 1280, FilmHeight = 720, FilmFps = 24;
+    public const int FilmWidth = 1920, FilmHeight = 1080, FilmFps = 24;
 
     /// <summary>A move from one shot to the next takes this long, eased in and out.</summary>
     public const double MoveSeconds = 2.5;

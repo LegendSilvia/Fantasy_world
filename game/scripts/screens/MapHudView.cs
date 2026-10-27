@@ -30,6 +30,12 @@ public partial class MapHudView : Control
     private VBoxContainer _legend = null!;
     private PanelContainer _controls = null!;
 
+    /// <summary>Hosts' tags (name, strength, commander) above their banners; a film shows the banners alone.</summary>
+    public bool NamesArmies { get; set; } = true;
+
+    /// <summary>When set, only the settlements it accepts are named (a film names the place it looks at and its neighbours).</summary>
+    public Func<MapSettlement, bool>? NamesOnly { get; set; }
+
     /// <summary>The control card (zoom, layers, history, actions); hidden when the map is filmed rather than played.</summary>
     public bool ShowsControls
     {
@@ -188,6 +194,11 @@ public partial class MapHudView : Control
         {
             Godot.Vector3 at;
             int priority;
+            if (tag is SettlementTag unnamed && NamesOnly is { } names && !names(unnamed.Settlement) || tag is ArmyTag && !NamesArmies)
+            {
+                boxes.Add(new LabelBox(-1e5f, -1e5f, 0, 0, 0));
+                continue;
+            }
             if (tag is SettlementTag s)
             {
                 at = Diorama.ToGodot(Client.Projection.ToBlock(grid, s.Settlement.Position!, 0.02f));
@@ -209,7 +220,7 @@ public partial class MapHudView : Control
             var behind = Host.Diorama.Camera.IsPositionBehind(at);
             boxes.Add(behind ? new LabelBox(-1e5f, -1e5f, 0, 0, 0) : new LabelBox(tag.Position.X, tag.Position.Y, tag.Size.X, tag.Size.Y, priority));
         }
-        var visible = Declutter.Visible(boxes, GetViewportRect().Size.X, GetViewportRect().Size.Y, Reserved(this, "Card", "Intro", "Legend"));
+        var visible = Declutter.Visible(boxes, GetViewportRect().Size.X, GetViewportRect().Size.Y, Reserved(this, "Card", "Intro", "Legend", "Log"));
         for (var i = 0; i < tags.Count; i++) tags[i].Visible = visible[i];
     }
 

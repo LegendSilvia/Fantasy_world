@@ -88,7 +88,7 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.chunks != '' && needs.prepare.outputs.chunks != '[]'
     runs-on: ubuntu-latest
-    # About a second a frame at 720p: a 20-second stretch films in ~8 minutes, plus ~2 for the setup.
+    # About two seconds a frame at 1080p: a 12-second stretch films in ~10 minutes, plus ~2 for the setup.
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -139,8 +139,8 @@ jobs:
           from=$(jq -r ".chunks[] | select(.index == $CHUNK) | .from" <<< "$PLAN")
           to=$(jq -r ".chunks[] | select(.index == $CHUNK) | .to" <<< "$PLAN")
           echo "Filming stretch $CHUNK: $from–$to s."
-          timeout 1400 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path game \
-            --rendering-driver vulkan --rendering-method forward_plus --resolution 1280x720 --fixed-fps 24 \
+          timeout 1400 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path game \
+            --rendering-driver vulkan --rendering-method forward_plus --resolution 1920x1080 --fixed-fps 24 \
             res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$RUNNER_TEMP/shots.json" \
             --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames"
       - name: Encode and store the stretch

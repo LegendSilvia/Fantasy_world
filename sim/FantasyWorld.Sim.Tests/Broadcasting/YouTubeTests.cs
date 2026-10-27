@@ -107,7 +107,7 @@ public class YouTubeTests : IDisposable
     [Fact]
     public async Task TheDioramaFilm_IsJoined_WhenEveryStretchWasFilmed_ElseTheMapPans()
     {
-        var timeline = new FantasyWorld.Broadcast.Speech.Timeline(30, [new("Opening", 0), new("Headline", 8), new("Until tomorrow", 25)]);
+        var timeline = new FantasyWorld.Broadcast.Speech.Timeline(24, [new("Opening", 0), new("Headline", 8), new("Until tomorrow", 18)]);
         await FantasyWorld.Broadcast.Speech.Chapters.SaveAsync(_store, "2026-10-27", timeline);
         var plan = DioramaFilm.Chunks(timeline);
         Assert.Equal(3, plan.Count);
