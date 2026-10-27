@@ -179,8 +179,21 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           # needrestart scans every running service after the install, which can take minutes on these runners.
           NEEDRESTART_SUSPEND: '1'
-        # Removing man-db's auto-update stops apt rebuilding the manual index, which takes many minutes on these runners.
-        run: command -v ffmpeg || (sudo rm -f /var/lib/man-db/auto-update && sudo -E apt-get update -qq && sudo -E apt-get install -y -qq --no-install-recommends ffmpeg)
+        # Only Ubuntu's own package lists are refreshed (the runner's extra repositories are where apt has hung), each
+        # attempt is cut off at four minutes and tried once more; man-db's auto-update is removed so apt does not
+        # rebuild its manual index.
+        run: |
+          command -v ffmpeg && exit 0
+          sudo rm -f /var/lib/man-db/auto-update
+          only=()
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            mkdir -p "$RUNNER_TEMP/apt-sources" && cp /etc/apt/sources.list.d/ubuntu.sources "$RUNNER_TEMP/apt-sources/"
+            only=(-o Dir::Etc::sourcelist=/dev/null -o "Dir::Etc::sourceparts=$RUNNER_TEMP/apt-sources")
+          fi
+          install() {
+            timeout 240 sudo -E apt-get update -qq "${only[@]}" && timeout 240 sudo -E apt-get install -y -qq --no-install-recommends ffmpeg
+          }
+          install || install
       - name: Broadcast
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
