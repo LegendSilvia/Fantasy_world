@@ -31,9 +31,10 @@ public sealed partial class MilitarySystem : ISimSystem
     public void OnMonthlyTick(SimContext ctx)
     {
         var world = ctx.World;
-        foreach (var war in world.Wars.Values.Where(w => !w.Ended).ToList())
+        // A war still mustering raises no host; once its year is out, both sides raise theirs at once.
+        foreach (var war in world.Wars.Values.Where(w => !w.Ended && !w.Mustering(ctx.Date)).ToList())
             foreach (var realmId in war.Attackers.Concat(war.Defenders).ToList())
-                if (world.Realms[realmId] is { Destroyed: false } realm && ArmyOf(world, war, realm) is null && (ctx.Date.Month % 6 == 1 || war.StartDay >= ctx.Date.Day - 30))
+                if (world.Realms[realmId] is { Destroyed: false } realm && ArmyOf(world, war, realm) is null && (ctx.Date.Month % 6 == 1 || war.OpenDay >= ctx.Date.Day - 30))
                     Mobilise(ctx, war, realm);
 
         // Occupations lapse when occupier and sovereign are no longer at war (the land changed hands mid-war).

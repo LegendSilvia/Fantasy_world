@@ -34,6 +34,18 @@ public sealed class War
     public long DeclaredEventId { get; set; }
     public long StartDay { get; init; }
 
+    /// <summary>A declared war musters for a year and a day before any host is raised (sub-project 8 §4), so the
+    /// declaration is news in one episode and the fighting begins in the next. 0 (wars declared before this) fights at once.</summary>
+    public long HostilitiesDay { get; init; }
+
+    public const int MusterDays = Core.WorldDate.DaysPerYear + 1;
+
+    /// <summary>Still mustering: declared, but no host may yet be raised.</summary>
+    public bool Mustering(Core.WorldDate date) => date.Day < HostilitiesDay;
+
+    /// <summary>The day the fighting could begin: the end of the muster, or the declaration for older wars.</summary>
+    [JsonIgnore] public long OpenDay => Math.Max(StartDay, HostilitiesDay);
+
     /// <summary>−100…100, positive favours the attackers: occupations plus BattleScore.</summary>
     public double Score { get; set; }
 

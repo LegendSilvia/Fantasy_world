@@ -261,11 +261,21 @@ public sealed class DiplomacySystem : ISimSystem
             TargetRegionId = cb.TargetRegionId,
             TargetArtifactId = cb.TargetArtifactId,
             StartDay = ctx.Date.Day,
+            HostilitiesDay = ctx.Date.Day + War.MusterDays,
         };
+        // The odds as the realms stand at the declaration (sub-project 8 §4), for the preview of the war.
+        var (mine, theirs) = (Strength(world, attacker), Strength(world, defender));
+        var odds = mine + theirs > 0 ? mine / (mine + theirs) : 0.5;
         var declared = ctx.Emit(new EventDraft("WarDeclared",
             Actors: new Dictionary<string, EntityRef> { ["attacker"] = attacker.Ref, ["defender"] = defender.Ref, ["war"] = war.Ref },
             Place: world.Settlements[defender.CapitalId].Ref,
-            Payload: new Dictionary<string, string> { ["casus belli"] = cb.Kind, ["war"] = name },
+            Payload: new Dictionary<string, string>
+            {
+                ["casus belli"] = cb.Kind, ["war"] = name, ["odds"] = DeedsSystem.Percent(odds),
+                ["attacker strength"] = Math.Round(mine).ToString(CultureInfo.InvariantCulture),
+                ["defender strength"] = Math.Round(theirs).ToString(CultureInfo.InvariantCulture),
+                ["hostilities"] = war.HostilitiesDay.ToString(CultureInfo.InvariantCulture),
+            },
             Causes: WarCauses(ctx, attacker, defender, cbEvent),
             Importance: 70, Tags: new[] { "Politics", "War" }));
         war.DeclaredEventId = declared.Id;

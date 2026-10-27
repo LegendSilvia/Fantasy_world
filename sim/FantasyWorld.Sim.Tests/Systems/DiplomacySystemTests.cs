@@ -83,6 +83,32 @@ public class DiplomacySystemTests
     }
 
     [Fact]
+    public void ADeclaredWar_MustersForAYear_ShowingTheOdds_BeforeAnyHostIsRaised()
+    {
+        var world = TestRealms.TwoKingdoms();
+        var log = new EventLog();
+        Grudge(world, log, 1, 2);
+        var sim = new Simulator(world, log, new EventQueue(),
+            new ISimSystem[] { new DiplomacySystem(new Choose("war")), new MilitarySystem() }, checkInvariants: true);
+
+        sim.AdvanceDays(360);
+        var war = world.Wars.Values.Single();
+        var declared = sim.Log.Get(war.DeclaredEventId);
+        Assert.Equal(war.StartDay + War.MusterDays, war.HostilitiesDay);
+        Assert.InRange(int.Parse(declared.Payload["odds"]), 0, 100);
+        Assert.True(double.Parse(declared.Payload["attacker strength"]) > 0);
+
+        sim.AdvanceDays(War.MusterDays - 2);
+        Assert.True(war.Mustering(world.Date));
+        Assert.DoesNotContain(sim.Log.All, e => e.Type == "ArmyRaised");
+
+        sim.AdvanceDays(60);
+        var raised = sim.Log.All.Where(e => e.Type == "ArmyRaised").ToList();
+        Assert.NotEmpty(raised);
+        Assert.All(raised, e => Assert.True(e.Date.Day >= war.HostilitiesDay));
+    }
+
+    [Fact]
     public void Zealots_ProclaimHolyWar_AgainstOtherFaiths()
     {
         var world = TestRealms.TwoKingdoms();
