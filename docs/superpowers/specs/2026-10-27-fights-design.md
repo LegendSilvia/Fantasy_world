@@ -1,6 +1,6 @@
 # Fantasy World — Fights: Declared, Fought, Told (sub-project 8)
 
-**Status:** draft for review · **Asked by:** the owner, 2026-10-27 · **Builds on:** the sim's agency and war systems, the
+**Status:** B1 and B2 built (2026-10-27); B3 to do · **Asked by:** the owner, 2026-10-27 · **Builds on:** the sim's agency and war systems, the
 LLM gateway and arbiter (Plans 5–6), the daily broadcast (sub-project 6) and the episode film (sub-project 7)
 
 ## 1. Purpose
