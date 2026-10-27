@@ -88,6 +88,7 @@ public class DailyRunTests : IDisposable
             var brief = request.Prompt;
             var script = brief[(brief.IndexOf('\n') + 1)..brief.LastIndexOf("</brief>", StringComparison.Ordinal)].Trim();
             var sections = System.Text.RegularExpressions.Regex.Split(script, @"(?:^|\n\n)\[\d+\] ").Where(t => t.Length > 0)
+                .Select(t => System.Text.RegularExpressions.Regex.Replace(t, @"\n\((?:A scene to paint|Face-off figures|The war's moves)[\s\S]*$", ""))
                 .Select(t => t.Replace("Elsewhere in the chronicle:", "And elsewhere, in brief:")).ToList();
             return System.Text.Json.JsonSerializer.Serialize(new { sections });
         });

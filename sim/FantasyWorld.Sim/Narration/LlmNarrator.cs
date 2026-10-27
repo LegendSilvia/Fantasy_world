@@ -40,10 +40,11 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
                    + "headings, numbers of sections, lists, markup or stage directions, no dates written as digits other than the years given. "
                    + "Name no one and nothing the brief does not name, and give no number it does not give: work out no counts, ages or spans "
                    + $"of years. At most {maxCharacters} characters in all. "
-                   + "Separately, in scenes, one entry per section in the same order: for each section the brief marks with a fight "
-                   + "to paint, a still picture of that fight for a painter, in one or two sentences (who in what colours, the ground and "
-                   + "light, the decisive moment, the mood), with no names and no words or letters in the picture; an empty string for "
-                   + "every other section. The scenes are never read aloud.";
+                   + "Separately, in scenes, one entry per section in the same order: for each section the brief marks with a scene "
+                   + "to paint, a still picture of the moment that section tells, for a painter, in one or two sentences (for a fight, "
+                   + "who in what colours and the decisive clash; otherwise the place, the people in it as the story has them, the "
+                   + "light and the mood), with no names and no words or letters in the picture; an empty string for every other "
+                   + "section. The scenes are never read aloud.";
         // A script much shorter than the template has dropped stories: that is a failed answer, not a retelling.
         var minimum = episode.Script.Length * 3 / 5;
         // Names (some invented by the LLM earlier) enter the prompt only as data, section by section (spec §8.6).
@@ -51,8 +52,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         // A war's moves go with its section likewise, in the order they were made.
         string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures(), 1200)})" : "")
                                             + (p.Moves is { Count: > 0 } m ? $"\n(The war's moves:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "");
-        // A fight to paint is marked with the template's picture of it, for the chronicler's own (sub-project 8, stills).
-        string Paint(EpisodeSection p) => p.Scene is { } scene ? $"\n(A fight to paint; as the facts show it: {PromptText.Data(scene, FightScenes.MaxCharacters)})" : "";
+        // A scene to paint is marked with the template's picture of it, for the chronicler's own (the episode's stills).
+        string Paint(EpisodeSection p) => p.Scene is { } scene ? $"\n(A scene to paint; as the facts show it: {PromptText.Data(scene, Stills.MaxCharacters)})" : "";
         var brief = string.Join("\n\n", parts.Select((p, i) => $"[{i + 1}] "
             + string.Join("\n\n", p.Text.Split("\n\n").Select(paragraph => PromptText.Data(paragraph, maxCharacters))) + Figures(p) + Paint(p)));
         var facts = Episode.ScriptOf(parts) + string.Concat(parts.Select(Figures));
@@ -78,12 +79,12 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             : null;
         var answer = story.Gateway.Ask(request, story.World.Date.Day, json => Why(json) is null, whyInvalid: json => Why(json) ?? "");
         if (answer is null || Sections(answer, parts.Count) is not { } written) return episode;
-        // The chronicler's picture of each marked fight replaces the template's; a missing or overlong one keeps it.
+        // The chronicler's picture of each marked scene replaces the template's; a missing or overlong one keeps it.
         var scenes = Scenes(answer, parts.Count);
         var sections = parts.Select((p, i) => p with
         {
             Text = written[i],
-            Scene = p.Scene is not null && scenes?[i] is { Length: > 0 and <= FightScenes.MaxCharacters } painted ? painted : p.Scene,
+            Scene = p.Scene is not null && scenes?[i] is { Length: > 0 and <= Stills.MaxCharacters } painted ? painted : p.Scene,
         }).ToList();
         return episode with { Script = Episode.ScriptOf(sections), Sections = sections, Writer = Episode.ChroniclerWriter };
     }

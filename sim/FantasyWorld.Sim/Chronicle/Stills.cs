@@ -6,14 +6,16 @@ using FantasyWorld.Sim.Query;
 namespace FantasyWorld.Sim.Chronicle;
 
 /// <summary>
-/// The fights an episode shows as a still image (the owner, 2026-10-27): a duel fought or turning, an army clash. The
-/// section telling one carries a description of the picture for the image API, never read aloud: the template's, from the
-/// facts, which the chronicler (Claude) may replace with its own. Names are left out; a painter cannot draw a name.
+/// The still images an episode shows (the owner, 2026-10-27): each fight told (a duel fought or turning, an army clash)
+/// and, for the storytelling, the scene of other stories. The section telling one carries a description of the picture
+/// for the image API, never read aloud: the template's, from the facts (a fight's clash; otherwise the place where it
+/// happened), which the chronicler (Claude) replaces with its own picture of the moment. Names are left out; a painter
+/// cannot draw a name.
 /// </summary>
-public static class FightScenes
+public static class Stills
 {
-    /// <summary>At most this many stills an episode, the first fights told.</summary>
-    public const int PerEpisode = 2;
+    /// <summary>At most this many stills an episode: the fights first, then the other stories in the order told.</summary>
+    public const int PerEpisode = 4;
 
     public static readonly IReadOnlySet<string> Fights = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -23,10 +25,13 @@ public static class FightScenes
     /// <summary>The longest description kept (the image API takes 2,048 characters).</summary>
     public const int MaxCharacters = 600;
 
-    /// <summary>The picture of a fight, from the facts: who in what colours, the ground, the moment; null if not a fight.</summary>
+    /// <summary>
+    /// The picture of a story, from the facts: a fight's clash (who in what colours, the ground, the moment); otherwise the
+    /// place where it happened. Null when the story has no place to paint.
+    /// </summary>
     public static string? Describe(World world, WorldEvent ev)
     {
-        if (!Fights.Contains(ev.Type)) return null;
+        if (!Fights.Contains(ev.Type)) return Scenery(world, ev);
         var ground = Ground(world, ev);
         if (ev.Type.StartsWith("Duel", StringComparison.Ordinal))
         {
@@ -41,6 +46,22 @@ public static class FightScenes
         var banners = realms.Count == 2 ? $"banners in {realms[0]} against banners in {realms[1]}" : "two hosts under rival banners";
         return $"two medieval armies clashing, {banners}, shield walls and a cavalry charge, spears and dust, {ground}, "
                + "the height of the battle, epic wide view, medieval fantasy";
+    }
+
+    /// <summary>The place a story happened, as a landscape: the settlement by its size and walls, its land; null if none.</summary>
+    private static string? Scenery(World world, WorldEvent ev)
+    {
+        if (ev.Place is not { } place) return null;
+        var town = place.Kind == Settlement.Kind && world.Settlements.TryGetValue(place.Id, out var s)
+            ? s.Tier switch
+            {
+                SettlementTier.City => "a great walled city of towers and spires",
+                SettlementTier.Town => s.Walls > 0 ? "a walled market town" : "a busy market town",
+                SettlementTier.Village => "a village of thatched houses",
+                _ => "a lonely hamlet",
+            }
+            : place.Kind == Region.Kind ? "a wide landscape" : null;
+        return town is null ? null : $"{town} {Ground(world, ev)}, a moment of quiet drama, wide view, hand-painted storybook scenery, medieval fantasy";
     }
 
     private static string Dress(World world, EntityRef? who) =>
@@ -71,19 +92,15 @@ public static class FightScenes
         };
     }
 
-    /// <summary>The sections that get a picture: the first fights told, each with the template's description.</summary>
+    /// <summary>The sections that get a picture, each with the template's description: the fights told first, then other stories.</summary>
     public static IReadOnlyList<EpisodeSection> Mark(World world, EventLog log, IReadOnlyList<EpisodeSection> sections)
     {
-        var marked = 0;
-        return sections.Select(s => marked < PerEpisode && s.Kind is EpisodeSection.Headline or EpisodeSection.Story
-                                    && s.EventId != 0 && log.TryGet(s.EventId, out var ev) && Describe(world, ev) is { } scene
-            ? Count(s with { Scene = scene })
-            : s).ToList();
-
-        EpisodeSection Count(EpisodeSection s)
-        {
-            marked++;
-            return s;
-        }
+        var scenes = sections.Select(s => s.Kind is EpisodeSection.Headline or EpisodeSection.Story && s.EventId != 0 && log.TryGet(s.EventId, out var ev)
+                ? (Fight: Fights.Contains(ev.Type), Scene: Describe(world, ev))
+                : (Fight: false, Scene: null))
+            .ToList();
+        var chosen = scenes.Select((x, i) => (x.Fight, x.Scene, Index: i)).Where(x => x.Scene is not null)
+            .OrderByDescending(x => x.Fight).ThenBy(x => x.Index).Take(PerEpisode).Select(x => x.Index).ToHashSet();
+        return sections.Select((s, i) => chosen.Contains(i) ? s with { Scene = scenes[i].Scene } : s).ToList();
     }
 }

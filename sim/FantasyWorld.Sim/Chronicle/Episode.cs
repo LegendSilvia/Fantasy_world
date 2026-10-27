@@ -143,7 +143,7 @@ public sealed record Episode(
         }
         if (ScriptOf(sections).Length > maxCharacters && comment is not null) sections = Write(keep, null);
 
-        sections = FightScenes.Mark(world, log, sections);
+        sections = Stills.Mark(world, log, sections);
         return new Episode(date, name, chronicler.Name, fromYear, toYear, events.Count, events.Count > 0 ? events[0].Id : 0,
             events.Count > 0 ? events[^1].Id : sinceEventId, coldOpen, headline, body, keep, why, signOff, ScriptOf(sections),
             Sections: sections);

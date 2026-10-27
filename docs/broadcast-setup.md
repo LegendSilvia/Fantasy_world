@@ -93,16 +93,18 @@ live broadcast. Without the token the site job is skipped; a failure in it never
 When a duel or a war is declared, the film shows a face-off: the map blurs behind a card of both sides' figures, with a
 full-figure portrait of each duellist, or each realm's war banner, standing either side. The images come from your FLUX
 image API (`images.baseUrl`) and are made once, then kept in the bucket (`live/images/`) and reused whenever that person
-or realm is shown again.
+or realm is shown again; a person is drawn anew in each new decade of age and after a major change (a new role, new
+scars, new colours), a realm's banner when its rank, colours or government change.
 
 1. Add the API's access key as the repository secret `FLUX_ACCESS_KEY` (GitHub → Settings → Secrets and variables →
    Actions). Paste it there only, never anywhere else.
 2. That is all: the next episode with a face-off makes its images. If the API says its day is spent (429), no more are
    asked for that morning and nothing is retried; the card goes out without them.
 
-The same key paints a **still image of each fight** the episode tells (a duel fought, an army clash), two at most: the
-chronicler (Claude) describes the picture as it writes the script (no names, never read aloud), or the facts do when it
-cannot, and the film holds the still over the blurred map while that section is told (for a battle that also tells its
+The same key paints **still images for the storytelling**, four an episode at most: each fight told first (a duel fought,
+an army clash), then the scene of other stories. The chronicler (Claude) describes each picture as it writes the script
+(no names, never read aloud), or the facts do when it cannot (a fight's clash; otherwise the town and land where it
+happened), and the film holds the still over the blurred map while that section is told (for a battle that also tells its
 war's moves, the still first, then the moves on the map). Stills are kept as `live/images/scene-<event>.png`.
 
 Without the key, no image is made and the cards show only images already kept.

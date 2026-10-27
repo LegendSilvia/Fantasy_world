@@ -44,14 +44,16 @@ public class LikenessTests
         Assert.StartsWith($"images/char-{strong.Id}-", f.A.Image);
         Assert.NotNull(await store.GetAsync(f.A.Image!));
         // A full figure, standing beside the card, seeded by the person, the subject only.
-        Assert.All(maker.Asked, r => Assert.Equal(("character", "hand-painted", true), (r.Scenario, r.Style, r.Transparent)));
-        Assert.Equal([strong.Id, sly.Id], maker.Asked.Select(r => r.Seed));
+        var portraits = maker.Asked.Where(r => r.Scenario == "character").ToList();
+        Assert.All(portraits, r => Assert.Equal(("hand-painted", true), (r.Style, r.Transparent)));
+        Assert.Equal([strong.Id, sly.Id], portraits.Select(r => r.Seed));
         Assert.All(maker.Asked, r => Assert.DoesNotMatch("(?i)background|transparen|frame|portrait of", r.Prompt));
-        Assert.Contains("man in his thirties", maker.Asked[0].Prompt);
+        Assert.Contains("man in his thirties", portraits[0].Prompt);
 
         // The next time these two are shown, nothing is made again; the index says when each was last used.
+        var asked = maker.Asked.Count;
         var again = await Likenesses.AttachAsync(episode, world, store, maker, "hand-painted", "2026-10-29", _ => Task.FromResult(true), output);
-        Assert.Equal(2, maker.Asked.Count);
+        Assert.Equal(asked, maker.Asked.Count);
         Assert.Equal(f.A.Image, again.Parts.Single(p => p.FaceOff is not null).FaceOff!.A.Image);
         Assert.Equal("2026-10-29", (await Likenesses.IndexAsync(store))[f.A.Image!].LastUsed);
     }
@@ -205,7 +207,7 @@ public class LikenessTests
 
         var written = Narrator(new { sections = episode.Parts.Select(p => p.Text), scenes = episode.Parts.Select(p => p.Scene is null ? "" : painted) }, out var fake)
             .EpisodeScript(episode, 20_000);
-        Assert.Contains("A fight to paint", fake.Requests.Single().Prompt);
+        Assert.Contains("A scene to paint", fake.Requests.Single().Prompt);
         Assert.Equal(painted, written.Parts.Single(p => p.Scene is not null).Scene);
         Assert.DoesNotContain(painted, written.Script);
 
@@ -234,5 +236,19 @@ public class LikenessTests
         at31.Role = Role.Knight;
         Assert.NotEqual(scarred, Likenesses.KeyFor(world, at31.Ref.ToString()));
         Assert.Equal("in great old age", Likenesses.Decade(84));
+    }
+
+    [Fact]
+    public void OtherStories_GetTheirScenery_AfterTheFights_FourAtMost()
+    {
+        var (world, log, _, _) = ADuelFought();
+        var town = world.Settlements.Values.First();
+        for (var i = 0; i < 6; i++)
+            log.Append(world.Date, new EventDraft("FestivalHeld", Place: town.Ref, Importance: 20 + i));
+        var episode = Episode.Build(world, log, 0, "2026-10-27", stories: 8, maxCharacters: 4000);
+        var painted = episode.Parts.Where(p => p.Scene is not null).ToList();
+        Assert.InRange(painted.Count, 2, Stills.PerEpisode);
+        Assert.Contains(painted, p => log.All.Single(e => e.Id == p.EventId).Type == "DuelFought");
+        Assert.Contains(painted, p => p.Scene!.Contains("medieval fantasy") && !p.Scene.Contains("duellists"));
     }
 }
