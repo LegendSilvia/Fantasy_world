@@ -46,6 +46,7 @@ public static class Categories
         ["BattleJoined"] = "Battle joined",
         ["BattleTurned"] = "The battle goes on",
         ["BattleBrokenOff"] = "Battle broken off",
+        ["ArmyMoved"] = "On the march",
         ["LabyrinthOpened"] = "Labyrinth",
         ["LandmarkCompleted"] = "Landmark",
         ["EraBegan"] = "A new era",

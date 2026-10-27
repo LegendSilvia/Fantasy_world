@@ -8,9 +8,10 @@ namespace FantasyWorld.Sim.Systems;
 /// <summary>
 /// Armies and campaigns (spec §6 "Campaign flow"), monthly: every realm at war raises an army (levies
 /// from its settlements, men-at-arms its treasury can hire, its knights and mages, led by its marshal);
-/// armies take orders (besiege the war's target or the nearest enemy holding; defend against invaders),
-/// march along the region graph (30 travel days a month), forage or draw supply, pay upkeep, and suffer
-/// attrition and desertion. Battles, sieges and peace live in the other parts of this class.
+/// armies take orders (take the enemy holdings on the way to the war's target, nearest first; defend against invaders),
+/// make one move a month to a neighbouring region along army roads that go round mountains or through their passes
+/// (sub-project 10, <see cref="Campaigns"/>), forage or draw supply, pay upkeep, and suffer attrition and desertion.
+/// Battles, sieges and peace live in the other parts of this class.
 /// </summary>
 public sealed partial class MilitarySystem : ISimSystem
 {
@@ -66,7 +67,7 @@ public sealed partial class MilitarySystem : ISimSystem
             if (!army.Engaged(ctx.Date))
             {
                 GiveOrders(world, army);
-                March(world, army);
+                March(ctx, army);
             }
             Provision(ctx, army);
         }
@@ -151,22 +152,26 @@ public sealed partial class MilitarySystem : ISimSystem
 
     /// <summary>
     /// Orders, in priority: a beaten army goes home (and rejoins the war once its morale recovers); anyone meets a host of
-    /// this war standing in their side's land; then retakes their side's occupied land; attackers besiege the war's
-    /// target, else the nearest enemy holding; strong defenders strike back.
+    /// this war standing in their side's land; then retakes their side's occupied land; attackers take the enemy holdings
+    /// on the way to the war's target, the nearest first, so the front creeps forward (sub-project 10); strong defenders
+    /// strike back. Distances are army roads: a holding behind mountains without a pass cannot be a goal. The army is
+    /// given only its next move, a step to a neighbouring region; the rest of the way is chosen again as the war unfolds.
     /// </summary>
     private static void GiveOrders(World world, Army army)
     {
         var war = world.Wars[army.WarId];
         var realm = world.Realms[army.RealmId];
-        var graph = world.Geography!.Graph;
+        var (roads, _) = Campaigns.Roads(world, army.RegionId);
+        double Days(long region) => roads.TryGetValue(region, out var d) ? d : double.MaxValue;
         long target;
         var enemies = war.EnemiesOf(Side(war, realm));
         // Only hosts of this war: battles are fought between armies of the same war, so chasing another war's army would never end.
         var invader = Active(world).Where(a => a.WarId == war.Id && enemies.Contains(a.RealmId) && Friendly(world, war, realm, world.Regions[a.RegionId]))
-            .OrderBy(a => graph.ShortestPath(army.RegionId, a.RegionId)?.Days ?? double.MaxValue).ThenBy(a => a.Id).FirstOrDefault();
+            .Where(a => roads.ContainsKey(a.RegionId)).OrderBy(a => Days(a.RegionId)).ThenBy(a => a.Id).FirstOrDefault();
         var lost = world.Regions.Values.Where(r => r.OccupierRealmId != 0 && !Hostile(world, war, realm, r)
-                && !Friendly(world, war, realm, r) && Realms.SovereignOf(world, r) is { } owner && OurSide(war, realm).Contains(owner.Id))
-            .OrderBy(r => graph.ShortestPath(army.RegionId, r.Id)?.Days ?? double.MaxValue).ThenBy(r => r.Id).FirstOrDefault();
+                && !Friendly(world, war, realm, r) && Realms.SovereignOf(world, r) is { } owner && OurSide(war, realm).Contains(owner.Id)
+                && roads.ContainsKey(r.Id))
+            .OrderBy(r => Days(r.Id)).ThenBy(r => r.Id).FirstOrDefault();
         var home = world.Settlements[realm.CapitalId].RegionId;
         if (army.Objective == ArmyObjective.Return && army.RegionId == home && army.Morale >= 50)
             army.Objective = ArmyObjective.Defend; // regrouped at home: back to the war
@@ -186,35 +191,68 @@ public sealed partial class MilitarySystem : ISimSystem
         }
         else
         {
-            var goals = world.Regions.Values.Where(r => Hostile(world, war, realm, r) && world.LivingSettlements(r).Any()).ToList();
-            var preferred = goals.FirstOrDefault(r => r.Id == war.TargetRegionId);
-            var nearest = goals.OrderBy(r => graph.ShortestPath(army.RegionId, r.Id)?.Days ?? double.MaxValue).ThenBy(r => r.Id).FirstOrDefault();
-            var goal = war.IsAttacker(Side(war, realm)) ? preferred ?? nearest : invader is null && Strong(world, army) ? nearest : null;
+            var goals = world.Regions.Values.Where(r => Hostile(world, war, realm, r) && world.LivingSettlements(r).Any() && roads.ContainsKey(r.Id)).ToList();
+            var nearest = goals.OrderBy(r => Days(r.Id)).ThenBy(r => r.Id).FirstOrDefault();
+            // Attackers take what lies on the way to the war's target first: near, and nearer the target.
+            var (toTarget, _) = Campaigns.Roads(world, war.TargetRegionId);
+            var onTheWay = goals.OrderBy(r => Days(r.Id) + 0.5 * toTarget.GetValueOrDefault(r.Id, 0)).ThenBy(r => r.Id).FirstOrDefault();
+            var goal = war.IsAttacker(Side(war, realm)) ? onTheWay : invader is null && Strong(world, army) ? nearest : null;
             target = goal?.Id ?? world.Settlements[realm.CapitalId].RegionId;
             army.Objective = goal is null ? ArmyObjective.Defend : ArmyObjective.Siege;
         }
+        // A move under way is kept while the goal holds; otherwise the next move is the first step of the road there.
         if (target == army.TargetRegionId && (army.Path.Count > 0 || army.RegionId == target)) return;
         army.TargetRegionId = target;
         army.Path.Clear();
         army.DaysToNext = 0;
-        if (graph.ShortestPath(army.RegionId, target) is { } route) army.Path.AddRange(route.Path.Skip(1));
+        if (target != army.RegionId && Campaigns.Road(world, army.RegionId, target) is { Path.Count: > 1 } road) army.Path.Add(road.Path[1]);
     }
 
-    private static void March(World world, Army army)
+    /// <summary>
+    /// One move: the army marches on towards the neighbouring region its orders name, arriving once the way's days are
+    /// spent (a hard pass may take more than a month), and goes no further that month. A way found closed (mountains
+    /// without a pass) is given up, and new orders follow. Each arrival is recorded as a move.
+    /// </summary>
+    private static void March(SimContext ctx, Army army)
     {
-        var budget = (double)MarchDaysPerMonth;
-        var graph = world.Geography!.Graph;
-        while (army.Path.Count > 0 && budget > 0)
+        var world = ctx.World;
+        if (army.Path.Count == 0) return;
+        var from = army.RegionId;
+        if (army.DaysToNext <= 0)
         {
-            if (army.DaysToNext <= 0) army.DaysToNext = graph.Between(army.RegionId, army.Path[0])?.TravelDays ?? 1;
-            var step = Math.Min(budget, army.DaysToNext);
-            army.DaysToNext -= step;
-            budget -= step;
-            if (army.DaysToNext > 0) break;
-            army.RegionId = army.Path[0];
-            army.Path.RemoveAt(0);
-            if (EnemyArmyIn(world, army, army.RegionId)) break;
+            if (world.Geography!.Graph.Between(from, army.Path[0]) is not { } link || Campaigns.StepDays(world, link, from) is not { } days)
+            {
+                army.Path.Clear();
+                army.TargetRegionId = 0;
+                return;
+            }
+            army.DaysToNext = days;
         }
+        army.DaysToNext -= MarchDaysPerMonth;
+        if (army.DaysToNext > 0) return;
+        army.DaysToNext = 0;
+        army.RegionId = army.Path[0];
+        army.Path.RemoveAt(0);
+        Moved(ctx, army, from);
+    }
+
+    /// <summary>
+    /// A move made (sub-project 10): the host, its realm and war, whence it came and where it stands. Crossing into the
+    /// enemy's land is news; a step through one's own is a line in the chronicle that later years condense away.
+    /// </summary>
+    private static void Moved(SimContext ctx, Army army, long from)
+    {
+        var world = ctx.World;
+        var war = world.Wars[army.WarId];
+        var realm = world.Realms[army.RealmId];
+        var (before, now) = (world.Regions[from], world.Regions[army.RegionId]);
+        var into = Hostile(world, war, realm, now) ? "enemy" : Friendly(world, war, realm, now) ? "own" : "neutral";
+        var invades = into == "enemy" && !Hostile(world, war, realm, before);
+        ctx.Emit(new EventDraft("ArmyMoved",
+            Actors: new Dictionary<string, EntityRef> { ["army"] = army.Ref, ["realm"] = realm.Ref, ["war"] = war.Ref, ["from"] = before.Ref },
+            Place: now.Ref,
+            Payload: new Dictionary<string, string> { ["into"] = into, ["objective"] = army.Objective.ToString().ToLowerInvariant() },
+            Importance: invades ? 26 : 6, Tags: new[] { "War" }));
     }
 
     /// <summary>Supply from friendly land is paid for; in enemy land the army forages and devastates.</summary>
@@ -269,13 +307,6 @@ public sealed partial class MilitarySystem : ISimSystem
         var theirs = war.IsAttacker(realm.Id) ? war.Defenders : war.Attackers;
         var ours = war.IsAttacker(realm.Id) ? war.Attackers : war.Defenders;
         return Realms.SovereignOf(world, region) is { } owner && theirs.Contains(owner.Id) && !ours.Contains(region.OccupierRealmId);
-    }
-
-    private static bool EnemyArmyIn(World world, Army army, long regionId)
-    {
-        var war = world.Wars[army.WarId];
-        var enemies = war.EnemiesOf(Side(war, world.Realms[army.RealmId]));
-        return Active(world).Any(a => a.RegionId == regionId && a.WarId == war.Id && enemies.Contains(a.RealmId));
     }
 
     /// <summary>Two realms fight on opposite sides of some ongoing war.</summary>

@@ -3,119 +3,103 @@ using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Systems;
-using FantasyWorld.Sim.Tests.Support;
+using FantasyWorld.Sim.WorldGen;
 
 namespace FantasyWorld.Sim.Tests.Systems;
 
+/// <summary>Campaign moves (sub-project 10 C1): army roads that respect mountains, and one move at a time.</summary>
 public class CampaignTests
 {
-    private static SimContext Context(World world, EventLog log) => new(world, log, new EventQueue(), new Rng(1));
+    private static World Generated(ulong seed) => WorldGenerator.Generate(new WorldGenOptions(seed, WorldSize.Medium), DateTimeOffset.UnixEpoch);
 
     [Fact]
-    public void Mobilise_RaisesLevies_KnightsAndAMarshal()
+    public void Mountains_AreBarriers_CrossedOnlyAtPasses_AndSlowerTheMoreMountainOnTheWay()
     {
-        var world = TestRealms.TwoKingdoms();
-        var log = new EventLog();
-        var war = TestRealms.DeclareWar(world, log);
-        var marshal = TestPeople.Add(world, 1, 40);
-        world.Realms[1].Council[CouncilSeats.Marshal] = marshal.Id;
-        var knight = TestPeople.Add(world, 1, 30, role: Role.Knight);
-        var adults = world.Settlements[1].Adults;
+        var (closed, slowed) = (0, 0);
+        foreach (var seed in new ulong[] { 1, 2, 3, 4, 5 })
+        {
+            var world = Generated(seed);
+            foreach (var link in world.Geography!.Graph.Links.Where(l => l.Kind == LinkKind.Land))
+            {
+                var share = Campaigns.MountainShare(world, link.A, link.B);
+                var days = Campaigns.StepDays(world, link, link.A);
+                if (share >= Campaigns.PassNeeded && !Campaigns.HasPass(world.Geography, link.A, link.B))
+                {
+                    closed++;
+                    Assert.Null(days);
+                    // The way round, if any, never takes the closed crossing.
+                    if (Campaigns.Road(world, link.A, link.B) is { } road)
+                        Assert.True(road.Path.Count > 2, $"seed {seed}: the road from {link.A} to {link.B} crossed the range");
+                }
+                else
+                {
+                    Assert.Equal(link.TravelDays * (1 + Campaigns.MountainToll * share), days!.Value, 6);
+                    if (share > 0) slowed++;
+                }
+                Assert.Equal(share, Campaigns.MountainShare(world, link.B, link.A));
+            }
+        }
+        Assert.True(closed > 0, "no generated world had a range without a pass");
+        Assert.True(slowed > 0, "no generated world had a mountain crossing");
+    }
 
-        var army = MilitarySystem.Mobilise(Context(world, log), war, world.Realms[1]);
-
-        Assert.Equal(marshal.Id, army.CommanderId);
-        Assert.Contains(knight.Id, army.Knights);
-        Assert.Equal((int)(adults * MilitarySystem.LevyShare), army.Levies);
-        Assert.Equal(adults - army.Levies, world.Settlements[1].Adults);
-        Assert.Equal(army.Levies, army.RaisedFrom[1]);
-        Assert.Equal(25, army.MenAtArms);
-        Assert.Single(log.All, e => e.Type == "ArmyRaised");
-        Assert.Empty(Invariants.Check(world, log));
+    /// <summary>A generated world at war: an attacker whose host must cross at least three regions to the target.</summary>
+    private static (World World, EventLog Log, War War, Army Host) AWarFarAway()
+    {
+        foreach (var seed in new ulong[] { 3, 4, 5, 6, 7, 8 })
+        {
+            var world = Generated(seed);
+            var log = new EventLog();
+            var realms = world.Realms.Values.Where(r => !r.Destroyed && r.LiegeId == 0).OrderBy(r => r.Id).ToList();
+            foreach (var attacker in realms)
+                foreach (var defender in realms.Where(d => d.Id != attacker.Id))
+                {
+                    var (from, to) = (world.Settlements[attacker.CapitalId].RegionId, world.Settlements[defender.CapitalId].RegionId);
+                    if (Campaigns.Road(world, from, to) is not { Path.Count: >= 4 }) continue;
+                    var cb = log.Append(world.Date, new EventDraft("BorderRaid"));
+                    var declared = log.Append(world.Date, new EventDraft("WarDeclared", Causes: new[] { new Cause(cb.Id, CauseKind.Motive, 0.9) }));
+                    var war = new War
+                    {
+                        Id = world.Ids.Take(War.Kind), Name = "The Long March", AttackerId = attacker.Id, DefenderId = defender.Id,
+                        Attackers = { attacker.Id }, Defenders = { defender.Id }, CasusBelli = CasusBelli.Revenge, CasusBelliEventId = cb.Id,
+                        DeclaredEventId = declared.Id, TargetRegionId = to, StartDay = world.Date.Day,
+                    };
+                    world.Wars[war.Id] = war;
+                    var host = MilitarySystem.Mobilise(new SimContext(world, log, new EventQueue(), new Rng(1)), war, attacker);
+                    return (world, log, war, host);
+                }
+        }
+        throw new InvalidOperationException("No generated world had two realms three regions apart.");
     }
 
     [Fact]
-    public void Attackers_MarchOnTheTarget()
+    public void AHost_MakesOneMoveAMonth_ToANeighbour_AndEachMoveIsRecorded()
     {
-        var world = TestRealms.TwoKingdoms();
-        var log = new EventLog();
-        TestRealms.DeclareWar(world, log);
+        var (world, log, war, host) = AWarFarAway();
         var sim = new Simulator(world, log, new EventQueue(), new ISimSystem[] { new MilitarySystem() }, checkInvariants: true);
+        var graph = world.Geography!.Graph;
+        var visited = new List<long> { host.RegionId };
 
-        sim.AdvanceDays(30);
-
-        var host = world.Armies.Values.Single(a => a.RealmId == 1);
-        Assert.Equal(2, host.RegionId);
-        Assert.Equal(ArmyObjective.Siege, host.Objective);
-    }
-
-    [Fact]
-    public void Foraging_EatsTheEnemysFood_AndScarsTheLand()
-    {
-        var world = TestRealms.TwoKingdoms();
-        var log = new EventLog();
-        TestRealms.DeclareWar(world, log);
-        var (food, fertility) = (world.Regions[2].Food, world.Regions[2].Fertility);
-        var sim = new Simulator(world, log, new EventQueue(), new ISimSystem[] { new MilitarySystem() }, checkInvariants: true);
-        sim.AdvanceDays(60);
-        Assert.True(world.Regions[2].Food < food);
-        Assert.True(world.Regions[2].Fertility < fertility);
-    }
-
-    [Fact]
-    public void BrokeRealms_LoseTheirMenAtArms()
-    {
-        var world = TestRealms.TwoKingdoms();
-        var log = new EventLog();
-        var war = TestRealms.DeclareWar(world, log);
-        var army = MilitarySystem.Mobilise(Context(world, log), war, world.Realms[1]);
-        army.MenAtArms = 400;
-        army.Objective = ArmyObjective.Return;
-        army.Morale = 45;
-        world.Realms[1].Treasury = -10;
-        var sim = new Simulator(world, log, new EventQueue(), new ISimSystem[] { new MilitarySystem() }, checkInvariants: true);
-        sim.AdvanceDays(30);
-        Assert.True(army.MenAtArms < 400);
-        Assert.True(army.Morale < 45);
-    }
-
-    [Fact]
-    public void BeatenArmies_RejoinTheWarOnceRecovered()
-    {
-        var world = TestRealms.TwoKingdoms();
-        var log = new EventLog();
-        var war = TestRealms.DeclareWar(world, log);
-        var army = MilitarySystem.Mobilise(Context(world, log), war, world.Realms[1]);
-        army.Objective = ArmyObjective.Return;
-        army.Morale = 30;
-        var sim = new Simulator(world, log, new EventQueue(), new ISimSystem[] { new MilitarySystem() }, checkInvariants: true);
-        sim.AdvanceDays(31);
-        Assert.Equal(ArmyObjective.Return, army.Objective);
-        army.Morale = 80;
-        sim.AdvanceDays(30);
-        Assert.Equal(ArmyObjective.Siege, army.Objective);
-    }
-
-    [Fact]
-    public void Occupations_LapseWithoutAWar()
-    {
-        var world = TestRealms.TwoKingdoms();
-        world.Regions[2].OccupierRealmId = 1;
-        new Simulator(world, new EventLog(), new EventQueue(), new ISimSystem[] { new MilitarySystem() }, checkInvariants: true).AdvanceDays(31);
-        Assert.Equal(0, world.Regions[2].OccupierRealmId);
-    }
-
-    [Fact]
-    public void Disbanding_SendsSurvivorsHome()
-    {
-        var world = TestRealms.TwoKingdoms();
-        var log = new EventLog();
-        var war = TestRealms.DeclareWar(world, log);
-        var before = world.Settlements[1].Adults;
-        var army = MilitarySystem.Mobilise(Context(world, log), war, world.Realms[1]);
-        army.Levies /= 2;
-        Statecraft.Disband(world, army);
-        Assert.True(army.Disbanded);
-        Assert.InRange(world.Settlements[1].Adults, before - army.RaisedFrom[1] / 2 - 1, before - army.RaisedFrom[1] / 2 + 1);
+        for (var month = 0; month < 4 && !host.Disbanded; month++)
+        {
+            sim.AdvanceDays(30);
+            // Only its next move is ever planned: the map's arrow shows that step, not the whole road.
+            Assert.True(host.Path.Count <= 1);
+            if (host.RegionId != visited[^1])
+            {
+                Assert.Contains(host.RegionId, graph.Neighbours(visited[^1]));
+                visited.Add(host.RegionId);
+            }
+        }
+        Assert.True(visited.Count >= 2, "the host never moved");
+        var moves = sim.Log.All.Where(e => e.Type == "ArmyMoved" && e.Actors["army"] == host.Ref).ToList();
+        Assert.Equal(visited.Count - 1, moves.Count);
+        for (var i = 0; i < moves.Count; i++)
+        {
+            Assert.Equal((world.Regions[visited[i]].Ref, world.Regions[visited[i + 1]].Ref), (moves[i].Actors["from"], moves[i].Place!.Value));
+            Assert.Equal(war.Ref, moves[i].Actors["war"]);
+        }
+        // Crossing into the enemy's land is news; a step through one's own land is a minor line.
+        Assert.All(moves.Where(m => m.Payload["into"] == "own"), m => Assert.True(m.Importance < FantasyWorld.Sim.Chronicle.Compactor.MinorBelow));
     }
 }

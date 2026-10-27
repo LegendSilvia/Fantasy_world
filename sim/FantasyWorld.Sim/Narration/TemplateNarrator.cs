@@ -89,6 +89,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["BattleJoined"] = "At {@place}, {attacker} and {defender} joined a battle of {war} that was not decided in a day.",
         ["BattleTurned"] = "The battle between {attacker} and {defender} at {@place} raged on.",
         ["BattleBrokenOff"] = "The battle between {attacker} and {defender} at {@place} was broken off.",
+        ["ArmyMoved"] = "{army} marched from {from} into {@place}.",
         ["EraBegan"] = "{=era} began.",
         ["FoodShortageBegan"] = "Food ran short in {@place}.",
         ["FriendshipFormed"] = "{a} and {b} became friends.",
@@ -171,6 +172,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["BattleJoined"] = new[] { "{attacker} and {defender} met at {@place} in {war}, and the field was not won that day." },
         ["BattleTurned"] = new[] { "At {@place}, the hosts of {attacker} and {defender} fought on." },
         ["BattleBrokenOff"] = new[] { "At {@place}, the fighting between {attacker} and {defender} broke off." },
+        ["ArmyMoved"] = new[] { "{army} left {from} and came to {@place}." },
         ["FriendshipFormed"] = new[] { "{a} and {b} grew close.", "A friendship grew between {a} and {b}." },
         ["RegionOccupied"] = new[] { "{@place} fell to {army}." },
         ["ArtifactInherited"] = new[] { "{artifact} passed to {heir}." },
@@ -243,6 +245,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
     {
         ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
+        ("ArmyMoved", e => e.Payload.GetValueOrDefault("into") == "enemy" && e.Importance > 20, "{army} crossed out of {from} into the enemy's land at {@place}."),
         ("WildMagic", e => e.Payload.GetValueOrDefault("dead") is null or "0", "Wild magic broke loose at {@place}: {=a:kind}."),
         ("WorksCollapsed", e => e.Payload.GetValueOrDefault("dead") == "0", "{structure} collapsed while it was being built."),
         ("PeaceSigned", e => e.Payload.GetValueOrDefault("outcome") == "white peace", "{war} ended with neither side the victor."),

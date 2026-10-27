@@ -1,6 +1,6 @@
 # Fantasy World — Campaign Moves (sub-project 10)
 
-**Status:** C1 in progress · **Asked by:** the owner, 2026-10-27 · **Builds on:** the war system (`MilitarySystem`), the
+**Status:** C1 built (2026-10-27): over 60 years of a medium world (seed 11) there are about half as many wars as before (42 against 88), each longer, all ended in peace, 147 regions ceded (222 before); C2–C3 to do · **Asked by:** the owner, 2026-10-27 · **Builds on:** the war system (`MilitarySystem`), the
 LLM decider, fights (sub-project 8), the episode film (sub-project 7)
 
 ## 1. Purpose
