@@ -12,7 +12,8 @@ using FantasyWorld.Sim.Persist;
 
 namespace FantasyWorld.Broadcast;
 
-public sealed record RunOptions(bool DryRun = false, bool Create = false);
+/// <param name="UploadPrivate">On a dry run, upload the staging video to YouTube as private (to try the upload by hand).</param>
+public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadPrivate = false);
 
 /// <summary>
 /// One morning's broadcast (spec §3): pull the world, back it up, catch it up, build the episode, push the episode and

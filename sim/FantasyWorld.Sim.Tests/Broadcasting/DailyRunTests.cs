@@ -456,7 +456,7 @@ public class DailyRunTests : IDisposable
         var env = new Dictionary<string, string>
         {
             ["DISCORD_TEST_WEBHOOK_URL"] = "https://discord.test/api/webhooks/9/SECRET-TOKEN",
-            ["YOUTUBE_CLIENT_ID"] = "id", ["YOUTUBE_CLIENT_SECRET"] = "s", ["YOUTUBE_REFRESH_TOKEN"] = "r", // a dry run never uploads
+            ["YOUTUBE_CLIENT_ID"] = "id", ["YOUTUBE_CLIENT_SECRET"] = "s", ["YOUTUBE_REFRESH_TOKEN"] = "r", // a dry run uploads only when asked (--upload-private)
         };
         var output = new StringWriter();
 
@@ -473,6 +473,12 @@ public class DailyRunTests : IDisposable
         Assert.Equal("discord.test", http.Seen[0].Request.RequestUri!.Host);
         Assert.False(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(DryRun: true), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Uploads);
         Assert.True(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Uploads);
+        // A dry run may be asked to try the upload; the video is then private, whatever broadcast.json says.
+        var tried = BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(DryRun: true, UploadPrivate: true), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!;
+        Assert.True(tried.Uploads);
+        Assert.Equal("private", tried.Privacy);
+        Assert.Equal("public", BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Privacy);
+        Assert.Equal(DailyRun.Failed, await BroadcastApp.RunAsync(["run", "--upload-private", "--local", _dir.Path], TextWriter.Null, () => Morning, env.GetValueOrDefault));
         var quiet = new StringWriter();
         Assert.Null(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), _ => null, new HttpClient(), quiet));
         Assert.Contains("YouTube secrets are not set", quiet.ToString());

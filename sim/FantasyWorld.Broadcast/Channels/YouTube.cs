@@ -55,6 +55,9 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
     /// <summary>Whether this channel uploads (an account is set) or only makes the video (dry runs).</summary>
     public bool Uploads => account is not null;
 
+    /// <summary>The privacy the video is uploaded with.</summary>
+    public string Privacy => settings.Privacy;
+
     public static string VideoKey(string date) => $"episodes/{date}/episode.mp4";
 
     public static string StateKey(string date) => $"episodes/{date}/youtube.json";
