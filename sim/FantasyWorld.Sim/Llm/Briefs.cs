@@ -47,6 +47,19 @@ public static class Briefs
         return string.Join("\n", lines);
     }
 
+    /// <summary>A host as a battle's arbiter sees it: its realm, troops, commander, morale, supply and strength.</summary>
+    public static string Army(StoryContext story, Army army, double strength)
+    {
+        var world = story.World;
+        var commander = world.Characters.TryGetValue(army.CommanderId, out var c)
+            ? $"{PromptText.Data(Names.Full(world, c))} (martial {c.Attributes.Martial})" : "none (the captains lead)";
+        return $"{PromptText.Data(army.Name)}, of {PromptText.Data(world.Realms[army.RealmId].Name)}\n"
+               + $"Troops: {army.Levies} levies, {army.MenAtArms} men-at-arms, {army.Knights.Count} knights, {army.Mages} mages\n"
+               + $"Commander: {commander}\n"
+               + $"Morale {army.Morale.ToString("0", CultureInfo.InvariantCulture)}/100; supply {army.Supply.ToString("0", CultureInfo.InvariantCulture)}/100; "
+               + $"strength {strength.ToString("0", CultureInfo.InvariantCulture)}";
+    }
+
     /// <summary>"DuelFought" → "duel fought".</summary>
     public static string Spaced(string type) =>
         string.Concat(type.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + char.ToLowerInvariant(ch) : char.ToLowerInvariant(ch).ToString()));

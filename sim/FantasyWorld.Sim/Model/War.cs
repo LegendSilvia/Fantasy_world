@@ -96,6 +96,13 @@ public sealed class Army
 
     public bool Disbanded { get; set; }
 
+    /// <summary>The last day of the battle the army is locked in (sub-project 8 §5); it holds its ground until then. 0 when free.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public long EngagedUntil { get; set; }
+
+    /// <summary>The army is held on the field by a battle Claude made longer than a day.</summary>
+    public bool Engaged(Core.WorldDate date) => EngagedUntil >= date.Day;
+
     [JsonIgnore] public int Soldiers => Levies + MenAtArms + Knights.Count + Mages;
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
 }

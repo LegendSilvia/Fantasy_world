@@ -51,6 +51,9 @@ public sealed record Encounter(
 public interface IArbiter
 {
     EncounterOutcome Resolve(Encounter encounter, Rng rng);
+
+    /// <summary>A battle decided whole (sub-project 8 §5), or null for the rules' roll (offline, over budget, a rules arbiter).</summary>
+    BattlePlan? PlanBattle(BattleStage stage) => null;
 }
 
 /// <summary>Seeded roll on the base probabilities: the offline fallback and the test baseline.</summary>

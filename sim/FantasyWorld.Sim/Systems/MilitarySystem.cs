@@ -62,8 +62,12 @@ public sealed partial class MilitarySystem : ISimSystem
                 army.CommanderId = successor?.Id ?? 0;
                 if (successor is not null) army.Knights.Remove(successor.Id);
             }
-            GiveOrders(world, army);
-            March(world, army);
+            // A host locked in a long battle holds the field: it takes no new orders and does not march until it ends.
+            if (!army.Engaged(ctx.Date))
+            {
+                GiveOrders(world, army);
+                March(world, army);
+            }
             Provision(ctx, army);
         }
         FightBattles(ctx);

@@ -115,6 +115,57 @@ public class LlmArbiterTests
         Assert.Equal("It ended in the rain. Turning point: a slip", outcome.Account);
     }
 
+    /// <summary>Two hosts on one field, the realms' marshals in command, and the stage the arbiter is shown.</summary>
+    private static (StoryContext Story, BattleStage Stage) Field(FakeLlmProvider fake)
+    {
+        var world = TestRealms.TwoKingdoms();
+        var log = new EventLog();
+        var war = TestRealms.DeclareWar(world, log);
+        var ctx = new SimContext(world, log, new EventQueue(), new Rng(1));
+        var host = MilitarySystem.Mobilise(ctx, war, world.Realms[1]);
+        var guard = MilitarySystem.Mobilise(ctx, war, world.Realms[2]);
+        host.Levies = guard.Levies = 1000;
+        var region = world.Regions[host.RegionId];
+        var story = new StoryContext(world, log, new LlmGateway(fake, On, new LlmJournal()));
+        return (story, new BattleStage(war.Id, host.Id, guard.Id, region.Id, MilitarySystem.Strength(world, host, region),
+            MilitarySystem.Strength(world, guard, region), [host.CommanderId], [guard.CommanderId]));
+    }
+
+    private static string Battle(string outcome, int days, int victor, int vanquished, string n1, string n2) =>
+        JsonSerializer.Serialize(new
+        {
+            outcome, days, victor_losses = victor, vanquished_losses = vanquished,
+            chapters = new[] { new { day = 1, text = "The lines met." }, new { day = days, text = "The field was won." } },
+            fates = new { n1, n2 },
+        });
+
+    [Fact]
+    public void TheLlm_DecidesTheWholeBattle_WithinTheRulesRanges()
+    {
+        var fake = new FakeLlmProvider(_ => Battle("defender_wins", 40, 12, 30, "slain", "wounded"));
+        var (story, stage) = Field(fake);
+        var plan = new LlmArbiter(story).PlanBattle(stage)!;
+        Assert.Equal((false, 40, 0.12, 0.30), (plan.AttackerWins, plan.Days, plan.WinnerLosses, plan.LoserLosses));
+        Assert.Equal(Fate.Dead, plan.Fates[stage.AttackerNotables[0]]);
+        Assert.Equal(Fate.Wounded, plan.Fates[stage.DefenderNotables[0]]);
+        var request = fake.Requests.Single();
+        Assert.Contains("n1:", request.Prompt);
+        Assert.Contains("odds of winning", request.Prompt);
+        Assert.Contains("up to 360 days", request.Prompt);
+    }
+
+    [Theory]
+    [InlineData(20, 30, "wounded", "wounded", "the victors' losses are out of their range")]
+    [InlineData(10, 50, "wounded", "wounded", "the vanquished's losses are out of their range")]
+    [InlineData(10, 30, "wounded", "slain", "n2's fate is not one their side's lot allows")]
+    public void ABattleOutsideTheRules_IsRefused_AndTheRulesFightIt(int victor, int vanquished, string n1, string n2, string why)
+    {
+        var fake = new FakeLlmProvider(_ => Battle("defender_wins", 1, victor, vanquished, n1, n2));
+        var (story, stage) = Field(fake);
+        Assert.Null(new LlmArbiter(story).PlanBattle(stage));
+        Assert.All(story.Gateway.Journal.All, c => Assert.Contains(why, c.Note));
+    }
+
     [Fact]
     public void BattleFates_StayWithTheRules()
     {

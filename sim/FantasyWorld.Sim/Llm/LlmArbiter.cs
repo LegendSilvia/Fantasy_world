@@ -15,7 +15,7 @@ namespace FantasyWorld.Sim.Llm;
 /// applies the chosen outcome; the LLM's account is stored on the event. A duel is decided whole (sub-project 8 §5): its
 /// outcome, how many days it lasts (up to <see cref="MaxDuelDays"/>) and its course in dated chapters.
 /// </summary>
-public sealed class LlmArbiter(StoryContext story, IArbiter? rules = null) : IArbiter
+public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = null) : IArbiter
 {
     public const int DramaWindow = 20;
     public const int DramaBudget = 4;
