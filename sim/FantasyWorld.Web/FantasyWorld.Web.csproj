@@ -24,4 +24,14 @@
     <ProjectReference Include="..\FantasyWorld.Client\FantasyWorld.Client.csproj" />
   </ItemGroup>
 
+  <!--
+    The viewer never asks an LLM: only the game's Session uses the provider SDK, so the trimmer may drop what is unused
+    of the client, the LLM project and the SDK (about 8 MB). The sim itself is kept whole: its JSON is read by reflection.
+  -->
+  <ItemGroup>
+    <TrimmableAssembly Include="FantasyWorld.Client" />
+    <TrimmableAssembly Include="FantasyWorld.Llm" />
+    <TrimmableAssembly Include="Anthropic" />
+  </ItemGroup>
+
 </Project>

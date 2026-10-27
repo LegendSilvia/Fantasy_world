@@ -1,0 +1,4 @@
+# Cloudflare Pages: the day's world changes every morning, so browsers always ask for the latest.
+/world.json.gz
+  Cache-Control: no-cache
+  Content-Type: application/octet-stream

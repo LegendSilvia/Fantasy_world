@@ -65,7 +65,7 @@ public static class BroadcastApp
         var channels = new List<IEpisodeChannel>();
         if (youtube is not null) channels.Add(youtube);
         if (env(webhookName) is { Length: > 0 } webhook)
-            channels.Add(new DiscordWebhook(http, webhook, config.DiscordName));
+            channels.Add(new DiscordWebhook(http, webhook, config.DiscordName, episode => config.Site.LinkFor(episode, options.DryRun)));
         else if (!options.DryRun)
         {
             output.WriteLine($"error: {webhookName} is not set, so the episode could not be posted.");
@@ -108,7 +108,7 @@ public static class BroadcastApp
         }
         if (!config.Voice.Speak) output.WriteLine("warning: YouTube is set up but voice.speak is off, so there is no narration to make a video of.");
         var settings = options.DryRun ? config.YouTube with { Privacy = "private" } : config.YouTube;
-        return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings);
+        return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings, episode => config.Site.LinkFor(episode, options.DryRun));
     }
 
     /// <summary>A whole script with adaptive thinking can take minutes; the run itself has 45.</summary>

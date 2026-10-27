@@ -35,7 +35,7 @@ public sealed record UploadState(string State, string? Session = null, long Leng
 /// episode only, so turning YouTube on never floods the channel with a week of videos. Without an account (dry runs) the
 /// video is made and stored but not uploaded. An episode without narration has nothing to show, so it waits.
 /// </summary>
-public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMaker video, BroadcastYouTube settings) : IEpisodeChannel, IStatefulChannel
+public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMaker video, BroadcastYouTube settings, Func<Episode, string?>? siteLink = null) : IEpisodeChannel, IStatefulChannel
 {
     public const string TokenUrl = "https://oauth2.googleapis.com/token";
     public const string UploadUrl = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status";
@@ -64,7 +64,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 
     public void Attach(IObjectStore store, TextWriter log, string today) => (_store, _log, _today, _uploads) = (store, log, today, 0);
 
-    public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null)
+    public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null, string? siteLink = null)
     {
         var title = episode.Headline is { } headline ? $"{episode.WorldName}, Year {episode.ToYear}: {headline.Text}" : $"{episode.WorldName}, Year {episode.ToYear}";
         // YouTube refuses angle brackets in titles and descriptions.
@@ -72,6 +72,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
         // The chapter list leads, so it survives the description's limit; YouTube turns it into the video's chapters.
         var chapters = timeline?.ForYouTube() ?? [];
         var description = (chapters.Count > 0 ? Speech.Chapters.Lines(chapters) + "\n\n" : "")
+                          + (siteLink is null ? "" : $"Explore the world: {siteLink}\n\n")
                           + $"{episode.Script}\n\nTold by {episode.Chronicler}. A new episode every morning.";
         return new JsonObject
         {
@@ -144,7 +145,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             _uploads++;
             var token = await TokenAsync(ct).ConfigureAwait(false);
             var timeline = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
-            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline)) };
+            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode))) };
             start.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Type", "video/mp4");
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Length", mp4.Length.ToString(CultureInfo.InvariantCulture));

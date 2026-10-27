@@ -69,6 +69,25 @@ the run is started with **upload-private** ticked: the staging video then goes u
 episode without narration waits for it; a failed upload never holds up Discord. The upload comes first each morning, so
 the Discord post carries the video's link (and Discord plays it) in place of the narration file, once the video is public.
 
+## 5b. The world in a browser (optional)
+
+Each morning the world can also go to a website where anyone can look around it: the diorama, the realms, the people,
+any past year and the story behind any event (the same code as the game, run in the browser). It is hosted on
+Cloudflare Pages:
+
+1. In the Cloudflare dashboard (the account that holds the R2 bucket): **My Profile → API Tokens → Create Token →
+   Custom token**, with the permission **Account · Cloudflare Pages · Edit** for your account. Copy the token.
+2. Add it as the repository secret `CLOUDFLARE_API_TOKEN` (GitHub → Settings → Secrets and variables → Actions). Paste it
+   there only, never anywhere else. The account id is the one `R2_ACCOUNT_ID` already holds.
+3. Run the workflow once as a dry run. The **site** job creates the Pages project `site.project`
+   (`fantasy-world-chronicle` by default; pages.dev names are shared by everyone, so pick another if it is taken) and
+   deploys it to the project's `staging` preview; its last step prints the address.
+4. Put the public address in `broadcast.json` as `site.url` (e.g. `https://fantasy-world-chronicle.pages.dev`). From then
+   on the YouTube description and the Discord post link to the world, opened on the headline's story.
+
+Dry runs deploy to the `staging` preview (`https://staging.<project>.pages.dev`), so the public site changes only with a
+live broadcast. Without the token the site job is skipped; a failure in it never holds up the broadcast.
+
 ## 6. Start it
 
 1. Merge to the default branch. GitHub runs scheduled workflows only from there, and a run that is not a dry run is
@@ -120,6 +139,7 @@ live/feed.xml, live/index.html         the podcast feed and the archive page (wi
 live/cover.png                         the latest map, the podcast's cover
 live/episodes/2026-10-27/episode.mp4   the video (with YouTube), and youtube.json, where its upload stands
 live/backups/2026-10-27.fw.db          the world as it was before that morning's run
+live/web/world.json.gz                 the day's world for the website (no LLM journal or settings)
 ```
 
 ## When something goes wrong

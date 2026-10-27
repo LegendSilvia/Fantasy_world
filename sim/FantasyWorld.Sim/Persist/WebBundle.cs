@@ -26,10 +26,12 @@ public sealed record WebBundle(int Version, WorldSnapshot Snapshot, Geography? G
         return output.ToArray();
     }
 
+    /// <summary>The bundle from its bytes: gzipped as written, or already unpacked (a host that serves .gz with Content-Encoding).</summary>
     public static WebBundle FromGzip(byte[] bytes)
     {
-        using var gzip = new GZipStream(new MemoryStream(bytes), CompressionMode.Decompress);
-        var bundle = JsonSerializer.Deserialize<WebBundle>(gzip, SimJson.Options) ?? throw new InvalidDataException("The web bundle is empty.");
+        var packed = bytes is [0x1f, 0x8b, ..];
+        using var json = packed ? (Stream)new GZipStream(new MemoryStream(bytes), CompressionMode.Decompress) : new MemoryStream(bytes);
+        var bundle = JsonSerializer.Deserialize<WebBundle>(json, SimJson.Options) ?? throw new InvalidDataException("The web bundle is empty.");
         if (bundle.Version > CurrentVersion) throw new InvalidDataException($"The web bundle is version {bundle.Version}; this reader knows {CurrentVersion}.");
         return bundle;
     }

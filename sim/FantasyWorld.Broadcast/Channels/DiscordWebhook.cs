@@ -32,7 +32,7 @@ public interface IStatefulChannel
 /// and anyone may watch it, its link goes in the message, where Discord plays it, in place of the narration file. The
 /// webhook URL is a secret (it carries its token), so errors name the status code only.
 /// </summary>
-public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string username) : IEpisodeChannel, IStatefulChannel
+public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string username, Func<Episode, string?>? siteLink = null) : IEpisodeChannel, IStatefulChannel
 {
     private Storage.IObjectStore? _store;
 
@@ -54,9 +54,12 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
     /// <summary>Discord's limit on an embed field's value.</summary>
     public const int MaxField = 1024;
 
-    public static JsonObject Payload(Episode episode, string username, bool withMap = false, string? videoUrl = null, Speech.Timeline? timeline = null)
+    public static JsonObject Payload(Episode episode, string username, bool withMap = false, string? videoUrl = null, Speech.Timeline? timeline = null,
+        string? siteLink = null)
     {
         var payload = Embed(episode, username);
+        // The world itself, opened on the headline's story.
+        if (siteLink is not null) payload["embeds"]![0]!["url"] = siteLink;
         // The chapters, so a listener can see what is in the episode (and jump to it on YouTube).
         if (timeline is { Chapters.Count: > 1 })
             payload["embeds"]![0]!["fields"] = new JsonArray(new JsonObject
@@ -65,6 +68,7 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
             });
         // In the message itself, not the embed, so Discord shows the video's player.
         if (videoUrl is not null) payload["content"] = $"▶ Watch the episode: {videoUrl}";
+        if (siteLink is not null) payload["content"] = (payload["content"] is { } watch ? $"{watch}\n" : "") + $"🗺 Explore the world: <{siteLink}>";
         if (withMap) payload["embeds"]![0]!["image"] = new JsonObject { ["url"] = $"attachment://{MapFile}" };
         return payload;
     }
@@ -90,11 +94,11 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
     }
 
     public static HttpContent Content(Episode episode, string username, byte[]? map, byte[]? audio = null, string? videoUrl = null,
-        Speech.Timeline? timeline = null)
+        Speech.Timeline? timeline = null, string? siteLink = null)
     {
         // The video carries the narration, so the file is not sent twice.
         if (videoUrl is not null) audio = null;
-        var json = Payload(episode, username, map is not null, videoUrl, timeline).ToJsonString();
+        var json = Payload(episode, username, map is not null, videoUrl, timeline, siteLink).ToJsonString();
         if (audio is not null && Encoding.UTF8.GetByteCount(json) + (map?.Length ?? 0) + audio.Length > MaxAttachmentBytes) audio = null;
         if (map is null && audio is null) return new StringContent(json, Encoding.UTF8, "application/json");
         var form = new MultipartFormDataContent
@@ -121,13 +125,13 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
         HttpResponseMessage response;
         try
         {
-            using (var content = Content(episode, username, map, audio, video, timeline))
+            using (var content = Content(episode, username, map, audio, video, timeline, siteLink?.Invoke(episode)))
                 response = await http.PostAsync(url, content, ct).ConfigureAwait(false);
             // Too large for this server after all: the post goes out without the narration.
             if (response.StatusCode == System.Net.HttpStatusCode.RequestEntityTooLarge && audio is not null)
             {
                 response.Dispose();
-                using var smaller = Content(episode, username, map, null, video, timeline);
+                using var smaller = Content(episode, username, map, null, video, timeline, siteLink?.Invoke(episode));
                 response = await http.PostAsync(url, smaller, ct).ConfigureAwait(false);
             }
         }

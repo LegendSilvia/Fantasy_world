@@ -149,6 +149,63 @@ jobs:
             put "$RUNNER_TEMP/chunk.mp4" "${prefix}episodes/$date/film/$name"
           echo "Stored $name ($(du -h "$RUNNER_TEMP/chunk.mp4" | cut -f1))."
 
+  site:
+    # The world in a browser (sub-project 11): the viewer app and the day's world, deployed to Cloudflare Pages while the
+    # film is being made. A dry run deploys to the project's staging branch, so the public site changes only when live.
+    # Skipped until the CLOUDFLARE_API_TOKEN secret (Pages: Edit) exists; a failure here never stops the broadcast.
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Is there a Pages token?
+        id: token
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "No CLOUDFLARE_API_TOKEN secret: the website is not deployed."; fi
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.ready == 'true'
+      - uses: actions/setup-dotnet@v4
+        if: steps.token.outputs.ready == 'true'
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build the viewer and fetch the day's world
+        id: build
+        if: steps.token.outputs.ready == 'true'
+        run: |
+          dotnet publish sim/FantasyWorld.Web --configuration Release --output "$RUNNER_TEMP/site"
+          if [ "$DRY_RUN" = "true" ]; then prefix=$(jq -r .stagingPrefix broadcast.json); else prefix=$(jq -r .livePrefix broadcast.json); fi
+          dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "${prefix}web/world.json.gz" "$RUNNER_TEMP/site/wwwroot/world.json.gz"
+          echo "project=$(jq -r '.site.project // "fantasy-world-chronicle"' broadcast.json)" >> "$GITHUB_OUTPUT"
+          if [ "$DRY_RUN" = "true" ]; then echo "branch=staging" >> "$GITHUB_OUTPUT"; else echo "branch=main" >> "$GITHUB_OUTPUT"; fi
+      - name: Create the Pages project (once; already there is fine)
+        if: steps.token.outputs.ready == 'true'
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.R2_ACCOUNT_ID }}
+          command: pages project create ${{ steps.build.outputs.project }} --production-branch=main
+      - name: Deploy the site
+        id: deploy
+        if: steps.token.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.R2_ACCOUNT_ID }}
+          command: pages deploy ${{ runner.temp }}/site/wwwroot --project-name=${{ steps.build.outputs.project }} --branch=${{ steps.build.outputs.branch }} --commit-dirty=true
+      - name: Say where it is
+        if: steps.token.outputs.ready == 'true'
+        env:
+          URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: echo "The world is at $URL (set site.url in broadcast.json to link to it from the posts)."
+
   publish:
     needs: [prepare, film]
     # After the film jobs, whatever became of them: a stretch not filmed only means the map pans instead.

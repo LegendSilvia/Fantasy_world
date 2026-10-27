@@ -116,6 +116,8 @@ public sealed record BroadcastConfig
 
     public BroadcastYouTube YouTube { get; init; } = new();
 
+    public BroadcastSite Site { get; init; } = new();
+
     /// <summary>
     /// Where the bucket is public (an r2.dev address or a custom domain), for the podcast feed and the archive page; unset,
     /// they are not published.
@@ -158,6 +160,10 @@ public sealed record BroadcastConfig
             throw new FormatException($"youTube.privacy must be public, unlisted or private (got \"{YouTube.Privacy}\").");
         if (PublicBaseUrl is { } url && !(Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps))
             throw new FormatException($"publicBaseUrl must be an https address (got \"{url}\").");
+        if (Site.Url is { } site && !(Uri.TryCreate(site, UriKind.Absolute, out var siteUri) && siteUri.Scheme == Uri.UriSchemeHttps))
+            throw new FormatException($"site.url must be an https address (got \"{site}\").");
+        if (Site.Project.Length == 0 || !Site.Project.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-'))
+            throw new FormatException($"site.project must be lower-case letters, digits and hyphens (got \"{Site.Project}\").");
         _ = Zone; // throws TimeZoneNotFoundException for an unknown zone
         return this;
     }
