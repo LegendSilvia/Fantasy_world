@@ -19,7 +19,8 @@ public sealed record EpisodeStory(long EventId, int Year, string Category, strin
 /// </summary>
 public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0)
 {
-    public const string Opening = "opening", Headline = "headline", Story = "story", Why = "why", Closing = "closing";
+    /// <summary>Why: "how it came to this", in episodes made before 2026-10-27; Comment: the chronicler's view of the year that replaced it.</summary>
+    public const string Opening = "opening", Headline = "headline", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
 }
 
 /// <summary>
@@ -93,32 +94,32 @@ public sealed record Episode(
         EpisodeStory Story(WorldEvent ev) => new(ev.Id, ev.Date.Year, Categories.Label(Categories.Of(ev)), narrator.Sentence(ev));
         var headline = top is null ? null : new EpisodeStory(top.Id, top.Date.Year, Categories.Label(Categories.Of(top)), narrator.Title(top));
         var others = chosen.OrderBy(e => e.Id).Select(Story).ToList();
-        // A why needs at least one cause still in the log (old minor events are condensed away).
-        // Only news that shapes the world (a war, a fall, a legend) earns "how did it come to this"; a quiet year's headline does not.
-        IReadOnlyList<WorldEvent> thread = top is null || !TemplateNarrator.IsHeadline(top.Type) ? [] : Thread(log, top);
-        var why = thread.Count > 1 ? narrator.Story(thread) : null;
-        // The body leaves the cause to the story of why when there is one, and says nothing if all it has is when.
-        var body = top is null ? "" : narrator.Body(top, log, withCause: why is null);
+        // In place of "how it came to this" (the owner, 2026-10-27), the chronicler's own view closes the news: the chronicler
+        // (Claude) writes its comment and conclusion on the year; this line stands in for it when no chronicler answers.
+        // The headline's body gives its cause in a line, and says nothing if all it has is when.
+        string? why = null;
+        var comment = headline is null ? null : $"What to make of it all? Of everything in this chronicle, this will be remembered longest: {headline.Text}.";
+        var body = top is null ? "" : narrator.Body(top, log, withCause: true);
         if (top is not null && body == $"{Digest.SeasonLabel(top.Date)}.") body = "";
         var coldOpen = OpeningFor(name, fromYear, toYear, events.Count, sinceEventId == 0);
         var signOff = SignOffFor(chronicler, name);
 
-        // The template script: drop the least important stories, then the why, until it fits the budget.
+        // The template script: drop the least important stories, then the chronicler's view, until it fits the budget.
         // Within a year the stories need no dates; across years each says when.
         var dated = toYear - fromYear > 1 || chosen.Select(e => e.Date.Year).Distinct().Count() > 1;
         var lines = chosen.ToDictionary(e => e.Id, e => dated ? $"In Year {e.Date.Year}, {narrator.Clause(e)}" : narrator.Sentence(e));
         var titles = chosen.Append(top).Where(e => e is not null).ToDictionary(e => e!.Id, e => Title(narrator, e!));
-        IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? because) =>
-            Compose(name, coldOpen, headline, body, told, lines, titles, because, signOff);
+        IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
+            Compose(name, coldOpen, headline, body, told, lines, titles, view, signOff);
         var keep = others.ToList();
-        var sections = Write(keep, why);
+        var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
         {
             var weakest = keep.OrderBy(s => chosen.FindIndex(e => e.Id == s.EventId)).Last();
             keep.Remove(weakest);
-            sections = Write(keep, why);
+            sections = Write(keep, comment);
         }
-        if (ScriptOf(sections).Length > maxCharacters && why is not null) sections = Write(keep, why = null);
+        if (ScriptOf(sections).Length > maxCharacters && comment is not null) sections = Write(keep, null);
 
         return new Episode(date, name, chronicler.Name, fromYear, toYear, events.Count, events.Count > 0 ? events[0].Id : 0,
             events.Count > 0 ? events[^1].Id : sinceEventId, coldOpen, headline, body, keep, why, signOff, ScriptOf(sections),
@@ -168,7 +169,7 @@ public sealed record Episode(
         narrator.PlaceOf(ev) is { } place ? $"{Views.Categories.Kicker(ev)} at {English.Capitalise(place)}" : Views.Categories.Kicker(ev);
 
     private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
-        IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? why, string signOff)
+        IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff)
     {
         var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
         if (headline is not null)
@@ -178,7 +179,7 @@ public sealed record Episode(
             var line = lines[stories[i].EventId];
             sections.Add(new(EpisodeSection.Story, titles[stories[i].EventId], i == 0 ? $"Elsewhere in the chronicle:\n\n{line}" : line, stories[i].EventId));
         }
-        if (why is not null) sections.Add(new(EpisodeSection.Why, "How it came to this", $"How did it come to this? {why}", headline?.EventId ?? 0));
+        if (comment is not null) sections.Add(new(EpisodeSection.Comment, "The chronicler's view", comment));
         sections.Add(new(EpisodeSection.Closing, "Until tomorrow", signOff));
         return sections;
     }

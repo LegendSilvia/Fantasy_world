@@ -30,7 +30,9 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         var parts = episode.Parts;
         var task = $"Write the script of today's spoken episode of the chronicle, to be read aloud, as exactly {parts.Count} sections, one for "
                    + "each numbered section of the brief and in its order: the opening line, the headline told in full, each other story "
-                   + "briefly, how it came to this (the chain of causes, earliest first) when the brief tells one, and a closing line from "
+                   + "briefly, then (where the brief has a section asking what to make of it all) your own view of the year as its chronicler: "
+                   + "what it meant, who rose and who fell, what to watch for, ending in a conclusion of your own; judge and wonder freely, "
+                   + "but state no fact the brief does not give. Then a closing line from "
                    + $"{episode.Chronicler}. Each section is read as its own chapter, so each must stand alone. Plain prose for the ear: no "
                    + "headings, numbers of sections, lists, markup or stage directions, no dates written as digits other than the years given. "
                    + "Name no one and nothing the brief does not name, and give no number it does not give: work out no counts, ages or spans "

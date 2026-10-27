@@ -80,7 +80,7 @@ public class EpisodeTests
     }
 
     [Fact]
-    public void TheWhy_FollowsTheWeightiestThreadOfCauses_OldestFirst()
+    public void TheChroniclersView_ClosesTheNews_InsteadOfHowItCameToThis()
     {
         var world = TestPeople.World();
         var log = new EventLog();
@@ -93,7 +93,16 @@ public class EpisodeTests
         Assert.Equal(new[] { revolt.Id, shortage.Id, drought.Id }, Episode.Thread(log, revolt).Select(e => e.Id));
         var episode = Episode.Build(world, log, 0, "2026-10-27");
         Assert.Equal(revolt.Id, episode.Headline!.EventId);
-        Assert.StartsWith("In Year 1, no rain fell on", episode.Why);
-        Assert.DoesNotContain("Before it", episode.HeadlineBody);
+        // No "how it came to this" (the owner, 2026-10-27): the headline gives its cause in a line, and the chronicler's
+        // view comes after the stories, before the sign-off.
+        Assert.Null(episode.Why);
+        Assert.DoesNotContain(episode.Sections!, s => s.Kind == EpisodeSection.Why);
+        Assert.Contains("food ran short", episode.HeadlineBody);
+        var kinds = episode.Sections!.Select(s => s.Kind).ToList();
+        Assert.Equal(new[] { EpisodeSection.Comment, EpisodeSection.Closing }, kinds.TakeLast(2));
+        var view = episode.Sections![^2];
+        Assert.Equal("The chronicler's view", view.Title);
+        Assert.StartsWith("What to make of it all?", view.Text);
+        Assert.Contains(episode.Headline.Text, view.Text);
     }
 }
