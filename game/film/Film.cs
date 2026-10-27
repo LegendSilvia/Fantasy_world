@@ -268,8 +268,7 @@ public partial class Film : Node
         {
             _stillStage?.QueueFree();
             _stillStage = null;
-            var path = System.IO.Path.Combine(_imagesDir, System.IO.Path.GetFileName(key));
-            if (!System.IO.File.Exists(path) || Image.LoadFromFile(path) is not { } image || image.IsEmpty()) return;
+            if (Load(key) is not { } image) return;
             (_stillStage, _stillBlur) = Blurred("StillStage");
             _stillFrame = new PanelContainer { Name = "Frame", Modulate = new Color(1, 1, 1, 0) };
             _stillFrame.AddThemeStyleboxOverride("panel", new StyleBoxFlat
@@ -303,16 +302,39 @@ public partial class Film : Node
         _stillFrame!.Modulate = new Color(1, 1, 1, shown);
     }
 
+    /// <summary>Images that could not be read, so a missing or broken one is not tried again every frame.</summary>
+    private readonly HashSet<string> _unreadable = new();
+
+    /// <summary>
+    /// An image fetched for the film, by its key, read by what its bytes are rather than its name: the image API answers
+    /// PNG for a transparent figure and JPEG (or WebP) for an opaque scene, all kept under <c>.png</c> keys.
+    /// </summary>
+    private Image? Load(string key)
+    {
+        if (_imagesDir is null || _unreadable.Contains(key)) return null;
+        var path = System.IO.Path.Combine(_imagesDir, System.IO.Path.GetFileName(key));
+        var bytes = System.IO.File.Exists(path) ? System.IO.File.ReadAllBytes(path) : [];
+        var image = new Image();
+        var error = bytes switch
+        {
+            [0x89, 0x50, 0x4e, 0x47, ..] => image.LoadPngFromBuffer(bytes),
+            [0xff, 0xd8, ..] => image.LoadJpgFromBuffer(bytes),
+            [0x52, 0x49, 0x46, 0x46, _, _, _, _, 0x57, 0x45, 0x42, 0x50, ..] => image.LoadWebpFromBuffer(bytes),
+            _ => Error.FileUnrecognized,
+        };
+        if (error == Error.Ok && !image.IsEmpty()) return image;
+        GD.PushWarning($"film: the image {key} could not be read ({error}); it is left out.");
+        _unreadable.Add(key);
+        return null;
+    }
+
     private static Control Spacer(string name) => new() { Name = name, CustomMinimumSize = new Vector2(ImageWidth, ImageHeight) };
 
     /// <summary>A side's image, if it was fetched: the figure or banner standing in its box, fading in with the card.</summary>
     private Control? Likeness(FaceOffSide side, string name)
     {
         if (_imagesDir is null || side.Image is not { Length: > 0 } key) return null;
-        var path = System.IO.Path.Combine(_imagesDir, System.IO.Path.GetFileName(key));
-        if (!System.IO.File.Exists(path)) return null;
-        var image = Image.LoadFromFile(path);
-        if (image is null || image.IsEmpty()) return null;
+        if (Load(key) is not { } image) return null;
         var rect = new TextureRect
         {
             Name = name, Texture = ImageTexture.CreateFromImage(image), CustomMinimumSize = new Vector2(ImageWidth, ImageHeight),
