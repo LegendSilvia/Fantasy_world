@@ -83,9 +83,12 @@ public class DailyRunTests : IDisposable
         FakeLlmProvider? provider = null;
         provider = new FakeLlmProvider(request =>
         {
+            // The brief's numbered sections, each retold in place.
             var brief = request.Prompt;
             var script = brief[(brief.IndexOf('\n') + 1)..brief.LastIndexOf("</brief>", StringComparison.Ordinal)].Trim();
-            return System.Text.Json.JsonSerializer.Serialize(new { text = script.Replace("Elsewhere in the chronicle:", "And elsewhere, in brief:") });
+            var sections = System.Text.RegularExpressions.Regex.Split(script, @"(?:^|\n\n)\[\d+\] ").Where(t => t.Length > 0)
+                .Select(t => t.Replace("Elsewhere in the chronicle:", "And elsewhere, in brief:")).ToList();
+            return System.Text.Json.JsonSerializer.Serialize(new { sections });
         });
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1), providers: settings => settings.Provider == "anthropic" ? provider : null));
         var request = Assert.Single(provider.Requests); // the script only: story beats are off

@@ -22,7 +22,16 @@ public class EpisodeTests
         Assert.True(episode.EventCount < Aged.Log.Count);
         Assert.Equal(Aged.Log.NextId - 1, episode.LastEventId);
         Assert.Equal(0, world.LastBroadcastEventId); // building never moves the marker
-        Assert.Equal(episode, Episode.FromJson(episode.ToJson()) with { Stories = episode.Stories });
+        var back = Episode.FromJson(episode.ToJson());
+        Assert.Equal(episode, back with { Stories = episode.Stories, Sections = episode.Sections });
+        Assert.Equal(episode.Sections, back.Sections);
+        // The sections are the script, in order, and each is a chapter with a title.
+        Assert.Equal(episode.Script, Episode.ScriptOf(episode.Parts));
+        Assert.Equal(EpisodeSection.Opening, episode.Parts[0].Kind);
+        Assert.Equal(EpisodeSection.Closing, episode.Parts[^1].Kind);
+        Assert.Contains(episode.Parts, s => s.Kind == EpisodeSection.Headline && s.EventId == episode.Headline!.EventId);
+        Assert.Equal(episode.Stories.Select(s => s.EventId), episode.Parts.Where(s => s.Kind == EpisodeSection.Story).Select(s => s.EventId));
+        Assert.All(episode.Parts, s => Assert.False(string.IsNullOrWhiteSpace(s.Title)));
     }
 
     [Fact]

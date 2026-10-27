@@ -60,8 +60,9 @@ public class EpisodeCliTests
 
         Run(T0, "llm", file.Path, "--provider", "anthropic", "--model", "narrate=claude-sonnet-5-5");
         var template = Episode.FromJson(File.ReadAllText(Path.Combine(dir.Path, "episode.json")));
-        var retold = template.Script.Replace("Elsewhere in the chronicle:", "And elsewhere, in brief:");
-        var provider = new FakeLlmProvider(_ => System.Text.Json.JsonSerializer.Serialize(new { text = retold }));
+        var sections = template.Parts.Select(p => p.Text.Replace("Elsewhere in the chronicle:", "And elsewhere, in brief:")).ToList();
+        var retold = string.Join("\n\n", sections);
+        var provider = new FakeLlmProvider(_ => System.Text.Json.JsonSerializer.Serialize(new { sections }));
         output = new StringWriter();
         Assert.Equal(0, CliApp.Run(["episode", file.Path, "--out", dir.Path, "--date", "2026-10-27", "--narrate"], output, () => T0, _ => provider));
         Assert.Contains("by the chronicler", output.ToString());

@@ -13,6 +13,16 @@ namespace FantasyWorld.Sim.Chronicle;
 public sealed record EpisodeStory(long EventId, int Year, string Category, string Text);
 
 /// <summary>
+/// One section of an episode (sub-project 7 §3), read aloud on its own and shown as a chapter: its kind (opening,
+/// headline, story, why, closing), the chapter's title, its text and the event it tells (0 for the opening and closing).
+/// The sections' texts, joined by blank lines, are the script.
+/// </summary>
+public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0)
+{
+    public const string Opening = "opening", Headline = "headline", Story = "story", Why = "why", Closing = "closing";
+}
+
+/// <summary>
 /// One episode of the daily broadcast (sub-project 6 §3.2): what happened since the audience last listened, as data
 /// (the cold open, the headline, the other stories, the headline's chain of causes, the sign-off) and as a script to
 /// read aloud. Built from the digest's ranking, so the broadcast and the morning digest agree on what mattered. Writer says
@@ -21,8 +31,14 @@ public sealed record EpisodeStory(long EventId, int Year, string Category, strin
 public sealed record Episode(
     string Date, string WorldName, string Chronicler, int FromYear, int ToYear, int EventCount, long FirstEventId, long LastEventId,
     string ColdOpen, EpisodeStory? Headline, string HeadlineBody, IReadOnlyList<EpisodeStory> Stories, string? Why, string SignOff, string Script,
-    string Writer = Episode.TemplateWriter)
+    string Writer = Episode.TemplateWriter, IReadOnlyList<EpisodeSection>? Sections = null)
 {
+    /// <summary>The script as sections; an episode stored before sections existed is one section.</summary>
+    [JsonIgnore] public IReadOnlyList<EpisodeSection> Parts => Sections is { Count: > 0 } s ? s : [new EpisodeSection(EpisodeSection.Opening, WorldName, Script)];
+
+    /// <summary>The script made from these sections (the sections' texts joined by blank lines).</summary>
+    public static string ScriptOf(IEnumerable<EpisodeSection> sections) => string.Join("\n\n", sections.Select(s => s.Text));
+
     public const string TemplateWriter = "template", ChroniclerWriter = "chronicler";
 
     public const int DefaultStories = 5;
@@ -90,19 +106,22 @@ public sealed record Episode(
         // Within a year the stories need no dates; across years each says when.
         var dated = toYear - fromYear > 1 || chosen.Select(e => e.Date.Year).Distinct().Count() > 1;
         var lines = chosen.ToDictionary(e => e.Id, e => dated ? $"In Year {e.Date.Year}, {narrator.Clause(e)}" : narrator.Sentence(e));
-        string Write(IReadOnlyList<EpisodeStory> told, string? because) => Compose(coldOpen, headline, body, told, lines, because, signOff);
+        var titles = chosen.Append(top).Where(e => e is not null).ToDictionary(e => e!.Id, e => Title(narrator, e!));
+        IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? because) =>
+            Compose(name, coldOpen, headline, body, told, lines, titles, because, signOff);
         var keep = others.ToList();
-        var script = Write(keep, why);
-        while (script.Length > maxCharacters && keep.Count > 0)
+        var sections = Write(keep, why);
+        while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
         {
             var weakest = keep.OrderBy(s => chosen.FindIndex(e => e.Id == s.EventId)).Last();
             keep.Remove(weakest);
-            script = Write(keep, why);
+            sections = Write(keep, why);
         }
-        if (script.Length > maxCharacters && why is not null) script = Write(keep, why = null);
+        if (ScriptOf(sections).Length > maxCharacters && why is not null) sections = Write(keep, why = null);
 
         return new Episode(date, name, chronicler.Name, fromYear, toYear, events.Count, events.Count > 0 ? events[0].Id : 0,
-            events.Count > 0 ? events[^1].Id : sinceEventId, coldOpen, headline, body, keep, why, signOff, script);
+            events.Count > 0 ? events[^1].Id : sinceEventId, coldOpen, headline, body, keep, why, signOff, ScriptOf(sections),
+            Sections: sections);
     }
 
     public const int WhySteps = 5;
@@ -143,18 +162,23 @@ public sealed record Episode(
         _ => $"That is the year. This was {chronicler.Name}, for the chronicle of {world}.",
     };
 
-    private static string Compose(string coldOpen, EpisodeStory? headline, string body, IReadOnlyList<EpisodeStory> stories,
-        IReadOnlyDictionary<long, string> lines, string? why, string signOff)
+    /// <summary>A story's chapter title: its kicker and where it happened ("Duel at Kesburg").</summary>
+    private static string Title(TemplateNarrator narrator, WorldEvent ev) =>
+        narrator.PlaceOf(ev) is { } place ? $"{Views.Categories.Kicker(ev)} at {English.Capitalise(place)}" : Views.Categories.Kicker(ev);
+
+    private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
+        IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? why, string signOff)
     {
-        var text = new StringBuilder(coldOpen);
-        if (headline is not null) text.Append("\n\n").Append(headline.Text).Append('.');
-        if (body.Length > 0) text.Append("\n\n").Append(body);
-        if (stories.Count > 0)
+        var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
+        if (headline is not null)
+            sections.Add(new(EpisodeSection.Headline, headline.Text, body.Length > 0 ? $"{headline.Text}.\n\n{body}" : $"{headline.Text}.", headline.EventId));
+        for (var i = 0; i < stories.Count; i++)
         {
-            text.Append("\n\nElsewhere in the chronicle:");
-            foreach (var story in stories) text.Append("\n\n").Append(lines[story.EventId]);
+            var line = lines[stories[i].EventId];
+            sections.Add(new(EpisodeSection.Story, titles[stories[i].EventId], i == 0 ? $"Elsewhere in the chronicle:\n\n{line}" : line, stories[i].EventId));
         }
-        if (why is not null) text.Append("\n\nHow did it come to this? ").Append(why);
-        return text.Append("\n\n").Append(signOff).ToString();
+        if (why is not null) sections.Add(new(EpisodeSection.Why, "How it came to this", $"How did it come to this? {why}", headline?.EventId ?? 0));
+        sections.Add(new(EpisodeSection.Closing, "Until tomorrow", signOff));
+        return sections;
     }
 }

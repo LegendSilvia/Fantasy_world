@@ -20,24 +20,63 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
     private readonly TemplateNarrator _templates = new(story.World);
 
     /// <summary>
-    /// The daily broadcast's spoken script (sub-project 6 §3.2), in the chronicler's voice. The brief is the template
-    /// episode itself, so the guard holds the chronicler to its names and numbers; offline, over budget, refused, unfaithful
+    /// The daily broadcast's spoken script (sub-project 6 §3.2), in the chronicler's voice, section by section (sub-project 7
+    /// §6): one text per section, in order, so each stays a chapter. The brief is the template episode itself, so the guard
+    /// holds the chronicler to its names and numbers; offline, over budget, refused, unfaithful, the wrong number of sections
     /// or the wrong length, the episode keeps its template script. Keyed by date and events, so a rebuilt episode asks anew.
     /// </summary>
     public Episode EpisodeScript(Episode episode, int maxCharacters)
     {
-        var task = "Write the script of today's spoken episode of the chronicle, to be read aloud. Keep its order: the opening line, "
-                   + "the headline told in full, the other stories briefly, how it came to this (the chain of causes, earliest first) "
-                   + $"when the brief tells one, and a closing line from {episode.Chronicler}. Plain prose for the ear: no headings, lists, "
-                   + $"markup or stage directions, no dates written as digits other than the years given. Name no one and nothing the brief does "
-                   + $"not name, and give no number it does not give: work out no counts, ages or spans of years. At most {maxCharacters} characters.";
+        var parts = episode.Parts;
+        var task = $"Write the script of today's spoken episode of the chronicle, to be read aloud, as exactly {parts.Count} sections, one for "
+                   + "each numbered section of the brief and in its order: the opening line, the headline told in full, each other story "
+                   + "briefly, how it came to this (the chain of causes, earliest first) when the brief tells one, and a closing line from "
+                   + $"{episode.Chronicler}. Each section is read as its own chapter, so each must stand alone. Plain prose for the ear: no "
+                   + "headings, numbers of sections, lists, markup or stage directions, no dates written as digits other than the years given. "
+                   + "Name no one and nothing the brief does not name, and give no number it does not give: work out no counts, ages or spans "
+                   + $"of years. At most {maxCharacters} characters in all.";
         // A script much shorter than the template has dropped stories: that is a failed answer, not a retelling.
         var minimum = episode.Script.Length * 3 / 5;
-        // Names (some invented by the LLM earlier) enter the prompt only as data, paragraph by paragraph (spec §8.6).
-        var brief = string.Join("\n\n", episode.Script.Split("\n\n").Select(p => PromptText.Data(p, maxCharacters)));
-        var script = Ask($"narrate|episode|{episode.Date}|{episode.FirstEventId}-{episode.LastEventId}", story.World.Date.Day, brief,
-            task, maxCharacters, minimum);
-        return script is null ? episode : episode with { Script = script, Writer = Episode.ChroniclerWriter };
+        // Names (some invented by the LLM earlier) enter the prompt only as data, section by section (spec §8.6).
+        var brief = string.Join("\n\n", parts.Select((p, i) => $"[{i + 1}] "
+            + string.Join("\n\n", p.Text.Split("\n\n").Select(paragraph => PromptText.Data(paragraph, maxCharacters)))));
+        var facts = Episode.ScriptOf(parts);
+        var key = $"narrate|episode-sections|{episode.Date}|{episode.FirstEventId}-{episode.LastEventId}";
+        if (!story.Gateway.MayAnswer(ModelTier.Narrate, key)) return episode;
+        var prompt = PromptText.Section("brief", brief) + $"\n\n{task} Write as the world's chronicler; use only the facts given.";
+        var schema = JsonSerializer.Serialize(new
+        {
+            type = "object",
+            properties = new { sections = new { type = "array", items = new { type = "string" }, minItems = parts.Count, maxItems = parts.Count } },
+            required = new[] { "sections" },
+            additionalProperties = false,
+        });
+        var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(1500, maxCharacters / 2));
+        string? Why(string json) => Sections(json, parts.Count) is not { } texts ? $"not {parts.Count} sections"
+            : string.Join("\n\n", texts).Length is var n && (n < minimum || n > maxCharacters) ? $"{n} characters, not {minimum} to {maxCharacters}"
+            : string.Join(", ", NarrationGuard.Problems(string.Join("\n\n", texts), facts).Distinct().Take(8)) is { Length: > 0 } problems ? problems
+            : null;
+        var answer = story.Gateway.Ask(request, story.World.Date.Day, json => Why(json) is null, whyInvalid: json => Why(json) ?? "");
+        if (answer is null || Sections(answer, parts.Count) is not { } written) return episode;
+        var sections = parts.Select((p, i) => p with { Text = written[i] }).ToList();
+        return episode with { Script = Episode.ScriptOf(sections), Sections = sections, Writer = Episode.ChroniclerWriter };
+    }
+
+    /// <summary>The answer's section texts, if it has exactly <paramref name="count"/> non-empty ones.</summary>
+    private static IReadOnlyList<string>? Sections(string json, int count)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("sections", out var list)
+                || list.ValueKind != JsonValueKind.Array || list.GetArrayLength() != count) return null;
+            var texts = list.EnumerateArray().Select(t => t.ValueKind == JsonValueKind.String ? t.GetString()!.Trim() : "").ToList();
+            return texts.All(t => t.Length > 0) ? texts : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public string Narrate(WorldEvent ev) =>
