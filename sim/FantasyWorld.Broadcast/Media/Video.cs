@@ -8,6 +8,9 @@ public interface IVideoMaker
 {
     /// <summary>The video; with <paramref name="shots"/>, the camera moves over the map from shot to shot (sub-project 7 F1).</summary>
     Task<byte[]> MakeAsync(byte[] mapPng, byte[] narrationMp3, IReadOnlyList<TimedShot>? shots = null, CancellationToken ct = default);
+
+    /// <summary>The diorama film (sub-project 7 F2): its filmed stretches, in order, joined with the narration.</summary>
+    Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default);
 }
 
 public sealed class VideoException(string message) : Exception(message);
@@ -102,17 +105,53 @@ public sealed class FfmpegVideo : IVideoMaker
         ];
     }
 
-    public async Task<byte[]> MakeAsync(byte[] mapPng, byte[] narrationMp3, IReadOnlyList<TimedShot>? shots = null, CancellationToken ct = default)
+    public async Task<byte[]> MakeAsync(byte[] mapPng, byte[] narrationMp3, IReadOnlyList<TimedShot>? shots = null, CancellationToken ct = default) =>
+        await RunAsync(async dir =>
+        {
+            var (image, audio, output) = (Path.Combine(dir, "map.png"), Path.Combine(dir, "narration.mp3"), Path.Combine(dir, "episode.mp4"));
+            await File.WriteAllBytesAsync(image, mapPng, ct).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(audio, narrationMp3, ct).ConfigureAwait(false);
+            return (shots is { Count: > 0 } ? FilmArguments(image, audio, output, Png.Size(mapPng), shots) : Arguments(image, audio, output, _size), output);
+        }, ct).ConfigureAwait(false);
+
+    /// <summary>
+    /// The arguments to join the stretches (listed in <paramref name="list"/> for ffmpeg's concat demuxer; all encoded
+    /// alike, so the video is copied, not encoded again) with the narration, cut to the narration's length.
+    /// </summary>
+    public static IReadOnlyList<string> JoinArguments(string list, string audio, string output) =>
+    [
+        "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
+        "-f", "concat", "-safe", "0", "-i", list,
+        "-i", audio,
+        "-map", "0:v:0", "-map", "1:a:0",
+        "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
+        "-shortest", "-movflags", "+faststart", output,
+    ];
+
+    public async Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default) =>
+        await RunAsync(async dir =>
+        {
+            var lines = new List<string>();
+            for (var i = 0; i < chunks.Count; i++)
+            {
+                var chunk = Path.Combine(dir, $"chunk-{i:00}.mp4");
+                await File.WriteAllBytesAsync(chunk, chunks[i], ct).ConfigureAwait(false);
+                lines.Add($"file '{chunk}'");
+            }
+            var (list, audio, output) = (Path.Combine(dir, "chunks.txt"), Path.Combine(dir, "narration.mp3"), Path.Combine(dir, "episode.mp4"));
+            await File.WriteAllLinesAsync(list, lines, ct).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(audio, narrationMp3, ct).ConfigureAwait(false);
+            return (JoinArguments(list, audio, output), output);
+        }, ct).ConfigureAwait(false);
+
+    /// <summary>Runs ffmpeg in a scratch folder the <paramref name="prepare"/> step fills, and returns the file it made.</summary>
+    private async Task<byte[]> RunAsync(Func<string, Task<(IReadOnlyList<string> Arguments, string Output)>> prepare, CancellationToken ct)
     {
         var work = Directory.CreateTempSubdirectory("fw-video-");
         try
         {
-            var (image, audio, output) = (Path.Combine(work.FullName, "map.png"), Path.Combine(work.FullName, "narration.mp3"),
-                Path.Combine(work.FullName, "episode.mp4"));
-            await File.WriteAllBytesAsync(image, mapPng, ct).ConfigureAwait(false);
-            await File.WriteAllBytesAsync(audio, narrationMp3, ct).ConfigureAwait(false);
+            var (arguments, output) = await prepare(work.FullName).ConfigureAwait(false);
             var start = new ProcessStartInfo(_ffmpeg) { RedirectStandardError = true, UseShellExecute = false };
-            var arguments = shots is { Count: > 0 } ? FilmArguments(image, audio, output, Png.Size(mapPng), shots) : Arguments(image, audio, output, _size);
             foreach (var argument in arguments) start.ArgumentList.Add(argument);
             Process process;
             try

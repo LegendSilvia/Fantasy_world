@@ -13,7 +13,11 @@ using FantasyWorld.Sim.Persist;
 namespace FantasyWorld.Broadcast;
 
 /// <param name="UploadPrivate">On a dry run, upload the staging video to YouTube as private (to try the upload by hand).</param>
-public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadPrivate = false);
+/// <param name="PreparePlan">
+/// Prepare only (sub-project 7 F2): build and narrate the day's episode, plan its diorama film, write the plan to this
+/// file for the workflow's film jobs, and post nothing; a later run posts it.
+/// </param>
+public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadPrivate = false, string? PreparePlan = null);
 
 /// <summary>
 /// One morning's broadcast (spec §3): pull the world, back it up, catch it up, build the episode, push the episode and
@@ -80,6 +84,15 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             .Where(d => d.Value.Done(Manifest.EpisodeStep) && string.CompareOrdinal(d.Key, earliest) >= 0 && string.CompareOrdinal(d.Key, date) <= 0)
             .Select(d => d.Key).ToList();
         var result = await SpeakAsync(store, manifest, dates, date, episode, ct).ConfigureAwait(false);
+        if (_options.PreparePlan is { } planPath)
+        {
+            var plan = await PlanFilmAsync(store, date, ct).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(planPath, DioramaFilm.ToBytes(plan), ct).ConfigureAwait(false);
+            log.WriteLine(plan.Chunks.Count > 0
+                ? $"The diorama film of {date} is planned in {plan.Chunks.Count} stretches; nothing is posted until it is filmed."
+                : $"No diorama film for {date} (no narration with chapters, or the film is off); nothing is posted yet.");
+            return result;
+        }
         foreach (var stateful in channels.OfType<IStatefulChannel>()) stateful.Attach(store, log, date);
         if (channels.Count == 0) log.WriteLine("No channel is configured: the episode is stored but posted nowhere.");
         foreach (var channel in channels)
@@ -238,6 +251,21 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             }
         }
         return Ok;
+    }
+
+    /// <summary>
+    /// The day's diorama film (sub-project 7 F2): its timed shots stored for the film jobs, and its stretches. None when
+    /// YouTube or the diorama film is off, or the episode has no narration with chapters and shots.
+    /// </summary>
+    private async Task<FilmPlan> PlanFilmAsync(PrefixedStore store, string date, CancellationToken ct)
+    {
+        var none = new FilmPlan(date, store.Prefix, []);
+        if (!config.YouTube.Upload || !config.YouTube.Diorama) return none;
+        var timeline = await Chapters.LoadAsync(store, date, ct).ConfigureAwait(false);
+        var shots = DioramaFilm.Timed(await Shots.LoadAsync(store, date, ct).ConfigureAwait(false), timeline);
+        if (shots.Count == 0) return none;
+        await store.PutAsync(DioramaFilm.ShotsKey(date), DioramaFilm.ToBytes(shots), "application/json", ct).ConfigureAwait(false);
+        return new FilmPlan(date, store.Prefix, DioramaFilm.Chunks(timeline));
     }
 
     private Task MarkNarratedAsync(IObjectStore store, Manifest manifest, string day, byte[] audio, CancellationToken ct)

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using FantasyWorld.Broadcast;
 using FantasyWorld.Broadcast.Channels;
+using FantasyWorld.Broadcast.Media;
 using FantasyWorld.Broadcast.Speech;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Sim.Chronicle;
@@ -109,6 +110,25 @@ public class DailyRunTests : IDisposable
             Assert.Equal(0, store.LoadLlmSettings().StoryBeatsPerDay);
         }
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+    }
+
+    [Fact]
+    public async Task APrepareRun_NarratesAndPlansTheFilm_ButPostsNothing_AndTheNextRunPosts()
+    {
+        var plan = Path.Combine(_dir.Path, "plan.json");
+        var speech = new PronouncerTests.FakeSpeech { SecondsPerPart = 12 };
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true, PreparePlan: plan), speech: speech));
+        Assert.Empty(_discord.Posts);
+        var written = DioramaFilm.FromBytes<FilmPlan>(await File.ReadAllBytesAsync(plan))!;
+        Assert.Equal(("2026-10-27", "live/"), (written.Date, written.Prefix));
+        Assert.NotEmpty(written.Chunks);
+        Assert.NotNull(await Get("live/" + DioramaFilm.ShotsKey("2026-10-27")));
+        Assert.Contains("nothing is posted until it is filmed", _log.ToString());
+
+        // The publishing run that follows: the episode is built and spoken, so it only posts.
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddMinutes(20), speech: speech));
+        Assert.Single(_discord.Posts);
+        Assert.Single(speech.Spoken, Opens);
     }
 
     /// <summary>An episode is spoken section by section; its first request is the only one with nothing before it.</summary>

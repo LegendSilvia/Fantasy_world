@@ -8,7 +8,7 @@ namespace FantasyWorld.Sim.Tests.Broadcasting;
 
 public class VideoTests
 {
-    private static bool Has(string tool)
+    internal static bool Has(string tool)
     {
         try
         {

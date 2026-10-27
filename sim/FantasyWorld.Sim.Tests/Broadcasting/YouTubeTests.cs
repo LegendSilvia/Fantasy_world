@@ -48,6 +48,9 @@ public class YouTubeTests : IDisposable
     {
         public int Made { get; private set; }
 
+        public Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default) =>
+            Task.FromResult(chunks.SelectMany(c => c).Concat(narrationMp3).ToArray());
+
         public Task<byte[]> MakeAsync(byte[] mapPng, byte[] narrationMp3, IReadOnlyList<TimedShot>? shots = null, CancellationToken ct = default)
         {
             if (fails) throw new VideoException("ffmpeg could not be started; is it installed?");
@@ -99,6 +102,31 @@ public class YouTubeTests : IDisposable
 
         await Channel(google).PublishAsync(Sample(), [1], [2]); // a rerun: already uploaded
         Assert.Equal(3, google.Seen.Count);
+    }
+
+    [Fact]
+    public async Task TheDioramaFilm_IsJoined_WhenEveryStretchWasFilmed_ElseTheMapPans()
+    {
+        var timeline = new FantasyWorld.Broadcast.Speech.Timeline(30, [new("Opening", 0), new("Headline", 8), new("Until tomorrow", 25)]);
+        await FantasyWorld.Broadcast.Speech.Chapters.SaveAsync(_store, "2026-10-27", timeline);
+        var plan = DioramaFilm.Chunks(timeline);
+        Assert.Equal(3, plan.Count);
+        // One stretch missing: the camera pans over the map instead.
+        await _store.PutAsync(DioramaFilm.ChunkKey("2026-10-27", 0), [7], "video/mp4");
+        await _store.PutAsync(DioramaFilm.ChunkKey("2026-10-27", 1), [8], "video/mp4");
+        var video = new FakeVideo();
+        await Channel(new FakeGoogle(Session, Created), video: video).PublishAsync(Sample(), [1], [2]);
+        Assert.Equal(1, video.Made);
+        Assert.Contains("not filmed in full", _log.ToString());
+
+        // Every stretch there: the film is joined from them, with the narration.
+        await _store.DeleteAsync(YouTube.StateKey("2026-10-27"));
+        await _store.PutAsync(DioramaFilm.ChunkKey("2026-10-27", 2), [9], "video/mp4");
+        var joined = new FakeVideo();
+        await Channel(new FakeGoogle(Session, Created), video: joined).PublishAsync(Sample(), [1], [2]);
+        Assert.Equal(0, joined.Made);
+        Assert.Equal(new byte[] { 7, 8, 9, 2 }, await _store.GetAsync(YouTube.VideoKey("2026-10-27")));
+        Assert.Contains("joined from 3 filmed stretches", _log.ToString());
     }
 
     [Fact]

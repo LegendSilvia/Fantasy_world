@@ -47,6 +47,12 @@ public sealed class OrbitRig
         if (zoom is { } z) Preset(z);
     }
 
+    /// <summary>Sets the goal's turn round the target directly (a film's slow orbit), in radians.</summary>
+    public void Turn(float yaw) => GoalYaw = yaw;
+
+    /// <summary>Jumps to the goal at once, with no easing (a film starting mid-way, a cut).</summary>
+    public void Snap() => (Yaw, Pitch, Distance, Target) = (GoalYaw, GoalPitch, GoalDistance, GoalTarget);
+
     public void Reset()
     {
         (GoalYaw, GoalPitch, GoalTarget) = (0.785f, 0.62f, Vector3.Zero);

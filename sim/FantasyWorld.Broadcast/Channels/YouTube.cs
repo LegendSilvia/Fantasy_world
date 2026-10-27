@@ -115,10 +115,20 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             byte[] mp4;
             try
             {
-                // The camera follows the sections when the run kept a shot list and the narration its chapters.
-                var shots = Shots.Timed(await Shots.LoadAsync(store, day, ct).ConfigureAwait(false),
-                    await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false));
-                mp4 = await video.MakeAsync(map, audio, shots, ct).ConfigureAwait(false);
+                // The diorama film when its stretches were all filmed; else the camera follows the sections over the map, when
+                // the run kept a shot list and the narration its chapters.
+                var chapters = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
+                if (settings.Diorama && await DioramaFilm.ChunksAsync(store, day, chapters, ct).ConfigureAwait(false) is { } filmed)
+                {
+                    mp4 = await video.JoinAsync(filmed, audio, ct).ConfigureAwait(false);
+                    _log.WriteLine($"youtube: the diorama film of {day} was joined from {filmed.Count} filmed stretches.");
+                }
+                else
+                {
+                    if (settings.Diorama) _log.WriteLine($"youtube: the diorama film of {day} was not filmed in full; the camera pans over the map instead.");
+                    var shots = Shots.Timed(await Shots.LoadAsync(store, day, ct).ConfigureAwait(false), chapters);
+                    mp4 = await video.MakeAsync(map, audio, shots, ct).ConfigureAwait(false);
+                }
             }
             catch (VideoException e)
             {

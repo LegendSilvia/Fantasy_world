@@ -58,6 +58,12 @@ public sealed record BroadcastYouTube
 
     /// <summary>24 is Entertainment.</summary>
     public string CategoryId { get; init; } = "24";
+
+    /// <summary>
+    /// The video is filmed on the game's diorama (sub-project 7 F2) by the workflow's film jobs; when they have not filmed
+    /// every stretch, or this is off, the camera pans over the political map instead.
+    /// </summary>
+    public bool Diorama { get; init; } = true;
 }
 
 /// <summary>

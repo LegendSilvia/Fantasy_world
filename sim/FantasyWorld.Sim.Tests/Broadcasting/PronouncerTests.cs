@@ -16,10 +16,14 @@ public class PronouncerTests
         public bool Fails { get; set; }
         public bool RefusesDictionaries { get; set; }
 
+        /// <summary>Seconds of speech each part lasts (at 128 kbps); 0 gives a three-byte stand-in.</summary>
+        public int SecondsPerPart { get; set; }
+
         public Task<byte[]> SpeakAsync(SpeechRequest request, CancellationToken ct = default)
         {
             if (Fails) throw new SpeechException("ElevenLabs could not speak: HTTP 500.");
             Spoken.Add(request);
+            if (SecondsPerPart > 0) return Task.FromResult(new byte[16_000 * SecondsPerPart]);
             return Task.FromResult(new byte[] { 0xFF, 0xFB, (byte)Spoken.Count });
         }
 
