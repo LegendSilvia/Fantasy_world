@@ -5,11 +5,25 @@ namespace FantasyWorld.Sim.Agency;
 
 public enum Fate { Unharmed, Wounded, Maimed, Dead }
 
+/// <summary>A beat of a fight's course, on a day of it (1 = the day it began), as Claude told it (sub-project 8 §5).</summary>
+public sealed record FightChapter(int Day, string Text)
+{
+    /// <summary>The chapters falling on a day of the fight, as one account (null when none do).</summary>
+    public static string? On(IReadOnlyList<FightChapter> chapters, int day) =>
+        chapters.Where(c => c.Day == day).Select(c => c.Text).ToList() is { Count: > 0 } texts ? string.Join(" ", texts) : null;
+}
+
 /// <summary>A legal result of an encounter, with its base probability from the odds.</summary>
 public sealed record EncounterOutcome(string Key, double Probability, bool AttackerWins, Fate AttackerFate, Fate DefenderFate)
 {
     /// <summary>How it happened, when an LLM arbitrated (spec §8.3): stored as the event's account.</summary>
     public string? Account { get; init; }
+
+    /// <summary>How many days the fight lasts, its outcome applied on the last; the rules settle every fight in one.</summary>
+    public int Days { get; init; } = 1;
+
+    /// <summary>The fight's course, when Claude decided it: its beats in order of their days.</summary>
+    public IReadOnlyList<FightChapter> Chapters { get; init; } = [];
 }
 
 /// <summary>

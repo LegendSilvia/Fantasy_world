@@ -24,6 +24,10 @@ public class LlmArbiterTests
         JsonDocument.Parse(request.Schema).RootElement.GetProperty("properties").GetProperty("outcome").GetProperty("enum")
             .EnumerateArray().Select(e => e.GetString()!).ToArray();
 
+    /// <summary>A whole-duel answer: the outcome, its days and its chapters as (day, text).</summary>
+    private static string Whole(string outcome, int days, params (int Day, string Text)[] chapters) =>
+        JsonSerializer.Serialize(new { outcome, days, chapters = chapters.Select(c => new { day = c.Day, text = c.Text }) });
+
     private static (StoryContext Story, Encounter Duel) Setup(FakeLlmProvider fake, LlmJournal? journal = null)
     {
         var world = TestPeople.World();
@@ -36,13 +40,17 @@ public class LlmArbiterTests
     }
 
     [Fact]
-    public void TheLlm_ChoosesAPlausibleOutcome_AndTellsHowItHappened()
+    public void TheLlm_DecidesTheWholeDuel_ItsOutcomeLengthAndCourse()
     {
-        var fake = new FakeLlmProvider(_ => "{\"outcome\":\"attacker_maims\",\"turning_point\":\"a slip on wet stone\",\"account\":\"The duel ended in the rain.\"}");
+        var fake = new FakeLlmProvider(_ => Whole("attacker_maims", 200, (1, "The first bout was even."), (90, "A slip on wet stone turned it."),
+            (200, "It ended in the rain.")));
         var (story, duel) = Setup(fake);
         var outcome = new LlmArbiter(story).Resolve(duel, new Rng(1));
         Assert.Equal("attacker_maims", outcome.Key);
-        Assert.Equal("The duel ended in the rain. Turning point: a slip on wet stone", outcome.Account);
+        Assert.Equal(200, outcome.Days);
+        Assert.Equal(new[] { 1, 90, 200 }, outcome.Chapters.Select(c => c.Day));
+        Assert.Equal("The first bout was even. A slip on wet stone turned it. It ended in the rain.", outcome.Account);
+        Assert.Contains("up to 720 days", fake.Requests.Single().Prompt);
 
         var allowed = Allowed(fake.Requests.Single());
         Assert.All(allowed, key => Assert.True(duel.Outcomes.Single(o => o.Key == key).Probability >= Encounter.PlausibilityFloor));
@@ -53,12 +61,58 @@ public class LlmArbiterTests
     [Fact]
     public void ImplausibleAnswers_FallBackToTheRulesRoll()
     {
-        var fake = new FakeLlmProvider(_ => "{\"outcome\":\"both_die\",\"turning_point\":\"\",\"account\":\"\"}");
+        var fake = new FakeLlmProvider(_ => Whole("both_die", 1, (1, "Both fell."), (1, "None stood.")));
         var (story, duel) = Setup(fake);
         var expected = new RulesArbiter().Resolve(duel, new Rng(4));
         var outcome = new LlmArbiter(story).Resolve(duel, new Rng(4));
         Assert.Equal(expected.Key, outcome.Key);
         Assert.Null(outcome.Account);
+    }
+
+    [Theory]
+    [InlineData(0, "days must be a whole number from 1 to 720")]
+    [InlineData(721, "days must be a whole number from 1 to 720")]
+    public void AFightTooShortOrTooLong_IsRefused(int days, string why)
+    {
+        var fake = new FakeLlmProvider(_ => Whole("attacker_maims", days, (1, "It began."), (1, "It ended.")));
+        var (story, duel) = Setup(fake);
+        var outcome = new LlmArbiter(story).Resolve(duel, new Rng(4));
+        Assert.Equal(1, outcome.Days);
+        Assert.Empty(outcome.Chapters);
+        Assert.All(story.Gateway.Journal.All, c => Assert.Equal($"rejected: {why}", c.Note));
+    }
+
+    [Fact]
+    public void ACourseOutOfOrder_OrInventingNames_IsRefused_AndTheRetryIsToldWhy()
+    {
+        var answers = new Queue<string>(new[]
+        {
+            Whole("attacker_maims", 30, (20, "It began."), (10, "Sir Bogus struck."), (25, "It ended.")),
+            Whole("attacker_maims", 30, (1, "It began."), (30, "It ended.")),
+        });
+        var fake = new FakeLlmProvider(_ => answers.Dequeue());
+        var (story, duel) = Setup(fake);
+        var outcome = new LlmArbiter(story).Resolve(duel, new Rng(4));
+        Assert.Equal(30, outcome.Days);
+        var why = story.Gateway.Journal.All.Single(c => c.Note.StartsWith("rejected", StringComparison.Ordinal)).Note;
+        Assert.Contains("each chapter's day must fall within the fight, in order", why);
+        Assert.Contains("Bogus", why);
+        Assert.Contains("the last chapter must fall on the fight's last day", why);
+        Assert.Contains("An earlier answer was rejected for:", fake.Requests[1].Prompt);
+    }
+
+    [Fact]
+    public void AnAnswerJournaledBeforeFightsHadALength_StillReplays_AsOneDay()
+    {
+        var journal = new LlmJournal();
+        var (_, duel) = Setup(new FakeLlmProvider(_ => ""));
+        var key = $"arbitrate|duel|{duel.AttackerId}|{duel.DefenderId}|{TestPeople.World().Date.Day}";
+        journal.Add(new LlmCall(LlmRequest.HashOf(ModelTier.Arbitrate + "|" + key), ModelTier.Arbitrate, 0, "fake", "m",
+            "{\"outcome\":\"attacker_maims\",\"turning_point\":\"a slip\",\"account\":\"It ended in the rain.\"}", 0, 0, 0, 0, 0, DateTimeOffset.UnixEpoch));
+        var (story, again) = Setup(new FakeLlmProvider(_ => throw new InvalidOperationException("asked")), journal);
+        var outcome = new LlmArbiter(story).Resolve(again, new Rng(1));
+        Assert.Equal(("attacker_maims", 1), (outcome.Key, outcome.Days));
+        Assert.Equal("It ended in the rain. Turning point: a slip", outcome.Account);
     }
 
     [Fact]
@@ -77,7 +131,7 @@ public class LlmArbiterTests
         var journal = new LlmJournal();
         for (var i = 0; i < LlmArbiter.DramaBudget; i++)
             journal.Add(new LlmCall($"old{i}", ModelTier.Arbitrate, 0, "fake", "m", "{}", 0, 0, 0, 0, 0, DateTimeOffset.UnixEpoch, "upset"));
-        var fake = new FakeLlmProvider(_ => "{\"outcome\":\"attacker_kills\",\"turning_point\":\"\",\"account\":\"\"}");
+        var fake = new FakeLlmProvider(_ => Whole("attacker_kills", 1, (1, "It began."), (1, "It ended.")));
         var (story, duel) = Setup(fake, journal);
         new LlmArbiter(story).Resolve(duel, new Rng(1));
         var request = fake.Requests.Single();
@@ -88,7 +142,7 @@ public class LlmArbiterTests
     [Fact]
     public void UnderdogWins_AreMarkedAsUpsets()
     {
-        var fake = new FakeLlmProvider(_ => "{\"outcome\":\"defender_wounds\",\"turning_point\":\"\",\"account\":\"\"}");
+        var fake = new FakeLlmProvider(_ => Whole("defender_wounds", 1, (1, "It began."), (1, "It ended.")));
         var (story, duel) = Setup(fake);
         new LlmArbiter(story).Resolve(duel, new Rng(1));
         Assert.Equal("upset", story.Gateway.Journal.All.Single().Note);
@@ -103,12 +157,13 @@ public class LlmArbiterTests
         var hothead = TestPeople.Add(world, 1, 30, traits: new[] { Traits.Wrathful });
         var other = TestPeople.Add(world, 1, 30);
         hothead.Memories.Add(new Memory(insult.Id, other.Id, -90, 90));
-        var fake = new FakeLlmProvider(_ => "{\"outcome\":\"attacker_first_blood\",\"turning_point\":\"\",\"account\":\"A cut to the cheek ended it.\"}");
+        var fake = new FakeLlmProvider(_ => Whole("attacker_first_blood", 1, (1, "They circled."), (1, "A cut to the cheek ended it.")));
         var story = new StoryContext(world, log, new LlmGateway(fake, On, new LlmJournal()));
         new Simulator(world, log, new EventQueue(), new ISimSystem[] { new DeedsSystem(new Duelist(), new LlmArbiter(story)) }, checkInvariants: true)
             .AdvanceDays(360 * 5);
 
         var duel = log.All.First(e => e.Type == "DuelFought");
-        Assert.Equal("A cut to the cheek ended it.", duel.Payload["account"]);
+        Assert.Equal("They circled. A cut to the cheek ended it.", duel.Payload["account"]);
+        Assert.False(duel.Payload.ContainsKey("days"));
     }
 }

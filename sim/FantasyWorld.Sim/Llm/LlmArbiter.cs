@@ -12,13 +12,17 @@ namespace FantasyWorld.Sim.Llm;
 /// battle for the budget). The rules roll is always drawn first for RNG parity. The LLM sees both sides and the
 /// odds, and may pick only a plausible outcome (base probability at least the floor). Drama budget: when underdogs
 /// won 4 of the last 20 arbitrations, only outcomes of 15% or more are offered until upsets thin out. The engine
-/// applies the chosen outcome; the LLM's account is stored on the event.
+/// applies the chosen outcome; the LLM's account is stored on the event. A duel is decided whole (sub-project 8 §5): its
+/// outcome, how many days it lasts (up to <see cref="MaxDuelDays"/>) and its course in dated chapters.
 /// </summary>
 public sealed class LlmArbiter(StoryContext story, IArbiter? rules = null) : IArbiter
 {
     public const int DramaWindow = 20;
     public const int DramaBudget = 4;
     public const double TightFloor = 0.15;
+
+    /// <summary>A duel may drag on through bouts and truces for two years; longer, and it stops being news.</summary>
+    public const int MaxDuelDays = 2 * WorldDate.DaysPerYear;
 
     private static readonly HashSet<string> Arbitrated = new(StringComparer.Ordinal) { Encounters.Duel, Encounters.Hunt, Encounters.Delve };
 
@@ -51,29 +55,53 @@ public sealed class LlmArbiter(StoryContext story, IArbiter? rules = null) : IAr
             outcomes.AppendLine($"- {o.Key}: attacker {(o.AttackerWins ? "prevails" : "fails")}; attacker {o.AttackerFate.ToString().ToLowerInvariant()}, "
                                 + $"defender {o.DefenderFate.ToString().ToLowerInvariant()} (chance {(o.Probability * 100).ToString("0", CultureInfo.InvariantCulture)}%)");
         var name = PromptText.Data(Names.Full(world, attacker));
-        var prompt = PromptText.Section("brief",
-                $"Date: {world.Date}\nEncounter: {encounter.Kind}{(encounter.ToTheDeath ? ", to the death" : ", to first blood or yielding")}\n"
-                + $"{sides}\nThe attacker's odds of prevailing: {(odds * 100).ToString("0", CultureInfo.InvariantCulture)}%\n\nPossible outcomes:\n{outcomes}")
+        var brief = $"Date: {world.Date}\nEncounter: {encounter.Kind}{(encounter.ToTheDeath ? ", to the death" : ", to first blood or yielding")}\n"
+                    + $"{sides}\nThe attacker's odds of prevailing: {(odds * 100).ToString("0", CultureInfo.InvariantCulture)}%\n\nPossible outcomes:\n{outcomes}";
+        var whole = encounter.Kind == Encounters.Duel;
+        var prompt = PromptText.Section("brief", brief)
             + (tight ? "\n\nUpsets have been frequent of late; let the likelier outcome stand unless the brief makes it ring false." : "")
-            + $"\n\nDecide how {name}'s {encounter.Kind} ends. Name its turning point and give a short account (two or three sentences).";
-        var schema = JsonSerializer.Serialize(new
-        {
-            type = "object",
-            properties = new
+            + (whole
+                ? $"\n\nDecide {name}'s duel whole: which of the possible outcomes it comes to, and how. {FightAnswer.Instructions(MaxDuelDays)}"
+                : $"\n\nDecide how {name}'s {encounter.Kind} ends. Name its turning point and give a short account (two or three sentences).");
+        var schema = JsonSerializer.Serialize(whole
+            ? new
             {
-                outcome = new { type = "string", @enum = keys },
-                turning_point = new { type = "string" },
-                account = new { type = "string" },
-            },
-            required = new[] { "outcome", "turning_point", "account" },
-            additionalProperties = false,
-        });
+                type = "object",
+                properties = (object)new
+                {
+                    outcome = new { type = "string", @enum = keys },
+                    days = FightAnswer.DaysSchema,
+                    chapters = FightAnswer.ChaptersSchema,
+                },
+                required = new[] { "outcome", "days", "chapters" },
+                additionalProperties = false,
+            }
+            : new
+            {
+                type = "object",
+                properties = (object)new
+                {
+                    outcome = new { type = "string", @enum = keys },
+                    turning_point = new { type = "string" },
+                    account = new { type = "string" },
+                },
+                required = new[] { "outcome", "turning_point", "account" },
+                additionalProperties = false,
+            });
         var request = new LlmRequest(ModelTier.Arbitrate, key, story.Bible, prompt, schema);
 
         bool Upset(EncounterOutcome o) => o.AttackerWins != (odds >= 0.5);
-        var json = story.Gateway.Ask(request, day, answer => Parse(answer, keys) is not null,
-            answer => Upset(allowed.First(o => o.Key == Parse(answer, keys)!.Outcome)) ? "upset" : "");
+        string Why(string answer) => string.Join("; ", Problems(answer, keys, whole, brief));
+        var json = story.Gateway.Ask(request, day, answer => Problems(answer, keys, whole, brief).Count == 0,
+            answer => Upset(allowed.First(o => o.Key == Parse(answer, keys)!.Outcome)) ? "upset" : "", Why);
         if (json is null || Parse(json, keys) is not { } chosen) return fallback;
+        if (chosen.Chapters.Count > 0)
+            return allowed.First(o => o.Key == chosen.Outcome) with
+            {
+                Days = Math.Clamp(chosen.Days, 1, MaxDuelDays),
+                Chapters = chosen.Chapters,
+                Account = PromptText.Data(string.Join(" ", chosen.Chapters.Select(c => c.Text)), 1500),
+            };
         var account = string.IsNullOrWhiteSpace(chosen.TurningPoint) ? chosen.Account : $"{chosen.Account} Turning point: {chosen.TurningPoint}";
         return allowed.First(o => o.Key == chosen.Outcome) with { Account = PromptText.Data(account, 500) };
     }
@@ -84,8 +112,18 @@ public sealed class LlmArbiter(StoryContext story, IArbiter? rules = null) : IAr
             .OrderByDescending(c => c.Day).ThenBy(c => c.Hash, StringComparer.Ordinal)
             .Take(DramaWindow).Count(c => c.Note == "upset") >= DramaBudget;
 
-    private sealed record Answer(string Outcome, string TurningPoint, string Account);
+    private sealed record Answer(string Outcome, string TurningPoint, string Account, int Days, IReadOnlyList<FightChapter> Chapters);
 
+    /// <summary>Why a new answer is refused: no legal outcome, or (for a whole fight) a length or course out of bounds.</summary>
+    private static IReadOnlyList<string> Problems(string json, IReadOnlyList<string> keys, bool whole, string brief)
+    {
+        if (Parse(json, keys) is null) return ["the outcome must be one of the possible outcomes"];
+        if (!whole) return [];
+        using var doc = JsonDocument.Parse(json);
+        return FightAnswer.Problems(doc.RootElement, MaxDuelDays, brief);
+    }
+
+    /// <summary>The answer as it is applied; lenient, so answers journaled before fights had a length still replay.</summary>
     private static Answer? Parse(string json, IReadOnlyList<string> keys)
     {
         try
@@ -95,7 +133,7 @@ public sealed class LlmArbiter(StoryContext story, IArbiter? rules = null) : IAr
             if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("outcome", out var outcome)
                 || outcome.ValueKind != JsonValueKind.String || !keys.Contains(outcome.GetString()!)) return null;
             string Text(string property) => root.TryGetProperty(property, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString()! : "";
-            return new Answer(outcome.GetString()!, Text("turning_point"), Text("account"));
+            return new Answer(outcome.GetString()!, Text("turning_point"), Text("account"), FightAnswer.Days(root), FightAnswer.Chapters(root, 400));
         }
         catch (JsonException)
         {

@@ -36,12 +36,12 @@ public class QualityEvalsTests
             if (properties.TryGetProperty("outcome", out var outcome))
             {
                 var keys = outcome.GetProperty("enum").EnumerateArray().Select(k => k.GetString()!).ToList();
-                if (biased) return $"{{\"outcome\":\"{keys.First(k => k.StartsWith("defender", StringComparison.Ordinal))}\",\"turning_point\":\"\",\"account\":\"So.\"}}";
+                if (biased) return $"{{\"outcome\":\"{keys.First(k => k.StartsWith("defender", StringComparison.Ordinal))}\",\"turning_point\":\"\",\"account\":\"So.\",\"days\":1,\"chapters\":[{{\"day\":1,\"text\":\"So it began.\"}},{{\"day\":1,\"text\":\"So it ended.\"}}]}}";
                 var chances = Regex.Matches(request.Prompt, @"- (\w+): .*\(chance (\d+)%\)").ToDictionary(m => m.Groups[1].Value, m => double.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture));
                 var u = Convert.ToUInt32(request.Hash[..8], 16) % 1000 / 1000.0 * chances.Values.Sum(); // a stable draw per question
                 var pick = keys.First();
                 foreach (var k in keys) { u -= chances.GetValueOrDefault(k); if (u < 0) { pick = k; break; } }
-                return $"{{\"outcome\":\"{pick}\",\"turning_point\":\"\",\"account\":\"So.\"}}";
+                return $"{{\"outcome\":\"{pick}\",\"turning_point\":\"\",\"account\":\"So.\",\"days\":1,\"chapters\":[{{\"day\":1,\"text\":\"So it began.\"}},{{\"day\":1,\"text\":\"So it ended.\"}}]}}";
             }
             var brief = Regex.Match(request.Prompt, @"<brief>\n(.*)").Groups[1].Value;
             return JsonSerializer.Serialize(new { text = narration ?? brief.Trim() });

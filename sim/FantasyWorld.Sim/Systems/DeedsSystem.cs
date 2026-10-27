@@ -39,10 +39,16 @@ public sealed class DeedsSystem : ISimSystem
 
     public const string DuelKind = "duel";
 
-    public IEnumerable<string> HandledKinds => new[] { DuelKind };
+    /// <summary>A beat of a duel that lasts more than a day, told on its day (sub-project 8 §5).</summary>
+    public const string DuelTurnKind = "duel-turn";
 
-    /// <summary>The duels declared and not yet fought, from the queue.</summary>
-    public static IEnumerable<ScheduledAction> PendingDuels(EventQueue queue) => queue.Snapshot().Where(a => a.Kind == DuelKind);
+    /// <summary>The last day of a duel that lasts more than a day: its outcome is applied.</summary>
+    public const string DuelEndKind = "duel-end";
+
+    public IEnumerable<string> HandledKinds => new[] { DuelKind, DuelTurnKind, DuelEndKind };
+
+    /// <summary>The duels declared and not yet fought, or begun and not yet ended, from the queue.</summary>
+    public static IEnumerable<ScheduledAction> PendingDuels(EventQueue queue) => queue.Snapshot().Where(a => a.Kind is DuelKind or DuelEndKind);
 
     private static bool Challenged(EventQueue queue, long characterId) =>
         PendingDuels(queue).Any(a => a.Data["challenger"] == characterId.ToString(CultureInfo.InvariantCulture)
@@ -370,7 +376,10 @@ public sealed class DeedsSystem : ISimSystem
     /// <summary>The challenger's chance as a whole percentage, as it is shown ("62").</summary>
     public static string Percent(double odds) => Math.Round(odds * 100).ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>The day of a declared duel: fought if both are still here, else called off.</summary>
+    /// <summary>
+    /// The day of a declared duel: fought if both are still here, else called off. A duel Claude made longer than a day
+    /// is told on its chapters' days and ends on its last, called off then if either side is gone.
+    /// </summary>
     public void OnScheduled(SimContext ctx, ScheduledAction action)
     {
         var world = ctx.World;
@@ -378,30 +387,105 @@ public sealed class DeedsSystem : ISimSystem
         var declared = Id("declared");
         world.Characters.TryGetValue(Id("challenger"), out var challenger);
         world.Characters.TryGetValue(Id("defender"), out var defender);
+        var begun = action.Data.TryGetValue("begun", out var b) ? long.Parse(b, CultureInfo.InvariantCulture) : 0;
         if (challenger is not { IsActive: true } || defender is not { IsActive: true })
         {
+            // A beat of a duel one side has left is not told; the duel's last day calls it off.
+            if (action.Kind == DuelTurnKind) return;
             var gone = challenger is { IsActive: true } ? defender : challenger;
             ctx.Emit(new EventDraft("DuelCalledOff",
                 Actors: new Dictionary<string, EntityRef?> { ["challenger"] = challenger?.Ref, ["defender"] = defender?.Ref }
                     .Where(kv => kv.Value is not null).ToDictionary(kv => kv.Key, kv => kv.Value!.Value),
                 Payload: new Dictionary<string, string> { ["stakes"] = action.Data["stakes"], ["reason"] = gone?.Died is not null ? "died" : "gone" },
-                Causes: new[] { new Cause(declared, CauseKind.Trigger, 1.0) },
+                Causes: new[] { new Cause(begun != 0 ? begun : declared, CauseKind.Trigger, 1.0) },
                 Importance: 8, Tags: new[] { "Characters", "Deeds" }));
             return;
         }
-        Duel(ctx, challenger, defender, action.Data["stakes"] == "to the death", declared);
+        var toTheDeath = action.Data["stakes"] == "to the death";
+        switch (action.Kind)
+        {
+            case DuelTurnKind:
+            {
+                using var account = ctx.Annotate("account", action.Data.GetValueOrDefault("account"));
+                ctx.Emit(new EventDraft("DuelTurned",
+                    Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
+                    Place: world.Settlements[defender.SettlementId].Ref,
+                    Payload: new Dictionary<string, string> { ["stakes"] = action.Data["stakes"], ["day"] = action.Data["day"], ["days"] = action.Data["days"] },
+                    Causes: new[] { new Cause(begun, CauseKind.Trigger, 1.0) },
+                    Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 18 : 10), Fates.Importance(defender, toTheDeath ? 18 : 10)),
+                    Tags: new[] { "Characters", "Deeds" }));
+                return;
+            }
+            case DuelEndKind:
+            {
+                // The outcome Claude chose, among the same outcomes as on the first day (the stakes fix them).
+                var encounter = Encounters.DuelBetween(world, challenger, defender, toTheDeath);
+                var outcome = encounter.Outcomes.First(o => o.Key == action.Data["outcome"]) with { Account = action.Data.GetValueOrDefault("account") };
+                Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, begun, int.Parse(action.Data["days"], CultureInfo.InvariantCulture));
+                return;
+            }
+            default:
+                Duel(ctx, challenger, defender, toTheDeath, declared);
+                return;
+        }
     }
 
     private void Duel(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared)
     {
-        var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
         var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath), ctx.Rng);
+        if (outcome.Days <= 1)
+        {
+            Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, 0, 1);
+            return;
+        }
+        // A long duel: begun today with the first day's chapters, told on each later chapter's day, ended on its last.
+        var days = outcome.Days;
+        var chapters = outcome.Chapters.Select(c => c with { Day = Math.Clamp(c.Day, 1, days) }).ToList();
+        var stakes = toTheDeath ? "to the death" : "first blood";
+        WorldEvent begun;
+        using (ctx.Annotate("account", FightChapter.On(chapters, 1)))
+            begun = ctx.Emit(new EventDraft("DuelBegun",
+                Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
+                Place: ctx.World.Settlements[defender.SettlementId].Ref,
+                Payload: new Dictionary<string, string> { ["stakes"] = stakes, ["days"] = days.ToString(CultureInfo.InvariantCulture) },
+                Causes: new[] { new Cause(declared, CauseKind.Trigger, 1.0) },
+                Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 25 : 12), Fates.Importance(defender, toTheDeath ? 25 : 12)),
+                Tags: new[] { "Characters", "Deeds" }));
+        Dictionary<string, string> Data(int day) => new()
+        {
+            ["challenger"] = challenger.Id.ToString(CultureInfo.InvariantCulture),
+            ["defender"] = defender.Id.ToString(CultureInfo.InvariantCulture),
+            ["stakes"] = stakes,
+            ["declared"] = declared.ToString(CultureInfo.InvariantCulture),
+            ["begun"] = begun.Id.ToString(CultureInfo.InvariantCulture),
+            ["day"] = day.ToString(CultureInfo.InvariantCulture),
+            ["days"] = days.ToString(CultureInfo.InvariantCulture),
+        };
+        foreach (var day in chapters.Select(c => c.Day).Where(d => d > 1 && d < days).Distinct())
+        {
+            var data = Data(day);
+            data["account"] = FightChapter.On(chapters, day)!;
+            ctx.Queue.Schedule(ctx.Date.AddDays(day - 1), DuelTurnKind, data);
+        }
+        var end = Data(days);
+        end["outcome"] = outcome.Key;
+        if (FightChapter.On(chapters, days) is { } last) end["account"] = last;
+        ctx.Queue.Schedule(ctx.Date.AddDays(days - 1), DuelEndKind, end);
+    }
+
+    /// <summary>The duel's end: its outcome applied, on the day it was fought or the last day of a long one.</summary>
+    private static void Conclude(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared,
+        EncounterOutcome outcome, long begun, int days)
+    {
+        var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
+        var payload = new Dictionary<string, string> { ["stakes"] = toTheDeath ? "to the death" : "first blood", ["outcome"] = outcome.Key };
+        if (days > 1) payload["days"] = days.ToString(CultureInfo.InvariantCulture);
         using var account = ctx.Annotate("account", outcome.Account);
         var duel = ctx.Emit(new EventDraft("DuelFought",
             Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
             Place: ctx.World.Settlements[defender.SettlementId].Ref,
-            Payload: new Dictionary<string, string> { ["stakes"] = toTheDeath ? "to the death" : "first blood", ["outcome"] = outcome.Key },
-            Causes: new[] { new Cause(declared, CauseKind.Trigger, 1.0) }
+            Payload: payload,
+            Causes: new[] { new Cause(begun != 0 ? begun : declared, CauseKind.Trigger, 1.0) }
                 .Concat(grudge is not null ? new[] { new Cause(grudge.EventId, CauseKind.Motive, 0.9) } : Array.Empty<Cause>()).ToArray(),
             Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 30 : 15), Fates.Importance(defender, toTheDeath ? 30 : 15)),
             Tags: new[] { "Characters", "Deeds" }));

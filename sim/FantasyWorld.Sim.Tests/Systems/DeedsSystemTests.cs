@@ -24,10 +24,32 @@ public class DeedsSystemTests
         public EncounterOutcome Resolve(Encounter encounter, Rng rng) => encounter.Outcomes.Single(o => o.Key == key);
     }
 
-    private static Simulator Make(World world, string verb, string? outcome = null, EventLog? log = null) =>
+    /// <summary>Decides every duel as Claude might: the given outcome, lasting 100 days, told on days 1, 40 and 100.</summary>
+    private sealed class LongArbiter(string key) : IArbiter
+    {
+        public EncounterOutcome Resolve(Encounter encounter, Rng rng) => encounter.Outcomes.Single(o => o.Key == key) with
+        {
+            Days = 100,
+            Chapters = [new(1, "They circled."), new(40, "A truce broke."), new(100, "The last bout ended it.")],
+            Account = "They circled. A truce broke. The last bout ended it.",
+        };
+    }
+
+    private static Simulator Make(World world, string verb, string? outcome = null, EventLog? log = null, IArbiter? arbiter = null) =>
         new(world, log ?? new EventLog(), new EventQueue(),
-            new ISimSystem[] { new DeedsSystem(new WantDecider(verb), outcome is null ? null : new FixedArbiter(outcome)) },
+            new ISimSystem[] { new DeedsSystem(new WantDecider(verb), arbiter ?? (outcome is null ? null : new FixedArbiter(outcome))) },
             checkInvariants: true);
+
+    private static (World World, EventLog Log, Character Hothead, Character Other, WorldEvent Insult) Rivals()
+    {
+        var world = TestPeople.World();
+        var log = new EventLog();
+        var insult = log.Append(world.Date, new EventDraft("RivalryBegan"));
+        var hothead = TestPeople.Add(world, 1, 30, traits: new[] { Traits.Wrathful });
+        var other = TestPeople.Add(world, 1, 30);
+        hothead.Memories.Add(new Memory(insult.Id, other.Id, -90, 90));
+        return (world, log, hothead, other, insult);
+    }
 
     [Fact]
     public void Hunter_SlaysMonsters_AndTamesTheRegion()
@@ -160,6 +182,48 @@ public class DeedsSystemTests
         Assert.Equal(declared.Id, off.Causes.Single().EventId);
         Assert.Equal("died", off.Payload["reason"]);
         Assert.DoesNotContain(sim.Log.All, e => e.Type == "DuelFought");
+    }
+
+    [Fact]
+    public void ADuelClaudeMakesLong_Begins_GoesOn_AndEndsOnItsLastDay()
+    {
+        var (world, log, hothead, other, insult) = Rivals();
+        var sim = Make(world, "duel", log: log, arbiter: new LongArbiter("attacker_first_blood"));
+
+        while (!sim.Log.All.Any(e => e.Type == "DuelBegun")) sim.AdvanceDays(30);
+        var begun = sim.Log.All.Single(e => e.Type == "DuelBegun");
+        var declared = sim.Log.All.Single(e => e.Type == "DuelDeclared");
+        Assert.Equal(declared.Date.AddDays(DeedsSystem.DuelDelayDays), begun.Date);
+        Assert.Equal(("100", "They circled."), (begun.Payload["days"], begun.Payload["account"]));
+        Assert.Equal(declared.Id, begun.Causes.Single().EventId);
+        Assert.DoesNotContain(sim.Log.All, e => e.Type == "DuelFought");
+        sim.AdvanceDays(100);
+
+        var turned = sim.Log.All.Single(e => e.Type == "DuelTurned");
+        Assert.Equal(begun.Date.AddDays(39), turned.Date);
+        Assert.Equal(("40", "A truce broke."), (turned.Payload["day"], turned.Payload["account"]));
+        var fought = sim.Log.All.Single(e => e.Type == "DuelFought");
+        Assert.Equal(begun.Date.AddDays(99), fought.Date);
+        Assert.Equal(("100", "The last bout ended it."), (fought.Payload["days"], fought.Payload["account"]));
+        Assert.Equal(new[] { begun.Id, insult.Id }, fought.Causes.Select(c => c.EventId));
+        // Nobody was challenged again while it was fought.
+        Assert.Single(sim.Log.All, e => e.Type == "DuelDeclared" && e.Date < fought.Date);
+        Assert.True(hothead.IsAlive && other.IsAlive);
+    }
+
+    [Fact]
+    public void ALongDuel_IsCalledOff_WhenAFighterDiesBeforeItsEnd()
+    {
+        var (world, log, _, other, _) = Rivals();
+        var sim = Make(world, "duel", log: log, arbiter: new LongArbiter("attacker_first_blood"));
+        while (!sim.Log.All.Any(e => e.Type == "DuelBegun")) sim.AdvanceDays(30);
+        var begun = sim.Log.All.Single(e => e.Type == "DuelBegun");
+        other.Died = world.Date;
+        sim.AdvanceDays(100);
+
+        Assert.DoesNotContain(sim.Log.All, e => e.Type is "DuelTurned" or "DuelFought");
+        var off = sim.Log.All.Single(e => e.Type == "DuelCalledOff");
+        Assert.Equal((begun.Id, "died"), (off.Causes.Single().EventId, off.Payload["reason"]));
     }
 
     [Fact]
