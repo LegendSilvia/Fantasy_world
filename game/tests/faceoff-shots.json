@@ -27,7 +27,7 @@
     }
   },
   {
-    "start": 4, "x": 0.5, "y": 0.5, "zoom": 2.5, "title": "Battle at Harrow",
+    "start": 4, "x": 0.5, "y": 0.5, "zoom": 2.5, "title": "Battle at Harrow", "still": "images/preview-scene.png",
     "moves": [
       { "eventId": 11, "line": "The host of Vale left Ashford and came to Harrow.", "from": { "x": 0.46, "y": 0.5 }, "to": { "x": 0.5, "y": 0.48 }, "side": "attacker", "invasion": false },
       { "eventId": 12, "line": "The host of Vale crossed out of Harrow into the enemy's land at Kesmoor.", "from": { "x": 0.5, "y": 0.48 }, "to": { "x": 0.53, "y": 0.51 }, "side": "attacker", "invasion": true },

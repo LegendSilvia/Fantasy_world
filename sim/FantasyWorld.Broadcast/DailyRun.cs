@@ -453,10 +453,10 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         if (code != 0) throw new InvalidOperationException($"fw {args[0]} failed (exit code {code}).");
     }
 
-    /// <summary>The face-offs' portraits and banners (<see cref="Likenesses"/>); a failure only leaves the cards without them.</summary>
+    /// <summary>The face-offs' portraits and banners and the fights' stills (<see cref="Likenesses"/>); a failure only leaves them out.</summary>
     private async Task<Episode> FaceOffImagesAsync(PrefixedStore store, string snapshot, Episode episode, string date, CancellationToken ct)
     {
-        if (!config.Images.Make || episode.Parts.All(p => p.FaceOff is null)) return episode;
+        if (!config.Images.Make || episode.Parts.All(p => p.FaceOff is null && p.Scene is null)) return episode;
         try
         {
             using var saved = WorldStore.Open(snapshot);
@@ -468,7 +468,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException && !ct.IsCancellationRequested)
         {
-            log.WriteLine($"warning: the face-offs' images could not be had ({e.Message}); the cards show none.");
+            log.WriteLine($"warning: the episode's images could not be had ({e.Message}); the film goes without them.");
             return episode;
         }
     }

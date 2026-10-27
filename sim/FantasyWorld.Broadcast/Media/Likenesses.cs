@@ -10,8 +10,8 @@ using FantasyWorld.Sim.Query;
 
 namespace FantasyWorld.Broadcast.Media;
 
-/// <summary>What an image is asked for: the subject only (the scenario frames it), the scenario, the style and the seed.</summary>
-public sealed record ImageRequest(string Prompt, string Scenario, string Style, bool Transparent, long Seed);
+/// <summary>What an image is asked for: the subject only (the scenario frames it), the scenario, the style, the seed and, if not the scenario's, the size.</summary>
+public sealed record ImageRequest(string Prompt, string Scenario, string Style, bool Transparent, long Seed, int? Width = null, int? Height = null);
 
 /// <summary>An image as made: its bytes and type, and whether its background really was taken away.</summary>
 public sealed record MadeImage(byte[] Bytes, string Mime, bool Transparent, string? Warning);
@@ -40,6 +40,8 @@ public sealed class FluxImages(HttpClient http, string baseUrl, string accessKey
             ["prompt"] = request.Prompt, ["scenario"] = request.Scenario, ["style"] = request.Style,
             ["transparent"] = request.Transparent, ["seed"] = request.Seed,
         };
+        if (request.Width is { } width) body["width"] = width;
+        if (request.Height is { } height) body["height"] = height;
         using var message = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/generate")
         {
             Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
@@ -62,9 +64,10 @@ public sealed class FluxImages(HttpClient http, string baseUrl, string accessKey
 public sealed record Likeness(long Bytes, string LastUsed, string Prompt);
 
 /// <summary>
-/// The face-offs' images (the owner, 2026-10-27): a duellist's full-figure portrait or a realm's war banner, made once from
-/// the world by the image API and kept in the bucket (<c>images/char-12.png</c>, <c>images/realm-3.png</c>), then
-/// reused every time that side is shown again. An index (<c>images/index.json</c>) records each image's last use, so the
+/// The episode's images (the owner, 2026-10-27): a face-off side's portrait or war banner, made once from the world by the
+/// image API and kept in the bucket (<c>images/char-12.png</c>, <c>images/realm-3.png</c>), then reused every time that
+/// side is shown again; and a still of each fight told (<c>images/scene-812.png</c>, 16:9, from the chronicler's picture of
+/// it, else the template's). An index (<c>images/index.json</c>) records each image's last use, so the
 /// bucket's limit lets the longest unused go first. No image is made when the bucket has no room for it, when the API's
 /// day is spent (a 429 stops the run's asking, never retried), or without the API's key; the card then shows none.
 /// </summary>
@@ -115,56 +118,72 @@ public static class Likenesses
     public static async Task<Episode> AttachAsync(Episode episode, World world, IObjectStore store, IImageMaker? maker, string style,
         string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct = default)
     {
-        var sides = episode.Parts.Where(p => p.FaceOff is not null).SelectMany(p => new[] { p.FaceOff!.A, p.FaceOff.B }).ToList();
-        if (sides.Count == 0) return episode;
+        var sides = episode.Parts.Where(p => p.FaceOff is not null).SelectMany(p => new[] { p.FaceOff!.A, p.FaceOff.B }).DistinctBy(s => s.Ref).ToList();
+        var fights = episode.Parts.Where(p => p.Scene is { Length: > 0 } && p.EventId != 0).ToList();
+        if (sides.Count == 0 && fights.Count == 0) return episode;
+        // Every image wanted: each face-off side's (kept for good, reused), then each fight's still (made for its day).
+        var wanted = sides.Select(side => (Key: KeyFor(side.Ref), Label: side.Name, Ask: (Func<ImageRequest?>)(() => Ask(world, side.Ref, style))))
+            .Concat(fights.Select(f => (Key: (string?)StillKey(f.EventId), Label: f.Title,
+                Ask: (Func<ImageRequest?>)(() => new ImageRequest(f.Scene!, "environment", style, false, f.EventId, StillWidth, StillHeight)))))
+            .Where(w => w.Key is not null).ToList();
         var index = await IndexAsync(store, ct).ConfigureAwait(false);
         var kept = (await store.ListAsync(Prefix, ct).ConfigureAwait(false)).ToHashSet(StringComparer.Ordinal);
         var spent = maker is null;
-        if (maker is null) log.WriteLine("Face-off images: no FLUX_ACCESS_KEY, so none is made; kept ones are still shown.");
-        var images = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var side in sides.DistinctBy(s => s.Ref))
+        if (maker is null) log.WriteLine("Images: no FLUX_ACCESS_KEY, so none is made; kept ones are still shown.");
+        var had = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (key, label, ask) in wanted)
         {
-            if (KeyFor(side.Ref) is not { } key) continue;
-            if (!kept.Contains(key))
+            if (!kept.Contains(key!))
             {
-                if (spent || Ask(world, side.Ref, style) is not { } request) continue;
+                if (spent || ask() is not { } request) continue;
                 if (!await room(ExpectedBytes).ConfigureAwait(false))
                 {
-                    log.WriteLine($"Face-off images: the bucket is near its limit, so no image of {side.Name} is made.");
+                    log.WriteLine($"Images: the bucket is near its limit, so no image of {label} is made.");
                     spent = true;
                     continue;
                 }
                 try
                 {
                     var made = await maker!.MakeAsync(request, ct).ConfigureAwait(false);
-                    if (made.Warning is { Length: > 0 } warning) log.WriteLine($"Face-off images: {side.Name}: {warning}");
-                    await store.PutAsync(key, made.Bytes, made.Mime, ct).ConfigureAwait(false);
-                    index[key] = new Likeness(made.Bytes.LongLength, date, request.Prompt);
-                    kept.Add(key);
-                    log.WriteLine($"Face-off images: made {key} ({made.Bytes.LongLength / 1000} kB{(made.Transparent ? "" : ", not transparent")}).");
+                    if (made.Warning is { Length: > 0 } warning) log.WriteLine($"Images: {label}: {warning}");
+                    await store.PutAsync(key!, made.Bytes, made.Mime, ct).ConfigureAwait(false);
+                    index[key!] = new Likeness(made.Bytes.LongLength, date, request.Prompt);
+                    kept.Add(key!);
+                    log.WriteLine($"Images: made {key} ({made.Bytes.LongLength / 1000} kB{(request.Transparent && !made.Transparent ? ", not transparent" : "")}).");
                 }
                 catch (ImageBudgetSpentException e)
                 {
-                    log.WriteLine($"Face-off images: {e.Message}; no more are asked for today.");
+                    log.WriteLine($"Images: {e.Message}; no more are asked for today.");
                     spent = true;
                     continue;
                 }
                 catch (Exception e) when (e is IOException or HttpRequestException or JsonException or FormatException or TaskCanceledException
                                           && !ct.IsCancellationRequested)
                 {
-                    log.WriteLine($"Face-off images: no image of {side.Name} ({e.Message}).");
+                    log.WriteLine($"Images: no image of {label} ({e.Message}).");
                     continue;
                 }
             }
-            index[key] = index.TryGetValue(key, out var known) ? known with { LastUsed = date } : new Likeness(0, date, "");
-            images[side.Ref] = key;
+            index[key!] = index.TryGetValue(key!, out var known) ? known with { LastUsed = date } : new Likeness(0, date, "");
+            had.Add(key!);
         }
-        if (images.Count > 0) await SaveAsync(store, index, ct).ConfigureAwait(false);
+        if (had.Count > 0) await SaveAsync(store, index, ct).ConfigureAwait(false);
 
-        FaceOffSide With(FaceOffSide side) => images.TryGetValue(side.Ref, out var key) ? side with { Image = key } : side;
-        var sections = episode.Parts.Select(p => p.FaceOff is { } f ? p with { FaceOff = f with { A = With(f.A), B = With(f.B) } } : p).ToList();
+        FaceOffSide With(FaceOffSide side) => KeyFor(side.Ref) is { } key && had.Contains(key) ? side with { Image = key } : side;
+        var sections = episode.Parts.Select(p =>
+        {
+            if (p.FaceOff is { } f) p = p with { FaceOff = f with { A = With(f.A), B = With(f.B) } };
+            if (p.Scene is not null && had.Contains(StillKey(p.EventId))) p = p with { Still = StillKey(p.EventId) };
+            return p;
+        }).ToList();
         return episode with { Sections = sections };
     }
+
+    /// <summary>Where a fight's still is kept, by its event.</summary>
+    public static string StillKey(long eventId) => $"{Prefix}scene-{eventId.ToString(CultureInfo.InvariantCulture)}.png";
+
+    /// <summary>A still's size: 16:9, within the API's 1,536 and a multiple of 16.</summary>
+    public const int StillWidth = 1280, StillHeight = 720;
 
     /// <summary>
     /// What to ask the API for a side, from the world: a person's full figure (scenario <c>character</c>), a realm's war

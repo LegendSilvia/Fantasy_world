@@ -3,6 +3,10 @@ using System.Text.Json.Nodes;
 using FantasyWorld.Broadcast.Media;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Sim.Chronicle;
+using FantasyWorld.Sim.Events;
+using FantasyWorld.Sim.Llm;
+using FantasyWorld.Sim.Model;
+using FantasyWorld.Sim.Narration;
 using FantasyWorld.Sim.Tests.Chronicle;
 using FantasyWorld.Sim.Tests.Support;
 
@@ -150,5 +154,62 @@ public class LikenessTests
         var http = new StorageTests.FakeHttp((HttpStatusCode.OK,
             $"<ListBucketResult xmlns=\"{ns}\"><IsTruncated>false</IsTruncated><Contents><Key>live/x</Key><Size>1234</Size></Contents></ListBucketResult>"));
         Assert.Equal([new StoredObject("live/x", 1234)], await new R2ObjectStore(new HttpClient(http), "acct", "fw", "K", "S").ListSizesAsync("live/"));
+    }
+
+    /// <summary>A duel declared and then fought: the fight's section gets a still.</summary>
+    private static (World World, EventLog Log, Character Strong, Character Sly) ADuelFought()
+    {
+        var (world, log, strong, sly, declared) = FaceOffTests.ADuelDeclared();
+        log.Append(world.Date, new EventDraft("DuelFought",
+            Actors: new Dictionary<string, EntityRef> { ["challenger"] = strong.Ref, ["defender"] = sly.Ref, ["victor"] = strong.Ref },
+            Place: declared.Place, Payload: new Dictionary<string, string> { ["stakes"] = "to the death" },
+            Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 0.9) }, Importance: 45, Tags: new[] { "Characters", "Deeds" }));
+        return (world, log, strong, sly);
+    }
+
+    [Fact]
+    public async Task AFight_IsPaintedAsAStill_FromItsPicture_WithoutNames()
+    {
+        var (world, log, strong, sly) = ADuelFought();
+        var episode = Episode.Build(world, log, 0, "2026-10-27");
+        var fight = Assert.Single(episode.Parts, p => p.Scene is not null);
+        Assert.Equal("DuelFought", log.All.Single(e => e.Id == fight.EventId).Type);
+        Assert.Contains("two duellists crossing swords", fight.Scene);
+        Assert.DoesNotContain(strong.Name, fight.Scene);
+        Assert.DoesNotContain(sly.Name, fight.Scene);
+        Assert.DoesNotContain(fight.Scene!, episode.Script);
+
+        using var dir = new TempDir();
+        var store = new LocalObjectStore(dir.Path);
+        var maker = new FakeMaker(Png);
+        var told = await Likenesses.AttachAsync(episode, world, store, maker, "hand-painted", "2026-10-27", _ => Task.FromResult(true), new StringWriter());
+        var still = maker.Asked.Single(r => r.Scenario == "environment");
+        Assert.Equal((fight.Scene, false, fight.EventId, 1280, 720), (still.Prompt, still.Transparent, still.Seed, still.Width!.Value, still.Height!.Value));
+        Assert.Equal(Likenesses.StillKey(fight.EventId), told.Parts.Single(p => p.EventId == fight.EventId).Still);
+        Assert.NotNull(await store.GetAsync(Likenesses.StillKey(fight.EventId)));
+    }
+
+    [Fact]
+    public void TheChronicler_PaintsTheFight_InItsOwnWords_AndNeverAloud()
+    {
+        var (world, log, _, _) = ADuelFought();
+        var episode = Episode.Build(world, log, 0, "2026-10-27");
+        var painted = "Steel flashes in the rain as a knight in crimson drives a cloaked rival in azure back against a stone well.";
+        LlmNarrator Narrator(object answer, out FantasyWorld.Sim.Llm.FakeLlmProvider fake)
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(answer);
+            fake = new FantasyWorld.Sim.Llm.FakeLlmProvider(_ => json);
+            return new LlmNarrator(new StoryContext(world, log, new LlmGateway(fake, new LlmSettings { Provider = "fake" }, new LlmJournal())));
+        }
+
+        var written = Narrator(new { sections = episode.Parts.Select(p => p.Text), scenes = episode.Parts.Select(p => p.Scene is null ? "" : painted) }, out var fake)
+            .EpisodeScript(episode, 20_000);
+        Assert.Contains("A fight to paint", fake.Requests.Single().Prompt);
+        Assert.Equal(painted, written.Parts.Single(p => p.Scene is not null).Scene);
+        Assert.DoesNotContain(painted, written.Script);
+
+        // An answer without pictures keeps the template's.
+        var plain = Narrator(new { sections = episode.Parts.Select(p => p.Text) }, out _).EpisodeScript(episode, 20_000);
+        Assert.Equal(episode.Parts.Single(p => p.Scene is not null).Scene, plain.Parts.Single(p => p.Scene is not null).Scene);
     }
 }

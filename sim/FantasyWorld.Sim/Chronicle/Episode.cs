@@ -16,10 +16,11 @@ public sealed record EpisodeStory(long EventId, int Year, string Category, strin
 /// One section of an episode (sub-project 7 §3), read aloud on its own and shown as a chapter: its kind (opening,
 /// headline, face-off, story, comment, closing), the chapter's title, its text and the event it tells (0 for the opening and
 /// closing); a face-off carries both sides' figures, and the first section telling a war carries the war's moves in the
-/// episode (sub-project 10 C3). The sections' texts, joined by blank lines, are the script.
+/// episode (sub-project 10 C3). A fight's section carries the description of its still image (never read aloud) and,
+/// once the broadcast has it, the image's key in its store. The sections' texts, joined by blank lines, are the script.
 /// </summary>
 public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0, FaceOff? FaceOff = null,
-    IReadOnlyList<CampaignMove>? Moves = null)
+    IReadOnlyList<CampaignMove>? Moves = null, string? Scene = null, string? Still = null)
 {
     /// <summary>Why: "how it came to this", in episodes made before 2026-10-27; Comment: the chronicler's view of the year that replaced it.</summary>
     public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
@@ -142,6 +143,7 @@ public sealed record Episode(
         }
         if (ScriptOf(sections).Length > maxCharacters && comment is not null) sections = Write(keep, null);
 
+        sections = FightScenes.Mark(world, log, sections);
         return new Episode(date, name, chronicler.Name, fromYear, toYear, events.Count, events.Count > 0 ? events[0].Id : 0,
             events.Count > 0 ? events[^1].Id : sinceEventId, coldOpen, headline, body, keep, why, signOff, ScriptOf(sections),
             Sections: sections);

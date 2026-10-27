@@ -1,7 +1,7 @@
 name: film-preview
 
 # A look at the film's cards without a whole broadcast: a fresh world, the sample shot list in game/tests (a face-off on the
-# blurred map with both duellists' portraits, then a war's moves drawn in turn),
+# blurred map with both duellists' portraits, then a battle's still and its war's moves drawn in turn),
 # filmed for a few seconds at 1080p as the broadcast films, and a few frames kept as an artifact.
 on:
   workflow_dispatch:
@@ -36,7 +36,7 @@ jobs:
           fw() { dotnet run --project sim/FantasyWorld.Cli -- "$@"; }
           fw new "$RUNNER_TEMP/world.fw.db" --seed 7 --size medium
           fw advance "$RUNNER_TEMP/world.fw.db" 10y | tail -n 1
-      - name: Fetch the sample's portraits, or make them once
+      - name: Fetch the sample's portraits and battle still, or make them once
         # Made by the FLUX API like the broadcast's and kept in the bucket, so later previews reuse them; a 429 (the API's
         # day is spent) is never retried, and without the key or the bucket the card is filmed without them.
         env:
@@ -50,11 +50,11 @@ jobs:
           dotnet build sim/FantasyWorld.Broadcast -v q > /dev/null
           kept() { dotnet run --no-build --project sim/FantasyWorld.Broadcast -- "$@"; }
           base=$(jq -r '.images.baseUrl' broadcast.json)
-          portrait() {
-            name=$1; seed=$2; prompt=$3
+          image() {
+            name=$1; seed=$2; scenario=$3; extra=$4; prompt=$5
             if kept get "staging/images/$name" "$RUNNER_TEMP/images/$name" 2>/dev/null; then echo "Reused $name."; return; fi
             if [ -z "$FLUX_ACCESS_KEY" ]; then echo "No FLUX_ACCESS_KEY: $name is not made."; return; fi
-            body=$(jq -n --arg p "$prompt" --argjson s "$seed" '{prompt: $p, scenario: "character", style: "hand-painted", transparent: true, seed: $s}')
+            body=$(jq -n --arg p "$prompt" --argjson s "$seed" --arg c "$scenario" --argjson x "$extra" '{prompt: $p, scenario: $c, style: "hand-painted", seed: $s} + $x')
             code=$(curl -sS -o "$RUNNER_TEMP/answer.json" -w '%{http_code}' -X POST "$base/generate" \
               -H "content-type: application/json" -H "x-access-key: $FLUX_ACCESS_KEY" -d "$body")
             if [ "$code" = "429" ]; then echo "The image API's day is spent; $name is not made (not retried)."; return 1; fi
@@ -63,8 +63,9 @@ jobs:
             echo "Made $name: transparent $(jq -r .transparent "$RUNNER_TEMP/answer.json"), warning $(jq -r '.warning // "none"' "$RUNNER_TEMP/answer.json")."
             kept put "$RUNNER_TEMP/images/$name" "staging/images/$name" || echo "warning: $name could not be kept."
           }
-          portrait preview-a.png 1 "a 31-year-old man, a knight, in battle-worn armour with a sword, clothes in crimson and gold, brave, wrathful in bearing, medieval fantasy duellist" &&
-          portrait preview-b.png 2 "a 38-year-old woman, a noble lord, with a sword at the hip, clothes in azure and silver, deceitful in bearing, scarred from old wounds, medieval fantasy duellist" || true
+          image preview-a.png 1 character '{"transparent": true}' "a 31-year-old man, a knight, in battle-worn armour with a sword, clothes in crimson and gold, brave, wrathful in bearing, medieval fantasy duellist" &&
+          image preview-b.png 2 character '{"transparent": true}' "a 38-year-old woman, a noble lord, with a sword at the hip, clothes in azure and silver, deceitful in bearing, scarred from old wounds, medieval fantasy duellist" &&
+          image preview-scene.png 3 environment '{"transparent": false, "width": 1280, "height": 720}' "two medieval armies clashing, banners in crimson and gold against banners in azure and silver, shield walls and a cavalry charge, spears and dust, on rolling hills, the height of the battle, epic wide view, medieval fantasy" || true
           ls -la "$RUNNER_TEMP/images"
       - name: Film the sample
         timeout-minutes: 20
@@ -76,8 +77,8 @@ jobs:
             --from 1 --to 8 --fps 24 --frames "$RUNNER_TEMP/frames"
           mkdir -p "$RUNNER_TEMP/sample"
           ls "$RUNNER_TEMP/frames" | wc -l
-          # As the face-off's scene comes in, once it has; two moves drawn, then all three.
-          for n in 000006 000040 000134 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
+          # As the face-off's scene comes in, once it has; the battle's still; then the moves on the map.
+          for n in 000006 000040 000108 000152 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

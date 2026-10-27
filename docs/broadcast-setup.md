@@ -100,6 +100,11 @@ or realm is shown again.
 2. That is all: the next episode with a face-off makes its images. If the API says its day is spent (429), no more are
    asked for that morning and nothing is retried; the card goes out without them.
 
+The same key paints a **still image of each fight** the episode tells (a duel fought, an army clash), two at most: the
+chronicler (Claude) describes the picture as it writes the script (no names, never read aloud), or the facts do when it
+cannot, and the film holds the still over the blurred map while that section is told (for a battle that also tells its
+war's moves, the still first, then the moves on the map). Stills are kept as `live/images/scene-<event>.png`.
+
 Without the key, no image is made and the cards show only images already kept.
 
 ## 6. Start it

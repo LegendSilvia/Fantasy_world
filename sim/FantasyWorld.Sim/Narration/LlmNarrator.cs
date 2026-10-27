@@ -39,7 +39,11 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
                    + $"{episode.Chronicler}. Each section is read as its own chapter, so each must stand alone. Plain prose for the ear: no "
                    + "headings, numbers of sections, lists, markup or stage directions, no dates written as digits other than the years given. "
                    + "Name no one and nothing the brief does not name, and give no number it does not give: work out no counts, ages or spans "
-                   + $"of years. At most {maxCharacters} characters in all.";
+                   + $"of years. At most {maxCharacters} characters in all. "
+                   + "Separately, in scenes, one entry per section in the same order: for each section the brief marks with a fight "
+                   + "to paint, a still picture of that fight for a painter, in one or two sentences (who in what colours, the ground and "
+                   + "light, the decisive moment, the mood), with no names and no words or letters in the picture; an empty string for "
+                   + "every other section. The scenes are never read aloud.";
         // A script much shorter than the template has dropped stories: that is a failed answer, not a retelling.
         var minimum = episode.Script.Length * 3 / 5;
         // Names (some invented by the LLM earlier) enter the prompt only as data, section by section (spec §8.6).
@@ -47,8 +51,10 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         // A war's moves go with its section likewise, in the order they were made.
         string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures(), 1200)})" : "")
                                             + (p.Moves is { Count: > 0 } m ? $"\n(The war's moves:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "");
+        // A fight to paint is marked with the template's picture of it, for the chronicler's own (sub-project 8, stills).
+        string Paint(EpisodeSection p) => p.Scene is { } scene ? $"\n(A fight to paint; as the facts show it: {PromptText.Data(scene, FightScenes.MaxCharacters)})" : "";
         var brief = string.Join("\n\n", parts.Select((p, i) => $"[{i + 1}] "
-            + string.Join("\n\n", p.Text.Split("\n\n").Select(paragraph => PromptText.Data(paragraph, maxCharacters))) + Figures(p)));
+            + string.Join("\n\n", p.Text.Split("\n\n").Select(paragraph => PromptText.Data(paragraph, maxCharacters))) + Figures(p) + Paint(p)));
         var facts = Episode.ScriptOf(parts) + string.Concat(parts.Select(Figures));
         var key = $"narrate|episode-sections|{episode.Date}|{episode.FirstEventId}-{episode.LastEventId}";
         if (!story.Gateway.MayAnswer(ModelTier.Narrate, key)) return episode;
@@ -57,8 +63,12 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         {
             type = "object",
             // The count is checked on the answer: the API's structured output takes no item counts above one.
-            properties = new { sections = new { type = "array", items = new { type = "string" } } },
-            required = new[] { "sections" },
+            properties = new
+            {
+                sections = new { type = "array", items = new { type = "string" } },
+                scenes = new { type = "array", items = new { type = "string" } },
+            },
+            required = new[] { "sections", "scenes" },
             additionalProperties = false,
         });
         var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(1500, maxCharacters / 2));
@@ -68,8 +78,30 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             : null;
         var answer = story.Gateway.Ask(request, story.World.Date.Day, json => Why(json) is null, whyInvalid: json => Why(json) ?? "");
         if (answer is null || Sections(answer, parts.Count) is not { } written) return episode;
-        var sections = parts.Select((p, i) => p with { Text = written[i] }).ToList();
+        // The chronicler's picture of each marked fight replaces the template's; a missing or overlong one keeps it.
+        var scenes = Scenes(answer, parts.Count);
+        var sections = parts.Select((p, i) => p with
+        {
+            Text = written[i],
+            Scene = p.Scene is not null && scenes?[i] is { Length: > 0 and <= FightScenes.MaxCharacters } painted ? painted : p.Scene,
+        }).ToList();
         return episode with { Script = Episode.ScriptOf(sections), Sections = sections, Writer = Episode.ChroniclerWriter };
+    }
+
+    /// <summary>The answer's scenes, one a section (empty where none), if it has exactly <paramref name="count"/>.</summary>
+    private static IReadOnlyList<string>? Scenes(string json, int count)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("scenes", out var list) && list.ValueKind == JsonValueKind.Array && list.GetArrayLength() == count
+                ? list.EnumerateArray().Select(t => t.ValueKind == JsonValueKind.String ? t.GetString()!.Trim() : "").ToList()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>The answer's section texts, if it has exactly <paramref name="count"/> non-empty ones.</summary>

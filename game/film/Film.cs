@@ -13,10 +13,10 @@ namespace FantasyWorld.Game.Film;
 
 /// <summary>
 /// A shot of the episode film from a moment on: a point on the map (0–1), how close (1 = the whole map), its section's title,
-/// for a face-off both sides' figures and the odds, and for a war its moves in the episode.
+/// for a face-off both sides' figures and the odds, for a war its moves in the episode, and for a fight its still image.
 /// </summary>
 public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FaceOff? FaceOff = null,
-    IReadOnlyList<CampaignMove>? Moves = null);
+    IReadOnlyList<CampaignMove>? Moves = null, string? Still = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). Renders one stretch of an episode's timed shot list from the day's
@@ -166,6 +166,7 @@ public partial class Film : Node
             Aim(main.Diorama, ShotAt(shots, t), t);
             Log(shots, t);
             ShowMoves(shots, t, main.Geography!);
+            ShowStill(shots, t);
             ShowFaceOff(ShotAt(shots, t), t);
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             var image = GetViewport().GetTexture().GetImage();
@@ -209,12 +210,7 @@ public partial class Film : Node
     /// <summary>The face-off's scene: the blur over the whole screen, then the images and the card in a row at its middle.</summary>
     private Control FaceOffStage(FaceOff f)
     {
-        var stage = new Control { Name = "FaceOffStage", MouseFilter = Control.MouseFilterEnum.Ignore };
-        stage.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _blur = new ShaderMaterial { Shader = new Shader { Code = BlurShader } };
-        var blur = new ColorRect { Name = "Blur", Material = _blur, MouseFilter = Control.MouseFilterEnum.Ignore };
-        blur.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        stage.AddChild(blur);
+        (var stage, _blur) = Blurred("FaceOffStage");
 
         var row = Ui.Row("Row", 36);
         row.Alignment = BoxContainer.AlignmentMode.Center;
@@ -229,6 +225,82 @@ public partial class Film : Node
         if (shown) row.AddChild(b ?? Spacer("ImageB"));
         stage.AddChild(row);
         return stage;
+    }
+
+    /// <summary>A scene of its own over the diorama: a full-screen layer that blurs and darkens the map behind it.</summary>
+    private static (Control Stage, ShaderMaterial Blur) Blurred(string name)
+    {
+        var stage = new Control { Name = name, MouseFilter = Control.MouseFilterEnum.Ignore };
+        stage.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        var material = new ShaderMaterial { Shader = new Shader { Code = BlurShader } };
+        var blur = new ColorRect { Name = "Blur", Material = material, MouseFilter = Control.MouseFilterEnum.Ignore };
+        blur.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        stage.AddChild(blur);
+        return (stage, material);
+    }
+
+    /// <summary>A fight's still: its size on screen (16:9), and the one shown now (its key) with when its section began.</summary>
+    public const float StillWidth = 1344, StillHeight = 756;
+
+    private Control? _stillStage;
+    private ShaderMaterial? _stillBlur;
+    private PanelContainer? _stillFrame;
+    private string? _stillKey;
+    private double _stillStart;
+
+    /// <summary>
+    /// A fight's still image (the owner, 2026-10-27) while its section is told: the map blurred behind, the picture framed
+    /// at the middle with the section's title under it, fading in over the first second and then held, unmoving (for the
+    /// first half only when the section also tells moves). Hidden for any other section, or when the image was not fetched.
+    /// </summary>
+    private void ShowStill(IReadOnlyList<FilmShot> shots, double t)
+    {
+        var index = shots.Count - 1;
+        while (index > 0 && shots[index].Start > t) index--;
+        var shot = shots[index];
+        var until = StillUntil(shots, index) ?? 0;
+        if (shot.Still is not { Length: > 0 } key || _imagesDir is null || t >= until)
+        {
+            if (_stillStage is not null) _stillStage.Visible = false;
+            return;
+        }
+        if (_stillStage is null || _stillKey != key)
+        {
+            _stillStage?.QueueFree();
+            _stillStage = null;
+            var path = System.IO.Path.Combine(_imagesDir, System.IO.Path.GetFileName(key));
+            if (!System.IO.File.Exists(path) || Image.LoadFromFile(path) is not { } image || image.IsEmpty()) return;
+            (_stillStage, _stillBlur) = Blurred("StillStage");
+            _stillFrame = new PanelContainer { Name = "Frame", Modulate = new Color(1, 1, 1, 0) };
+            _stillFrame.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = Ui.C(Palette.Card), CornerRadiusBottomLeft = 14, CornerRadiusBottomRight = 14, CornerRadiusTopLeft = 14, CornerRadiusTopRight = 14,
+                ContentMarginLeft = 12, ContentMarginRight = 12, ContentMarginTop = 12, ContentMarginBottom = 12,
+                ShadowColor = new Color(0, 0, 0, 0.35f), ShadowSize = 28, ShadowOffset = new Vector2(0, 14),
+            });
+            var column = Ui.Column("Column", 10);
+            column.AddChild(new TextureRect
+            {
+                Name = "Picture", Texture = ImageTexture.CreateFromImage(image), CustomMinimumSize = new Vector2(StillWidth, StillHeight),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+            });
+            var caption = Ui.Line(shot.Title, "Caption", Palette.Ink, 22);
+            caption.HorizontalAlignment = HorizontalAlignment.Center;
+            column.AddChild(caption);
+            _stillFrame.AddChild(column);
+            _stillFrame.SetAnchorsPreset(Control.LayoutPreset.Center);
+            (_stillFrame.GrowHorizontal, _stillFrame.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
+            _stillStage.AddChild(_stillFrame);
+            _hud.AddChild(_stillStage);
+            _stillKey = key;
+            _stillStart = shot.Start;
+        }
+        _stillStage.Visible = true;
+        // In over the first second; out over the last half second before the map comes back for the moves.
+        var shown = (float)Math.Min(Math.Clamp((t - _stillStart) / 1.0, 0, 1), Math.Clamp((until - t) / 0.5, 0, 1));
+        shown = 1 - (1 - shown) * (1 - shown);
+        _stillBlur!.SetShaderParameter("amount", shown);
+        _stillFrame!.Modulate = new Color(1, 1, 1, shown);
     }
 
     private static Control Spacer(string name) => new() { Name = name, CustomMinimumSize = new Vector2(ImageWidth, ImageHeight) };
@@ -353,15 +425,30 @@ public partial class Film : Node
         shots.LastOrDefault(s => s.Start < t) ?? shots[0];
 
     /// <summary>
-    /// When each of a section's moves is told: spread evenly over the section, the first after a pause for its opening
-    /// words, the last well before the next section.
+    /// When each of a section's moves is told: spread evenly over the section (or over its second half, after its still),
+    /// the first after a pause, the last well before the next section.
     /// </summary>
     public static IReadOnlyList<double> MoveTimes(IReadOnlyList<FilmShot> shots, int index)
     {
         var shot = shots[index];
         if (shot.Moves is not { Count: > 0 } moves) return [];
-        var end = index + 1 < shots.Count ? shots[index + 1].Start : shot.Start + LastSectionSeconds;
-        return moves.Select((_, k) => shot.Start + (end - shot.Start) * (k + 1) / (moves.Count + 1)).ToList();
+        var (from, end) = (StillUntil(shots, index) ?? shot.Start, SectionEnd(shots, index));
+        return moves.Select((_, k) => from + (end - from) * (k + 1) / (moves.Count + 1)).ToList();
+    }
+
+    private static double SectionEnd(IReadOnlyList<FilmShot> shots, int index) =>
+        index + 1 < shots.Count ? shots[index + 1].Start : shots[index].Start + LastSectionSeconds;
+
+    /// <summary>
+    /// When a section's still gives way to the map: at its end, or halfway when the section also tells a war's moves (the
+    /// still first, then the moves on the map); null without a still.
+    /// </summary>
+    public static double? StillUntil(IReadOnlyList<FilmShot> shots, int index)
+    {
+        var shot = shots[index];
+        if (shot.Still is not { Length: > 0 }) return null;
+        var end = SectionEnd(shots, index);
+        return shot.Moves is { Count: > 0 } ? shot.Start + (end - shot.Start) / 2 : end;
     }
 
     /// <summary>The log's lines: every section's title but the opening's (it names the world), each followed by its moves.</summary>
