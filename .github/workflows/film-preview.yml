@@ -40,7 +40,7 @@ jobs:
         run: |
           timeout 1000 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path game \
             --rendering-driver vulkan --rendering-method forward_plus --resolution 1920x1080 --fixed-fps 24 \
-            res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots game/tests/faceoff-shots.json \
+            res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$GITHUB_WORKSPACE/game/tests/faceoff-shots.json" \
             --from 1 --to 3 --fps 24 --frames "$RUNNER_TEMP/frames"
           mkdir -p "$RUNNER_TEMP/sample"
           ls "$RUNNER_TEMP/frames" | wc -l
