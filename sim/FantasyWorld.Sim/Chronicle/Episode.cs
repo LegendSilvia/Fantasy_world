@@ -15,9 +15,11 @@ public sealed record EpisodeStory(long EventId, int Year, string Category, strin
 /// <summary>
 /// One section of an episode (sub-project 7 §3), read aloud on its own and shown as a chapter: its kind (opening,
 /// headline, face-off, story, comment, closing), the chapter's title, its text and the event it tells (0 for the opening and
-/// closing); a face-off carries both sides' figures. The sections' texts, joined by blank lines, are the script.
+/// closing); a face-off carries both sides' figures, and the first section telling a war carries the war's moves in the
+/// episode (sub-project 10 C3). The sections' texts, joined by blank lines, are the script.
 /// </summary>
-public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0, FaceOff? FaceOff = null)
+public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0, FaceOff? FaceOff = null,
+    IReadOnlyList<CampaignMove>? Moves = null)
 {
     /// <summary>Why: "how it came to this", in episodes made before 2026-10-27; Comment: the chronicler's view of the year that replaced it.</summary>
     public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
@@ -116,8 +118,20 @@ public sealed record Episode(
         var challenges = faceOffs.Select(f => new EpisodeSection(EpisodeSection.Challenge, $"Face-off: {f.A.Name} v {f.B.Name}",
             FaceOffs.Tell(f, log.TryGet(f.EventId, out var declared) ? narrator.PlaceOf(declared) ?? "the appointed place" : "the appointed place"),
             f.EventId, f)).ToList();
+        // Each war's moves in the episode go with the first section that tells the war: a few are read, all are shown.
+        var campaigns = new Dictionary<long, IReadOnlyList<CampaignMove>>();
+        IReadOnlyList<CampaignMove> MovesOf(long war) =>
+            campaigns.TryGetValue(war, out var known) ? known : campaigns[war] = Campaign.Moves(world, events, war, narrator);
+        IReadOnlyList<EpisodeSection> WithMoves(IReadOnlyList<EpisodeSection> sections)
+        {
+            var told = new HashSet<long>();
+            return sections.Select(s => s.EventId != 0 && log.TryGet(s.EventId, out var ev) && Campaign.WarOf(ev) is var war and not 0
+                                        && told.Add(war) && MovesOf(war) is { Count: > 0 } moves
+                ? s with { Text = Campaign.Tell(moves, s.EventId) is { Length: > 0 } march ? $"{s.Text}\n\n{march}" : s.Text, Moves = moves }
+                : s).ToList();
+        }
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
-            Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff);
+            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff));
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)

@@ -32,7 +32,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
                    + "each numbered section of the brief and in its order: the opening line, the headline told in full, each face-off as a "
                    + "commentator before a bout (both sides' strengths and weaknesses from the figures given, where each could win or lose it, "
                    + "and whom the odds favour, without deciding it), each other story "
-                   + "briefly, then (where the brief has a section asking what to make of it all) your own view of the year as its chronicler: "
+                   + "briefly (where a section lists a war's moves, follow the campaign through them in order, as the brief gives them), "
+                   + "then (where the brief has a section asking what to make of it all) your own view of the year as its chronicler: "
                    + "what it meant, who rose and who fell, what to watch for, ending in a conclusion of your own; judge and wonder freely, "
                    + "but state no fact the brief does not give. Then a closing line from "
                    + $"{episode.Chronicler}. Each section is read as its own chapter, so each must stand alone. Plain prose for the ear: no "
@@ -43,7 +44,9 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         var minimum = episode.Script.Length * 3 / 5;
         // Names (some invented by the LLM earlier) enter the prompt only as data, section by section (spec §8.6).
         // A face-off's figures go with its section, for the commentary; they are facts the narration may use.
-        string Figures(EpisodeSection p) => p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures(), 1200)})" : "";
+        // A war's moves go with its section likewise, in the order they were made.
+        string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures(), 1200)})" : "")
+                                            + (p.Moves is { Count: > 0 } m ? $"\n(The war's moves:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "");
         var brief = string.Join("\n\n", parts.Select((p, i) => $"[{i + 1}] "
             + string.Join("\n\n", p.Text.Split("\n\n").Select(paragraph => PromptText.Data(paragraph, maxCharacters))) + Figures(p)));
         var facts = Episode.ScriptOf(parts) + string.Concat(parts.Select(Figures));

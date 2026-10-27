@@ -102,4 +102,42 @@ public class CampaignMoveTests
         // Crossing into the enemy's land is news; a step through one's own land is a minor line.
         Assert.All(moves.Where(m => m.Payload["into"] == "own"), m => Assert.True(m.Importance < FantasyWorld.Sim.Chronicle.Compactor.MinorBelow));
     }
+
+    [Fact]
+    public void TheEpisode_TellsTheWarsMoves_InTheWarsSection_AndGivesThemToTheChronicler()
+    {
+        var (world, log, war, host) = AWarFarAway();
+        var since = log.All[^1].Id;
+        var sim = new Simulator(world, log, new EventQueue(), new ISimSystem[] { new MilitarySystem() }, checkInvariants: true);
+        for (var month = 0; month < 6 && !host.Disbanded; month++) sim.AdvanceDays(30);
+        var made = log.Since(since).Where(e => e.Type == "ArmyMoved").Select(e => e.Id).ToList();
+        Assert.NotEmpty(made);
+
+        var episode = FantasyWorld.Sim.Chronicle.Episode.Build(world, log, since, "2026-10-27");
+        // The war's moves go with one section only, the first that tells the war, in the order they were made.
+        var told = Assert.Single(episode.Parts, p => p.Moves is { Count: > 0 });
+        var moves = told.Moves!;
+        Assert.True(moves.Count <= FantasyWorld.Sim.Chronicle.Campaign.MovesPerWar);
+        Assert.All(moves, m => Assert.Contains(m.EventId, made));
+        Assert.Equal(moves.Select(m => m.EventId).OrderBy(id => id), moves.Select(m => m.EventId));
+        // Each arrow in its side's colour: the attacker's hosts and the defender's alike march.
+        Assert.All(moves, m => Assert.Equal(log.All.Single(e => e.Id == m.EventId).Actors["realm"].Id == war.AttackerId ? "attacker" : "defender", m.Side));
+        var first = moves[0];
+        var from = log.All.Single(e => e.Id == first.EventId).Actors["from"];
+        Assert.Equal(FantasyWorld.Sim.Views.MapPoint.Of(world, from), first.From);
+        // A few are read aloud, never the section's own event a second time.
+        if (moves.Any(m => m.EventId != told.EventId)) Assert.Contains("On the march: ", told.Text);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(episode.Script, System.Text.RegularExpressions.Regex.Escape(
+            new FantasyWorld.Sim.Narration.TemplateNarrator(world).Sentence(log.All.Single(e => e.Id == moves[^1].EventId)))));
+
+        // The chronicler is given every move with its section.
+        var fake = new FantasyWorld.Sim.Llm.FakeLlmProvider(_ => System.Text.Json.JsonSerializer.Serialize(new { sections = episode.Parts.Select(p => p.Text) }));
+        var story = new FantasyWorld.Sim.Llm.StoryContext(world, log,
+            new FantasyWorld.Sim.Llm.LlmGateway(fake, new FantasyWorld.Sim.Llm.LlmSettings { Provider = "fake" }, new FantasyWorld.Sim.Llm.LlmJournal()));
+        var written = new FantasyWorld.Sim.Narration.LlmNarrator(story).EpisodeScript(episode, 20_000);
+        var prompt = fake.Requests.Single().Prompt;
+        Assert.Contains("The war's moves:", prompt);
+        Assert.All(moves, m => Assert.Contains(m.Line, prompt));
+        Assert.Equal(moves, written.Parts.Single(p => p.Moves is { Count: > 0 }).Moves);
+    }
 }

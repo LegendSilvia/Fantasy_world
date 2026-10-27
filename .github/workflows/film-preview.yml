@@ -1,6 +1,7 @@
 name: film-preview
 
-# A look at the film's cards without a whole broadcast: a fresh world, the sample shot list in game/tests (a face-off),
+# A look at the film's cards without a whole broadcast: a fresh world, the sample shot list in game/tests (a face-off, then a
+# war's moves drawn in turn),
 # filmed for a few seconds at 1080p as the broadcast films, and a few frames kept as an artifact.
 on:
   workflow_dispatch:
@@ -41,11 +42,11 @@ jobs:
           timeout 1000 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path game \
             --rendering-driver vulkan --rendering-method forward_plus --resolution 1920x1080 --fixed-fps 24 \
             res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$GITHUB_WORKSPACE/game/tests/faceoff-shots.json" \
-            --from 1 --to 3 --fps 24 --frames "$RUNNER_TEMP/frames"
+            --from 1 --to 8 --fps 24 --frames "$RUNNER_TEMP/frames"
           mkdir -p "$RUNNER_TEMP/sample"
           ls "$RUNNER_TEMP/frames" | wc -l
-          # As the card grows in, and once it has.
-          cp "$RUNNER_TEMP/frames/frame000006.png" "$RUNNER_TEMP/frames/frame000040.png" "$RUNNER_TEMP/sample/"
+          # As the card grows in, once it has; two moves drawn, then all three.
+          for n in 000006 000040 000134 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

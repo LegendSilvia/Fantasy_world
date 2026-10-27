@@ -25,5 +25,14 @@
         "notes": [ "aged 38", "deceitful", "bearing a wound" ]
       }
     }
-  }
+  },
+  {
+    "start": 4, "x": 0.5, "y": 0.5, "zoom": 2.5, "title": "Battle at Harrow",
+    "moves": [
+      { "eventId": 11, "line": "The host of Vale left Ashford and came to Harrow.", "from": { "x": 0.46, "y": 0.5 }, "to": { "x": 0.5, "y": 0.48 }, "side": "attacker", "invasion": false },
+      { "eventId": 12, "line": "The host of Vale crossed out of Harrow into the enemy's land at Kesmoor.", "from": { "x": 0.5, "y": 0.48 }, "to": { "x": 0.53, "y": 0.51 }, "side": "attacker", "invasion": true },
+      { "eventId": 13, "line": "The host of Esk left Dunmere and came to Kesmoor.", "from": { "x": 0.57, "y": 0.55 }, "to": { "x": 0.535, "y": 0.52 }, "side": "defender", "invasion": false }
+    ]
+  },
+  { "start": 8, "x": 0.5, "y": 0.5, "zoom": 1, "title": "Until tomorrow" }
 ]

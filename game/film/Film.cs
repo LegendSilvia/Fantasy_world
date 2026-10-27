@@ -12,10 +12,11 @@ using Godot;
 namespace FantasyWorld.Game.Film;
 
 /// <summary>
-/// A shot of the episode film from a moment on: a point on the map (0–1), how close (1 = the whole map), its section's title
-/// and, for a face-off, both sides' figures and the odds.
+/// A shot of the episode film from a moment on: a point on the map (0–1), how close (1 = the whole map), its section's title,
+/// for a face-off both sides' figures and the odds, and for a war its moves in the episode.
 /// </summary>
-public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FaceOff? FaceOff = null);
+public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FaceOff? FaceOff = null,
+    IReadOnlyList<CampaignMove>? Moves = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). Renders one stretch of an episode's timed shot list from the day's
@@ -54,6 +55,17 @@ public partial class Film : Node
     private VBoxContainer _log = null!;
     private PanelContainer _logCard = null!;
     private int _logged;
+
+    /// <summary>A section lasts until the next begins; the last one, about this long.</summary>
+    public const double LastSectionSeconds = 20;
+
+    /// <summary>The log's lines in the order they are due: each section's title, then its war's moves in turn.</summary>
+    private readonly List<(double At, string Text, bool Move)> _lines = new();
+
+    /// <summary>The move arrows on the diorama: those of the section told now, each drawn in as its move is told.</summary>
+    private Node3D _moves = null!;
+    private int _movesOf = -1;
+    private readonly HashSet<long> _drawn = new();
 
     public override void _Ready() => _ = RunAsync();
 
@@ -108,6 +120,9 @@ public partial class Film : Node
         _logCard.Visible = false;
         hud.AddChild(_logCard);
         _hud = hud;
+        _lines.AddRange(LogLines(shots));
+        _moves = new Node3D { Name = "Moves" };
+        main.Diorama.AddChild(_moves);
 
         // Settled on the shot the film's camera would be holding at the stretch's start, then a few frames for the
         // diorama's meshes and labels to settle before the first frame is kept.
@@ -122,6 +137,7 @@ public partial class Film : Node
             var t = from + n / (double)fps;
             Aim(main.Diorama, ShotAt(shots, t), t);
             Log(shots, t);
+            ShowMoves(shots, t, main.Geography!);
             ShowFaceOff(ShotAt(shots, t), t);
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             var image = GetViewport().GetTexture().GetImage();
@@ -260,13 +276,70 @@ public partial class Film : Node
     private static FilmShot Settled(IReadOnlyList<FilmShot> shots, double t) =>
         shots.LastOrDefault(s => s.Start < t) ?? shots[0];
 
-    /// <summary>The log holds a line for every section begun by <paramref name="t"/>, the opening aside (it names the world).</summary>
+    /// <summary>
+    /// When each of a section's moves is told: spread evenly over the section, the first after a pause for its opening
+    /// words, the last well before the next section.
+    /// </summary>
+    public static IReadOnlyList<double> MoveTimes(IReadOnlyList<FilmShot> shots, int index)
+    {
+        var shot = shots[index];
+        if (shot.Moves is not { Count: > 0 } moves) return [];
+        var end = index + 1 < shots.Count ? shots[index + 1].Start : shot.Start + LastSectionSeconds;
+        return moves.Select((_, k) => shot.Start + (end - shot.Start) * (k + 1) / (moves.Count + 1)).ToList();
+    }
+
+    /// <summary>The log's lines: every section's title but the opening's (it names the world), each followed by its moves.</summary>
+    private static IEnumerable<(double At, string Text, bool Move)> LogLines(IReadOnlyList<FilmShot> shots)
+    {
+        for (var i = 1; i < shots.Count; i++)
+        {
+            if (shots[i].Title.Length > 0) yield return (shots[i].Start, shots[i].Title, false);
+            var times = MoveTimes(shots, i);
+            for (var k = 0; k < times.Count; k++) yield return (times[k], shots[i].Moves![k].Line, true);
+        }
+    }
+
+    /// <summary>The log holds a line for every section begun by <paramref name="t"/>, and for every move told by then.</summary>
     private void Log(IReadOnlyList<FilmShot> shots, double t)
     {
-        var due = shots.Skip(1).Where(s => s.Start <= t && s.Title.Length > 0).ToList();
-        for (; _logged < due.Count; _logged++)
-            _log.AddChild(Ui.Body(due[_logged].Title, $"Line{_logged}", Palette.Body, 14));
+        for (; _logged < _lines.Count && _lines[_logged].At <= t; _logged++)
+        {
+            var (_, text, move) = _lines[_logged];
+            _log.AddChild(move ? Ui.Body($"· {text}", $"Line{_logged}", Palette.Muted, 12) : Ui.Body(text, $"Line{_logged}", Palette.Body, 14));
+        }
         _logCard.Visible = _logged > 0;
+    }
+
+    /// <summary>
+    /// The moves of the section told at <paramref name="t"/>, each an arrow in its side's colour from where the host stood
+    /// to where it went, drawn in as the move is told; a new section clears the last one's.
+    /// </summary>
+    private void ShowMoves(IReadOnlyList<FilmShot> shots, double t, FantasyWorld.Sim.Model.Geography geography)
+    {
+        var index = shots.Count - 1;
+        while (index > 0 && shots[index].Start > t) index--;
+        if (index != _movesOf)
+        {
+            Ui.Clear(_moves);
+            _drawn.Clear();
+            _movesOf = index;
+        }
+        if (shots[index].Moves is not { Count: > 0 } moves) return;
+        var times = MoveTimes(shots, index);
+        for (var k = 0; k < moves.Count; k++)
+        {
+            var move = moves[k];
+            if (times[k] > t || !_drawn.Add(move.EventId)) continue;
+            var colour = WarLayout.SideColour(move.Side);
+            var route = new List<System.Numerics.Vector2> { new((float)move.From.X, (float)move.From.Y), new((float)move.To.X, (float)move.To.Y) };
+            if (WarLayout.ArrowMesh(route, geography.Terrain, colour) is not { } mesh) continue;
+            var material = new ShaderMaterial { Shader = new Shader { Code = WarLayer.ArrowShader } };
+            material.SetShaderParameter("progress", 0f);
+            var node = new MeshInstance3D { Name = $"Move{move.EventId}", Mesh = WarLayer.Surface(mesh, material) };
+            _moves.AddChild(node);
+            node.CreateTween().TweenMethod(Callable.From<float>(p => material.SetShaderParameter("progress", p)), 0f, 1f, 1.2)
+                .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        }
     }
 
     /// <summary>Sets the camera's goal: the shot's place, close or far by its zoom, and the orbit's turn at time t.</summary>

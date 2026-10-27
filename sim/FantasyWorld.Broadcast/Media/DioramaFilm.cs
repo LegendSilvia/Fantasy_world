@@ -12,9 +12,11 @@ public sealed record FilmPlan(string Date, string Prefix, IReadOnlyList<FilmChun
 
 /// <summary>
 /// A shot as the diorama film reads it: from a moment on, a point on the map (0–1), how close, the section's title (for the
-/// film's log) and, for a face-off, both sides' figures and the odds (shown as a card over the diorama).
+/// film's log), for a face-off both sides' figures and the odds (shown as a card over the diorama), and for a war its moves
+/// in the episode (each drawn as an arrow and logged in turn while the section is told).
 /// </summary>
-public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FantasyWorld.Sim.Chronicle.FaceOff? FaceOff = null);
+public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FantasyWorld.Sim.Chronicle.FaceOff? FaceOff = null,
+    IReadOnlyList<FantasyWorld.Sim.Chronicle.CampaignMove>? Moves = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). The daily run plans it once the narration's chapters exist: the
@@ -49,10 +51,11 @@ public static class DioramaFilm
         return chunks;
     }
 
-    /// <summary>The shots as the film reads them, each from its chapter's start, with its section's face-off if it is one.</summary>
+    /// <summary>The shots as the film reads them, each from its chapter's start, with its section's face-off and moves, if any.</summary>
     public static IReadOnlyList<FilmShot> Timed(IReadOnlyList<Shot> shots, Timeline timeline, IReadOnlyList<FantasyWorld.Sim.Chronicle.EpisodeSection>? sections = null) =>
         Shots.Timed(shots, timeline).Select((s, i) => new FilmShot(s.Start, s.Shot.X, s.Shot.Y, s.Shot.Zoom, timeline.Chapters[i].Title,
-            sections is { } parts && i < parts.Count ? parts[i].FaceOff : null)).ToList();
+            sections is { } parts && i < parts.Count ? parts[i].FaceOff : null,
+            sections is { } moved && i < moved.Count ? moved[i].Moves : null)).ToList();
 
     public static byte[] ToBytes<T>(T value) => JsonSerializer.SerializeToUtf8Bytes(value, Json);
 

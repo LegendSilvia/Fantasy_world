@@ -32,7 +32,7 @@ public partial class WarLayer : Node3D
     }
     public const double MarchSeconds = 2.5;
 
-    private const string ArrowShader = """
+    internal const string ArrowShader = """
         shader_type spatial;
         render_mode unshaded, cull_disabled, depth_draw_never, depth_test_disabled;
         uniform float progress = 1.0;
@@ -248,7 +248,7 @@ public partial class WarLayer : Node3D
     private static StandardMaterial3D Flat(Rgb colour) =>
         new() { AlbedoColor = Ui.C(colour), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
 
-    private static ArrayMesh Surface(MeshData data, Material material)
+    internal static ArrayMesh Surface(MeshData data, Material material)
     {
         var mesh = new ArrayMesh();
         AddSurface(mesh, data, material);
