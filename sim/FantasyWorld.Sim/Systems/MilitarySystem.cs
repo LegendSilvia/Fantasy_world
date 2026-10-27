@@ -67,6 +67,7 @@ public sealed partial class MilitarySystem : ISimSystem
             if (!army.Engaged(ctx.Date))
             {
                 GiveOrders(world, army);
+                ChooseMove(ctx, army);
                 March(ctx, army);
             }
             Provision(ctx, army);
@@ -248,6 +249,9 @@ public sealed partial class MilitarySystem : ISimSystem
         var (before, now) = (world.Regions[from], world.Regions[army.RegionId]);
         var into = Hostile(world, war, realm, now) ? "enemy" : Friendly(world, war, realm, now) ? "own" : "neutral";
         var invades = into == "enemy" && !Hostile(world, war, realm, before);
+        // The commander's reasoning for the move, if one was given, is its motive.
+        using var motive = ctx.Annotate("motive", army.Orders);
+        army.Orders = null;
         ctx.Emit(new EventDraft("ArmyMoved",
             Actors: new Dictionary<string, EntityRef> { ["army"] = army.Ref, ["realm"] = realm.Ref, ["war"] = war.Ref, ["from"] = before.Ref },
             Place: now.Ref,

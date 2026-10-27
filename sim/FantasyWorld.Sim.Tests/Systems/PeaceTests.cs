@@ -12,7 +12,8 @@ public class PeaceTests
 {
     private sealed class Choose(string key) : IDecider
     {
-        public DecisionOption Decide(DecisionBrief brief, Rng rng) => brief.Options.Single(o => o.Key == key);
+        // The peace answer; any other decision (a commander's move) goes to the rules.
+        public DecisionOption Decide(DecisionBrief brief, Rng rng) => brief.Options.SingleOrDefault(o => o.Key == key) ?? new RulesDecider().Decide(brief, rng);
     }
 
     private static SimContext Context(World world, EventLog log) => new(world, log, new EventQueue(), new Rng(1));

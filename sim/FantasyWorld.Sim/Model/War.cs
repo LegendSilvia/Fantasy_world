@@ -100,6 +100,10 @@ public sealed class Army
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public long EngagedUntil { get; set; }
 
+    /// <summary>Why its commander chose the move under way (an LLM's reasoning), told with the move when it is made.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Orders { get; set; }
+
     /// <summary>The army is held on the field by a battle Claude made longer than a day.</summary>
     public bool Engaged(Core.WorldDate date) => EngagedUntil >= date.Day;
 
