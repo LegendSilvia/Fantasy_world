@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Client", "Fant
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Broadcast", "FantasyWorld.Broadcast\FantasyWorld.Broadcast.csproj", "{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FantasyWorld.Web", "FantasyWorld.Web\FantasyWorld.Web.csproj", "{FC11A897-F4F2-4BF8-B1F6-403AD0C602DC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,5 +56,9 @@ Global
 		{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB1F8990-DCD0-40FF-8E99-13FAF85E6B2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC11A897-F4F2-4BF8-B1F6-403AD0C602DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC11A897-F4F2-4BF8-B1F6-403AD0C602DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC11A897-F4F2-4BF8-B1F6-403AD0C602DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC11A897-F4F2-4BF8-B1F6-403AD0C602DC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
