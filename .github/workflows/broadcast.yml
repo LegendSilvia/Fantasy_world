@@ -61,6 +61,8 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          # The face-offs' portraits and banners (FLUX); without it, the cards show only images already kept.
+          FLUX_ACCESS_KEY: ${{ secrets.FLUX_ACCESS_KEY }}
           # The webhook is needed to know a post is possible; nothing is posted at this stage.
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_TEST_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
@@ -128,6 +130,11 @@ jobs:
           fw() { dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "$@"; }
           fw get "$prefix$world" "$RUNNER_TEMP/world.fw.db"
           fw get "${prefix}episodes/$date/film/shots.json" "$RUNNER_TEMP/shots.json"
+          # The face-offs' images the shots name; one that cannot be fetched only leaves its card without it.
+          mkdir -p "$RUNNER_TEMP/images"
+          for key in $(jq -r '[.[] | .faceOff // empty | .a.image, .b.image] | map(select(. != null)) | unique | .[]' "$RUNNER_TEMP/shots.json"); do
+            fw get "$prefix$key" "$RUNNER_TEMP/images/$(basename "$key")" || echo "warning: $key could not be fetched."
+          done
       - name: Film the stretch on the diorama
         timeout-minutes: 25
         run: |
@@ -137,7 +144,7 @@ jobs:
           timeout 1400 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path game \
             --rendering-driver vulkan --rendering-method forward_plus --resolution 1920x1080 --fixed-fps 24 \
             res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$RUNNER_TEMP/shots.json" \
-            --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames"
+            --images "$RUNNER_TEMP/images" --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames"
       - name: Encode and store the stretch
         run: |
           prefix=$(jq -r .prefix <<< "$PLAN"); date=$(jq -r .date <<< "$PLAN")

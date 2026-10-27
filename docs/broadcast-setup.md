@@ -88,6 +88,20 @@ Cloudflare Pages:
 Dry runs deploy to the `staging` preview (`https://staging.<project>.pages.dev`), so the public site changes only with a
 live broadcast. Without the token the site job is skipped; a failure in it never holds up the broadcast.
 
+## 5c. Face-off images (optional)
+
+When a duel or a war is declared, the film shows a face-off: the map blurs behind a card of both sides' figures, with a
+full-figure portrait of each duellist, or each realm's war banner, standing either side. The images come from your FLUX
+image API (`images.baseUrl`) and are made once, then kept in the bucket (`live/images/`) and reused whenever that person
+or realm is shown again.
+
+1. Add the API's access key as the repository secret `FLUX_ACCESS_KEY` (GitHub → Settings → Secrets and variables →
+   Actions). Paste it there only, never anywhere else.
+2. That is all: the next episode with a face-off makes its images. If the API says its day is spent (429), no more are
+   asked for that morning and nothing is retried; the card goes out without them.
+
+Without the key, no image is made and the cards show only images already kept.
+
 ## 6. Start it
 
 1. Merge to the default branch. GitHub runs scheduled workflows only from there, and a run that is not a dry run is
@@ -124,6 +138,8 @@ live broadcast. Without the token the site job is skipped; a failure in it never
 | `podcastEmail` | unset | the feed's contact address, which Apple Podcasts and Spotify use to confirm you own the feed |
 | `voice.respell` | `true` | Claude respells each new invented name once, so the narrator says it the same way every day |
 | `llm.narrationsPerDay`, `llm.monthlyCapUsd` | `10`, `25` | budget and spending cap over 30 days (narration, choices and fights together); past them, the template script ships and the rules decide |
+| `storage.maxGigabytes` | `10` | the whole bucket's limit; past 90% of it, old film stretches, dry runs' media, live videos older than a week, the longest-unused face-off images, then old maps and narrations and old backups are deleted until it is at 80%. The world, manifests, feed, scripts and website bundle are never deleted |
+| `images.make`, `images.baseUrl`, `images.style` | `true`, the owner's FLUX Worker, `hand-painted` | the face-offs' portraits and banners (with the `FLUX_ACCESS_KEY` secret) |
 | `keepAlive` | `true` | a monthly heartbeat commit, so GitHub keeps the schedule of a public repository; turn it off for a private one |
 
 ## What is in the bucket

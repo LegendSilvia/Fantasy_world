@@ -12,7 +12,7 @@
           { "name": "Lore", "value": 6, "max": 20 }, { "name": "Prowess", "value": 17, "max": 20 },
           { "name": "Renown", "value": 64, "max": 100 }
         ],
-        "notes": [ "aged 31", "brave", "wrathful" ]
+        "notes": [ "aged 31", "brave", "wrathful" ], "image": "images/preview-a.png"
       },
       "b": {
         "ref": "char#2", "name": "Morwyn of Esk", "colour": "azure",
@@ -22,7 +22,7 @@
           { "name": "Lore", "value": 12, "max": 20 }, { "name": "Prowess", "value": 9, "max": 20 },
           { "name": "Renown", "value": 41, "max": 100 }
         ],
-        "notes": [ "aged 38", "deceitful", "bearing a wound" ]
+        "notes": [ "aged 38", "deceitful", "bearing a wound" ], "image": "images/preview-b.png"
       }
     }
   },

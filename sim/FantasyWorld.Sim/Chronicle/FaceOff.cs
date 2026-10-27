@@ -10,8 +10,12 @@ namespace FantasyWorld.Sim.Chronicle;
 /// <summary>One figure of a side in a face-off: its name, its value and the bar's full length (both sides share it).</summary>
 public sealed record FaceOffStat(string Name, double Value, double Max);
 
-/// <summary>A side of a face-off: who, their heraldic colour, their figures and a few words about them (traits, age, ruler).</summary>
-public sealed record FaceOffSide(string Ref, string Name, string Colour, IReadOnlyList<FaceOffStat> Stats, IReadOnlyList<string> Notes);
+/// <summary>
+/// A side of a face-off: who, their heraldic colour, their figures and a few words about them (traits, age, ruler), and
+/// their image once the broadcast has one (a duellist's portrait or a realm's banner: its key in the broadcast's store).
+/// </summary>
+public sealed record FaceOffSide(string Ref, string Name, string Colour, IReadOnlyList<FaceOffStat> Stats, IReadOnlyList<string> Notes,
+    string? Image = null);
 
 /// <summary>
 /// A face-off (sub-project 8 §7, "the challenge"): a duel or a war declared this episode, both sides side by side with their

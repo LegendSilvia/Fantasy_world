@@ -69,6 +69,26 @@ public sealed record BroadcastYouTube
     public bool Diorama { get; init; } = true;
 }
 
+/// <summary>The bucket's limit (the owner's word, 2026-10-27: 10 GB in all), kept by <see cref="Storage.StorageBudget"/>.</summary>
+public sealed record BroadcastStorage
+{
+    public double MaxGigabytes { get; init; } = 10;
+}
+
+/// <summary>
+/// The face-offs' images (the owner, 2026-10-27): a duellist's portrait or a realm's banner from the owner's FLUX image
+/// API, made once and kept in the bucket for reuse. The access key comes from the environment (<c>FLUX_ACCESS_KEY</c>);
+/// without it, no image is made.
+/// </summary>
+public sealed record BroadcastImages
+{
+    public bool Make { get; init; } = true;
+
+    public string BaseUrl { get; init; } = "https://flux-playground.tanwa-tharathep.workers.dev";
+
+    public string Style { get; init; } = "hand-painted";
+}
+
 /// <summary>
 /// The broadcast's checked-in settings (<c>broadcast.json</c>). Nothing secret lives here: keys and webhooks come from
 /// the environment (GitHub Actions secrets).
@@ -118,6 +138,10 @@ public sealed record BroadcastConfig
 
     public BroadcastSite Site { get; init; } = new();
 
+    public BroadcastStorage Storage { get; init; } = new();
+
+    public BroadcastImages Images { get; init; } = new();
+
     /// <summary>
     /// Where the bucket is public (an r2.dev address or a custom domain), for the podcast feed and the archive page; unset,
     /// they are not published.
@@ -156,6 +180,8 @@ public sealed record BroadcastConfig
         if (Voice.MaxCharactersPerRequest < 100 || Voice.MonthlyCharacterBudget < 0 || Voice.VoiceId.Length == 0 || Voice.Model.Length == 0)
             throw new FormatException("voice needs a voiceId and a model, at least 100 characters a request and a budget that is not negative.");
         _ = Speech.Voiceover.Kbps(Voice.OutputFormat);
+        if (Storage.MaxGigabytes <= 0) throw new FormatException("storage.maxGigabytes must be more than 0.");
+        if (Images.Make && !Uri.TryCreate(Images.BaseUrl, UriKind.Absolute, out _)) throw new FormatException("images.baseUrl must be an address.");
         if (YouTube.Privacy is not ("public" or "unlisted" or "private"))
             throw new FormatException($"youTube.privacy must be public, unlisted or private (got \"{YouTube.Privacy}\").");
         if (PublicBaseUrl is { } url && !(Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps))

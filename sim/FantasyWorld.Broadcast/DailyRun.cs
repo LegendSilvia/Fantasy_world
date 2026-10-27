@@ -27,7 +27,7 @@ public sealed record RunOptions(bool DryRun = false, bool Create = false, bool U
 /// </summary>
 public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnlyList<IEpisodeChannel> channels,
     Func<DateTimeOffset> clock, TextWriter log, RunOptions? options = null, Func<LlmSettings, ILlmProvider?>? providers = null,
-    ISpeech? speech = null)
+    ISpeech? speech = null, IImageMaker? images = null)
 {
     /// <summary>Exit codes: published; nothing published (the world is untouched); the episode is out but a channel failed.</summary>
     public const int Ok = 0, Failed = 1, Partial = 2;
@@ -141,6 +141,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
 
         await PublishFeedAsync(store, manifest, ct).ConfigureAwait(false);
         await PruneBackupsAsync(store, date, ct).ConfigureAwait(false);
+        await KeepUnderLimitAsync(store, date, ct).ConfigureAwait(false);
         return result;
     }
 
@@ -351,6 +352,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             Fw("snapshot", worldPath, snapshot);
 
             (_todaysMap, var shots) = PaintMap(snapshot, episode);
+            episode = await FaceOffImagesAsync(store, snapshot, episode, date, ct).ConfigureAwait(false);
             await StoreMapAsync(store, date, ct).ConfigureAwait(false);
             try
             {
@@ -449,6 +451,47 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         foreach (var line in output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             log.WriteLine($"  fw {args[0]}: {line}");
         if (code != 0) throw new InvalidOperationException($"fw {args[0]} failed (exit code {code}).");
+    }
+
+    /// <summary>The face-offs' portraits and banners (<see cref="Likenesses"/>); a failure only leaves the cards without them.</summary>
+    private async Task<Episode> FaceOffImagesAsync(PrefixedStore store, string snapshot, Episode episode, string date, CancellationToken ct)
+    {
+        if (!config.Images.Make || episode.Parts.All(p => p.FaceOff is null)) return episode;
+        try
+        {
+            using var saved = WorldStore.Open(snapshot);
+            var world = saved.Load().World;
+            var limit = StorageBudget.Bytes(config.Storage.MaxGigabytes);
+            return await Likenesses.AttachAsync(episode, world, store, images, config.Images.Style, date,
+                async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log, ct)
+                .ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException && !ct.IsCancellationRequested)
+        {
+            log.WriteLine($"warning: the face-offs' images could not be had ({e.Message}); the cards show none.");
+            return episode;
+        }
+    }
+
+    /// <summary>Keeps the whole bucket under its limit (<see cref="StorageBudget"/>); a failure only waits for the next run.</summary>
+    private async Task KeepUnderLimitAsync(PrefixedStore store, string date, CancellationToken ct)
+    {
+        try
+        {
+            var objects = await root.ListSizesAsync("", ct).ConfigureAwait(false);
+            var used = (await Likenesses.IndexAsync(store, ct).ConfigureAwait(false)).ToDictionary(e => store.Prefix + e.Key, e => e.Value.LastUsed);
+            var doomed = StorageBudget.ToDelete(objects, date, StorageBudget.Bytes(config.Storage.MaxGigabytes), config.LivePrefix, used);
+            if (doomed.Count == 0) return;
+            foreach (var key in doomed) await root.DeleteAsync(key, ct).ConfigureAwait(false);
+            await Likenesses.ForgetAsync(store, doomed.Where(k => k.StartsWith(store.Prefix, StringComparison.Ordinal)).Select(k => k[store.Prefix.Length..]), ct)
+                .ConfigureAwait(false);
+            var freed = objects.Where(o => doomed.Contains(o.Key)).Sum(o => o.Bytes);
+            log.WriteLine($"The bucket was near its {config.Storage.MaxGigabytes:0.#} GB limit: {doomed.Count} old object(s) deleted, {freed / 1e6:0} MB freed.");
+        }
+        catch (IOException e)
+        {
+            log.WriteLine($"warning: the bucket's size could not be kept in check ({e.Message}); the next run will try again.");
+        }
     }
 
     private async Task PruneBackupsAsync(IObjectStore store, string date, CancellationToken ct)

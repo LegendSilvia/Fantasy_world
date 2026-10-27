@@ -33,6 +33,14 @@
     "categoryId": "24"
   },
   "keepAlive": true,
+  "storage": {
+    "maxGigabytes": 10
+  },
+  "images": {
+    "make": true,
+    "baseUrl": "https://flux-playground.tanwa-tharathep.workers.dev",
+    "style": "hand-painted"
+  },
   "site": {
     "project": "fantasy-world-chronicle",
     "url": "https://fantasy-world-chronicle.pages.dev"

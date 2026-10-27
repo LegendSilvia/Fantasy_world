@@ -35,6 +35,9 @@ public sealed class LocalObjectStore(string root) : IObjectStore
         return Task.FromResult(keys);
     }
 
+    public async Task<IReadOnlyList<StoredObject>> ListSizesAsync(string prefix, CancellationToken ct = default) =>
+        (await ListAsync(prefix, ct).ConfigureAwait(false)).Select(k => new StoredObject(k, new FileInfo(PathOf(k)).Length)).ToList();
+
     public Task DeleteAsync(string key, CancellationToken ct = default)
     {
         File.Delete(PathOf(key));

@@ -1,7 +1,7 @@
 name: film-preview
 
-# A look at the film's cards without a whole broadcast: a fresh world, the sample shot list in game/tests (a face-off, then a
-# war's moves drawn in turn),
+# A look at the film's cards without a whole broadcast: a fresh world, the sample shot list in game/tests (a face-off on the
+# blurred map with both duellists' portraits, then a war's moves drawn in turn),
 # filmed for a few seconds at 1080p as the broadcast films, and a few frames kept as an artifact.
 on:
   workflow_dispatch:
@@ -36,16 +36,47 @@ jobs:
           fw() { dotnet run --project sim/FantasyWorld.Cli -- "$@"; }
           fw new "$RUNNER_TEMP/world.fw.db" --seed 7 --size medium
           fw advance "$RUNNER_TEMP/world.fw.db" 10y | tail -n 1
+      - name: Fetch the sample's portraits, or make them once
+        # Made by the FLUX API like the broadcast's and kept in the bucket, so later previews reuse them; a 429 (the API's
+        # day is spent) is never retried, and without the key or the bucket the card is filmed without them.
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          FLUX_ACCESS_KEY: ${{ secrets.FLUX_ACCESS_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/images"
+          dotnet build sim/FantasyWorld.Broadcast -v q > /dev/null
+          kept() { dotnet run --no-build --project sim/FantasyWorld.Broadcast -- "$@"; }
+          base=$(jq -r '.images.baseUrl' broadcast.json)
+          portrait() {
+            name=$1; seed=$2; prompt=$3
+            if kept get "staging/images/$name" "$RUNNER_TEMP/images/$name" 2>/dev/null; then echo "Reused $name."; return; fi
+            if [ -z "$FLUX_ACCESS_KEY" ]; then echo "No FLUX_ACCESS_KEY: $name is not made."; return; fi
+            body=$(jq -n --arg p "$prompt" --argjson s "$seed" '{prompt: $p, scenario: "character", style: "hand-painted", transparent: true, seed: $s}')
+            code=$(curl -sS -o "$RUNNER_TEMP/answer.json" -w '%{http_code}' -X POST "$base/generate" \
+              -H "content-type: application/json" -H "x-access-key: $FLUX_ACCESS_KEY" -d "$body")
+            if [ "$code" = "429" ]; then echo "The image API's day is spent; $name is not made (not retried)."; return 1; fi
+            if [ "$code" != "200" ]; then echo "The image API answered $code; $name is not made."; return; fi
+            jq -r .image "$RUNNER_TEMP/answer.json" | base64 -d > "$RUNNER_TEMP/images/$name"
+            echo "Made $name: transparent $(jq -r .transparent "$RUNNER_TEMP/answer.json"), warning $(jq -r '.warning // "none"' "$RUNNER_TEMP/answer.json")."
+            kept put "$RUNNER_TEMP/images/$name" "staging/images/$name" || echo "warning: $name could not be kept."
+          }
+          portrait preview-a.png 1 "a 31-year-old man, a knight, in battle-worn armour with a sword, clothes in crimson and gold, brave, wrathful in bearing, medieval fantasy duellist" &&
+          portrait preview-b.png 2 "a 38-year-old woman, a noble lord, with a sword at the hip, clothes in azure and silver, deceitful in bearing, scarred from old wounds, medieval fantasy duellist" || true
+          ls -la "$RUNNER_TEMP/images"
       - name: Film the sample
         timeout-minutes: 20
         run: |
           timeout 1000 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path game \
             --rendering-driver vulkan --rendering-method forward_plus --resolution 1920x1080 --fixed-fps 24 \
             res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$GITHUB_WORKSPACE/game/tests/faceoff-shots.json" \
+            --images "$RUNNER_TEMP/images" \
             --from 1 --to 8 --fps 24 --frames "$RUNNER_TEMP/frames"
           mkdir -p "$RUNNER_TEMP/sample"
           ls "$RUNNER_TEMP/frames" | wc -l
-          # As the card grows in, once it has; two moves drawn, then all three.
+          # As the face-off's scene comes in, once it has; two moves drawn, then all three.
           for n in 000006 000040 000134 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
       - uses: actions/upload-artifact@v4
         if: always()

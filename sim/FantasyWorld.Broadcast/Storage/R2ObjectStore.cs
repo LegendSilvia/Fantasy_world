@@ -40,9 +40,12 @@ public sealed class R2ObjectStore(HttpClient http, string accountId, string buck
         Ensure(response, "write", key);
     }
 
-    public async Task<IReadOnlyList<string>> ListAsync(string prefix, CancellationToken ct = default)
+    public async Task<IReadOnlyList<string>> ListAsync(string prefix, CancellationToken ct = default) =>
+        (await ListSizesAsync(prefix, ct).ConfigureAwait(false)).Select(o => o.Key).ToList();
+
+    public async Task<IReadOnlyList<StoredObject>> ListSizesAsync(string prefix, CancellationToken ct = default)
     {
-        var keys = new List<string>();
+        var objects = new List<StoredObject>();
         string? token = null;
         do
         {
@@ -51,11 +54,12 @@ public sealed class R2ObjectStore(HttpClient http, string accountId, string buck
             using var response = await SendAsync(HttpMethod.Get, null, query, null, null, ct).ConfigureAwait(false);
             Ensure(response, "list", prefix);
             var xml = XDocument.Parse(await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
-            keys.AddRange(xml.Descendants(S3 + "Contents").Select(c => (string)c.Element(S3 + "Key")!));
+            objects.AddRange(xml.Descendants(S3 + "Contents").Select(c =>
+                new StoredObject((string)c.Element(S3 + "Key")!, long.TryParse((string?)c.Element(S3 + "Size"), out var size) ? size : 0)));
             token = (string?)xml.Root!.Element(S3 + "IsTruncated") == "true" ? (string?)xml.Root.Element(S3 + "NextContinuationToken") : null;
         }
         while (token is not null);
-        return keys.Order(StringComparer.Ordinal).ToList();
+        return objects.OrderBy(o => o.Key, StringComparer.Ordinal).ToList();
     }
 
     public async Task DeleteAsync(string key, CancellationToken ct = default)

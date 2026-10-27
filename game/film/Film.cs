@@ -45,8 +45,34 @@ public partial class Film : Node
     /// <summary>The face-off card's width and its bars' longest reach either side of the figures' names.</summary>
     public const float FaceOffWidth = 900, BarReach = 300;
 
-    /// <summary>The face-off card shown now (its event), its bars with their full lengths, and when its section began.</summary>
-    private PanelContainer? _faceOffCard;
+    /// <summary>A side's image (a portrait or a banner) beside the card: its box, about the card's height.</summary>
+    public const float ImageWidth = 400, ImageHeight = 585;
+
+    /// <summary>
+    /// The face-off's own scene over the diorama: the map behind blurred and darkened, both sides' images either side of the
+    /// card. Its event, its bars with their full lengths, the blur's material and when its section began.
+    /// </summary>
+    private Control? _faceOffStage;
+    private ShaderMaterial? _blur;
+    private readonly List<Control> _likenesses = new();
+    private string? _imagesDir;
+
+    /// <summary>The map behind a face-off: blurred (taps from a coarse mip level) and darkened as <c>amount</c> rises to 1.</summary>
+    private const string BlurShader = """
+        shader_type canvas_item;
+        uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap;
+        uniform float amount = 0.0;
+        void fragment() {
+            vec2 px = 1.0 / vec2(textureSize(screen, 0));
+            vec3 sum = vec3(0.0);
+            float lod = amount * 3.5;
+            for (int x = -2; x <= 2; x++)
+                for (int y = -2; y <= 2; y++)
+                    sum += textureLod(screen, SCREEN_UV + vec2(float(x), float(y)) * px * 9.0 * amount, lod).rgb;
+            vec3 blurred = sum / 25.0;
+            COLOR = vec4(mix(blurred, blurred * 0.5 + vec3(0.03, 0.03, 0.05), amount), 1.0);
+        }
+        """;
     private long _faceOffEvent;
     private readonly List<(ColorRect Bar, float Width)> _bars = new();
     private double _faceOffStart;
@@ -89,6 +115,8 @@ public partial class Film : Node
         string Arg(string name) => Array.IndexOf(args, name) is var i and >= 0 && i + 1 < args.Length ? args[i + 1]
             : throw new ArgumentException($"film: {name} is required.");
         var (worldPath, shotsPath, framesDir) = (Arg("--world"), Arg("--shots"), Arg("--frames"));
+        // Where the face-offs' images were fetched to (named as in the store); without it, the cards show none.
+        _imagesDir = Array.IndexOf(args, "--images") >= 0 ? Arg("--images") : null;
         var (from, to) = (double.Parse(Arg("--from"), CultureInfo.InvariantCulture), double.Parse(Arg("--to"), CultureInfo.InvariantCulture));
         // The same rate as Godot's --fixed-fps, so each frame advances the camera by exactly one frame's time.
         var fps = Array.IndexOf(args, "--fps") >= 0 ? int.Parse(Arg("--fps"), CultureInfo.InvariantCulture) : 24;
@@ -157,27 +185,75 @@ public partial class Film : Node
     {
         if (shot.FaceOff is not { } f)
         {
-            if (_faceOffCard is not null) _faceOffCard.Visible = false;
+            if (_faceOffStage is not null) _faceOffStage.Visible = false;
             return;
         }
-        if (_faceOffCard is null || _faceOffEvent != f.EventId)
+        if (_faceOffStage is null || _faceOffEvent != f.EventId)
         {
-            _faceOffCard?.QueueFree();
+            _faceOffStage?.QueueFree();
             _bars.Clear();
-            _faceOffCard = FaceOffCard(f);
+            _likenesses.Clear();
+            _faceOffStage = FaceOffStage(f);
             _faceOffEvent = f.EventId;
             _faceOffStart = shot.Start;
-            _hud.AddChild(_faceOffCard);
+            _hud.AddChild(_faceOffStage);
         }
-        _faceOffCard.Visible = true;
+        _faceOffStage.Visible = true;
         var grown = (float)Math.Clamp((t - _faceOffStart) / 1.0, 0, 1);
         grown = 1 - (1 - grown) * (1 - grown);
+        _blur!.SetShaderParameter("amount", grown);
+        foreach (var image in _likenesses) image.Modulate = new Color(1, 1, 1, grown);
         foreach (var (bar, width) in _bars) bar.CustomMinimumSize = new Vector2(Math.Max(1, width * grown), bar.CustomMinimumSize.Y);
+    }
+
+    /// <summary>The face-off's scene: the blur over the whole screen, then the images and the card in a row at its middle.</summary>
+    private Control FaceOffStage(FaceOff f)
+    {
+        var stage = new Control { Name = "FaceOffStage", MouseFilter = Control.MouseFilterEnum.Ignore };
+        stage.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _blur = new ShaderMaterial { Shader = new Shader { Code = BlurShader } };
+        var blur = new ColorRect { Name = "Blur", Material = _blur, MouseFilter = Control.MouseFilterEnum.Ignore };
+        blur.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        stage.AddChild(blur);
+
+        var row = Ui.Row("Row", 36);
+        row.Alignment = BoxContainer.AlignmentMode.Center;
+        row.SetAnchorsPreset(Control.LayoutPreset.Center);
+        (row.GrowHorizontal, row.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
+        var (a, b) = (Likeness(f.A, "ImageA"), Likeness(f.B, "ImageB"));
+        var shown = a is not null || b is not null;
+        var card = FaceOffCard(f);
+        card.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        if (shown) row.AddChild(a ?? Spacer("ImageA"));
+        row.AddChild(card);
+        if (shown) row.AddChild(b ?? Spacer("ImageB"));
+        stage.AddChild(row);
+        return stage;
+    }
+
+    private static Control Spacer(string name) => new() { Name = name, CustomMinimumSize = new Vector2(ImageWidth, ImageHeight) };
+
+    /// <summary>A side's image, if it was fetched: the figure or banner standing in its box, fading in with the card.</summary>
+    private Control? Likeness(FaceOffSide side, string name)
+    {
+        if (_imagesDir is null || side.Image is not { Length: > 0 } key) return null;
+        var path = System.IO.Path.Combine(_imagesDir, System.IO.Path.GetFileName(key));
+        if (!System.IO.File.Exists(path)) return null;
+        var image = Image.LoadFromFile(path);
+        if (image is null || image.IsEmpty()) return null;
+        var rect = new TextureRect
+        {
+            Name = name, Texture = ImageTexture.CreateFromImage(image), CustomMinimumSize = new Vector2(ImageWidth, ImageHeight),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, Modulate = new Color(1, 1, 1, 0),
+        };
+        _likenesses.Add(rect);
+        return rect;
     }
 
     private PanelContainer FaceOffCard(FaceOff f)
     {
-        var card = Ui.Place(Ui.Card("FaceOff", FaceOffWidth), 0, 1, (1920 - FaceOffWidth) / 2, -56);
+        var card = Ui.Card("FaceOff", FaceOffWidth);
         var column = Ui.Column("Column", 10);
         card.AddChild(column);
         Color Of(FaceOffSide side) => Ui.C(Client.WarLayout.Colour(side.Colour));

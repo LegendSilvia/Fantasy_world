@@ -74,7 +74,8 @@ public static class BroadcastApp
 
         // The LLM key, like every secret, comes from the environment given (never the process's own, so tests cannot spend).
         return await new DailyRun(config, store, channels, clock, output, options,
-            settings => Llm.LlmProviders.Create(settings, env, ScriptTimeout), Speech.ElevenLabs.FromEnvironment(http, env)).RunAsync(ct).ConfigureAwait(false);
+            settings => Llm.LlmProviders.Create(settings, env, ScriptTimeout), Speech.ElevenLabs.FromEnvironment(http, env),
+            Media.FluxImages.FromEnvironment(http, config.Images.BaseUrl, env)).RunAsync(ct).ConfigureAwait(false);
     }
 
     private static int Map(string worldPath, string pngPath, TextWriter output)

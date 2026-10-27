@@ -15,7 +15,19 @@ public interface IObjectStore
     Task<IReadOnlyList<string>> ListAsync(string prefix, CancellationToken ct = default);
 
     Task DeleteAsync(string key, CancellationToken ct = default);
+
+    /// <summary>Every object under <paramref name="prefix"/> with its size in bytes, in ordinal order of key.</summary>
+    async Task<IReadOnlyList<StoredObject>> ListSizesAsync(string prefix, CancellationToken ct = default)
+    {
+        var objects = new List<StoredObject>();
+        foreach (var key in await ListAsync(prefix, ct).ConfigureAwait(false))
+            objects.Add(new StoredObject(key, (await GetAsync(key, ct).ConfigureAwait(false))?.LongLength ?? 0));
+        return objects;
+    }
 }
+
+/// <summary>An object in a store and its size in bytes.</summary>
+public sealed record StoredObject(string Key, long Bytes);
 
 /// <summary>A view of a store under a key prefix: the live broadcast under <c>live/</c>, dry runs under <c>staging/</c>.</summary>
 public sealed class PrefixedStore(IObjectStore inner, string prefix) : IObjectStore
@@ -31,4 +43,7 @@ public sealed class PrefixedStore(IObjectStore inner, string prefix) : IObjectSt
         (await inner.ListAsync(prefix + keyPrefix, ct).ConfigureAwait(false)).Select(k => k[prefix.Length..]).ToList();
 
     public Task DeleteAsync(string key, CancellationToken ct = default) => inner.DeleteAsync(prefix + key, ct);
+
+    public async Task<IReadOnlyList<StoredObject>> ListSizesAsync(string keyPrefix, CancellationToken ct = default) =>
+        (await inner.ListSizesAsync(prefix + keyPrefix, ct).ConfigureAwait(false)).Select(o => o with { Key = o.Key[prefix.Length..] }).ToList();
 }

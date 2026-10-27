@@ -13,7 +13,7 @@ namespace FantasyWorld.Sim.Tests.Chronicle;
 /// <summary>The face-offs (sub-project 8 B3): declared duels and wars told with both sides' figures and the odds.</summary>
 public class FaceOffTests
 {
-    private static (World World, EventLog Log, Character Strong, Character Sly, WorldEvent Declared) ADuelDeclared()
+    internal static (World World, EventLog Log, Character Strong, Character Sly, WorldEvent Declared) ADuelDeclared()
     {
         var world = TestPeople.World();
         var log = new EventLog();
