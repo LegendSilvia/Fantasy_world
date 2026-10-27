@@ -117,13 +117,16 @@ portraits fail, banners stand in; if speech fails, the episode goes out as text 
   CI already does, renders 10 seconds of the existing `Showcase` angles under `xvfb-run` with `--write-movie`, and reports
   seconds per frame and the output size. If too slow: lower frame rate (12 fps with motion blur off still reads as a slow
   flight), lower resolution, or render one still per camera position and let ffmpeg pan between them.
-- **Spike result (2026-10-27, `film-spike` run 1, the war movie at 1280×720, 24 fps, PNG frames under `xvfb-run`):**
-  Vulkan through Mesa's lavapipe **0.46 s a frame**; OpenGL compatibility 0.72 s. A 4-minute film in one job would take
-  ~44 minutes with Vulkan — too long for one job. **Decision:** render with Vulkan (the game's own Forward+ renderer, so
-  the film looks like the game), and render the sections **in parallel**, one runner each (a matrix job after the daily
-  run has stored the shot list and the snapshot), each section ~30–60 s of film, so ~4–8 minutes per runner; a final job
-  joins them with the narration (ffmpeg) and publishes. A section that fails or overruns its budget is filled with its
-  still-map version, so the film is always whole.
+- **Spike result (2026-10-27, `film-spike` runs 1–3, the war movie at 1280×720, 24 fps, PNG frames under `xvfb-run`):**
+  counting only real frames (the first run also timed the blank frames before the diorama appears), Vulkan through
+  Mesa's lavapipe takes **about 1 s a frame** (run 3: 0.98 s); OpenGL compatibility was a third slower than Vulkan in
+  run 1 and looked worse, by the owner's eye. A 4-minute film in one job would take ~95 minutes. **Decision:** render
+  with Vulkan (the game's own Forward+ renderer, so the film looks like the game), split into **chunks of at most 20 s
+  (480 frames, ~8 minutes each)** along section boundaries, rendered **in parallel**, one runner per chunk (a matrix job
+  after the daily run has stored the shot list and the snapshot; GitHub runs up to 20 at once), so the whole film takes
+  ~10–12 minutes of wall time; a final job joins them with the narration (ffmpeg) and publishes. A chunk that fails or
+  overruns its budget is filled with its still-map version, so the film is always whole. The filmed map hides the game's
+  control card (`MapHudView.ShowsControls`, asked by the owner).
 - **Godot in the broadcast job.** Installing Godot adds ~1 minute; the game's assets need `--import` (~1–2 minutes). The job
   limit is 45 minutes; the render gets a fixed budget (20 minutes) and is cut off past it, falling back to the still film.
 - **Portrait consistency and content.** The fixed style and fact-only prompts keep portraits in one look; the API's own
