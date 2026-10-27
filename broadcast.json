@@ -5,7 +5,7 @@
   "timeZone": "Asia/Bangkok",
   "language": "en",
   "livePrefix": "live/",
-  "stagingPrefix": "staging-site/",
+  "stagingPrefix": "staging/",
   "backupDays": 30,
   "stories": 5,
   "maxCharacters": 3600,
@@ -32,5 +32,9 @@
     "privacy": "public",
     "categoryId": "24"
   },
-  "keepAlive": true
+  "keepAlive": true,
+  "site": {
+    "project": "fantasy-world-chronicle",
+    "url": "https://fantasy-world-chronicle.pages.dev"
+  }
 }
