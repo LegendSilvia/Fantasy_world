@@ -721,5 +721,31 @@
       "roseEventId": 120,
       "guarding": true
     }
+  ],
+  "realms": [
+    {
+      "ref": "realm#1",
+      "name": "Thonae",
+      "rank": "Kingdom",
+      "colour": "white",
+      "accent": "azure",
+      "position": {
+        "x": 0.3515625,
+        "y": 0.1953125
+      },
+      "regions": 8
+    },
+    {
+      "ref": "realm#2",
+      "name": "Vamholt",
+      "rank": "Duchy",
+      "colour": "crimson",
+      "accent": "azure",
+      "position": {
+        "x": 0.2578125,
+        "y": 0.7890625
+      },
+      "regions": 4
+    }
   ]
 }

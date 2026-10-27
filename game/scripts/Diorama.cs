@@ -32,6 +32,10 @@ public partial class Diorama : Node3D
     public MapLayers Layers { get; private set; } = MapLayers.Default;
     public Node3D PinLayer { get; private set; } = null!;
     public WarLayer War { get; private set; } = null!;
+
+    /// <summary>Every independent realm's standard at its capital, always shown.</summary>
+    public RealmLayer Realms { get; private set; } = null!;
+
     public MeshInstance3D BorderLines { get; private set; } = null!;
     public MeshInstance3D RoadLines { get; private set; } = null!;
     public IReadOnlyList<Road> Roads { get; private set; } = Array.Empty<Road>();
@@ -76,6 +80,9 @@ public partial class Diorama : Node3D
         AddChild(PinLayer);
         War = new WarLayer();
         AddChild(War);
+        // Realms' standards stand whatever layers are on.
+        Realms = new RealmLayer { Name = "Realms" };
+        AddChild(Realms);
         UpdateCamera();
     }
 
@@ -163,6 +170,7 @@ public partial class Diorama : Node3D
         foreach (var beast in Monsters) StructureLayer.AddChild(BeastNode(beast, _geography));
         BorderLines.Mesh = DashedRibbons(FantasyWorld.Client.Markers.BorderLines(map, _geography), Palette.Ink);
         War.Show(map, _geography);
+        Realms.Show(map, _geography);
         Roads = RouteLayout.Roads(map, _geography);
         // Open roads are close-dotted in road brown; severed ones broken and reddened.
         var roads = new ArrayMesh();

@@ -139,6 +139,29 @@ public partial class MapHudView : Control
             TagLayer.AddChild(Tag(settlement));
         if (Host.Diorama.Layers.HasFlag(MapLayers.Armies))
             foreach (var army in Map.Armies ?? Array.Empty<MapArmy>()) TagLayer.AddChild(ArmyTag(army));
+        // Realms are always named, at every zoom and whatever the layers.
+        foreach (var realm in Map.Realms ?? Array.Empty<MapRealm>()) TagLayer.AddChild(RealmTag(realm));
+    }
+
+    /// <summary>A realm's name above its standard: a band of its colour, its name, and its rank in small type; clicking opens it.</summary>
+    private RealmTag RealmTag(MapRealm realm)
+    {
+        var tag = new RealmTag { Name = $"Realm{realm.Ref.Id}", Realm = realm, MouseDefaultCursorShape = CursorShape.PointingHand };
+        var pill = Ui.Capsule("Pill", Ui.C(Palette.Ink), null, 10, 4);
+        var row = Ui.Row("Row", 6);
+        row.AddChild(new ColorRect { Name = "Colour", Color = Ui.C(Client.WarLayout.Colour(realm.Colour)), CustomMinimumSize = new Vector2(6, 18), MouseFilter = MouseFilterEnum.Ignore });
+        var column = Ui.Column("Column", 0);
+        column.AddChild(Ui.Line(realm.Name.ToUpperInvariant(), "Name", Palette.Card, 13));
+        column.AddChild(Ui.Line(realm.Rank.ToLowerInvariant(), "Rank", new System.Numerics.Vector3(0.78f, 0.77f, 0.74f), 10));
+        row.AddChild(column);
+        pill.AddChild(row);
+        pill.MouseFilter = MouseFilterEnum.Ignore;
+        tag.AddChild(pill);
+        tag.GuiInput += input =>
+        {
+            if (input is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }) Host.Router.Open(realm.Ref);
+        };
+        return tag;
     }
 
     /// <summary>A host's tag above its banner: its name, strength and who leads it; clicking opens the commander.</summary>
@@ -204,6 +227,13 @@ public partial class MapHudView : Control
                 at = Diorama.ToGodot(Client.Projection.ToBlock(grid, s.Settlement.Position!, 0.02f));
                 tag.Position = Host.Diorama.Camera.UnprojectPosition(at) - new Vector2(11, 24);
                 priority = Priority(s.Settlement);
+            }
+            else if (tag is RealmTag r && Host.Diorama.Realms.TopOf(r.Realm.Ref) is { } crown)
+            {
+                // Above the standard; realms outrank every other name for the space.
+                at = crown;
+                tag.Position = Host.Diorama.Camera.UnprojectPosition(at) - new Vector2(tag.Size.X / 2, tag.Size.Y + 4);
+                priority = 50;
             }
             else if (tag is ArmyTag a && Host.Diorama.War.BannerTop(a.Army.Ref) is { } top)
             {

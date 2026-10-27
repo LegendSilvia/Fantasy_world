@@ -41,6 +41,9 @@ public sealed record MapRoute(EntityRef Ref, string Name, EntityRef From, Entity
 public sealed record MapMonster(EntityRef Ref, string Name, string Breed, int Might, bool Legendary, bool Slumbering, MapPoint Position, long RoseEventId,
     bool Guarding = false);
 
+/// <summary>An independent realm's standard on the map, always shown: its name, rank, heraldic colours, where its capital stands and how many regions it holds.</summary>
+public sealed record MapRealm(EntityRef Ref, string Name, string Rank, string Colour, string Accent, MapPoint Position, int Regions);
+
 /// <summary>A battle of the last year: where, who won, and the event to explain it.</summary>
 public sealed record MapBattle(long EventId, int Year, MapPoint Position, EntityRef Victor, EntityRef Vanquished, EntityRef War);
 
@@ -53,7 +56,7 @@ public sealed record MapScreen(
     string WorldName, string Summary, int Year, int FirstYear, bool Historical, IReadOnlyList<MapRegion> Regions, IReadOnlyList<MapSettlement> Settlements,
     IReadOnlyList<MapStructure> Structures, IReadOnlyList<Border> Borders, IReadOnlyList<Conflict> Conflicts, IReadOnlyList<LegendEntry> Legend,
     IReadOnlyList<MapArmy>? Armies = null, IReadOnlyList<MapBattle>? Battles = null, IReadOnlyList<MapRoute>? Routes = null,
-    IReadOnlyList<MapMonster>? Monsters = null)
+    IReadOnlyList<MapMonster>? Monsters = null, IReadOnlyList<MapRealm>? Realms = null)
 {
     /// <summary>Battles shown on the map: those of the last year.</summary>
     public const int BattleDays = 360;
@@ -119,11 +122,22 @@ public sealed record MapScreen(
             .Select(id => world.Realms[id]).OrderBy(r => r.Id).ToList();
         var legend = independent.Select(r => new LegendEntry(r.Name, r.Colors[0]))
             .Append(new LegendEntry("Active conflict", "conflict")).Append(new LegendEntry("Event this season", "event")).ToList();
+        // Each independent realm's standard at its capital (else at the heart of its largest-held region).
+        var held = political.Values.Where(p => p.OwnerRealmId != 0).GroupBy(p => map.TopOf(p.OwnerRealmId)).ToDictionary(g => g.Key, g => g.Select(p => p.RegionId).ToList());
+        var realms = independent.Select(r =>
+            {
+                var regions = held.GetValueOrDefault(r.Id) ?? [];
+                var at = world.Settlements.TryGetValue(r.CapitalId, out var capital) && !capital.Abandoned && regions.Contains(capital.RegionId)
+                    ? MapPoint.Of(world, capital.Ref)
+                    : regions.Select(id => MapPoint.Of(world, world.Regions[id].Ref)).FirstOrDefault(p => p is not null);
+                return at is null ? null : new MapRealm(r.Ref, r.Name, r.Rank.ToString(), r.Colors[0], r.Colors.Length > 1 ? r.Colors[1] : r.Colors[0], at, regions.Count);
+            })
+            .OfType<MapRealm>().ToList();
         var labyrinths = structures.Count(st => st.Kind == nameof(StructureKind.Labyrinth));
         var summary = $"{Count(independent.Count, "realm")}, {Count(settlements.Count, "settlement")}, "
                       + $"{Count(labyrinths, "open labyrinth")}.";
         return new MapScreen(DigestScreen.DisplayName(world), char.ToUpperInvariant(summary[0]) + summary[1..], date.Year, 1, map.Historical,
-            regions, settlements, structures, borders, conflicts, legend, today ? ArmiesIn(world) : Array.Empty<MapArmy>(), BattlesBefore(world, log, date), RoutesAt(world, log, date, today), MonstersAt(world, log, date));
+            regions, settlements, structures, borders, conflicts, legend, today ? ArmiesIn(world) : Array.Empty<MapArmy>(), BattlesBefore(world, log, date), RoutesAt(world, log, date, today), MonstersAt(world, log, date), realms);
     }
 
     /// <summary>Buildings drawn beside their settlement.</summary>

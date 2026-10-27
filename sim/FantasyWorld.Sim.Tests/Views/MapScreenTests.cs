@@ -35,6 +35,19 @@ public class MapScreenTests
     }
 
     [Fact]
+    public void EveryIndependentRealm_HasAStandard_AtItsCapital()
+    {
+        var world = TestRealms.TwoKingdoms();
+        var map = MapScreen.Build(world, new EventLog());
+
+        Assert.Equal(new[] { world.Realms[1].Ref, world.Realms[2].Ref }, map.Realms!.Select(r => r.Ref));
+        var first = map.Realms![0];
+        Assert.Equal((world.Realms[1].Name, world.Realms[1].Rank.ToString(), world.Realms[1].Colors[0]), (first.Name, first.Rank, first.Colour));
+        Assert.Equal(MapPoint.Of(world, world.Settlements[world.Realms[1].CapitalId].Ref), first.Position);
+        Assert.True(first.Regions >= 1);
+    }
+
+    [Fact]
     public void TheMapAtAPastDate_ShowsThePastState()
     {
         var world = WorldGenerator.Generate(new WorldGenOptions(7, WorldSize.Medium), DateTimeOffset.UnixEpoch);
