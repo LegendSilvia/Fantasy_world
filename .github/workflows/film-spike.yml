@@ -57,14 +57,22 @@ jobs:
         if: always()
         run: |
           cd "$RUNNER_TEMP/frames" 2>/dev/null || { echo "no frames"; exit 0; }
-          n=$(ls frame*.png 2>/dev/null | wc -l)
-          echo "frames: $n"
-          [ "$n" -gt 1 ] || exit 0
-          first=$(stat -c %Y "$(ls frame*.png | head -n 1)"); last=$(stat -c %Y "$(ls frame*.png | tail -n 1)")
-          echo "render span: $(( last - first )) s for $(( n - 1 )) frames"
-          python3 -c "print(f'seconds per frame: {($last - $first) / ($n - 1):.3f}; a 4-minute film at 24 fps: {($last - $first) / ($n - 1) * 5760 / 60:.1f} min')"
-          ls -la frame*.png | head -n 3; du -sh .
-          mkdir -p "$RUNNER_TEMP/sample" && cp "$(ls frame*.png | sed -n '1p')" "$(ls frame*.png | sed -n "$((n / 2))p")" "$(ls frame*.png | tail -n 1)" "$RUNNER_TEMP/sample/"
+          # Frames before the diorama appears (the world being built) and after the movie ends are blank, tiny PNGs: they
+          # render almost instantly, so the speed is measured over the real frames only, and the samples come from them.
+          python3 - "$RUNNER_TEMP/sample" <<'PY'
+          import os, shutil, sys
+          frames = sorted(f for f in os.listdir('.') if f.startswith('frame') and f.endswith('.png'))
+          real = [f for f in frames if os.path.getsize(f) > 20_000]
+          print(f"frames: {len(frames)}, of which real (not blank): {len(real)}")
+          if len(real) < 2: sys.exit(0)
+          span = os.path.getmtime(real[-1]) - os.path.getmtime(real[0])
+          per = span / (len(real) - 1)
+          print(f"render span: {span:.0f} s for {len(real) - 1} real frames; seconds per frame: {per:.3f}; "
+                f"a 4-minute film at 24 fps: {per * 5760 / 60:.1f} min")
+          os.makedirs(sys.argv[1], exist_ok=True)
+          for f in (real[0], real[len(real) // 2], real[-1]): shutil.copy(f, sys.argv[1])
+          PY
+          du -sh .
       - uses: actions/upload-artifact@v4
         if: always()
         with:
