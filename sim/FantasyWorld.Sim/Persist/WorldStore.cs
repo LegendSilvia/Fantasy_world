@@ -136,6 +136,25 @@ public sealed class WorldStore : IDisposable
         return (world, log, snapshot.ToQueue());
     }
 
+    /// <summary>The saved world as a web bundle: its snapshot, events and geography, read as stored (sub-project 11).</summary>
+    public WebBundle ExportBundle()
+    {
+        WorldSnapshot snapshot;
+        using (var cmd = Command("SELECT json FROM snapshot WHERE id = 1"))
+            snapshot = Packed.Unpack<WorldSnapshot>(cmd.ExecuteScalar() ?? throw new InvalidOperationException("No world has been saved in this file."))
+                       ?? throw new InvalidOperationException("World snapshot is empty.");
+        var events = new List<WorldEvent>();
+        using (var cmd = Command("SELECT json FROM events ORDER BY id"))
+        using (var reader = cmd.ExecuteReader())
+            while (reader.Read())
+                events.Add(JsonSerializer.Deserialize<WorldEvent>(reader.GetString(0), SimJson.Options)!);
+        Geography? geography = null;
+        using (var cmd = Command("SELECT json FROM geography WHERE id = 1"))
+            if (cmd.ExecuteScalar() is { } stored and not DBNull)
+                geography = Packed.Unpack<Geography>(stored);
+        return new WebBundle(WebBundle.CurrentVersion, snapshot, geography, events);
+    }
+
     /// <summary>
     /// Copies the world file into <paramref name="backupPath"/> through SQLite's online backup, so a backup taken
     /// while open is consistent.

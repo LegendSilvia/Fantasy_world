@@ -123,6 +123,9 @@ public class DailyRunTests : IDisposable
         Assert.Equal(("2026-10-27", "live/"), (written.Date, written.Prefix));
         Assert.NotEmpty(written.Chunks);
         Assert.NotNull(await Get("live/" + DioramaFilm.ShotsKey("2026-10-27")));
+        // The browser's copy of the day's world, loadable on its own.
+        var (web, _) = FantasyWorld.Sim.Persist.WebBundle.FromGzip((await Get("live/" + DailyRun.WebBundleKey))!).Load();
+        Assert.NotEmpty(web.Realms);
         Assert.Contains("nothing is posted until it is filmed", _log.ToString());
 
         // The publishing run that follows: the episode is built and spoken, so it only posts.

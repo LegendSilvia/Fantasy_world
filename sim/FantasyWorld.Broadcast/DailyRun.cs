@@ -40,6 +40,9 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
 
     public static string EpisodeKey(string date) => $"episodes/{date}/episode.json";
 
+    /// <summary>The world for the browser viewer (sub-project 11): the day's world, its history and geography, no LLM journal.</summary>
+    public const string WebBundleKey = "web/world.json.gz";
+
     public static string ScriptKey(string date) => $"episodes/{date}/script.txt";
 
     public static string MapKey(string date) => $"episodes/{date}/map.png";
@@ -362,6 +365,17 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             await store.PutAsync(config.WorldKey, await File.ReadAllBytesAsync(snapshot, ct).ConfigureAwait(false), "application/octet-stream", ct).ConfigureAwait(false);
             _worldSaved = true;
             log.WriteLine($"Saved the world and the episode to {store.Prefix}.");
+            try
+            {
+                // The browser's copy of the day; a failure costs only the website's update.
+                var web = Path.Combine(work.FullName, "world.json.gz");
+                Fw("export-web", snapshot, web);
+                await store.PutAsync(WebBundleKey, await File.ReadAllBytesAsync(web, ct).ConfigureAwait(false), "application/gzip", ct).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException)
+            {
+                log.WriteLine($"warning: the web bundle could not be stored ({e.Message}); the website keeps yesterday's world.");
+            }
 
             manifest.Record(date, episode);
             manifest.Day(date).Steps[Manifest.EpisodeStep] = clock();

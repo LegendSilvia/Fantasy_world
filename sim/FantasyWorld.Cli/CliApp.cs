@@ -40,6 +40,7 @@ public static partial class CliApp
           fw wars <world-file>
           fw war <world-file> <war-id>
           fw structures <world-file>                landmarks, labyrinths and ruins
+          fw export-web <world-file> <out.json.gz>   the world for the browser viewer (no LLM journal)
           fw view <world-file> digest | map [--as-of <year>] | character <id> | family <id> [--generations <n>]
                  | why <event-id> [--depth <n>] | chronicle [--from <year>] [--to <year>] [--category <c>] [--page <n>]
                  | realm <id> | artifact <id>         a screen's data as JSON, for clients
@@ -71,6 +72,7 @@ public static partial class CliApp
                 "catchup" => CatchUpCommand(path, rest, output, clock, providers),
                 "episode" => EpisodeCommand(path, rest, output, clock, providers),
                 "snapshot" => Snapshot(path, rest, output),
+                "export-web" => ExportWeb(path, rest, output),
                 "log" => Log(path, rest, output),
                 "why" => Why(path, rest, output),
                 "map" => Map(path, rest, output),
@@ -216,6 +218,17 @@ public static partial class CliApp
         if (File.Exists(rest[0])) File.Delete(rest[0]);
         store.BackupTo(rest[0]);
         output.WriteLine($"Snapshot written to {rest[0]}.");
+        return 0;
+    }
+
+    /// <summary>The world as the browser reads it: snapshot, events and geography, gzipped JSON (no LLM journal).</summary>
+    private static int ExportWeb(string path, string[] rest, TextWriter output)
+    {
+        if (rest.Length < 1) return UsageError(output);
+        using var store = OpenExisting(path);
+        var bytes = WebBundle.Of(store).ToGzip();
+        File.WriteAllBytes(rest[0], bytes);
+        output.WriteLine($"Web bundle written to {rest[0]} ({bytes.Length / 1024} KB).");
         return 0;
     }
 
