@@ -2,6 +2,10 @@ name: broadcast
 
 # The daily broadcast (sub-project 6): the world lives one more year and the episode is published, at 05:30 in
 # Bangkok every morning. GitHub runs scheduled workflows only from the default branch, and may start them late.
+#
+# Three stages (sub-project 7 F2): `prepare` builds and narrates the episode and plans its film, posting nothing; `film`
+# films the episode on the game's diorama, one stretch per machine at the same time; `publish` joins the film with the
+# narration (or, if a stretch was not filmed, pans over the map instead), uploads it to YouTube and posts to Discord.
 on:
   schedule:
     - cron: '30 22 * * *'
@@ -28,8 +32,132 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  DRY_RUN: ${{ inputs.dry-run }}
+  CREATE: ${{ inputs.create }}
+  UPLOAD_PRIVATE: ${{ inputs.upload-private }}
+  REF: ${{ github.ref }}
+  DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
+
 jobs:
-  broadcast:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      chunks: ${{ steps.plan.outputs.chunks }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build
+        run: dotnet build sim/FantasyWorld.Broadcast --configuration Release
+      - name: Build and narrate the episode, and plan its film
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          # The webhook is needed to know a post is possible; nothing is posted at this stage.
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_TEST_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+        run: |
+          if [ "$DRY_RUN" != "true" ] && [ "$REF" != "$DEFAULT_REF" ]; then
+            echo "error: the live broadcast runs only from the default branch; tick dry-run to try a branch."
+            exit 1
+          fi
+          args=(run --config broadcast.json --prepare "$RUNNER_TEMP/plan.json")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          if [ "$CREATE" = "true" ]; then args+=(--create); fi
+          dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
+      - name: Hand the plan to the film jobs
+        id: plan
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/plan.json" ]; then
+            echo "plan=$(jq -c . "$RUNNER_TEMP/plan.json")" >> "$GITHUB_OUTPUT"
+            echo "chunks=$(jq -c '[.chunks[].index]' "$RUNNER_TEMP/plan.json")" >> "$GITHUB_OUTPUT"
+          else
+            echo "chunks=[]" >> "$GITHUB_OUTPUT"
+          fi
+
+  film:
+    needs: prepare
+    if: needs.prepare.outputs.chunks != '' && needs.prepare.outputs.chunks != '[]'
+    runs-on: ubuntu-latest
+    # About a second a frame at 720p: a 20-second stretch films in ~8 minutes, plus ~2 for the setup.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        chunk: ${{ fromJson(needs.prepare.outputs.chunks) }}
+    env:
+      PLAN: ${{ needs.prepare.outputs.plan }}
+      CHUNK: ${{ matrix.chunk }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install a virtual display, software Vulkan and ffmpeg
+        timeout-minutes: 10
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          NEEDRESTART_SUSPEND: '1'
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo -E apt-get update -qq
+          sudo -E apt-get install -y -qq --no-install-recommends xvfb mesa-vulkan-drivers libgl1-mesa-dri ffmpeg
+      - name: Install Godot 4.3 (.NET)
+        run: |
+          curl -sSLo "$RUNNER_TEMP/godot.zip" https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT=$RUNNER_TEMP/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Build
+        run: |
+          dotnet build sim/FantasyWorld.Broadcast --configuration Release
+          dotnet build game/FantasyWorld.Game.csproj
+          timeout 300 "$GODOT" --headless --path game --import
+      - name: Fetch the day's world and shots
+        run: |
+          prefix=$(jq -r .prefix <<< "$PLAN"); date=$(jq -r .date <<< "$PLAN")
+          world=$(jq -r '.worldKey // "world.fw.db"' broadcast.json)
+          fw() { dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "$@"; }
+          fw get "$prefix$world" "$RUNNER_TEMP/world.fw.db"
+          fw get "${prefix}episodes/$date/film/shots.json" "$RUNNER_TEMP/shots.json"
+      - name: Film the stretch on the diorama
+        timeout-minutes: 25
+        run: |
+          from=$(jq -r ".chunks[] | select(.index == $CHUNK) | .from" <<< "$PLAN")
+          to=$(jq -r ".chunks[] | select(.index == $CHUNK) | .to" <<< "$PLAN")
+          echo "Filming stretch $CHUNK: $from–$to s."
+          timeout 1400 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path game \
+            --rendering-driver vulkan --rendering-method forward_plus --resolution 1280x720 --fixed-fps 24 \
+            res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$RUNNER_TEMP/shots.json" \
+            --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames"
+      - name: Encode and store the stretch
+        run: |
+          prefix=$(jq -r .prefix <<< "$PLAN"); date=$(jq -r .date <<< "$PLAN")
+          # Every stretch is encoded alike, so they join without being encoded again.
+          ffmpeg -hide_banner -nostdin -loglevel error -y -framerate 24 -i "$RUNNER_TEMP/frames/frame%06d.png" \
+            -c:v libx264 -preset veryfast -pix_fmt yuv420p -r 24 "$RUNNER_TEMP/chunk.mp4"
+          name=$(printf 'chunk-%02d.mp4' "$CHUNK")
+          dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- \
+            put "$RUNNER_TEMP/chunk.mp4" "${prefix}episodes/$date/film/$name"
+          echo "Stored $name ($(du -h "$RUNNER_TEMP/chunk.mp4" | cut -f1))."
+
+  publish:
+    needs: [prepare, film]
+    # After the film jobs, whatever became of them: a stretch not filmed only means the map pans instead.
+    if: always() && needs.prepare.result != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -66,11 +194,6 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          DRY_RUN: ${{ inputs.dry-run }}
-          CREATE: ${{ inputs.create }}
-          UPLOAD_PRIVATE: ${{ inputs.upload-private }}
-          REF: ${{ github.ref }}
-          DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
         run: |
           if [ "$DRY_RUN" != "true" ] && [ "$REF" != "$DEFAULT_REF" ]; then
             echo "error: the live broadcast runs only from the default branch; tick dry-run to try a branch."
@@ -86,7 +209,7 @@ jobs:
   # each month (Bangkok time) commits a one-line heartbeat, unless broadcast.json turns keepAlive off. A month whose
   # heartbeat failed is caught up by the next morning's run.
   keep-alive:
-    needs: broadcast
+    needs: publish
     if: always() && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
