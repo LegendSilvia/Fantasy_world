@@ -23,6 +23,9 @@ public static class WarLayout
     public const float BodyWidth = 0.036f;
     public const float HeadWidth = 0.08f;
     public const float HeadLength = 0.065f;
+
+    /// <summary>Arrows shorter than this (in block units, the map's width being 2) are not drawn.</summary>
+    public const float MinLength = 0.02f;
     public const float ToothSpacing = 0.05f;
     public const float ToothSize = 0.02f;
 
@@ -62,8 +65,11 @@ public static class WarLayout
         var lengths = new List<float> { 0 };
         for (var i = 1; i < path.Count; i++) lengths.Add(lengths[^1] + Vector3.Distance(path[i - 1], path[i]));
         var total = lengths[^1];
-        if (total < HeadLength * 1.5f) return null;
-        var bodyEnd = total - HeadLength;
+        // A short march (one region to the next) keeps its arrow with a smaller head; only a stub too short to read is dropped.
+        if (total < MinLength) return null;
+        var head = Math.Min(HeadLength, total / 2.2f);
+        var headWidth = HeadWidth * head / HeadLength;
+        var bodyEnd = total - head;
 
         Vector3 OnGround(Vector3 p) => p with { Y = Math.Max(0, BlockMesh.HeightAt(grid, (p.X + 1) / 2, (p.Z + 1) / 2)) + Lift };
         Vector3 Across(int i)
@@ -103,8 +109,8 @@ public static class WarLayout
         for (var k = 0; k + 3 < positions.Count; k += 2)
             indices.AddRange(new[] { k, k + 2, k + 1, k + 1, k + 2, k + 3 });
         var b = positions.Count;
-        positions.Add(OnGround(baseCentre - across * (HeadWidth / 2)));
-        positions.Add(OnGround(baseCentre + across * (HeadWidth / 2)));
+        positions.Add(OnGround(baseCentre - across * (headWidth / 2)));
+        positions.Add(OnGround(baseCentre + across * (headWidth / 2)));
         positions.Add(OnGround(tip));
         uvs.Add(new Vector2(-1, bodyEnd / total));
         uvs.Add(new Vector2(1, bodyEnd / total));
