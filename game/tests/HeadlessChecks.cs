@@ -264,7 +264,9 @@ public partial class HeadlessChecks : Node
         trade.ButtonPressed = false;
         Check(!main.Diorama.RoadLines.Visible, "the trade routes layer can be hidden");
         trade.ButtonPressed = true;
-        Check(main.Diorama.RoadLines.Visible && main.Diorama.Roads.Count == (map.Routes?.Count ?? 0), "every trade road is drawn");
+        // Roads are one network (each way drawn once, however many routes travel it): what is drawn is the layout's network.
+        Check(main.Diorama.RoadLines.Visible && main.Diorama.Roads.Count == FantasyWorld.Client.RouteLayout.Roads(map, main.Geography!).Count
+              && (map.Routes is not { Count: > 0 } || main.Diorama.Roads.Count > 0), "every trade road is drawn");
         view.GetNode<CheckBox>("Card/Column/Layers/Settlements").ButtonPressed = false;
         Check(!main.Diorama.SettlementLayer.Visible && view.TagLayer.GetChildren().OfType<SettlementTag>().All(t => t.Settlement.Marker is PinMarker.Conflict or PinMarker.RecentEvent),
             "hiding settlements leaves only places with news");
