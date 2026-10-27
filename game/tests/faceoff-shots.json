@@ -1,0 +1,29 @@
+[
+  { "start": 0, "x": 0.5, "y": 0.5, "zoom": 1, "title": "Opening" },
+  {
+    "start": 1, "x": 0.45, "y": 0.55, "zoom": 2.5, "title": "Face-off: Aldren of Vale v Morwyn of Esk",
+    "faceOff": {
+      "kind": "duel", "eventId": 1, "stakes": "to the death", "oddsA": 62,
+      "a": {
+        "ref": "char#1", "name": "Aldren of Vale", "colour": "crimson",
+        "stats": [
+          { "name": "Martial", "value": 15, "max": 20 }, { "name": "Diplomacy", "value": 7, "max": 20 },
+          { "name": "Stewardship", "value": 9, "max": 20 }, { "name": "Intrigue", "value": 5, "max": 20 },
+          { "name": "Lore", "value": 6, "max": 20 }, { "name": "Prowess", "value": 17, "max": 20 },
+          { "name": "Renown", "value": 64, "max": 100 }
+        ],
+        "notes": [ "aged 31", "brave", "wrathful" ]
+      },
+      "b": {
+        "ref": "char#2", "name": "Morwyn of Esk", "colour": "azure",
+        "stats": [
+          { "name": "Martial", "value": 8, "max": 20 }, { "name": "Diplomacy", "value": 13, "max": 20 },
+          { "name": "Stewardship", "value": 11, "max": 20 }, { "name": "Intrigue", "value": 16, "max": 20 },
+          { "name": "Lore", "value": 12, "max": 20 }, { "name": "Prowess", "value": 9, "max": 20 },
+          { "name": "Renown", "value": 41, "max": 100 }
+        ],
+        "notes": [ "aged 38", "deceitful", "bearing a wound" ]
+      }
+    }
+  }
+]

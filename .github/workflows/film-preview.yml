@@ -1,0 +1,54 @@
+name: film-preview
+
+# A look at the film's cards without a whole broadcast: a fresh world, the sample shot list in game/tests (a face-off),
+# filmed for a few seconds at 1080p as the broadcast films, and a few frames kept as an artifact.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ccr-81a7454e-12gx87]
+    paths: [.github/workflows/film-preview.yml, game/film/**, game/tests/faceoff-shots.json]
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install a virtual display and software Vulkan
+        timeout-minutes: 12
+        run: .github/scripts/apt-install.sh xvfb mesa-vulkan-drivers libgl1-mesa-dri
+      - name: Install Godot 4.3 (.NET)
+        run: |
+          curl -sSLo "$RUNNER_TEMP/godot.zip" https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT=$RUNNER_TEMP/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Build, and make a world to film
+        run: |
+          dotnet build game/FantasyWorld.Game.csproj
+          timeout 300 "$GODOT" --headless --path game --import
+          fw() { dotnet run --project sim/FantasyWorld.Cli -- "$@"; }
+          fw new "$RUNNER_TEMP/world.fw.db" --seed 7 --size medium
+          fw advance "$RUNNER_TEMP/world.fw.db" 10y | tail -n 1
+      - name: Film the sample
+        timeout-minutes: 20
+        run: |
+          timeout 1000 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path game \
+            --rendering-driver vulkan --rendering-method forward_plus --resolution 1920x1080 --fixed-fps 24 \
+            res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots game/tests/faceoff-shots.json \
+            --from 1 --to 3 --fps 24 --frames "$RUNNER_TEMP/frames"
+          mkdir -p "$RUNNER_TEMP/sample"
+          ls "$RUNNER_TEMP/frames" | wc -l
+          # As the card grows in, and once it has.
+          cp "$RUNNER_TEMP/frames/frame000006.png" "$RUNNER_TEMP/frames/frame000040.png" "$RUNNER_TEMP/sample/"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: film-preview
+          path: ${{ runner.temp }}/sample
+          if-no-files-found: ignore
