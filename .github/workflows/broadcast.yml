@@ -188,7 +188,14 @@ jobs:
         run: |
           dotnet publish sim/FantasyWorld.Web --configuration Release --output "$RUNNER_TEMP/site"
           if [ "$DRY_RUN" = "true" ]; then prefix=$(jq -r .stagingPrefix broadcast.json); else prefix=$(jq -r .livePrefix broadcast.json); fi
-          dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "${prefix}web/world.json.gz" "$RUNNER_TEMP/site/wwwroot/world.json.gz"
+          bundle="$RUNNER_TEMP/site/wwwroot/world.json.gz"
+          if ! dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "${prefix}web/world.json.gz" "$bundle"; then
+            # A day's episode made before the website existed has no bundle: make one from the stored world (only read).
+            echo "No stored bundle for the day; exporting one from the stored world."
+            world=$(jq -r '.worldKey // "world.fw.db"' broadcast.json)
+            dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "$prefix$world" "$RUNNER_TEMP/world.fw.db"
+            dotnet run --configuration Release --project sim/FantasyWorld.Cli -- export-web "$RUNNER_TEMP/world.fw.db" "$bundle"
+          fi
           echo "project=$(jq -r '.site.project // "fantasy-world-chronicle"' broadcast.json)" >> "$GITHUB_OUTPUT"
           if [ "$DRY_RUN" = "true" ]; then echo "branch=staging" >> "$GITHUB_OUTPUT"; else echo "branch=main" >> "$GITHUB_OUTPUT"; fi
       - name: Create the Pages project (once; already there is fine)
