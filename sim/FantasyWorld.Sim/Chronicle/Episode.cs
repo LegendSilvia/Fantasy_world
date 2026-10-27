@@ -14,13 +14,13 @@ public sealed record EpisodeStory(long EventId, int Year, string Category, strin
 
 /// <summary>
 /// One section of an episode (sub-project 7 §3), read aloud on its own and shown as a chapter: its kind (opening,
-/// headline, story, why, closing), the chapter's title, its text and the event it tells (0 for the opening and closing).
-/// The sections' texts, joined by blank lines, are the script.
+/// headline, face-off, story, comment, closing), the chapter's title, its text and the event it tells (0 for the opening and
+/// closing); a face-off carries both sides' figures. The sections' texts, joined by blank lines, are the script.
 /// </summary>
-public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0)
+public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0, FaceOff? FaceOff = null)
 {
     /// <summary>Why: "how it came to this", in episodes made before 2026-10-27; Comment: the chronicler's view of the year that replaced it.</summary>
-    public const string Opening = "opening", Headline = "headline", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
+    public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
 }
 
 /// <summary>
@@ -79,9 +79,13 @@ public sealed record Episode(
         var top = ranked.Where(e => TemplateNarrator.IsHeadline(e.Type)).OrderByDescending(e => e.Importance).FirstOrDefault() ?? ranked.FirstOrDefault();
         // One story per person, so a busy hero does not fill the episode; and one of a kind per party, so a fallen
         // realm's many cessions are told once.
+        // The challenges of the episode (duels and wars declared) are face-offs of their own, the weightiest first, and are
+        // not told again among the stories.
+        var faceOffs = ranked.Where(e => FaceOffs.Declarations.Contains(e.Type)).OrderByDescending(e => e.Importance).ThenBy(e => e.Id)
+            .Select(e => FaceOffs.For(world, e)).OfType<FaceOff>().Take(FaceOffs.PerEpisode).ToList();
         var chosen = new List<WorldEvent>();
         var people = new HashSet<EntityRef>(top?.Actors.Values.Where(a => a.Kind == Character.Kind) ?? Array.Empty<EntityRef>());
-        foreach (var ev in ranked.Where(e => e != top))
+        foreach (var ev in ranked.Where(e => e != top && faceOffs.All(f => f.EventId != e.Id)))
         {
             if (chosen.Count == stories) break;
             var who = ev.Actors.Values.Where(a => a.Kind == Character.Kind).ToList();
@@ -109,8 +113,11 @@ public sealed record Episode(
         var dated = toYear - fromYear > 1 || chosen.Select(e => e.Date.Year).Distinct().Count() > 1;
         var lines = chosen.ToDictionary(e => e.Id, e => dated ? $"In Year {e.Date.Year}, {narrator.Clause(e)}" : narrator.Sentence(e));
         var titles = chosen.Append(top).Where(e => e is not null).ToDictionary(e => e!.Id, e => Title(narrator, e!));
+        var challenges = faceOffs.Select(f => new EpisodeSection(EpisodeSection.Challenge, $"Face-off: {f.A.Name} v {f.B.Name}",
+            FaceOffs.Tell(f, log.TryGet(f.EventId, out var declared) ? narrator.PlaceOf(declared) ?? "the appointed place" : "the appointed place"),
+            f.EventId, f)).ToList();
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
-            Compose(name, coldOpen, headline, body, told, lines, titles, view, signOff);
+            Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff);
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
@@ -169,11 +176,13 @@ public sealed record Episode(
         narrator.PlaceOf(ev) is { } place ? $"{Views.Categories.Kicker(ev)} at {English.Capitalise(place)}" : Views.Categories.Kicker(ev);
 
     private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
-        IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff)
+        IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff)
     {
         var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
         if (headline is not null)
             sections.Add(new(EpisodeSection.Headline, headline.Text, body.Length > 0 ? $"{headline.Text}.\n\n{body}" : $"{headline.Text}.", headline.EventId));
+        // The challenges follow the headline: what is coming, before the news of what was.
+        sections.AddRange(challenges);
         for (var i = 0; i < stories.Count; i++)
         {
             var line = lines[stories[i].EventId];

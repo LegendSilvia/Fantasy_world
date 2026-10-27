@@ -32,14 +32,21 @@ public static class Shots
     public static string Key(string date) => $"episodes/{date}/shots.json";
 
     public static IReadOnlyList<Shot> For(World world, EventLog log, Episode episode) =>
-        episode.Parts.Select(section => section.Kind is EpisodeSection.Headline or EpisodeSection.Story && log.TryGet(section.EventId, out var ev)
+        episode.Parts.Select(section => section.Kind is EpisodeSection.Headline or EpisodeSection.Story or EpisodeSection.Challenge && log.TryGet(section.EventId, out var ev)
                                         && PlaceOf(world, ev) is { } at
             ? new Shot(at.X, at.Y, Shot.StoryZoom)
             : Shot.Whole).ToList();
 
-    /// <summary>The event's place, else where its first actor with a place is.</summary>
+    /// <summary>The event's place, else where its first actor with a place is; a realm is where its capital stands (a war's
+    /// defender is named after its attacker, so the camera goes to the defended capital).</summary>
     private static MapPoint? PlaceOf(World world, WorldEvent ev) =>
-        (ev.Place is { } place ? MapPoint.Of(world, place) : null) ?? ev.Actors.Values.Select(a => MapPoint.Of(world, a)).FirstOrDefault(p => p is not null);
+        (ev.Place is { } place ? MapPoint.Of(world, place) : null)
+        ?? ev.Actors.Values.Select(a => MapPoint.Of(world, a)).FirstOrDefault(p => p is not null)
+        ?? (ev.Actors.TryGetValue("defender", out var defender) ? Capital(world, defender) : null)
+        ?? ev.Actors.Values.Select(a => Capital(world, a)).FirstOrDefault(p => p is not null);
+
+    private static MapPoint? Capital(World world, EntityRef realm) =>
+        realm.Kind == Realm.Kind && world.Realms.TryGetValue(realm.Id, out var r) ? MapPoint.Of(world, new EntityRef(Settlement.Kind, r.CapitalId)) : null;
 
     public static Task SaveAsync(IObjectStore store, string date, IReadOnlyList<Shot> shots, CancellationToken ct = default) =>
         store.PutAsync(Key(date), JsonSerializer.SerializeToUtf8Bytes(shots, Json), "application/json", ct);

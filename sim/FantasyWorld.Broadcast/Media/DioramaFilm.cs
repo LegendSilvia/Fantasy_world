@@ -10,8 +10,11 @@ public sealed record FilmChunk(int Index, double From, double To);
 /// <summary>What the film jobs need: the day, the store's prefix (live or staging) and the stretches to film.</summary>
 public sealed record FilmPlan(string Date, string Prefix, IReadOnlyList<FilmChunk> Chunks);
 
-/// <summary>A shot as the diorama film reads it: from a moment on, a point on the map (0–1), how close, and the section's title (for the film's log).</summary>
-public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "");
+/// <summary>
+/// A shot as the diorama film reads it: from a moment on, a point on the map (0–1), how close, the section's title (for the
+/// film's log) and, for a face-off, both sides' figures and the odds (shown as a card over the diorama).
+/// </summary>
+public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FantasyWorld.Sim.Chronicle.FaceOff? FaceOff = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). The daily run plans it once the narration's chapters exist: the
@@ -46,9 +49,10 @@ public static class DioramaFilm
         return chunks;
     }
 
-    /// <summary>The shots as the film reads them, each from its chapter's start.</summary>
-    public static IReadOnlyList<FilmShot> Timed(IReadOnlyList<Shot> shots, Timeline timeline) =>
-        Shots.Timed(shots, timeline).Select((s, i) => new FilmShot(s.Start, s.Shot.X, s.Shot.Y, s.Shot.Zoom, timeline.Chapters[i].Title)).ToList();
+    /// <summary>The shots as the film reads them, each from its chapter's start, with its section's face-off if it is one.</summary>
+    public static IReadOnlyList<FilmShot> Timed(IReadOnlyList<Shot> shots, Timeline timeline, IReadOnlyList<FantasyWorld.Sim.Chronicle.EpisodeSection>? sections = null) =>
+        Shots.Timed(shots, timeline).Select((s, i) => new FilmShot(s.Start, s.Shot.X, s.Shot.Y, s.Shot.Zoom, timeline.Chapters[i].Title,
+            sections is { } parts && i < parts.Count ? parts[i].FaceOff : null)).ToList();
 
     public static byte[] ToBytes<T>(T value) => JsonSerializer.SerializeToUtf8Bytes(value, Json);
 

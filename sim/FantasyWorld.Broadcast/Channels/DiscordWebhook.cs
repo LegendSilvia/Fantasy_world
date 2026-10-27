@@ -60,12 +60,23 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
         var payload = Embed(episode, username);
         // The world itself, opened on the headline's story.
         if (siteLink is not null) payload["embeds"]![0]!["url"] = siteLink;
+        var fields = new JsonArray();
+        // The face-offs, with their odds: who meets whom, and the world's reckoning of it (sub-project 8 §7).
+        var faceOffs = episode.Parts.Select(p => p.FaceOff).OfType<Sim.Chronicle.FaceOff>().ToList();
+        if (faceOffs.Count > 0)
+            fields.Add(new JsonObject
+            {
+                ["name"] = "Face-offs",
+                ["value"] = Clip(string.Join("\n", faceOffs.Select(f => $"⚔ {f.A.Name} v {f.B.Name} ({f.Stakes}): {f.OddsA}% to {100 - f.OddsA}%")), MaxField),
+                ["inline"] = false,
+            });
         // The chapters, so a listener can see what is in the episode (and jump to it on YouTube).
         if (timeline is { Chapters.Count: > 1 })
-            payload["embeds"]![0]!["fields"] = new JsonArray(new JsonObject
+            fields.Add(new JsonObject
             {
                 ["name"] = "In this episode", ["value"] = Clip(Speech.Chapters.Lines(timeline.Chapters), MaxField), ["inline"] = false,
             });
+        if (fields.Count > 0) payload["embeds"]![0]!["fields"] = fields;
         // In the message itself, not the embed, so Discord shows the video's player.
         if (videoUrl is not null) payload["content"] = $"▶ Watch the episode: {videoUrl}";
         if (siteLink is not null) payload["content"] = (payload["content"] is { } watch ? $"{watch}\n" : "") + $"🗺 Explore the world: <{siteLink}>";

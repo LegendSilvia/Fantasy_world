@@ -5,13 +5,17 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FantasyWorld.Client;
+using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Views;
 using Godot;
 
 namespace FantasyWorld.Game.Film;
 
-/// <summary>A shot of the episode film from a moment on: a point on the map (0–1) and how close (1 = the whole map).</summary>
-public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "");
+/// <summary>
+/// A shot of the episode film from a moment on: a point on the map (0–1), how close (1 = the whole map), its section's title
+/// and, for a face-off, both sides' figures and the odds.
+/// </summary>
+public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FaceOff? FaceOff = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). Renders one stretch of an episode's timed shot list from the day's
@@ -36,6 +40,16 @@ public partial class Film : Node
 
     /// <summary>The place in view when the camera is close, else none.</summary>
     private MapPoint? _focus;
+
+    /// <summary>The face-off card's width and its bars' longest reach either side of the figures' names.</summary>
+    public const float FaceOffWidth = 900, BarReach = 300;
+
+    /// <summary>The face-off card shown now (its event), its bars with their full lengths, and when its section began.</summary>
+    private PanelContainer? _faceOffCard;
+    private long _faceOffEvent;
+    private readonly List<(ColorRect Bar, float Width)> _bars = new();
+    private double _faceOffStart;
+    private Control _hud = null!;
 
     private VBoxContainer _log = null!;
     private PanelContainer _logCard = null!;
@@ -93,6 +107,7 @@ public partial class Film : Node
         _logCard.AddChild(_log);
         _logCard.Visible = false;
         hud.AddChild(_logCard);
+        _hud = hud;
 
         // Settled on the shot the film's camera would be holding at the stretch's start, then a few frames for the
         // diorama's meshes and labels to settle before the first frame is kept.
@@ -107,6 +122,7 @@ public partial class Film : Node
             var t = from + n / (double)fps;
             Aim(main.Diorama, ShotAt(shots, t), t);
             Log(shots, t);
+            ShowFaceOff(ShotAt(shots, t), t);
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             var image = GetViewport().GetTexture().GetImage();
             var error = image.SavePng(System.IO.Path.Combine(framesDir, $"frame{n:000000}.png"));
@@ -114,6 +130,123 @@ public partial class Film : Node
         }
         GD.Print($"film: {count} frames, {from:0.##}–{to:0.##} s, at {fps} fps.");
         return 0;
+    }
+
+    /// <summary>
+    /// The face-off card while a face-off's section is told (sub-project 8 §7): both sides' names in their colours, each
+    /// figure as two bars growing out from its name, and the odds as one bar in the two colours; the bars grow in over the
+    /// section's first second. Hidden for any other section.
+    /// </summary>
+    private void ShowFaceOff(FilmShot shot, double t)
+    {
+        if (shot.FaceOff is not { } f)
+        {
+            if (_faceOffCard is not null) _faceOffCard.Visible = false;
+            return;
+        }
+        if (_faceOffCard is null || _faceOffEvent != f.EventId)
+        {
+            _faceOffCard?.QueueFree();
+            _bars.Clear();
+            _faceOffCard = FaceOffCard(f);
+            _faceOffEvent = f.EventId;
+            _faceOffStart = shot.Start;
+            _hud.AddChild(_faceOffCard);
+        }
+        _faceOffCard.Visible = true;
+        var grown = (float)Math.Clamp((t - _faceOffStart) / 1.0, 0, 1);
+        grown = 1 - (1 - grown) * (1 - grown);
+        foreach (var (bar, width) in _bars) bar.CustomMinimumSize = new Vector2(Math.Max(1, width * grown), bar.CustomMinimumSize.Y);
+    }
+
+    private PanelContainer FaceOffCard(FaceOff f)
+    {
+        var card = Ui.Place(Ui.Card("FaceOff", FaceOffWidth), 0, 1, (1920 - FaceOffWidth) / 2, -56);
+        var column = Ui.Column("Column", 10);
+        card.AddChild(column);
+        Color Of(FaceOffSide side) => Ui.C(Client.WarLayout.Colour(side.Colour));
+
+        // The two names, each with a band of its colour and a line of notes, either side of the kicker.
+        var names = Ui.Row("Names", 12);
+        Control Name(FaceOffSide side, bool right)
+        {
+            var box = Ui.Column(right ? "Right" : "Left", 2);
+            box.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            var line = Ui.Row("Line", 8);
+            line.Alignment = right ? BoxContainer.AlignmentMode.End : BoxContainer.AlignmentMode.Begin;
+            var band = new ColorRect { Name = "Band", Color = Of(side), CustomMinimumSize = new Vector2(8, 26) };
+            var title = Ui.Line(side.Name, "Name", Palette.Ink, 22);
+            if (right) { line.AddChild(title); line.AddChild(band); }
+            else { line.AddChild(band); line.AddChild(title); }
+            box.AddChild(line);
+            var notes = Ui.Line(string.Join(" · ", side.Notes), "Notes", Palette.Muted, 13);
+            notes.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+            box.AddChild(notes);
+            return box;
+        }
+        names.AddChild(Name(f.A, false));
+        var kicker = Ui.Kicker(f.Kind == FaceOff.Duel ? $"Face-off · {f.Stakes}" : "Face-off · war");
+        kicker.HorizontalAlignment = HorizontalAlignment.Center;
+        kicker.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        names.AddChild(kicker);
+        names.AddChild(Name(f.B, true));
+        column.AddChild(names);
+
+        // Each figure: A's bar grows left from the name, B's grows right, both on the figure's own scale.
+        for (var i = 0; i < f.A.Stats.Count && i < f.B.Stats.Count; i++)
+        {
+            var (a, b) = (f.A.Stats[i], f.B.Stats[i]);
+            var row = Ui.Row($"Stat{i}", 10);
+            row.AddChild(Figure(a.Value, true));
+            row.AddChild(Bar(a.Value / Math.Max(1, a.Max), Of(f.A), true));
+            var label = Ui.Line(a.Name, "Name", Palette.Body, 14);
+            label.HorizontalAlignment = HorizontalAlignment.Center;
+            label.CustomMinimumSize = new Vector2(120, 0);
+            row.AddChild(label);
+            row.AddChild(Bar(b.Value / Math.Max(1, b.Max), Of(f.B), false));
+            row.AddChild(Figure(b.Value, false));
+            column.AddChild(row);
+        }
+
+        // The odds: one bar, the first side's share in its colour, the rest in the other's.
+        var odds = Ui.Row("Odds", 10);
+        odds.AddChild(Figure(f.OddsA, true, "%"));
+        var split = Ui.Row("Split", 0);
+        split.CustomMinimumSize = new Vector2(BarReach * 2 + 140, 14);
+        var full = BarReach * 2 + 140;
+        var left = new ColorRect { Name = "A", Color = Of(f.A), CustomMinimumSize = new Vector2(1, 14) };
+        var right = new ColorRect { Name = "B", Color = Of(f.B), CustomMinimumSize = new Vector2(1, 14) };
+        split.AddChild(left);
+        split.AddChild(right);
+        _bars.Add((left, full * f.OddsA / 100f));
+        _bars.Add((right, full * (100 - f.OddsA) / 100f));
+        odds.AddChild(split);
+        odds.AddChild(Figure(100 - f.OddsA, false, "%"));
+        var chance = Ui.Kicker("Chance of winning");
+        chance.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(chance);
+        column.AddChild(odds);
+        return card;
+    }
+
+    private static Label Figure(double value, bool right, string unit = "")
+    {
+        var label = Ui.Line($"{Math.Round(value).ToString(CultureInfo.InvariantCulture)}{unit}", "Figure", Palette.Ink, 15);
+        label.CustomMinimumSize = new Vector2(52, 0);
+        label.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        return label;
+    }
+
+    /// <summary>A bar of up to <see cref="BarReach"/>, growing towards the middle's figure name from its own side.</summary>
+    private Control Bar(double share, Color colour, bool fromRight)
+    {
+        var track = Ui.Row("Track", 0);
+        track.CustomMinimumSize = new Vector2(BarReach, 12);
+        track.Alignment = fromRight ? BoxContainer.AlignmentMode.End : BoxContainer.AlignmentMode.Begin;
+        var bar = new ColorRect { Name = "Bar", Color = colour, CustomMinimumSize = new Vector2(1, 12), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        track.AddChild(bar);
+        _bars.Add((bar, BarReach * (float)Math.Clamp(share, 0, 1)));
+        return track;
     }
 
     /// <summary>The shot the camera is making for at <paramref name="t"/>: the last one started by then.</summary>
