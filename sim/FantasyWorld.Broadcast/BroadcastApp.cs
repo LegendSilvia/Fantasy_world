@@ -56,7 +56,9 @@ public static class BroadcastApp
 
         var webhookName = options.DryRun ? "DISCORD_TEST_WEBHOOK_URL" : "DISCORD_WEBHOOK_URL";
         var youtube = YouTubeChannel(config, options, env, http, output);
+        // YouTube goes first, so the Discord post can carry the day's video link.
         var channels = new List<IEpisodeChannel>();
+        if (youtube is not null) channels.Add(youtube);
         if (env(webhookName) is { Length: > 0 } webhook)
             channels.Add(new DiscordWebhook(http, webhook, config.DiscordName));
         else if (!options.DryRun)
@@ -64,7 +66,6 @@ public static class BroadcastApp
             output.WriteLine($"error: {webhookName} is not set, so the episode could not be posted.");
             return DailyRun.Failed;
         }
-        if (youtube is not null) channels.Add(youtube);
 
         // The LLM key, like every secret, comes from the environment given (never the process's own, so tests cannot spend).
         return await new DailyRun(config, store, channels, clock, output, options,

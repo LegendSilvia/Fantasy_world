@@ -235,6 +235,12 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                            + "YouTube's API audit (see docs/broadcast-setup.md).");
     }
 
+    /// <summary>The day's video link, once it is up and anyone may watch it (public or unlisted); null otherwise.</summary>
+    public static async Task<string?> WatchUrlAsync(IObjectStore store, string day, CancellationToken ct = default) =>
+        await LoadAsync(store, day, ct).ConfigureAwait(false) is { State: UploadState.Done, VideoId: { Length: > 0 } id, Privacy: "public" or "unlisted" }
+            ? $"https://youtu.be/{id}"
+            : null;
+
     private static async Task<UploadState?> LoadAsync(IObjectStore store, string day, CancellationToken ct) =>
         await store.GetAsync(StateKey(day), ct).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<UploadState>(bytes, Json) : null;
 

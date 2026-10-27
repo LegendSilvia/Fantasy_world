@@ -2,6 +2,8 @@ using System.Net;
 using System.Text.Json.Nodes;
 using FantasyWorld.Broadcast;
 using FantasyWorld.Broadcast.Channels;
+using FantasyWorld.Broadcast.Storage;
+using FantasyWorld.Sim.Tests.Support;
 using FantasyWorld.Sim.Chronicle;
 
 namespace FantasyWorld.Sim.Tests.Broadcasting;
@@ -127,6 +129,37 @@ public class BroadcastPartsTests
         await new DiscordWebhook(new HttpClient(refusing), "https://discord.test/api/webhooks/1/T", "x").PublishAsync(SampleEpisode(), [1], [2]);
         Assert.Equal(2, refusing.Seen.Count);
         Assert.DoesNotContain("narration.mp3", System.Text.Encoding.Latin1.GetString(refusing.Seen[1].Body!));
+    }
+
+    [Fact]
+    public async Task Discord_LinksTheDaysVideo_WhenItIsOnYouTubeForAll_InPlaceOfTheNarration()
+    {
+        using var dir = new TempDir();
+        var store = new LocalObjectStore(dir.Path);
+        var episode = SampleEpisode();
+        async Task<string> Post(string? state)
+        {
+            if (state is not null) await store.PutAsync(YouTube.StateKey(episode.Date), System.Text.Encoding.UTF8.GetBytes(state), "application/json");
+            var http = new StorageTests.FakeHttp((HttpStatusCode.OK, "{}"));
+            var discord = new DiscordWebhook(new HttpClient(http), "https://discord.test/api/webhooks/1/T", "The Chronicle");
+            discord.Attach(store, TextWriter.Null, episode.Date);
+            await discord.PublishAsync(episode, [0x89, 0x50], [0xFF, 0xFB]);
+            return System.Text.Encoding.Latin1.GetString(http.Seen.Single().Body!);
+        }
+
+        var before = await Post(null);
+        Assert.Contains("narration.mp3", before);
+        Assert.DoesNotContain("youtu.be", before);
+
+        var shared = await Post("""{"state":"done","videoId":"abc123","privacy":"public"}""");
+        Assert.Contains("\"content\":", shared);
+        Assert.Contains("Watch the episode: https://youtu.be/abc123", shared);
+        Assert.Contains("filename=map.png", shared);
+        Assert.DoesNotContain("narration.mp3", shared);
+
+        // A private video, or one still going up, is no use to the channel: the narration goes as before.
+        Assert.DoesNotContain("youtu.be", await Post("""{"state":"done","videoId":"abc123","privacy":"private"}"""));
+        Assert.Contains("narration.mp3", await Post("""{"state":"uploading","session":"s"}"""));
     }
 
     private sealed class ThrowingHttp : HttpMessageHandler
