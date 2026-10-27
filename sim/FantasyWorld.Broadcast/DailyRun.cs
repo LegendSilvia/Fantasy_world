@@ -12,12 +12,12 @@ using FantasyWorld.Sim.Persist;
 
 namespace FantasyWorld.Broadcast;
 
-/// <param name="UploadPrivate">On a dry run, upload the staging video to YouTube as private (to try the upload by hand).</param>
+/// <param name="UploadUnlisted">On a dry run, upload the staging video to YouTube as unlisted: a link anyone can open and share, not listed on the channel.</param>
 /// <param name="PreparePlan">
 /// Prepare only (sub-project 7 F2): build and narrate the day's episode, plan its diorama film, write the plan to this
 /// file for the workflow's film jobs, and post nothing; a later run posts it.
 /// </param>
-public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadPrivate = false, string? PreparePlan = null);
+public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadUnlisted = false, string? PreparePlan = null);
 
 /// <summary>
 /// One morning's broadcast (spec §3): pull the world, back it up, catch it up, build the episode, push the episode and
@@ -265,7 +265,9 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         var none = new FilmPlan(date, store.Prefix, []);
         if (!config.YouTube.Upload || !config.YouTube.Diorama) return none;
         var timeline = await Chapters.LoadAsync(store, date, ct).ConfigureAwait(false);
-        var shots = DioramaFilm.Timed(await Shots.LoadAsync(store, date, ct).ConfigureAwait(false), timeline);
+        var sections = await store.GetAsync(EpisodeKey(date), ct).ConfigureAwait(false) is { } stored
+            ? Episode.FromJson(Encoding.UTF8.GetString(stored)).Parts : null;
+        var shots = DioramaFilm.Timed(await Shots.LoadAsync(store, date, ct).ConfigureAwait(false), timeline, sections);
         if (shots.Count == 0) return none;
         await store.PutAsync(DioramaFilm.ShotsKey(date), DioramaFilm.ToBytes(shots), "application/json", ct).ConfigureAwait(false);
         return new FilmPlan(date, store.Prefix, DioramaFilm.Chunks(timeline));

@@ -11,12 +11,12 @@ namespace FantasyWorld.Broadcast;
 public static class BroadcastApp
 {
     public const string Usage = """
-        usage: fw-broadcast run [--dry-run [--upload-private]] [--create] [--prepare <plan.json>] [--config <broadcast.json>] [--local <dir>]
+        usage: fw-broadcast run [--dry-run [--upload-unlisted]] [--create] [--prepare <plan.json>] [--config <broadcast.json>] [--local <dir>]
                fw-broadcast map <world-file> <out.png>   the political map as the broadcast posts it
                fw-broadcast get <key> <file> [--local <dir>]   copy an object of the bucket to a file (the film jobs)
                fw-broadcast put <file> <key> [--local <dir>]   store a file in the bucket (the film jobs)
           --dry-run   every step, under the staging prefix, posting to DISCORD_TEST_WEBHOOK_URL (if set)
-          --upload-private   with --dry-run: upload the staging video to YouTube as private, to try the upload
+          --upload-unlisted  with --dry-run: upload the staging video to YouTube as unlisted, a link to share
           --create    begin a new world when none is stored (never done by a scheduled run)
           --local     keep the world in a local directory instead of R2
           --prepare   build and narrate the episode and plan its diorama film (written to the file), posting nothing
@@ -30,13 +30,13 @@ public static class BroadcastApp
         if (args is ["get" or "put", var first, var second, ..] && args.Skip(3).All(a => a is "--local" || a == Option(args, "--local")))
             return await CopyAsync(args[0] == "get", first, second, Option(args, "--local"), env, handler, output, ct).ConfigureAwait(false);
         if (args is not ["run", ..] || args.Skip(1).Any(a => a.StartsWith("--", StringComparison.Ordinal)
-                                                             && a is not ("--dry-run" or "--upload-private" or "--create" or "--config" or "--local" or "--prepare"))
-                                     || args.Contains("--upload-private") && !args.Contains("--dry-run"))
+                                                             && a is not ("--dry-run" or "--upload-unlisted" or "--create" or "--config" or "--local" or "--prepare"))
+                                     || args.Contains("--upload-unlisted") && !args.Contains("--dry-run"))
         {
             output.WriteLine(Usage);
             return DailyRun.Failed;
         }
-        var options = new RunOptions(args.Contains("--dry-run"), args.Contains("--create"), args.Contains("--upload-private"), Option(args, "--prepare"));
+        var options = new RunOptions(args.Contains("--dry-run"), args.Contains("--create"), args.Contains("--upload-unlisted"), Option(args, "--prepare"));
 
         BroadcastConfig config;
         try
@@ -94,12 +94,12 @@ public static class BroadcastApp
     /// <summary>
     /// The YouTube channel: the live broadcast uploads with the three YouTube secrets; a dry run (YouTube has no test
     /// channel) only makes and stores the video, so the first real video is not made in production, unless it is asked
-    /// to upload it as private (<c>--upload-private</c>), which tries the whole upload where only the owner sees it.
+    /// to upload it as unlisted (<c>--upload-unlisted</c>): the whole upload tried, with a link that can be shared but is not listed on the channel.
     /// </summary>
     public static Channels.YouTube? YouTubeChannel(BroadcastConfig config, RunOptions options, Func<string, string?> env, HttpClient http, TextWriter output)
     {
         if (!config.YouTube.Upload) return null;
-        var uploads = !options.DryRun || options.UploadPrivate;
+        var uploads = !options.DryRun || options.UploadUnlisted;
         var account = uploads ? Channels.YouTubeAccount.FromEnvironment(env) : null;
         if (uploads && account is null)
         {
@@ -107,7 +107,7 @@ public static class BroadcastApp
             return null;
         }
         if (!config.Voice.Speak) output.WriteLine("warning: YouTube is set up but voice.speak is off, so there is no narration to make a video of.");
-        var settings = options.DryRun ? config.YouTube with { Privacy = "private" } : config.YouTube;
+        var settings = options.DryRun ? config.YouTube with { Privacy = "unlisted" } : config.YouTube;
         return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings, episode => config.Site.LinkFor(episode, options.DryRun));
     }
 

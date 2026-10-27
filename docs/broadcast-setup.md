@@ -65,7 +65,7 @@ says (the run log warns when that happens); request the audit (the YouTube API S
 One video a run, of the day's episode (or yesterday's, if it was missed): turning YouTube on never uploads a backlog.
 An upload is recorded before it starts and finished, never begun again, on a later run if it was cut short, so a video
 never goes up twice. Dry runs make and store the video (`staging/episodes/<date>/episode.mp4`) but do not upload it, unless
-the run is started with **upload-private** ticked: the staging video then goes up as a private video, to try the upload. An
+the run is started with **upload-unlisted** ticked: the staging video then goes up unlisted, a link that can be shared but is not listed on the channel. An
 episode without narration waits for it; a failed upload never holds up Discord. The upload comes first each morning, so
 the Discord post carries the video's link (and Discord plays it) in place of the narration file, once the video is public.
 
