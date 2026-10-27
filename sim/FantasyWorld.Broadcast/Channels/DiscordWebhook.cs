@@ -51,9 +51,18 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
     /// </summary>
     public const int MaxAttachmentBytes = 8 * 1024 * 1024;
 
-    public static JsonObject Payload(Episode episode, string username, bool withMap = false, string? videoUrl = null)
+    /// <summary>Discord's limit on an embed field's value.</summary>
+    public const int MaxField = 1024;
+
+    public static JsonObject Payload(Episode episode, string username, bool withMap = false, string? videoUrl = null, Speech.Timeline? timeline = null)
     {
         var payload = Embed(episode, username);
+        // The chapters, so a listener can see what is in the episode (and jump to it on YouTube).
+        if (timeline is { Chapters.Count: > 1 })
+            payload["embeds"]![0]!["fields"] = new JsonArray(new JsonObject
+            {
+                ["name"] = "In this episode", ["value"] = Clip(Speech.Chapters.Lines(timeline.Chapters), MaxField), ["inline"] = false,
+            });
         // In the message itself, not the embed, so Discord shows the video's player.
         if (videoUrl is not null) payload["content"] = $"▶ Watch the episode: {videoUrl}";
         if (withMap) payload["embeds"]![0]!["image"] = new JsonObject { ["url"] = $"attachment://{MapFile}" };
@@ -80,11 +89,12 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
         };
     }
 
-    public static HttpContent Content(Episode episode, string username, byte[]? map, byte[]? audio = null, string? videoUrl = null)
+    public static HttpContent Content(Episode episode, string username, byte[]? map, byte[]? audio = null, string? videoUrl = null,
+        Speech.Timeline? timeline = null)
     {
         // The video carries the narration, so the file is not sent twice.
         if (videoUrl is not null) audio = null;
-        var json = Payload(episode, username, map is not null, videoUrl).ToJsonString();
+        var json = Payload(episode, username, map is not null, videoUrl, timeline).ToJsonString();
         if (audio is not null && Encoding.UTF8.GetByteCount(json) + (map?.Length ?? 0) + audio.Length > MaxAttachmentBytes) audio = null;
         if (map is null && audio is null) return new StringContent(json, Encoding.UTF8, "application/json");
         var form = new MultipartFormDataContent
@@ -107,16 +117,17 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
     {
         var url = webhookUrl + (webhookUrl.Contains('?') ? "&" : "?") + "wait=true";
         var video = _store is null ? null : await YouTube.WatchUrlAsync(_store, episode.Date, ct).ConfigureAwait(false);
+        var timeline = _store is null ? null : await Speech.Chapters.LoadAsync(_store, episode.Date, ct).ConfigureAwait(false);
         HttpResponseMessage response;
         try
         {
-            using (var content = Content(episode, username, map, audio, video))
+            using (var content = Content(episode, username, map, audio, video, timeline))
                 response = await http.PostAsync(url, content, ct).ConfigureAwait(false);
             // Too large for this server after all: the post goes out without the narration.
             if (response.StatusCode == System.Net.HttpStatusCode.RequestEntityTooLarge && audio is not null)
             {
                 response.Dispose();
-                using var smaller = Content(episode, username, map, null, video);
+                using var smaller = Content(episode, username, map, null, video, timeline);
                 response = await http.PostAsync(url, smaller, ct).ConfigureAwait(false);
             }
         }

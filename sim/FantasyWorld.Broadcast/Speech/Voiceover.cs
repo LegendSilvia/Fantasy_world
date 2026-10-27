@@ -77,13 +77,25 @@ public static partial class Voiceover
 
     /// <summary>The audio of a whole script: each part spoken with its neighbours as context.</summary>
     public static async Task<byte[]> SpeakAsync(ISpeech speech, string script, BroadcastVoice voice, IReadOnlyList<DictionaryRef> dictionaries,
-        CancellationToken ct = default)
+        CancellationToken ct = default) => (await SpeakSectionsAsync(speech, [script], voice, dictionaries, ct).ConfigureAwait(false)).Audio;
+
+    /// <summary>
+    /// The audio of an episode section by section (sub-project 7 §6): each section is spoken in parts of its own, so it
+    /// starts on a fresh request, but every part hears the text around it (across sections too) for a continuous read.
+    /// Returns the joined MP3 and each section's share of it in bytes, from which the chapters are timed.
+    /// </summary>
+    public static async Task<(byte[] Audio, IReadOnlyList<long> SectionBytes)> SpeakSectionsAsync(ISpeech speech, IReadOnlyList<string> sections,
+        BroadcastVoice voice, IReadOnlyList<DictionaryRef> dictionaries, CancellationToken ct = default)
     {
-        var chunks = Chunks(script, voice.MaxCharactersPerRequest);
+        var chunks = sections.SelectMany((text, section) => Chunks(text, voice.MaxCharactersPerRequest).Select(chunk => (section, chunk))).ToList();
         var parts = new List<byte[]>();
         for (var i = 0; i < chunks.Count; i++)
-            parts.Add(await speech.SpeakAsync(new SpeechRequest(voice.VoiceId, voice.Model, chunks[i], i > 0 ? chunks[i - 1] : null,
-                i + 1 < chunks.Count ? chunks[i + 1] : null, dictionaries, voice.OutputFormat), ct).ConfigureAwait(false));
-        return Join(parts);
+            parts.Add(await speech.SpeakAsync(new SpeechRequest(voice.VoiceId, voice.Model, chunks[i].chunk, i > 0 ? chunks[i - 1].chunk : null,
+                i + 1 < chunks.Count ? chunks[i + 1].chunk : null, dictionaries, voice.OutputFormat), ct).ConfigureAwait(false));
+        var audio = Join(parts);
+        // Each part's bytes once joined: a part after the first loses its ID3 tag, as Join drops it.
+        var bytes = new long[sections.Count];
+        for (var i = 0; i < parts.Count; i++) bytes[chunks[i].section] += i == 0 ? parts[i].Length : Join([[], parts[i]]).Length;
+        return (audio, bytes);
     }
 }

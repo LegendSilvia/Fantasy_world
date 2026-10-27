@@ -111,13 +111,16 @@ public class DailyRunTests : IDisposable
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
     }
 
+    /// <summary>An episode is spoken section by section; its first request is the only one with nothing before it.</summary>
+    private static bool Opens(SpeechRequest request) => request.PreviousText is null;
+
     [Fact]
     public async Task TheNarrator_SpeaksEachEpisodeOnce_WithItsNamesLearned()
     {
         var speech = new PronouncerTests.FakeSpeech();
         var respeller = PronouncerTests.Respeller();
         Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), providers: _ => respeller, speech: speech));
-        var spoken = Assert.Single(speech.Spoken);
+        var spoken = Assert.Single(speech.Spoken, Opens);
         Assert.Equal(("uju3wxzG5OhpWcoi3SMy", "eleven_v4_turbo"), (spoken.VoiceId, spoken.Model));
         var audio = await Get("live/" + DailyRun.NarrationKey("2026-10-27"));
         Assert.Equal(audio, _discord.Audio.Single());
@@ -126,9 +129,13 @@ public class DailyRunTests : IDisposable
         Assert.Equal(_discord.Posts[0].Script.Length, SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"]);
         Assert.NotEmpty(manifest.PronunciationTries.Keys.Concat(manifest.Pronunciations.Keys)); // the names were asked about
         Assert.Contains("Narrated the episode of 2026-10-27", _log.ToString());
+        // One chapter per section, timed from the narration, starting at 0:00.
+        var timeline = await Chapters.LoadAsync(new PrefixedStore(_root, "live/"), "2026-10-27");
+        Assert.Equal(_discord.Posts[0].Parts.Select(p => p.Title), timeline.Chapters.Select(c => c.Title));
+        Assert.Equal(0, timeline.Chapters[0].Start);
 
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(1), speech: speech, providers: _ => respeller));
-        Assert.Single(speech.Spoken);
+        Assert.Single(speech.Spoken, Opens);
         Assert.Single(respeller.Requests, r => r.Key.StartsWith("pronounce|", StringComparison.Ordinal)); // names already known
     }
 
@@ -157,7 +164,7 @@ public class DailyRunTests : IDisposable
             respellings = Pronouncer.Words(request.Prompt).Select(w => new { word = w, say = $"{w[0]}-{w[1..].ToLowerInvariant()}" }),
         }));
         Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), providers: _ => respeller, speech: speech));
-        var spoken = Assert.Single(speech.Spoken);
+        var spoken = Assert.Single(speech.Spoken, Opens);
         Assert.Empty(spoken.Dictionaries);
         Assert.Contains("spoken without them", _log.ToString());
         Assert.NotNull(_discord.Audio.Single());
@@ -174,7 +181,7 @@ public class DailyRunTests : IDisposable
 
         speech.Fails = false;
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1), speech: speech));
-        Assert.Equal(2, speech.Spoken.Count); // yesterday's narration, then today's
+        Assert.Equal(2, speech.Spoken.Count(Opens)); // yesterday's narration, then today's
         Assert.NotNull(await Get("live/" + DailyRun.NarrationKey("2026-10-27")));
         Assert.NotNull(_discord.Audio[1]);
     }
@@ -188,13 +195,13 @@ public class DailyRunTests : IDisposable
         Assert.Empty(speech.Spoken); // the episode itself never got its manifest
 
         await Run(Morning, new RunOptions(Create: true), speech: speech);
-        Assert.Single(speech.Spoken);
+        Assert.Single(speech.Spoken, Opens);
         // Stopped after storing the narration but before marking it: the next run adopts it.
         var manifest = Manifest.FromBytes(await Get("live/" + Manifest.Key));
         manifest.Day("2026-10-27").Steps.Remove(Manifest.AudioStep);
         await _root.PutAsync("live/" + Manifest.Key, manifest.ToBytes(), "application/json");
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(1), speech: speech));
-        Assert.Single(speech.Spoken);
+        Assert.Single(speech.Spoken, Opens);
         Assert.Contains("already stored", _log.ToString());
     }
 
@@ -206,7 +213,7 @@ public class DailyRunTests : IDisposable
         await Run(Morning, new RunOptions(Create: true), speech: speech, config: tight);
         var used = SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"];
         await Run(Morning, new RunOptions(DryRun: true), speech: speech, config: tight, channel: new CountingChannel());
-        Assert.Equal(2, speech.Spoken.Count);
+        Assert.Equal(2, speech.Spoken.Count(Opens));
         Assert.Equal(2 * used, SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"]);
     }
 

@@ -64,12 +64,15 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 
     public void Attach(IObjectStore store, TextWriter log, string today) => (_store, _log, _today, _uploads) = (store, log, today, 0);
 
-    public static JsonObject Details(Episode episode, BroadcastYouTube settings)
+    public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null)
     {
         var title = episode.Headline is { } headline ? $"{episode.WorldName}, Year {episode.ToYear}: {headline.Text}" : $"{episode.WorldName}, Year {episode.ToYear}";
         // YouTube refuses angle brackets in titles and descriptions.
         static string Plain(string text) => text.Replace('<', '‹').Replace('>', '›');
-        var description = $"{episode.Script}\n\nTold by {episode.Chronicler}. A new episode every morning.";
+        // The chapter list leads, so it survives the description's limit; YouTube turns it into the video's chapters.
+        var chapters = timeline?.ForYouTube() ?? [];
+        var description = (chapters.Count > 0 ? Speech.Chapters.Lines(chapters) + "\n\n" : "")
+                          + $"{episode.Script}\n\nTold by {episode.Chronicler}. A new episode every morning.";
         return new JsonObject
         {
             ["snippet"] = new JsonObject
@@ -127,7 +130,8 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 
             _uploads++;
             var token = await TokenAsync(ct).ConfigureAwait(false);
-            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings)) };
+            var timeline = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
+            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline)) };
             start.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Type", "video/mp4");
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Length", mp4.Length.ToString(CultureInfo.InvariantCulture));

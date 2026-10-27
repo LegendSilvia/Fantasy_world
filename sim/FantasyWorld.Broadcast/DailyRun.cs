@@ -219,7 +219,12 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
 
                 ledger.Characters[month] = spent + episode.Script.Length;
                 await root.PutAsync(SpeechLedger.Key, ledger.ToBytes(), "application/json", ct).ConfigureAwait(false);
-                var audio = await Voiceover.SpeakAsync(speech, episode.Script, voice, dictionaries, ct).ConfigureAwait(false);
+                var parts = episode.Parts;
+                var (audio, sectionBytes) = await Voiceover.SpeakSectionsAsync(speech, parts.Select(p => p.Text).ToList(), voice, dictionaries, ct)
+                    .ConfigureAwait(false);
+                // The chapters first: a narration stored without them would be adopted as it is by a later run.
+                await Chapters.SaveAsync(store, day, Chapters.Timed(parts.Select(p => p.Title).ToList(), sectionBytes, Voiceover.Kbps(voice.OutputFormat)), ct)
+                    .ConfigureAwait(false);
                 await store.PutAsync(NarrationKey(day), audio, "audio/mpeg", ct).ConfigureAwait(false);
                 await MarkNarratedAsync(store, manifest, day, audio, ct).ConfigureAwait(false);
                 var seconds = manifest.Day(day).AudioSeconds;
