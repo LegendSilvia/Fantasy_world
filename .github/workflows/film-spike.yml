@@ -1,0 +1,73 @@
+name: film-spike
+
+# Episode film (sub-project 7), spike: how fast can GitHub's runners (no GPU) render the diorama? Films the war movie at
+# 1280x720, 24 fps, as PNG frames under a virtual display, with each software renderer, and reports seconds per frame.
+# Runs when this file is pushed on the broadcast branch; it touches no secret and no bucket.
+on:
+  push:
+    branches: [ccr-81a7454e-12gx87]
+    paths: [.github/workflows/film-spike.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        renderer:
+          - { name: opengl, args: '--rendering-driver opengl3 --rendering-method gl_compatibility' }
+          - { name: vulkan, args: '--rendering-driver vulkan --rendering-method forward_plus' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install a virtual display and software renderers
+        timeout-minutes: 10
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          NEEDRESTART_SUSPEND: '1'
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo -E apt-get update -qq
+          sudo -E apt-get install -y -qq --no-install-recommends xvfb mesa-vulkan-drivers libgl1-mesa-dri
+      - name: Install Godot 4.3 (.NET)
+        run: |
+          curl -sSLo "$RUNNER_TEMP/godot.zip" https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT=$RUNNER_TEMP/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Build the game
+        run: dotnet build game/FantasyWorld.Game.csproj
+      - name: Import assets
+        run: timeout 300 "$GODOT" --headless --path game --import
+      - name: Film the war movie (${{ matrix.renderer.name }})
+        continue-on-error: true
+        timeout-minutes: 25
+        run: |
+          mkdir -p "$RUNNER_TEMP/frames"
+          start=$(date +%s)
+          timeout 1400 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path game ${{ matrix.renderer.args }} \
+            --resolution 1280x720 --fixed-fps 24 --write-movie "$RUNNER_TEMP/frames/frame.png" res://tests/WarMovie.tscn 2>&1 | tail -n 30
+          echo "exit: ${PIPESTATUS[0]}; wall: $(( $(date +%s) - start )) s"
+      - name: Report
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/frames" 2>/dev/null || { echo "no frames"; exit 0; }
+          n=$(ls frame*.png 2>/dev/null | wc -l)
+          echo "frames: $n"
+          [ "$n" -gt 1 ] || exit 0
+          first=$(stat -c %Y "$(ls frame*.png | head -n 1)"); last=$(stat -c %Y "$(ls frame*.png | tail -n 1)")
+          echo "render span: $(( last - first )) s for $(( n - 1 )) frames"
+          python3 -c "print(f'seconds per frame: {($last - $first) / ($n - 1):.3f}; a 4-minute film at 24 fps: {($last - $first) / ($n - 1) * 5760 / 60:.1f} min')"
+          ls -la frame*.png | head -n 3; du -sh .
+          mkdir -p "$RUNNER_TEMP/sample" && cp "$(ls frame*.png | sed -n '1p')" "$(ls frame*.png | sed -n "$((n / 2))p")" "$(ls frame*.png | tail -n 1)" "$RUNNER_TEMP/sample/"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frames-${{ matrix.renderer.name }}
+          path: ${{ runner.temp }}/sample
+          if-no-files-found: ignore
