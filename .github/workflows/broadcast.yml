@@ -108,14 +108,9 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Install a virtual display, software Vulkan and ffmpeg
-        timeout-minutes: 10
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          NEEDRESTART_SUSPEND: '1'
-        run: |
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo -E apt-get update -qq
-          sudo -E apt-get install -y -qq --no-install-recommends xvfb mesa-vulkan-drivers libgl1-mesa-dri ffmpeg
+        # Bounded and tried twice (see the script): one hung install once cost a whole film.
+        timeout-minutes: 12
+        run: .github/scripts/apt-install.sh xvfb mesa-vulkan-drivers libgl1-mesa-dri ffmpeg
       - name: Install Godot 4.3 (.NET)
         run: |
           curl -sSLo "$RUNNER_TEMP/godot.zip" https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
@@ -175,25 +170,7 @@ jobs:
         # A failed or slow install costs only the video; the broadcast itself must still run.
         continue-on-error: true
         timeout-minutes: 10
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          # needrestart scans every running service after the install, which can take minutes on these runners.
-          NEEDRESTART_SUSPEND: '1'
-        # Only Ubuntu's own package lists are refreshed (the runner's extra repositories are where apt has hung), each
-        # attempt is cut off at four minutes and tried once more; man-db's auto-update is removed so apt does not
-        # rebuild its manual index.
-        run: |
-          command -v ffmpeg && exit 0
-          sudo rm -f /var/lib/man-db/auto-update
-          only=()
-          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-            mkdir -p "$RUNNER_TEMP/apt-sources" && cp /etc/apt/sources.list.d/ubuntu.sources "$RUNNER_TEMP/apt-sources/"
-            only=(-o Dir::Etc::sourcelist=/dev/null -o "Dir::Etc::sourceparts=$RUNNER_TEMP/apt-sources")
-          fi
-          install() {
-            timeout 240 sudo -E apt-get update -qq "${only[@]}" && timeout 240 sudo -E apt-get install -y -qq --no-install-recommends ffmpeg
-          }
-          install || install
+        run: command -v ffmpeg || .github/scripts/apt-install.sh ffmpeg
       - name: Broadcast
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
