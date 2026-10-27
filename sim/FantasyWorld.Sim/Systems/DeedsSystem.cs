@@ -34,6 +34,20 @@ public sealed class DeedsSystem : ISimSystem
 
     public string Name => "deeds";
 
+    /// <summary>A challenge is answered a year and a day later (sub-project 8 §4), so it is news in one episode and fought in the next.</summary>
+    public const int DuelDelayDays = WorldDate.DaysPerYear + 1;
+
+    public const string DuelKind = "duel";
+
+    public IEnumerable<string> HandledKinds => new[] { DuelKind };
+
+    /// <summary>The duels declared and not yet fought, from the queue.</summary>
+    public static IEnumerable<ScheduledAction> PendingDuels(EventQueue queue) => queue.Snapshot().Where(a => a.Kind == DuelKind);
+
+    private static bool Challenged(EventQueue queue, long characterId) =>
+        PendingDuels(queue).Any(a => a.Data["challenger"] == characterId.ToString(CultureInfo.InvariantCulture)
+                                     || a.Data["defender"] == characterId.ToString(CultureInfo.InvariantCulture));
+
     public void OnMonthlyTick(SimContext ctx)
     {
         var residents = ctx.World.ActiveCharacters.ToLookup(c => c.SettlementId);
@@ -100,14 +114,16 @@ public sealed class DeedsSystem : ISimSystem
             if (c.Attributes.Lore >= 15 && world.Regions[home.RegionId].LeyPower >= 50) options.Add(new("forge", 20, "forge an artifact"));
         }
 
-        if (c.Ambition == Ambitions.Vengeance && world.Characters.TryGetValue(c.AmbitionTarget, out var foe) && foe.IsActive && foe.Id != c.Id
-            && nearby.Any(r => r.Id == world.Settlements[foe.SettlementId].RegionId))
+        // One challenge at a time: someone with a duel pending neither issues nor is sent another.
+        var free = !Challenged(ctx.Queue, c.Id);
+        if (free && c.Ambition == Ambitions.Vengeance && world.Characters.TryGetValue(c.AmbitionTarget, out var foe) && foe.IsActive && foe.Id != c.Id
+            && !Challenged(ctx.Queue, foe.Id) && nearby.Any(r => r.Id == world.Settlements[foe.SettlementId].RegionId))
             options.Add(new($"avenge:{foe.Id}", 50 * bold, $"challenge {foe.Name} to the death"));
 
         var rival = (neighbours ?? world.PeopleOf(home))
             .Where(o => o.Id != c.Id && o.IsActive && o.Stage(ctx.Date) != LifeStage.Child && Relations.Opinion(c, o) <= Relations.RivalAt)
             .OrderBy(o => Relations.Opinion(c, o)).ThenBy(o => o.Id).FirstOrDefault();
-        if (rival is not null && (c.Has(Traits.Wrathful) || c.Has(Traits.Brave)))
+        if (free && rival is not null && !Challenged(ctx.Queue, rival.Id) && (c.Has(Traits.Wrathful) || c.Has(Traits.Brave)))
             options.Add(new($"duel:{rival.Id}", 25 * bold, $"challenge {rival.Name} to first blood"));
         return options;
     }
@@ -124,8 +140,8 @@ public sealed class DeedsSystem : ISimSystem
             case "steal": Steal(ctx, c, ctx.World.Artifacts[target]); break;
             case "study": c.Attributes.Lore = Math.Min(20, c.Attributes.Lore + 1); break;
             case "forge": Forge(ctx, c); break;
-            case "avenge" when target != c.Id: Duel(ctx, c, ctx.World.Characters[target], toTheDeath: true); break;
-            case "duel" when target != c.Id: Duel(ctx, c, ctx.World.Characters[target], toTheDeath: false); break;
+            case "avenge" when target != c.Id: Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: true); break;
+            case "duel" when target != c.Id: Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: false); break;
         }
     }
 
@@ -322,7 +338,61 @@ public sealed class DeedsSystem : ISimSystem
         Glory(ctx, mage, 10);
     }
 
-    private void Duel(SimContext ctx, Character challenger, Character defender, bool toTheDeath)
+    /// <summary>
+    /// The challenge (sub-project 8 §4): declared now with the odds as they stand, fought a year and a day later. The
+    /// grudge behind it is its motive.
+    /// </summary>
+    private static void Challenge(SimContext ctx, Character challenger, Character defender, bool toTheDeath)
+    {
+        var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
+        var odds = Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath).AttackerOdds;
+        var stakes = toTheDeath ? "to the death" : "first blood";
+        var declared = ctx.Emit(new EventDraft("DuelDeclared",
+            Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
+            Place: ctx.World.Settlements[defender.SettlementId].Ref,
+            Payload: new Dictionary<string, string>
+            {
+                ["stakes"] = stakes, ["odds"] = Percent(odds),
+                ["day"] = ctx.Date.AddDays(DuelDelayDays).Day.ToString(CultureInfo.InvariantCulture),
+            },
+            Causes: grudge is not null ? new[] { new Cause(grudge.EventId, CauseKind.Motive, 0.9) } : null,
+            Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 25 : 12), Fates.Importance(defender, toTheDeath ? 25 : 12)),
+            Tags: new[] { "Characters", "Deeds" }));
+        ctx.Queue.Schedule(ctx.Date.AddDays(DuelDelayDays), DuelKind, new Dictionary<string, string>
+        {
+            ["challenger"] = challenger.Id.ToString(CultureInfo.InvariantCulture),
+            ["defender"] = defender.Id.ToString(CultureInfo.InvariantCulture),
+            ["stakes"] = stakes,
+            ["declared"] = declared.Id.ToString(CultureInfo.InvariantCulture),
+        });
+    }
+
+    /// <summary>The challenger's chance as a whole percentage, as it is shown ("62").</summary>
+    public static string Percent(double odds) => Math.Round(odds * 100).ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>The day of a declared duel: fought if both are still here, else called off.</summary>
+    public void OnScheduled(SimContext ctx, ScheduledAction action)
+    {
+        var world = ctx.World;
+        long Id(string key) => long.Parse(action.Data[key], CultureInfo.InvariantCulture);
+        var declared = Id("declared");
+        world.Characters.TryGetValue(Id("challenger"), out var challenger);
+        world.Characters.TryGetValue(Id("defender"), out var defender);
+        if (challenger is not { IsActive: true } || defender is not { IsActive: true })
+        {
+            var gone = challenger is { IsActive: true } ? defender : challenger;
+            ctx.Emit(new EventDraft("DuelCalledOff",
+                Actors: new Dictionary<string, EntityRef?> { ["challenger"] = challenger?.Ref, ["defender"] = defender?.Ref }
+                    .Where(kv => kv.Value is not null).ToDictionary(kv => kv.Key, kv => kv.Value!.Value),
+                Payload: new Dictionary<string, string> { ["stakes"] = action.Data["stakes"], ["reason"] = gone?.Died is not null ? "died" : "gone" },
+                Causes: new[] { new Cause(declared, CauseKind.Trigger, 1.0) },
+                Importance: 8, Tags: new[] { "Characters", "Deeds" }));
+            return;
+        }
+        Duel(ctx, challenger, defender, action.Data["stakes"] == "to the death", declared);
+    }
+
+    private void Duel(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared)
     {
         var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
         var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath), ctx.Rng);
@@ -331,7 +401,8 @@ public sealed class DeedsSystem : ISimSystem
             Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
             Place: ctx.World.Settlements[defender.SettlementId].Ref,
             Payload: new Dictionary<string, string> { ["stakes"] = toTheDeath ? "to the death" : "first blood", ["outcome"] = outcome.Key },
-            Causes: grudge is not null ? new[] { new Cause(grudge.EventId, CauseKind.Motive, 0.9) } : null,
+            Causes: new[] { new Cause(declared, CauseKind.Trigger, 1.0) }
+                .Concat(grudge is not null ? new[] { new Cause(grudge.EventId, CauseKind.Motive, 0.9) } : Array.Empty<Cause>()).ToArray(),
             Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 30 : 15), Fates.Importance(defender, toTheDeath ? 30 : 15)),
             Tags: new[] { "Characters", "Deeds" }));
         var (winner, loser) = outcome.AttackerWins ? (challenger, defender) : (defender, challenger);

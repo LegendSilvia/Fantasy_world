@@ -48,14 +48,19 @@ sides' stats. Claude also makes the characters' choices (who challenges whom, wh
 
 ## 4. Declared, then fought
 
-**Duels.** When a character chooses "duel"/"avenge", the sim records `DuelDeclared` (challenger, defender, stakes, place,
-odds) and schedules the fight for the **first month of the next world year** (`EventQueue`), so the declaration falls in
-one episode and the fight in the next. Either side may die, flee or be imprisoned in between; the duel is then called off
-(`DuelCalledOff`) and told as such.
+An episode covers the ~360 world days since the last broadcast, which do not line up with the world's calendar year,
+so "fought at the start of next year" could fall in the same episode. The delay is therefore fixed: **a year and a
+day** (361 world days), which always lands in a later episode.
 
-**Wars.** The yearly decision moves to the **last month of the year**: `WarDeclared` then falls at the end of one episode,
-and armies are raised from the first month of the next (`MilitarySystem` mobilises a declared war only once the new year
-begins). The declaration carries both realms' strengths and the odds.
+**Duels.** When a character chooses "duel"/"avenge", the sim records `DuelDeclared` (challenger, defender, stakes, place,
+odds, the day of the fight) and schedules the fight a year and a day later (`EventQueue`, kind `duel`). Nobody issues or
+receives a second challenge while one is pending. If either side has died or gone by then, the duel is called off
+(`DuelCalledOff`, with the reason) and told as such; otherwise it is fought (`DuelFought`, citing the challenge and the
+grudge).
+
+**Wars.** A declared war first **musters for a year**: `WarDeclared` carries both realms' strengths and the odds, and its
+armies are raised and march only once the year is out (`War.HostilitiesDay`), so the declaration is news in one episode
+and the fighting begins in the next. Wars declared before this change fight as before.
 
 **Odds** are the same numbers the sim fights with: for a duel `Encounter.AttackerOdds`; for a war, the realms' strength
 ratio (`DiplomacySystem.Strength`) and, once armies exist, each battle's a/(a+d). They are computed once at declaration and

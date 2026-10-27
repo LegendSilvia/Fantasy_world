@@ -92,10 +92,13 @@ public class DeedsSystemTests
         avenger.Memories.Add(new Memory(murder.Id, foe.Id, -80, 80));
         var sim = Make(world, "avenge", "attacker_kills", log);
 
-        sim.AdvanceDays(360 * 3);
+        sim.AdvanceDays(360 * 5);
 
+        // Declared first, fought a year and a day later; the fight cites both the challenge and the grudge.
+        var declared = sim.Log.All.Single(e => e.Type == "DuelDeclared");
         var duel = sim.Log.All.Single(e => e.Type == "DuelFought");
-        Assert.Equal(murder.Id, duel.Causes.Single().EventId);
+        Assert.Equal(declared.Date.AddDays(DeedsSystem.DuelDelayDays), duel.Date);
+        Assert.Equal(new[] { declared.Id, murder.Id }, duel.Causes.Select(c => c.EventId));
         Assert.False(foe.IsAlive);
         Assert.NotEqual(Ambitions.Vengeance, avenger.Ambition);
         Assert.Contains(new HistoryQuery(sim.Log).RootCauses(sim.Log.All.Single(e => e.Type == "CharacterDied" && e.Id != murder.Id).Id),
@@ -127,11 +130,36 @@ public class DeedsSystemTests
         hothead.Memories.Add(new Memory(insult.Id, other.Id, -90, 90));
         var sim = Make(world, "duel", "attacker_first_blood", log);
 
-        sim.AdvanceDays(360 * 3);
+        sim.AdvanceDays(360 * 5);
 
         var duel = sim.Log.All.First(e => e.Type == "DuelFought");
         Assert.Equal("first blood", duel.Payload["stakes"]);
         Assert.True(hothead.IsAlive && other.IsAlive);
+    }
+
+    [Fact]
+    public void AChallenge_IsCalledOff_WhenAFighterDiesFirst_AndNoOneIsChallengedTwice()
+    {
+        var world = TestPeople.World();
+        var log = new EventLog();
+        var insult = log.Append(world.Date, new EventDraft("RivalryBegan"));
+        var hothead = TestPeople.Add(world, 1, 30, traits: new[] { Traits.Wrathful });
+        var other = TestPeople.Add(world, 1, 30);
+        hothead.Memories.Add(new Memory(insult.Id, other.Id, -90, 90));
+        var sim = Make(world, "duel", "attacker_first_blood", log);
+
+        while (!sim.Log.All.Any(e => e.Type == "DuelDeclared")) sim.AdvanceDays(30);
+        var declared = sim.Log.All.Single(e => e.Type == "DuelDeclared");
+        Assert.Equal("first blood", declared.Payload["stakes"]);
+        Assert.InRange(int.Parse(declared.Payload["odds"]), 1, 99);
+        other.Died = world.Date;
+        sim.AdvanceDays(DeedsSystem.DuelDelayDays);
+
+        Assert.Single(sim.Log.All, e => e.Type == "DuelDeclared");
+        var off = sim.Log.All.Single(e => e.Type == "DuelCalledOff");
+        Assert.Equal(declared.Id, off.Causes.Single().EventId);
+        Assert.Equal("died", off.Payload["reason"]);
+        Assert.DoesNotContain(sim.Log.All, e => e.Type == "DuelFought");
     }
 
     [Fact]

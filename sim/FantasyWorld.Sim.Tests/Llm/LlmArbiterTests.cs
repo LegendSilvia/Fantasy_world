@@ -106,7 +106,7 @@ public class LlmArbiterTests
         var fake = new FakeLlmProvider(_ => "{\"outcome\":\"attacker_first_blood\",\"turning_point\":\"\",\"account\":\"A cut to the cheek ended it.\"}");
         var story = new StoryContext(world, log, new LlmGateway(fake, On, new LlmJournal()));
         new Simulator(world, log, new EventQueue(), new ISimSystem[] { new DeedsSystem(new Duelist(), new LlmArbiter(story)) }, checkInvariants: true)
-            .AdvanceDays(360 * 3);
+            .AdvanceDays(360 * 5);
 
         var duel = log.All.First(e => e.Type == "DuelFought");
         Assert.Equal("A cut to the cheek ended it.", duel.Payload["account"]);

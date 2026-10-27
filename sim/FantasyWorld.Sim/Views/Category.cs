@@ -39,6 +39,8 @@ public static class Categories
         ["MarriageWed"] = "Marriage",
         ["SuccessionOccurred"] = "Succession",
         ["DuelFought"] = "Duel",
+        ["DuelDeclared"] = "A challenge",
+        ["DuelCalledOff"] = "Duel called off",
         ["LabyrinthOpened"] = "Labyrinth",
         ["LandmarkCompleted"] = "Landmark",
         ["EraBegan"] = "A new era",
