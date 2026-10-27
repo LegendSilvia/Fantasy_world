@@ -78,17 +78,19 @@ faith, house colours) in one fixed art style kept in `broadcast.json`, so portra
 invented words enter the prompt only as data. A refused or failed image is retried on a later day; it never fails the
 run.
 
-**The card:** portrait, name, house banner, age (or "died aged …"), traits, ambition, this episode's deeds, closest kin.
+**The card:** the full-figure portrait beside the name, house banner, age (or "died aged …"), traits, ambition, this episode's deeds, closest kin.
 
 **The image API (the owner's, 2026-10-27):** the owner's Cloudflare Worker `flux-playground` (FLUX.2 [klein] 4B on Workers
 AI), `POST https://flux-playground.tanwa-tharathep.workers.dev/generate`, key in the header `x-access-key` from the
-repository secret `FLUX_ACCESS_KEY`. JSON request `{ prompt, scenario: "custom", style: "hand-painted", width: 768,
-height: 768, transparent: true, seed }`; JSON response `{ image: <base64>, mime, … }`; 429 when its daily budget (9,500
-neurons, reset 00:00 UTC) is used, which the broadcast treats as "try tomorrow". The prompt asks for a head-and-shoulders
-portrait (the `character` scenario frames a full figure, too small for a card); the seed is the character's id, so a
-portrait made again looks the same. A 768×768 portrait costs about 105 neurons, so 4 a day is about 420. The endpoint,
-style and size live in `broadcast.json` (`portraits`), so the API can be swapped through one small interface
-(`IPortraitMaker.MakeAsync(prompt, seed) → PNG`).
+repository secret `FLUX_ACCESS_KEY`. Following the owner's usage guide: the `character` scenario (a full figure, 832×1216,
+the framing added by the API), style `hand-painted` for every portrait, `transparent: true` (the figure stands on the
+card) and the seed = the character's id, so a portrait made again looks the same. The prompt describes the subject only
+(who they are, their colours, clothes, materials, mood), with no framing, background or transparency words. The response's
+`image` (base64) and `mime` are kept; its `transparent` and `warning` are checked (an opaque fallback is still used, on a
+card-coloured backing). **A 429 means the API's daily budget is used up until 00:00 UTC: no more portraits are asked for
+that run and nothing is retried.** A portrait costs about 157 neurons, so 4 a day is about 630 of the 9,500. The endpoint,
+scenario, style and size live in `broadcast.json` (`portraits`), behind one small interface
+(`IPortraitMaker.MakeAsync(subject, seed) → PNG`).
 
 ## 6. Making the film
 
