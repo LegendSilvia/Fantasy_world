@@ -30,7 +30,7 @@ Non-goals: changing the simulation, interactive features, music, and anything on
 | Topic | Proposed default | Why |
 |---|---|---|
 | Resolution / frame rate | 1280×720 at 24 fps | Software rendering on GitHub's runners (no GPU); YouTube serves 720p well. Raised if the spike (§7) shows room |
-| Renderer | Godot 4.3 (the game's own engine) on a virtual display (`xvfb-run`, OpenGL compatibility renderer, `--write-movie`) | The diorama, markers and banners already exist there; nothing is drawn twice |
+| Renderer | Godot 4.3 (the game's own engine) on a virtual display (`xvfb-run`, Vulkan through lavapipe, `--write-movie`), one runner per section in parallel (§7) | The diorama, markers and banners already exist there; nothing is drawn twice |
 | Fallback when Godot cannot render | The film is made from still frames of the political map per section with slow pans (ffmpeg), and the run goes on | A failed render never holds up the episode, Discord or the narration |
 | Portrait store | `portraits/char-<id>.png` at the bucket root, made once and kept forever | A character looks the same in every episode; each portrait is paid for once |
 | Portraits per day | At most 4 new | Bounds the image API's cost |
@@ -117,6 +117,13 @@ portraits fail, banners stand in; if speech fails, the episode goes out as text 
   CI already does, renders 10 seconds of the existing `Showcase` angles under `xvfb-run` with `--write-movie`, and reports
   seconds per frame and the output size. If too slow: lower frame rate (12 fps with motion blur off still reads as a slow
   flight), lower resolution, or render one still per camera position and let ffmpeg pan between them.
+- **Spike result (2026-10-27, `film-spike` run 1, the war movie at 1280×720, 24 fps, PNG frames under `xvfb-run`):**
+  Vulkan through Mesa's lavapipe **0.46 s a frame**; OpenGL compatibility 0.72 s. A 4-minute film in one job would take
+  ~44 minutes with Vulkan — too long for one job. **Decision:** render with Vulkan (the game's own Forward+ renderer, so
+  the film looks like the game), and render the sections **in parallel**, one runner each (a matrix job after the daily
+  run has stored the shot list and the snapshot), each section ~30–60 s of film, so ~4–8 minutes per runner; a final job
+  joins them with the narration (ffmpeg) and publishes. A section that fails or overruns its budget is filled with its
+  still-map version, so the film is always whole.
 - **Godot in the broadcast job.** Installing Godot adds ~1 minute; the game's assets need `--import` (~1–2 minutes). The job
   limit is 45 minutes; the render gets a fixed budget (20 minutes) and is cut off past it, falling back to the still film.
 - **Portrait consistency and content.** The fixed style and fact-only prompts keep portraits in one look; the API's own
