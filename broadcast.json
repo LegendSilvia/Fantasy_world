@@ -5,7 +5,7 @@
   "timeZone": "Asia/Bangkok",
   "language": "en",
   "livePrefix": "live/",
-  "stagingPrefix": "staging/",
+  "stagingPrefix": "staging-youtube/",
   "backupDays": 30,
   "stories": 5,
   "maxCharacters": 3600,
