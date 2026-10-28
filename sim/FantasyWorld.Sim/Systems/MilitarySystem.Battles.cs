@@ -45,24 +45,86 @@ public sealed partial class MilitarySystem
             }
     }
 
-    /// <summary>Fighting strength: troops weighted by quality, scaled by commander, morale and supply.</summary>
+    /// <summary>The most a host's heroes add to its strength, and what a champion's victory before the hosts is worth.</summary>
+    public const double MostHeroism = 0.6, ChampionsWin = 1.3, ChampionsMeet = 0.5, ChampionSlain = 0.5;
+
+    /// <summary>
+    /// Fighting strength: troops weighted by quality, scaled by the commander's generalship and the heroes riding with
+    /// the host (the owner, 2026-10-28: characters weigh in a battle's outcome), morale and supply.
+    /// </summary>
     public static double Strength(World world, Army army, Region region)
     {
         var magic = region.LeyPower / 50.0;
         var troops = army.Levies + army.MenAtArms * 3.0 + army.Knights.Count * 25 + army.Mages * 30 * magic;
-        var martial = world.Characters.TryGetValue(army.CommanderId, out var c) ? c.Attributes.Martial : 5;
+        return troops * Generalship(world, army) * Heroism(world, army) * Readiness(world, army);
+    }
+
+    /// <summary>
+    /// The commander's hand: from half strength under a fool to half again under a great captain (martial with its
+    /// artifacts), bolder if brave, shakier if craven; a demon lord drives its horde harder still.
+    /// </summary>
+    public static double Generalship(World world, Army army)
+    {
+        if (!world.Characters.TryGetValue(army.CommanderId, out var c) || !c.IsActive) return 0.75;
+        var martial = c.Attributes.Martial + world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Held && a.HolderId == c.Id).Sum(a => a.Bonus("martial"));
+        var hand = 0.5 + Math.Clamp(martial, 0, 25) / 20.0 + (c.Has(Traits.Brave) ? 0.05 : 0) - (c.Has(Traits.Craven) ? 0.1 : 0);
+        return Math.Max(0.4, hand) * (SagaSystem.IsDemonLord(world, c) ? 1.25 : 1);
+    }
+
+    /// <summary>The heroes riding with a host (its commander and knights) lift it by their own fighting strength, up to 60%.</summary>
+    public static double Heroism(World world, Army army) =>
+        1 + Math.Min(MostHeroism, Notables(world, army).Sum(id => Encounters.Strength(world, world.Characters[id])) / 150);
+
+    private static double Readiness(World world, Army army)
+    {
         // Arms by the realm's stocks: short of ore it fights weaker, with horses stronger (sub-project 12).
         var arms = world.Realms.TryGetValue(army.RealmId, out var realm) ? Stocks.Arms(realm) : 1;
         // The gods' favour, by prayer or a players' blessing (sub-project 13 N5).
         var favour = realm is not null && PrayerSystem.Favoured(world, realm.Ref) ? PrayerSystem.FavourStrength : 1;
-        return troops * (0.6 + martial / 25.0) * (army.Morale / 100 + 0.2) * (0.5 + army.Supply / 200) * arms * favour;
+        return (army.Morale / 100 + 0.2) * (0.5 + army.Supply / 200) * arms * favour;
+    }
+
+    /// <summary>
+    /// Before the hosts close, each side's best champion may step out and fight before them: the victor's side takes
+    /// heart (its strength rises by 30%), the vanquished may die (a demon lord is only driven back). Returns the side
+    /// whose champion won, if they met.
+    /// </summary>
+    private static bool? Champions(SimContext ctx, War war, Army attacker, Army defender, Region region)
+    {
+        var world = ctx.World;
+        Character? Best(Army army) => Notables(world, army).Select(id => world.Characters[id])
+            .OrderByDescending(c => Encounters.Strength(world, c)).ThenBy(c => c.Id).FirstOrDefault();
+        if (Best(attacker) is not { } a || Best(defender) is not { } d || !ctx.Rng.Chance(ChampionsMeet)) return null;
+        var (sa, sd) = (Encounters.Strength(world, a), Encounters.Strength(world, d));
+        var attackerWins = ctx.Rng.Chance(sa / (sa + sd));
+        var slain = ctx.Rng.Chance(ChampionSlain);
+        var (victor, vanquished) = attackerWins ? (a, d) : (d, a);
+        if (SagaSystem.IsDemonLord(world, vanquished)) slain = false;
+        var clash = ctx.Emit(new EventDraft("ChampionsClashed",
+            Actors: new Dictionary<string, EntityRef>
+            {
+                ["victor"] = victor.Ref, ["vanquished"] = vanquished.Ref, ["war"] = war.Ref,
+                ["victor realm"] = world.Realms[(attackerWins ? attacker : defender).RealmId].Ref,
+                ["vanquished realm"] = world.Realms[(attackerWins ? defender : attacker).RealmId].Ref,
+            },
+            Place: region.Ref, Payload: new Dictionary<string, string> { ["outcome"] = slain ? "slew" : "struck down" },
+            Causes: Background(ctx, war), Importance: Fates.Importance(vanquished, slain ? 40 : 32), Tags: new[] { "War", "Characters" }));
+        victor.Renown = Math.Min(100, victor.Renown + 8);
+        if (slain) Fates.Die(ctx, vanquished, "battle", new[] { new Cause(clash.Id, CauseKind.Trigger, 1.0) }, victor);
+        else
+        {
+            Fates.Injure(vanquished, Fate.Wounded, ctx.Rng);
+            vanquished.Renown = Math.Max(0, vanquished.Renown - 4);
+        }
+        return attackerWins;
     }
 
     private void Battle(SimContext ctx, War war, Army attacker, Army defender, Region region)
     {
         var world = ctx.World;
-        var a = Strength(world, attacker, region);
-        var d = Strength(world, defender, region);
+        var champions = Champions(ctx, war, attacker, defender, region);
+        var a = Strength(world, attacker, region) * (champions == true ? ChampionsWin : 1);
+        var d = Strength(world, defender, region) * (champions == false ? ChampionsWin : 1);
         if (Friendly(world, war, world.Realms[defender.RealmId], region)) d *= 1.2;
         if (region.Biome is Biome.Hills or Biome.Mountain or Biome.Forest or Biome.Swamp or Biome.Jungle) d *= 1.15;
         // The rules' roll is drawn first, as always, so the stream is the same whether or not Claude answers.

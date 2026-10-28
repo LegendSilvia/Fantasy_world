@@ -103,12 +103,13 @@ public class SuccessCriteriaTests(PrehistoricWorld fixture) : IClassFixture<Preh
     {
         // A defender that only chased lost regions and an invader that only took the next one used to swap places
         // monthly for decades without a battle, freeing and retaking the same two regions.
-        // A real campaign may take and lose a region several times, but each swing is fought for.
+        // A real campaign may take and lose a region several times, but each swing is fought for: a won battle may free
+        // a whole sweep of regions at once, but no one region changes hands again and again between battles.
         var log = fixture.Sim.Log.All;
         var battles = log.Where(e => e.Type == "BattleFought" && e.Actors.ContainsKey("war")).GroupBy(e => e.Actors["war"]).ToDictionary(g => g.Key, g => g.Count());
-        Assert.All(log.Where(e => e.Type == "RegionLiberated" && e.Actors.ContainsKey("war")).GroupBy(e => e.Actors["war"]),
-            war => Assert.True(war.Count() <= 2 * battles.GetValueOrDefault(war.Key) + 4,
-                $"{war.Key}: {war.Count()} liberations but {battles.GetValueOrDefault(war.Key)} battles"));
+        Assert.All(log.Where(e => e.Type == "RegionLiberated" && e.Actors.ContainsKey("war")).GroupBy(e => (War: e.Actors["war"], e.Place)),
+            region => Assert.True(region.Count() <= battles.GetValueOrDefault(region.Key.War) + 2,
+                $"{region.Key.War}: {region.Key.Place} freed {region.Count()} times but {battles.GetValueOrDefault(region.Key.War)} battles"));
         Assert.Contains(log, e => e.Type == "BattleFought");
     }
 

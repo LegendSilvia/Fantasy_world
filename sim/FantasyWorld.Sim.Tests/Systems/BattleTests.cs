@@ -135,4 +135,21 @@ public class BattleTests
         var outcomes = MilitarySystem.BattleFate(world.Characters[host.CommanderId], won: false).Outcomes;
         Assert.Equal(1.0, outcomes.Sum(o => o.Probability), 9);
     }
+
+    [Fact]
+    public void TheCommanderAndTheHeroes_WeighInTheBattle()
+    {
+        var (world, _, _, host, guard) = Armies();
+        host.Levies = guard.Levies = 1000;
+        var (captain, rival) = (world.Characters[host.CommanderId], world.Characters[guard.CommanderId]);
+        captain.Attributes.Martial = 20;
+        rival.Attributes.Martial = 2;
+        var region = world.Regions[2];
+        Assert.True(MilitarySystem.Strength(world, host, region) > 2 * MilitarySystem.Strength(world, guard, region));
+        Assert.InRange(MilitarySystem.Generalship(world, host), 1.49, 1.51);
+
+        // Heroes lift a host by their fighting strength, but never past the cap.
+        rival.Attributes.Prowess = 200;
+        Assert.Equal(1 + MilitarySystem.MostHeroism, MilitarySystem.Heroism(world, guard), 9);
+    }
 }
