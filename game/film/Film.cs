@@ -47,6 +47,20 @@ public partial class Film : Node
     /// <summary>The face-off card's width and its bars' longest reach either side of the figures' names.</summary>
     public const float FaceOffWidth = 900, BarReach = 300;
 
+    /// <summary>The Short's card (the owner, 2026-10-28: read on a phone): nearly the screen's width, its type and figures 1.8 times as big.</summary>
+    public const float TallFaceOffWidth = 1020, TallBarReach = 255, TallType = 1.8f;
+
+    private float Type => _vertical ? TallType : 1;
+    private int Px(float size) => (int)Math.Round(size * Type);
+    private float Reach => _vertical ? TallBarReach : BarReach;
+
+    private Label Kicker(string text)
+    {
+        var kicker = Ui.Kicker(text);
+        if (_vertical) kicker.AddThemeFontSizeOverride("font_size", Px(11));
+        return kicker;
+    }
+
     /// <summary>A side's image (a portrait or a banner) beside the card: its box, about the card's height.</summary>
     public const float ImageWidth = 400, ImageHeight = 585;
 
@@ -534,7 +548,7 @@ public partial class Film : Node
 
     private PanelContainer FaceOffCard(FaceOff f)
     {
-        var card = Ui.Card("FaceOff", FaceOffWidth);
+        var card = Ui.Card("FaceOff", _vertical ? TallFaceOffWidth : FaceOffWidth);
         var column = Ui.Column("Column", 10);
         card.AddChild(column);
         Color Of(FaceOffSide side) => Ui.C(Client.WarLayout.Colour(side.Colour));
@@ -547,16 +561,17 @@ public partial class Film : Node
             box.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             var line = Ui.Row("Line", 8);
             line.Alignment = right ? BoxContainer.AlignmentMode.End : BoxContainer.AlignmentMode.Begin;
-            var band = new ColorRect { Name = "Band", Color = Of(side), CustomMinimumSize = new Vector2(8, 26) };
-            var title = Ui.Line(side.Name, "Name", Palette.Ink, 22);
+            var band = new ColorRect { Name = "Band", Color = Of(side), CustomMinimumSize = new Vector2(Px(8), Px(26)) };
+            var title = Ui.Line(side.Name, "Name", Palette.Ink, Px(22));
             // A duellist's class: its emblem by the name, its title first among the notes.
-            var emblem = side.Class is { Length: > 0 } k ? Emblem("Class", k, 40) : null;
+            var emblem = side.Class is { Length: > 0 } k ? Emblem("Class", k, Px(40)) : null;
             var parts = new Control?[] { band, emblem, title };
             foreach (var part in right ? parts.Reverse() : parts)
                 if (part is not null) line.AddChild(part);
             box.AddChild(line);
             var said = side.Class is { Length: > 0 } calling ? side.Notes.Prepend(Classes.Title(calling)) : side.Notes;
-            var notes = Ui.Line(string.Join(" · ", said), "Notes", Palette.Muted, 13);
+            // Wrapped in the Short, where the bigger type would not fit on one line.
+            var notes = _vertical ? Ui.Body(string.Join(" · ", said), "Notes", Palette.Muted, Px(13)) : Ui.Line(string.Join(" · ", said), "Notes", Palette.Muted, 13);
             notes.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
             box.AddChild(notes);
             return box;
@@ -565,20 +580,26 @@ public partial class Film : Node
         // Between them, the VS emblem over the moment: the challenge, the clash under way, or the verdict.
         var middle = Ui.Column("Middle", 4);
         middle.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-        middle.AddChild(Versus("Versus", 84));
+        middle.AddChild(Versus("Versus", _vertical ? 120 : 84));
         var moment = f.Stage switch { FaceOff.Fought => "The verdict", FaceOff.UnderWay => "The clash rages", _ => "The challenge" };
-        var kicker = Ui.Kicker(f.Kind == FaceOff.Duel || f.Stage != FaceOff.Challenge ? $"{moment} · {f.Stakes}" : "War is declared");
+        var kicker = Kicker(f.Kind == FaceOff.Duel || f.Stage != FaceOff.Challenge ? $"{moment} · {f.Stakes}" : "War is declared");
         kicker.HorizontalAlignment = HorizontalAlignment.Center;
         middle.AddChild(kicker);
         // Which calling counters the other's, and what it is worth.
         var (ka, kb) = (f.A.Class, f.B.Class);
         if ((Classes.Counters(ka, kb) ? (ka, kb) : Classes.Counters(kb, ka) ? (kb, ka) : (null, null)) is ({ } win, { } lose))
         {
-            var edge = Ui.Line($"{Classes.Title(win)} counters {Classes.Title(lose)} · +15%", "Edge", Client.WarLayout.Colour((win == ka ? f.A : f.B).Colour), 14);
+            var edge = Ui.Line($"{Classes.Title(win)} counters {Classes.Title(lose)} · +15%", "Edge", Client.WarLayout.Colour((win == ka ? f.A : f.B).Colour), Px(14));
             edge.HorizontalAlignment = HorizontalAlignment.Center;
             middle.AddChild(edge);
         }
-        names.AddChild(middle);
+        // In the Short the middle stands on its own line above the names, so the bigger names have the width.
+        if (_vertical)
+        {
+            middle.Alignment = BoxContainer.AlignmentMode.Center;
+            column.AddChild(middle);
+        }
+        else names.AddChild(middle);
         names.AddChild(Name(f.B, true));
         column.AddChild(names);
 
@@ -589,9 +610,9 @@ public partial class Film : Node
             var row = Ui.Row($"Stat{i}", 10);
             row.AddChild(Figure(a.Value, true));
             row.AddChild(Bar(a.Value / Math.Max(1, a.Max), Of(f.A), true));
-            var label = Ui.Line(a.Name, "Name", Palette.Body, 14);
+            var label = Ui.Line(a.Name, "Name", Palette.Body, Px(14));
             label.HorizontalAlignment = HorizontalAlignment.Center;
-            label.CustomMinimumSize = new Vector2(120, 0);
+            label.CustomMinimumSize = new Vector2(_vertical ? 190 : 120, 0);
             row.AddChild(label);
             row.AddChild(Bar(b.Value / Math.Max(1, b.Max), Of(f.B), false));
             row.AddChild(Figure(b.Value, false));
@@ -602,10 +623,10 @@ public partial class Film : Node
         var odds = Ui.Row("Odds", 10);
         odds.AddChild(Figure(f.OddsA, true, "%"));
         var split = Ui.Row("Split", 0);
-        split.CustomMinimumSize = new Vector2(BarReach * 2 + 140, 14);
-        var full = BarReach * 2 + 140;
-        var left = new ColorRect { Name = "A", Color = Of(f.A), CustomMinimumSize = new Vector2(1, 14) };
-        var right = new ColorRect { Name = "B", Color = Of(f.B), CustomMinimumSize = new Vector2(1, 14) };
+        var full = Reach * 2 + (_vertical ? 210 : 140);
+        split.CustomMinimumSize = new Vector2(full, Px(14));
+        var left = new ColorRect { Name = "A", Color = Of(f.A), CustomMinimumSize = new Vector2(1, Px(14)) };
+        var right = new ColorRect { Name = "B", Color = Of(f.B), CustomMinimumSize = new Vector2(1, Px(14)) };
         split.AddChild(left);
         split.AddChild(right);
         _bars.Add((left, full * f.OddsA / 100f));
@@ -613,13 +634,13 @@ public partial class Film : Node
         odds.AddChild(split);
         odds.AddChild(Figure(100 - f.OddsA, false, "%"));
         // A fought fight's bar is all the victor's; one under way still shows the chance reckoned at its challenge.
-        var chance = Ui.Kicker(f.Stage switch { FaceOff.Fought => "Victory", FaceOff.UnderWay => "The odds, as they stood at the challenge", _ => "Who will prevail?" });
+        var chance = Kicker(f.Stage switch { FaceOff.Fought => "Victory", FaceOff.UnderWay => "The odds, as they stood at the challenge", _ => "Who will prevail?" });
         chance.HorizontalAlignment = HorizontalAlignment.Center;
         column.AddChild(chance);
         column.AddChild(odds);
         if (f.Result is { Length: > 0 } result)
         {
-            var told = Ui.Line(char.ToUpperInvariant(result[0]) + result[1..], "Result", Palette.Ink, 17);
+            var told = Ui.Line(char.ToUpperInvariant(result[0]) + result[1..], "Result", Palette.Ink, Px(17));
             told.HorizontalAlignment = HorizontalAlignment.Center;
             told.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             column.AddChild(told);
@@ -627,23 +648,23 @@ public partial class Film : Node
         return card;
     }
 
-    private static Label Figure(double value, bool right, string unit = "")
+    private Label Figure(double value, bool right, string unit = "")
     {
-        var label = Ui.Line($"{Math.Round(value).ToString(CultureInfo.InvariantCulture)}{unit}", "Figure", Palette.Ink, 15);
-        label.CustomMinimumSize = new Vector2(52, 0);
+        var label = Ui.Line($"{Math.Round(value).ToString(CultureInfo.InvariantCulture)}{unit}", "Figure", Palette.Ink, Px(15));
+        label.CustomMinimumSize = new Vector2(Px(52), 0);
         label.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         return label;
     }
 
-    /// <summary>A bar of up to <see cref="BarReach"/>, growing towards the middle's figure name from its own side.</summary>
+    /// <summary>A bar of up to <see cref="BarReach"/> (<see cref="TallBarReach"/> in the Short), growing towards the middle's figure name from its own side.</summary>
     private Control Bar(double share, Color colour, bool fromRight)
     {
         var track = Ui.Row("Track", 0);
-        track.CustomMinimumSize = new Vector2(BarReach, 12);
+        track.CustomMinimumSize = new Vector2(Reach, Px(12));
         track.Alignment = fromRight ? BoxContainer.AlignmentMode.End : BoxContainer.AlignmentMode.Begin;
-        var bar = new ColorRect { Name = "Bar", Color = colour, CustomMinimumSize = new Vector2(1, 12), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        var bar = new ColorRect { Name = "Bar", Color = colour, CustomMinimumSize = new Vector2(1, Px(12)), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         track.AddChild(bar);
-        _bars.Add((bar, BarReach * (float)Math.Clamp(share, 0, 1)));
+        _bars.Add((bar, Reach * (float)Math.Clamp(share, 0, 1)));
         return track;
     }
 
