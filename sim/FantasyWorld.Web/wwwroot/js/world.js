@@ -288,6 +288,8 @@ function realm(r) {
         + `<p>${r.ruler ? `Ruled by ${mention(r.ruler)}` : "Without a ruler"} from ${place(r.capital)}. ${r.regions} regions.</p>`
         + `<div class="bars">${stat("Legitimacy", r.legitimacy)}${stat("Stability", r.stability)}</div>`
         + (r.liege ? `<p>Sworn to ${mention(r.liege)}.</p>` : "")
+        + list("Stores", r.stocks, s => `${esc(s.resource[0].toUpperCase() + s.resource.slice(1))}: ${s.amount.toLocaleString("en")}`
+            + (s.yearly ? ` <span class="muted">yields ${s.yearly.toLocaleString("en")} a year</span>` : "") + (s.short ? ` <b class="short">short</b>` : ""))
         + list("Council", r.council, c => `${esc(c.seat)}: ${mention(c.member)}`)
         + list("Vassals", r.vassals, mention)
         + list("Wars", r.wars, w => `${ref(w.war, w.name)} <span class="muted">(${esc(w.side)}${w.ended ? ", ended" : ""})</span>`)

@@ -66,6 +66,9 @@ public class FaceOffTests
         var log = new EventLog();
         world.Realms[1].Treasury = 900;
         world.Realms[2].Treasury = 300;
+        world.Realms[1].Stocks[ResourceKinds.Ore] = 40;
+        world.Realms[2].Stocks[ResourceKinds.Horses] = 12;
+        world.Realms[2].Conditions["short:ore"] = 1;
         var declared = log.Append(world.Date, new EventDraft("WarDeclared",
             Actors: new Dictionary<string, EntityRef> { ["attacker"] = world.Realms[1].Ref, ["defender"] = world.Realms[2].Ref },
             Payload: new Dictionary<string, string> { ["war"] = "the War of Ash", ["odds"] = "35", ["attacker strength"] = "120", ["defender strength"] = "200" },
@@ -76,6 +79,9 @@ public class FaceOffTests
         Assert.Equal((120d, 200d), (f.A.Stats[0].Value, f.B.Stats[0].Value));
         Assert.Equal((200d, 200d), (f.A.Stats[0].Max, f.B.Stats[0].Max));
         Assert.Equal((900d, 900d), (f.A.Stats.Single(s => s.Name == "Treasury").Max, f.B.Stats.Single(s => s.Name == "Treasury").Max));
+        Assert.Equal((40d, 0d, 40d), (f.A.Stats.Single(s => s.Name == "Ore").Value, f.B.Stats.Single(s => s.Name == "Ore").Value, f.B.Stats.Single(s => s.Name == "Ore").Max));
+        Assert.Equal((0d, 12d), (f.A.Stats.Single(s => s.Name == "Horses").Value, f.B.Stats.Single(s => s.Name == "Horses").Value));
+        Assert.Contains("short of ore", f.B.Notes);
         Assert.EndsWith($"The odds favour {f.B.Name}, 65 in a hundred.", FaceOffs.Tell(f, "nowhere"));
         Assert.Equal(declared.Id, Episode.Build(world, log, 0, "2026-10-27").Parts.Single(p => p.Kind == EpisodeSection.Challenge).EventId);
     }

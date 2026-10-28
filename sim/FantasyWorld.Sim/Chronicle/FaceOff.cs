@@ -78,7 +78,8 @@ public static class FaceOffs
         return new FaceOffSide(c.Ref.ToString(), Names.Full(world, c), colour, stats, notes);
     }
 
-    /// <summary>A realm at war: its fighting strength (both bars on one scale), land, treasure, legitimacy and stability; its ruler and rank as notes.</summary>
+    /// <summary>A realm at war: its fighting strength (both bars on one scale), land, treasure, ore and horses in store,
+    /// legitimacy and stability; its ruler and rank as notes, and any shortage.</summary>
     private static FaceOffSide Host(World world, Realm realm, double strength, double strongest)
     {
         var land = Realms.Territory(world, realm).Count();
@@ -87,23 +88,26 @@ public static class FaceOffs
             new("Strength", Math.Round(strength), Math.Max(1, strongest)),
             new("Regions", land, Math.Max(1, land)),
             new("Treasury", Math.Round(Math.Max(0, realm.Treasury)), Math.Max(1, realm.Treasury)),
+            new("Ore", Math.Round(Stocks.Stock(realm, ResourceKinds.Ore)), Math.Max(1, Stocks.Stock(realm, ResourceKinds.Ore))),
+            new("Horses", Math.Round(Stocks.Stock(realm, ResourceKinds.Horses)), Math.Max(1, Stocks.Stock(realm, ResourceKinds.Horses))),
             new("Legitimacy", Math.Round(realm.Legitimacy), 100),
             new("Stability", Math.Round(realm.Stability), 100),
         };
         var notes = new List<string> { realm.Rank.ToString().ToLowerInvariant() };
         if (Realms.RulerOf(world, realm) is { } ruler) notes.Add($"ruled by {Names.Full(world, ruler)}");
+        notes.AddRange(Stocks.Shortages(realm).Select(k => $"short of {k}"));
         return new FaceOffSide(realm.Ref.ToString(), realm.Name, realm.Colors[0], stats, notes);
     }
 
     /// <summary>
-    /// Puts both sides' relative figures (regions, treasury) on one scale, so their bars compare: each side's bar is drawn
+    /// Puts both sides' relative figures (regions, treasury, ore, horses) on one scale, so their bars compare: each side's bar is drawn
     /// against the larger of the two.
     /// </summary>
     public static FaceOff Scaled(FaceOff f)
     {
         FaceOffSide Rescale(FaceOffSide side, FaceOffSide other) => side with
         {
-            Stats = side.Stats.Select((s, i) => s.Name is "Regions" or "Treasury" ? s with { Max = Math.Max(1, Math.Max(s.Value, other.Stats[i].Value)) } : s).ToList(),
+            Stats = side.Stats.Select((s, i) => s.Name is "Regions" or "Treasury" or "Ore" or "Horses" ? s with { Max = Math.Max(1, Math.Max(s.Value, other.Stats[i].Value)) } : s).ToList(),
         };
         return f with { A = Rescale(f.A, f.B), B = Rescale(f.B, f.A) };
     }

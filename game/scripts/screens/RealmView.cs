@@ -29,6 +29,16 @@ public partial class RealmView : DocumentPage
         pad.AddChild(show);
         Facts.AddChild(pad);
 
+        if (Realm.Stocks is { Count: > 0 } stocks)
+        {
+            var stores = Section("Stores");
+            for (var i = 0; i < stocks.Count; i++)
+            {
+                var s = stocks[i];
+                var line = $"{s.Amount:N0}" + (s.Yearly > 0 ? $" · yields {s.Yearly:N0} a year" : "") + (s.Short ? " · short" : "");
+                Row(stores, char.ToUpperInvariant(s.Resource[0]) + s.Resource[1..], new LinkedText(line, Array.Empty<TextLink>()), i == stocks.Count - 1);
+            }
+        }
         if (Realm.Council.Count > 0)
         {
             var council = Section("Council");

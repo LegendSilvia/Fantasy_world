@@ -47,7 +47,9 @@ public class ChronicleScreenTests
             Assert.All(page.Vassals.Concat(page.Council.Select(c => c.Member)).Concat(page.Treaties.Select(t => t.With)),
                 m => Assert.Equal(nameOf(m.Ref), m.Name));
             Assert.All(page.Eras, e => Assert.True(sim.Log.TryGet(e.EventId, out _)));
+            Assert.All(page.Stocks!, s => Assert.Equal((int)Math.Round(Stocks.Stock(realm, s.Resource)), s.Amount));
         }
+        Assert.Contains(world.Realms.Values, r => RealmScreen.Build(world, sim.Log, r.Id).Stocks!.Any(s => s.Yearly > 0 && s.Amount > 0));
         Assert.Contains(world.Realms.Values, r => RealmScreen.Build(world, sim.Log, r.Id).Wars.Count > 0);
         foreach (var artifact in world.Artifacts.Values)
         {

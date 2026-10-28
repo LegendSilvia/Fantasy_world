@@ -1,6 +1,6 @@
 # Fantasy World — Realms' Resources and Revolution (sub-project 12)
 
-**Status:** R1 and R2 built (2026-10-28); R3 next · **Asked by:** the owner, 2026-10-27 ("kingdom etc's resources and revolution"); decisions
+**Status:** R1–R3 built (2026-10-28) · **Asked by:** the owner, 2026-10-27 ("kingdom etc's resources and revolution"); decisions
 2026-10-28 · **Builds on:** the economy (region deposits), realms' stability, settlement revolts, the war system, the
 decider (Claude)
 
@@ -45,9 +45,12 @@ and lets discontent grow into a **revolution**.
 
 In six 150-year test worlds: ten revolutions, five crushed, three broken away, two overthrown.
 
-### 3.3 Told and shown (R3)
+### 3.3 Told and shown (R3, as built)
 
-The realm screen lists its stocks and shortages; the face-off adds Ore and Horses for wars; the website shows the same.
+The realm screen (game and website) lists its **stores**: each kind it holds or yields, the amount, the yearly yield, and
+"short" when it is. A war's face-off adds **Ore** and **Horses** in store (both sides on one scale, like the treasury) and
+notes each side's shortages ("short of ore"); the film card shows the two extra rows and the chronicler is given them.
+Revolutions are told by their own headline events (§3.2) and their civil war has the war face-off.
 
 ## 4. Milestones
 

@@ -45,11 +45,16 @@ public sealed record WarRow(EntityRef War, string Name, string Side, bool Ended)
 
 public sealed record EraRow(int Year, string Name, string Phase, long EventId);
 
-/// <summary>A realm's page (sub-project 2 §3.5): who rules and by what law, its council, vassals, treaties, wars and eras.</summary>
+/// <summary>One of a realm's stores (sub-project 12): what it holds, what its land yields in a year, and whether it is short.</summary>
+public sealed record StockRow(string Resource, int Amount, int Yearly, bool Short);
+
+/// <summary>A realm's page (sub-project 2 §3.5): who rules and by what law, its council, vassals, treaties, wars and eras,
+/// and its stores (sub-project 12).</summary>
 public sealed record RealmScreen(
     EntityRef Ref, string Title, string Rank, string Government, string SuccessionLaw, string MagicLaw, Mention? Ruler, Place Capital,
     int Legitimacy, int Stability, int Treasury, string Phase, int Regions, Mention? Liege, IReadOnlyList<Mention> Vassals,
-    IReadOnlyList<CouncilSeat> Council, IReadOnlyList<TreatyRow> Treaties, IReadOnlyList<WarRow> Wars, IReadOnlyList<EraRow> Eras, Mention? Faith = null)
+    IReadOnlyList<CouncilSeat> Council, IReadOnlyList<TreatyRow> Treaties, IReadOnlyList<WarRow> Wars, IReadOnlyList<EraRow> Eras, Mention? Faith = null,
+    IReadOnlyList<StockRow>? Stocks = null)
 {
     public static RealmScreen Build(World world, EventLog log, long realmId)
     {
@@ -70,7 +75,10 @@ public sealed record RealmScreen(
             world.Wars.Values.Where(w => w.Involves(realm.Id)).OrderByDescending(w => w.Id)
                 .Select(w => new WarRow(w.Ref, w.Name, w.IsAttacker(realm.Id) ? "attacker" : "defender", w.Ended)).ToList(),
             new HistoryQuery(log).Eras(realm.Ref).Select(e => new EraRow(e.Date.Year, e.Payload["era"], e.Payload.GetValueOrDefault("phase") ?? "", e.Id)).ToList(),
-            world.Faiths.TryGetValue(realm.FaithId, out var faith) ? Of(faith.Ref) : null);
+            world.Faiths.TryGetValue(realm.FaithId, out var faith) ? Of(faith.Ref) : null,
+            Systems.Stocks.Kinds
+                .Select(k => new StockRow(k, (int)Math.Round(Systems.Stocks.Stock(realm, k)), (int)Math.Round(Systems.Stocks.Output(world, realm, k)), Systems.Stocks.Short(realm, k)))
+                .Where(s => s.Amount > 0 || s.Yearly > 0 || s.Short).ToList());
     }
 
     private static string Words(string pascal) => string.Concat(pascal.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + char.ToLowerInvariant(ch) : ch.ToString()));

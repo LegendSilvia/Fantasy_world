@@ -108,6 +108,7 @@ h3 { margin: 16px 0 6px; font: 11px/1.2 system-ui, sans-serif; text-transform: u
 #panel ul { list-style: none; margin: 0; padding: 0; }
 #panel li { padding: 5px 0; border-bottom: 1px solid var(--line); }
 #panel .muted { color: var(--muted); font-size: 13px; }
+#panel b.short { color: var(--accent, #b3412e); font-weight: 600; font-size: 12px; }
 #panel .tags span { display: inline-block; margin: 0 4px 4px 0; padding: 1px 8px; border-radius: 999px; background: var(--ground); font-size: 12px; }
 #panel .bars div { display: grid; grid-template-columns: 96px 1fr 28px; gap: 8px; align-items: center; font-size: 12px; margin: 3px 0; }
 #panel .bars b { height: 6px; border-radius: 3px; background: var(--ink); display: block; }
