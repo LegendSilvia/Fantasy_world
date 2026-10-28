@@ -41,6 +41,18 @@ public sealed class Monster
     [JsonIgnore] public bool Alive => State != MonsterState.Slain;
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
 
+    /// <summary>What rises from the sea to prey on ships (sub-project 13): sea monsters lair in ports.</summary>
+    public static readonly IReadOnlyList<string> SeaBreeds = new[] { "kraken", "leviathan", "sea serpent" };
+
+    /// <summary>The rarer beasts each continent may keep as its own (sub-project 13).</summary>
+    public static readonly IReadOnlyList<string> RareBreeds = new[]
+    {
+        "ash drake", "shadow stalker", "crystal spider", "thunderbird", "bone colossus", "fire salamander", "night hag", "behemoth",
+        "storm wyvern", "mire horror", "glass golem", "star-eater",
+    };
+
+    [JsonIgnore] public bool AtSea => SeaBreeds.Contains(Breed);
+
     /// <summary>The breeds that haunt each kind of land.</summary>
     public static IReadOnlyList<string> BreedsOf(Biome biome) => biome switch
     {

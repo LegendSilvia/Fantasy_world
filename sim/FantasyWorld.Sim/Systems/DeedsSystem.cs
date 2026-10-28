@@ -254,6 +254,18 @@ public sealed class DeedsSystem : ISimSystem
             if (!outcome.AttackerWins || !delver.IsActive) return;
             maze.Depth = level;
             Glory(ctx, delver, 2 + level);
+            // What lies on this level is the delver's (sub-project 13).
+            foreach (var found in world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id && a.Level == level)
+                         .OrderByDescending(a => a.Fame).ThenBy(a => a.Id).ToList())
+            {
+                last = ctx.Emit(new EventDraft("ArtifactFound", Actors: new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["artifact"] = found.Ref },
+                    Place: region.Ref, Payload: new Dictionary<string, string> { ["outcome"] = "success", ["level"] = level.ToString(CultureInfo.InvariantCulture) },
+                    Causes: new[] { new Cause(last.Id, CauseKind.Trigger, 0.9) },
+                    Importance: Fates.Importance(delver, (int)(20 + found.Fame / 3)), Tags: new[] { "Characters", "Deeds", "Artifacts" }));
+                Fates.MoveToHolder(found, delver, last.Id, "found");
+                found.Level = 0;
+                Glory(ctx, delver, 5);
+            }
             if (maze.Depth < maze.Levels) return;
         }
         else last = ctx.Log.Involving(maze.Ref).LastOrDefault() ?? ctx.Log.Get(maze.StartedEventId);
@@ -278,7 +290,7 @@ public sealed class DeedsSystem : ISimSystem
             if (!delver.IsActive) return;
         }
 
-        var relic = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id)
+        var relic = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id && (a.Level == 0 || a.Level <= maze.Depth))
             .OrderByDescending(a => a.Fame).ThenBy(a => a.Id).FirstOrDefault();
         if (relic is not null)
         {

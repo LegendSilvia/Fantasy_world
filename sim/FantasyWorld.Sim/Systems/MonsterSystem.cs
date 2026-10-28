@@ -63,7 +63,40 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
                     Importance: 45, Tags: new[] { "Magic" }));
             }
         }
+        RiseFromTheSea(ctx);
         Rise(ctx);
+    }
+
+    public const double SeaRisePerYear = 0.04;
+
+    /// <summary>
+    /// Sea monsters (sub-project 13): in a world of several continents, now and then a beast of the deep rises off a port
+    /// where ships cross, at most one for each continent at a time; it preys on the hosts that cross there.
+    /// </summary>
+    private void RiseFromTheSea(SimContext ctx)
+    {
+        var world = ctx.World;
+        if (world.Continents.Count < 2 || world.Geography is not { } geography) return;
+        if (world.Monsters.Values.Count(m => m.Alive && m.AtSea) >= world.Continents.Count) return;
+        var haunted = world.Monsters.Values.Where(m => m.Alive).Select(m => m.RegionId).ToHashSet();
+        var ports = geography.Graph.Links.Where(l => l.Kind == LinkKind.Sea).SelectMany(l => new[] { l.A, l.B }).Distinct()
+            .Where(id => !haunted.Contains(id)).Order().ToList();
+        if (ports.Count == 0 || !ctx.Rng.Chance(SeaRisePerYear)) return;
+        var region = world.Regions[ports[ctx.Rng.NextInt(0, ports.Count)]];
+        var breed = Monster.SeaBreeds[ctx.Rng.NextInt(0, Monster.SeaBreeds.Count)];
+        var id = world.Ids.Take(Monster.Kind);
+        var invention = _inventor.Invent(new InventionBrief("monster", $"{Monster.Kind}#{id}",
+            $"A {breed} that rose from the sea off {region.Name}, where ships cross between the continents, in year {ctx.Date.Year}.",
+            $"The {char.ToUpperInvariant(breed[0])}{breed[1..]} of {region.Name}"));
+        using var lore = ctx.Annotate("lore", invention.Lore);
+        var rose = ctx.Emit(new EventDraft("MonsterRose", Actors: new Dictionary<string, EntityRef> { ["monster"] = new(Monster.Kind, id) },
+            Place: region.Ref, Payload: new Dictionary<string, string> { ["name"] = invention.Name, ["breed"] = breed },
+            Importance: 45, Tags: new[] { "Magic" }));
+        world.Monsters[id] = new Monster
+        {
+            Id = id, Name = invention.Name, Breed = breed, RegionId = region.Id, Might = Math.Clamp(45 + ctx.Rng.NextInt(0, 31), 1, 100),
+            BornDay = ctx.Date.Day, State = MonsterState.Roaming, RoseEventId = rose.Id,
+        };
     }
 
     private const double WorldDateYears = Core.WorldDate.DaysPerYear;
@@ -77,7 +110,8 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
         {
             var surge = region.Conditions.TryGetValue(Conditions.LeySurge, out var surgeEvent);
             if (!ctx.Rng.Chance(RisePerYear * (surge ? 3 : 1) * region.Danger / 100)) continue;
-            var breeds = Monster.BreedsOf(region.Biome);
+            // The land's breeds and the continent's own (sub-project 13).
+            var breeds = Monster.BreedsOf(region.Biome).Concat(world.Continents.GetValueOrDefault(region.ContinentId)?.Breeds ?? []).ToList();
             var breed = breeds[ctx.Rng.NextInt(0, breeds.Count)];
             var id = world.Ids.Take(Monster.Kind);
             var invention = _inventor.Invent(new InventionBrief("monster", $"{Monster.Kind}#{id}",

@@ -50,6 +50,9 @@ public sealed class Artifact
     public long SettlementId { get; set; }
     public long RegionId { get; set; }
 
+    /// <summary>For a treasure lost in a labyrinth (sub-project 13): the level it lies on; 0 for the deepest, or not in one.</summary>
+    public int Level { get; set; }
+
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
 
     /// <summary>Total bonus this artifact gives to an attribute while held.</summary>

@@ -260,7 +260,33 @@ public sealed partial class MilitarySystem : ISimSystem
             Place: now.Ref,
             Payload: new Dictionary<string, string> { ["into"] = into, ["objective"] = army.Objective.ToString().ToLowerInvariant() },
             Importance: invades ? 26 : 6, Tags: new[] { "War" }));
+        AttackedAtSea(ctx, army, before, now);
     }
+
+    /// <summary>
+    /// A host that crossed by sea from or to a port where a sea monster lairs may be fallen on (sub-project 13): ships
+    /// sunk, a share of the host lost to the deep, the more the mightier the beast.
+    /// </summary>
+    private static void AttackedAtSea(SimContext ctx, Army army, Region from, Region to)
+    {
+        var world = ctx.World;
+        if (world.Geography?.Graph.Between(from.Id, to.Id) is not { Kind: LinkKind.Sea }) return;
+        var beast = world.Monsters.Values.Where(m => m.Alive && m.AtSea && (m.RegionId == from.Id || m.RegionId == to.Id))
+            .OrderByDescending(m => m.Might).ThenBy(m => m.Id).FirstOrDefault();
+        if (beast is null || !ctx.Rng.Chance(SeaAttackChance)) return;
+        var share = beast.Might / 400;
+        var lost = (int)(army.Levies * share) + (int)(army.MenAtArms * share);
+        army.Levies -= (int)(army.Levies * share);
+        army.MenAtArms -= (int)(army.MenAtArms * share);
+        army.Morale = Math.Max(0, army.Morale - 10);
+        beast.Notoriety = Math.Min(100, beast.Notoriety + 5);
+        ctx.Emit(new EventDraft("HostAttackedAtSea",
+            Actors: new Dictionary<string, EntityRef> { ["army"] = army.Ref, ["monster"] = beast.Ref, ["realm"] = world.Realms[army.RealmId].Ref },
+            Place: to.Ref, Payload: new Dictionary<string, string> { ["lost"] = lost.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+            Causes: new[] { new Cause(beast.RoseEventId, CauseKind.Enabler, 0.6) }, Importance: 35, Tags: new[] { "War", "Magic" }));
+    }
+
+    public const double SeaAttackChance = 0.35;
 
     /// <summary>Supply from friendly land is paid for; in enemy land the army forages and devastates.</summary>
     private static void Provision(SimContext ctx, Army army)

@@ -17,6 +17,9 @@ public class ContinentTests
         Assert.All(world.Regions.Values, r => Assert.Contains(r.ContinentId, world.Continents.Keys));
         Assert.All(world.Continents.Values, c => Assert.True(world.Regions.Values.Count(r => r.ContinentId == c.Id) >= 30));
         Assert.Equal(world.Continents.Count, world.Continents.Values.Select(c => c.Name).Distinct().Count());
+        // Each continent keeps two beasts of its own.
+        Assert.All(world.Continents.Values, c => Assert.Equal(2, c.Breeds.Count));
+        Assert.Equal(world.Continents.Count * 2, world.Continents.Values.SelectMany(c => c.Breeds).Distinct().Count());
     }
 
     [Fact]

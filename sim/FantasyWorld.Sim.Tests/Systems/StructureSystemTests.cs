@@ -49,8 +49,13 @@ public class StructureSystemTests
         var opened = sim.Log.All.Single(e => e.Type == "LabyrinthOpened");
         Assert.Equal(wild.Ref, opened.Place);
         Assert.True(wild.Danger >= 65);
-        var relic = world.Artifacts.Values.Single(a => a.OriginEventId == opened.Id);
-        Assert.Equal((ArtifactPlace.Lost, wild.Id), (relic.Place, relic.RegionId));
+        // Its treasures (sub-project 13): one every other level, the greatest at the bottom (level 0), deeper ones more famous.
+        var maze = world.Structures.Values.Single(st => st.Type == StructureKind.Labyrinth);
+        var treasures = world.Artifacts.Values.Where(a => a.OriginEventId == opened.Id).ToList();
+        Assert.Equal(Enumerable.Range(1, maze.Levels).Count(l => l == maze.Levels || l % 2 == 0), treasures.Count);
+        Assert.All(treasures, t => Assert.Equal((ArtifactPlace.Lost, wild.Id), (t.Place, t.RegionId)));
+        var deepest = Assert.Single(treasures, t => t.Level == 0);
+        Assert.All(treasures.Where(t => t.Level > 0), t => Assert.True(t.Level % 2 == 0 && t.Level < maze.Levels && t.Fame < deepest.Fame));
     }
 
     [Fact]

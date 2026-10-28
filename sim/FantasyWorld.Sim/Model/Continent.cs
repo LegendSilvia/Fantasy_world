@@ -12,5 +12,8 @@ public sealed class Continent
     public long Id { get; init; }
     public string Name { get; init; } = "";
 
+    /// <summary>The beasts found only here (sub-project 13), besides those of each kind of land.</summary>
+    public List<string> Breeds { get; init; } = new();
+
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
 }

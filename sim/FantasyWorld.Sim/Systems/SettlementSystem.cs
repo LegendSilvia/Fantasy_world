@@ -82,10 +82,10 @@ public sealed class SettlementSystem : ISimSystem
         // A realm short of what it needs, unsettled or weary of war stirs its towns (sub-project 12): riots breed revolution.
         if (Realms.SovereignOf(ctx.World, region) is { } realm)
             target += Stocks.Shortages(realm).Count() * Stocks.UnrestPerShortage
-                      + Math.Max(0, RevolutionSystem.UnsettledBelow + 10 - realm.Stability) * 0.6 + realm.WarWeariness * 0.1
+                      + Math.Max(0, RevolutionSystem.UnsettledBelow + 10 - realm.Stability) * 0.35 + realm.WarWeariness * 0.1
                       // A people ruled by another race chafes, the more so under an old foe (sub-project 13).
                       + (Peoples.Of(ctx.World, region) is { } people && Peoples.Of(ctx.World, realm) is { } rulers && people.Id != rulers.Id
-                          ? Peoples.Bond(people, rulers) < 0 ? 12 : 5 : 0);
+                          ? Peoples.Bond(people, rulers) < 0 ? 7 : 3 : 0);
         s.Unrest = Math.Clamp(s.Unrest + (target - s.Unrest) * 0.25 + ctx.Rng.NextInt(-3, 4), 0, 100);
     }
 

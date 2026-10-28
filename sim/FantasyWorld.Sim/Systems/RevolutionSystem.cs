@@ -22,7 +22,7 @@ public sealed class RevolutionSystem : ISimSystem
     public const double UnsettledBelow = 35;
 
     /// <summary>The yearly chance of a revolution for each town in revolt, and at most.</summary>
-    public const double ChancePerRevolt = 0.3, MostChance = 0.75;
+    public const double ChancePerRevolt = 0.12, MostChance = 0.4;
 
     /// <summary>The crown's condition while a revolution is under way, mapped to the event that began it.</summary>
     public const string Condition = "revolution";

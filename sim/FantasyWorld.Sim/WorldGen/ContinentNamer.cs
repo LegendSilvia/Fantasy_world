@@ -43,7 +43,15 @@ public static class ContinentNamer
         var ids = new Dictionary<int, long>();
         foreach (var mass in Enumerable.Range(1, layout.Count).Select(r => landmass[r]).Distinct().Order())
         {
-            var continent = new Continent { Id = world.Ids.Take(Continent.Kind), Name = names.Continent() };
+            var rare = Monster.RareBreeds.Where(b => world.Continents.Values.All(c => !c.Breeds.Contains(b))).ToList();
+            var breeds = new List<string>();
+            for (var k = 0; k < 2 && rare.Count > 0; k++)
+            {
+                var breed = rare[rng.NextInt(0, rare.Count)];
+                breeds.Add(breed);
+                rare.Remove(breed);
+            }
+            var continent = new Continent { Id = world.Ids.Take(Continent.Kind), Name = names.Continent(), Breeds = breeds };
             world.Continents[continent.Id] = continent;
             ids[mass] = continent.Id;
         }

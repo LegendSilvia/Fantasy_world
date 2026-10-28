@@ -191,6 +191,7 @@ public static class Fates
         artifact.HolderId = to.Id;
         artifact.SettlementId = 0;
         artifact.RegionId = 0;
+        artifact.Level = 0;
     }
 
     public static void MoveToTreasury(Artifact artifact, long settlementId, long eventId, long fromId, string how)
@@ -209,6 +210,7 @@ public static class Fates
         artifact.HolderId = 0;
         artifact.SettlementId = 0;
         artifact.RegionId = regionId;
+        artifact.Level = 0;
     }
 
     /// <summary>Applies a non-lethal fate: wounds may scar; maiming leaves a lasting wound.</summary>

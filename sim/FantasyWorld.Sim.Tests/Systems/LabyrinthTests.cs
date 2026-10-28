@@ -104,4 +104,24 @@ public class LabyrinthTests
         Assert.Equal(0, maze.Depth);
         Assert.Equal(0, maze.ClearedEventId);
     }
+
+    [Fact]
+    public void ADelver_TakesTheTreasureOfEachLevelReached()
+    {
+        var world = TestPeople.World();
+        var log = new EventLog();
+        var hero = Delver(world);
+        var (maze, _, _) = Stage(world, log, hero);
+        var second = TestPeople.GiveArtifact(world, hero);
+        Fates.Lose(second, 2, maze.StartedEventId, 0);
+        second.Level = 2;
+        var sim = new Simulator(world, log, new EventQueue(),
+            new ISimSystem[] { new DeedsSystem(new WantDecider("maze"), new FixedArbiter("success")) }, checkInvariants: true);
+        sim.AdvanceDays(360 * 8);
+
+        var found = sim.Log.All.First(e => e.Type == "ArtifactFound");
+        Assert.Equal((second.Ref, "2"), (found.Actors["artifact"], found.Payload["level"]));
+        Assert.Equal((ArtifactPlace.Held, hero.Id, 0), (second.Place, second.HolderId, second.Level));
+        Assert.True(found.Id < sim.Log.All.Single(e => e.Type == "MonsterSlain").Id);
+    }
 }

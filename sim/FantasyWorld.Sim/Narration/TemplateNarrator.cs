@@ -90,6 +90,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["BattleTurned"] = "The battle between {attacker} and {defender} at {@place} raged on.",
         ["BattleBrokenOff"] = "The battle between {attacker} and {defender} at {@place} was broken off.",
         ["ArmyMoved"] = "{army} marched from {from} into {@place}.",
+        ["HostAttackedAtSea"] = "{monster} fell on the ships of {army} at sea off {@place}; {=lost} were lost to the deep.",
         ["EraBegan"] = "{=era} began.",
         ["FoodShortageBegan"] = "Food ran short in {@place}.",
         ["FriendshipFormed"] = "{a} and {b} became friends.",

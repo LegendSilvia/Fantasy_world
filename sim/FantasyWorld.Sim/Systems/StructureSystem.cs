@@ -248,11 +248,15 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 RoseEventId = opened.Id, LairStructureId = id,
             };
             region.Danger = Math.Min(100, region.Danger + 15);
-            if (world.Artifacts.Values.Count(a => a.Place != ArtifactPlace.Destroyed) < DeedsSystem.ArtifactCap(world))
+            // Its treasures (sub-project 13): one every other level, the deeper the more famous, the greatest at the bottom.
+            foreach (var level in Enumerable.Range(1, levels).Where(l => l == levels || l % 2 == 0))
             {
-                var relic = ArtifactForge.Create(ctx.Rng, world.Ids, new NameGen(ctx.Rng, world.Cultures.GetValueOrDefault(region.CultureId)?.Style), opened.Id, fame: 20);
-                world.Artifacts[relic.Id] = relic;
-                Fates.Lose(relic, region.Id, opened.Id, 0);
+                if (world.Artifacts.Values.Count(a => a.Place != ArtifactPlace.Destroyed) >= DeedsSystem.ArtifactCap(world)) break;
+                var treasure = ArtifactForge.Create(ctx.Rng, world.Ids, new NameGen(ctx.Rng, world.Cultures.GetValueOrDefault(region.CultureId)?.Style), opened.Id,
+                    fame: 10 + 6 * level);
+                world.Artifacts[treasure.Id] = treasure;
+                Fates.Lose(treasure, region.Id, opened.Id, 0);
+                treasure.Level = level == levels ? 0 : level;
             }
             return; // at most one a year
         }
