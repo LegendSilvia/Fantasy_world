@@ -496,6 +496,13 @@ public partial class Film : Node
         return track;
     }
 
+    private static int IndexOf(IReadOnlyList<FilmShot> shots, FilmShot shot)
+    {
+        for (var i = 0; i < shots.Count; i++)
+            if (ReferenceEquals(shots[i], shot)) return i;
+        return 0;
+    }
+
     /// <summary>The shot the camera is making for at <paramref name="t"/>: the last one started by then.</summary>
     private static FilmShot ShotAt(IReadOnlyList<FilmShot> shots, double t) =>
         shots.LastOrDefault(s => s.Start <= t) ?? shots[0];
@@ -585,11 +592,14 @@ public partial class Film : Node
         if (_caption is null || _captionLine is null) return;
         // The vertical film's captions: the section told now, and its latest move or day if it has one.
         var shot = ShotAt(shots, t);
+        var index = IndexOf(shots, shot);
         _caption.Text = shot.Title;
         var latest = _logged > 0 && _lines[_logged - 1] is { Move: true } line && line.At >= shot.Start ? line.Text : "";
         _captionLine.Text = latest;
         _captionLine.Visible = latest.Length > 0;
-        _caption.GetParent().GetParent<Control>().Visible = shot.Title.Length > 0 && shot.FaceOff is null && shot.Still is null;
+        // Shown while the map is: after the section's still, before its face-off card comes up.
+        var (shown, hidden) = (StillUntil(shots, index) ?? shot.Start, shot.FaceOff is null ? double.MaxValue : CardFrom(shots, index));
+        _caption.GetParent().GetParent<Control>().Visible = shot.Title.Length > 0 && t >= shown && t < hidden;
     }
 
     /// <summary>
