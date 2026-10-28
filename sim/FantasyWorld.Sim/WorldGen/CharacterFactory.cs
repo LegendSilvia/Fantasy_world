@@ -29,7 +29,7 @@ public static class CharacterFactory
             SettlementId = settlementId,
             FatherId = father?.Id ?? 0,
             MotherId = mother?.Id ?? 0,
-            Attributes = RollAttributes(rng, role, father, mother),
+            Attributes = RollAttributes(rng, role, father, mother, Peoples.Of(world, culture)),
             Traits = RollTraits(rng, father, mother),
             Role = role,
         };
@@ -73,7 +73,8 @@ public static class CharacterFactory
         _ => Ambitions.Family,
     };
 
-    private static Attributes RollAttributes(Rng rng, Role role, Character? father, Character? mother)
+    /// <summary>Born of parents, a child takes after them; anyone else after their race's gifts (sub-project 13).</summary>
+    private static Attributes RollAttributes(Rng rng, Role role, Character? father, Character? mother, Race? race = null)
     {
         var attributes = new Attributes();
         foreach (var name in Attributes.Names)
@@ -81,7 +82,8 @@ public static class CharacterFactory
             var value = father is not null && mother is not null
                 ? (father.Attributes.Get(name) + mother.Attributes.Get(name)) / 2 + rng.NextInt(-3, 4)
                 : rng.NextInt(1, 11) + rng.NextInt(0, 10);
-            attributes.Set(name, value + RoleBonus(role, name));
+            var gift = father is null || mother is null ? race?.Gifts.GetValueOrDefault(name) ?? 0 : 0;
+            attributes.Set(name, Math.Max(1, value + RoleBonus(role, name) + gift));
         }
         return attributes;
     }

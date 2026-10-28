@@ -40,6 +40,7 @@ public sealed record CharacterScreen(
 
         var line = new List<string> { (c.SaintEventId != 0 ? "Saint · " : "") + RoleLine(world, c) };
         var today = c.Died ?? world.Date;
+        if (Peoples.Of(world, c) is { } race) line.Add(race.Name);
         line.Add($"age {c.Age(today)}");
         var birthYear = new Core.WorldDate(c.BirthDay).Year;
         line.Add(born?.Place is { } birthplace && nameOf(birthplace) is { } bp

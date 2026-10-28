@@ -61,10 +61,11 @@ public static class WorldGenerator
         foreach (var culture in cultures) world.Cultures[culture.Id] = culture;
         foreach (var faith in faiths) world.Faiths[faith.Id] = faith;
         foreach (var settlement in settlements) world.Settlements[settlement.Id] = settlement;
+        ContinentNamer.Name(world, terrain, layout, Stream("continents"));
+        RaceGenerator.Generate(world, Stream("races"));
         PeopleGenerator.Populate(world, Stream("people"));
         RealmGenerator.Generate(world, Stream("realms"));
         world.Name = new NameGen(Stream("world-name")).Region();
-        ContinentNamer.Name(world, terrain, layout, Stream("continents"));
         return world;
     }
 }

@@ -54,7 +54,7 @@ public sealed record RealmScreen(
     EntityRef Ref, string Title, string Rank, string Government, string SuccessionLaw, string MagicLaw, Mention? Ruler, Place Capital,
     int Legitimacy, int Stability, int Treasury, string Phase, int Regions, Mention? Liege, IReadOnlyList<Mention> Vassals,
     IReadOnlyList<CouncilSeat> Council, IReadOnlyList<TreatyRow> Treaties, IReadOnlyList<WarRow> Wars, IReadOnlyList<EraRow> Eras, Mention? Faith = null,
-    IReadOnlyList<StockRow>? Stocks = null)
+    IReadOnlyList<StockRow>? Stocks = null, string? Race = null)
 {
     public static RealmScreen Build(World world, EventLog log, long realmId)
     {
@@ -78,7 +78,8 @@ public sealed record RealmScreen(
             world.Faiths.TryGetValue(realm.FaithId, out var faith) ? Of(faith.Ref) : null,
             Systems.Stocks.Kinds
                 .Select(k => new StockRow(k, (int)Math.Round(Systems.Stocks.Stock(realm, k)), (int)Math.Round(Systems.Stocks.Output(world, realm, k)), Systems.Stocks.Short(realm, k)))
-                .Where(s => s.Amount > 0 || s.Yearly > 0 || s.Short).ToList());
+                .Where(s => s.Amount > 0 || s.Yearly > 0 || s.Short).ToList(),
+            Peoples.Of(world, realm)?.Name);
     }
 
     private static string Words(string pascal) => string.Concat(pascal.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + char.ToLowerInvariant(ch) : ch.ToString()));

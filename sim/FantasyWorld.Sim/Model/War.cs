@@ -18,6 +18,9 @@ public static class CasusBelli
 
     /// <summary>A realm's people rose under a leader and hold their towns against the crown (sub-project 12).</summary>
     public const string Revolution = "revolution";
+
+    /// <summary>The old hatred between two races (sub-project 13).</summary>
+    public const string AncientHatred = "ancient hatred";
 }
 
 public sealed class War

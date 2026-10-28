@@ -1,3 +1,4 @@
+using FantasyWorld.Sim.WorldGen;
 using System.Globalization;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Llm;
@@ -33,6 +34,19 @@ public static partial class CliApp
         foreach (var rejected in fresh.Where(c => c.Note.StartsWith("rejected: ", StringComparison.Ordinal)))
             output.WriteLine($"LLM answer rejected ({rejected.Tier.ToString().ToLowerInvariant()}): {rejected.Note["rejected: ".Length..]}.");
         if (gateway.Failure is { } failure) output.WriteLine($"LLM provider unavailable, continued offline: {failure}");
+    }
+
+    /// <summary>Claude names and describes a new world's races (sub-project 13); run before its history.</summary>
+    private static int Invent(string path, TextWriter output, Func<LlmSettings, ILlmProvider?> providers)
+    {
+        using var store = OpenExisting(path);
+        var (sim, gateway) = LoadLive(store, providers);
+        RaceGenerator.Invent(sim.World, new LlmInventor(new StoryContext(sim.World, sim.Log, gateway)));
+        var fresh = gateway.Journal.Pending.ToList();
+        store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
+        foreach (var race in sim.World.Races.Values) output.WriteLine($"{race.Name}: {race.Looks}. {race.Nature}");
+        PrintLlmSummary(output, gateway, fresh);
+        return 0;
     }
 
     private static int Tell(string path, string[] rest, TextWriter output, Func<LlmSettings, ILlmProvider?> providers)

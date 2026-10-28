@@ -22,7 +22,7 @@ public sealed class LifeSystem : ISimSystem
     public void OnYearlyTick(SimContext ctx)
     {
         foreach (var c in ctx.World.Characters.Values.Where(c => c.Faded && c.IsAlive))
-            if (ctx.Rng.Chance(BaseMortality(c.Age(ctx.Date))))
+            if (ctx.Rng.Chance(BaseMortality(Aged(c.Age(ctx.Date), Peoples.SpanOf(ctx.World, c)))))
             {
                 c.Died = ctx.Date;
                 c.DeathCause = "old age";
@@ -38,7 +38,7 @@ public sealed class LifeSystem : ISimSystem
         {
             if (!c.IsActive) continue;
             var region = world.Regions[world.Settlements[c.SettlementId].RegionId];
-            var risks = Risks(c, region, ctx.Date);
+            var risks = Risks(c, region, ctx.Date, Peoples.SpanOf(world, c));
             var total = risks.Sum(r => r.PerYear);
             if (ctx.Rng.Chance(total / 12))
             {
@@ -51,9 +51,11 @@ public sealed class LifeSystem : ISimSystem
     }
 
     /// <summary>Yearly death risks with their causes and the event each cites (0 for none).</summary>
-    public static List<(string Cause, double PerYear, long Citing)> Risks(Character c, Region region, WorldDate today)
+    /// <summary>Yearly death risks with their causes and the event each cites (0 for none). A people's span stretches
+    /// adulthood: a race living twice as long ages half as fast once grown (sub-project 13).</summary>
+    public static List<(string Cause, double PerYear, long Citing)> Risks(Character c, Region region, WorldDate today, double span = 1)
     {
-        var age = c.Age(today);
+        var age = Aged(c.Age(today), span);
         var risks = new List<(string, double, long)> { (age >= Character.ElderAge ? "old age" : "illness", BaseMortality(age), 0) };
         if (region.Conditions.TryGetValue(Conditions.Plague, out var plague)) risks.Add(("plague", 0.08, plague));
         if (region.Conditions.TryGetValue(Conditions.Shortage, out var shortage))
@@ -61,6 +63,10 @@ public sealed class LifeSystem : ISimSystem
         if (c.Wounds.Count > 0) risks.Add(("old wounds", 0.01 * c.Wounds.Count, 0));
         return risks;
     }
+
+    /// <summary>The age a grown character's body has reached, for a people living <paramref name="span"/> common lifetimes.</summary>
+    public static int Aged(int age, double span) =>
+        span == 1 || age < Character.AdultAge ? age : Character.AdultAge + (int)((age - Character.AdultAge) / span);
 
     /// <summary>Yearly chance of dying of natural causes at this age.</summary>
     public static double BaseMortality(int age) => age switch

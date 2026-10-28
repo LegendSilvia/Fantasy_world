@@ -68,6 +68,8 @@ public sealed class DiplomacySystem : ISimSystem
         score += a.Memories.Where(m => m.About == b.Id).Sum(m => m.Feeling * m.Weight / 100);
         score += a.FaithId == b.FaithId ? 15 : -15;
         if (a.CultureId == b.CultureId) score += 10;
+        // Old friendships and hatreds between the races (sub-project 13).
+        score += Peoples.Bond(Peoples.Of(world, a), Peoples.Of(world, b)) * 20;
         if (a.Has(TreatyKind.Alliance, b.Id)) score += 25;
         if (a.Has(TreatyKind.Rivalry, b.Id)) score -= 25;
         return Math.Clamp(score, -100, 100);
@@ -93,6 +95,7 @@ public sealed class DiplomacySystem : ISimSystem
         if (tenets.Contains("pacifist")) a *= 0.3;
         if (tenets.Contains("warlike")) a *= 1.5;
         if (realm.Conditions.ContainsKey(Statecraft.StabilityCollapsed)) a *= 0.5;
+        a *= Peoples.Of(world, realm)?.Temper switch { Race.Warlike or Race.Wild => 1.3, Race.Stoic or Race.Mercantile => 0.8, _ => 1 };
         return a;
     }
 
@@ -189,6 +192,10 @@ public sealed class DiplomacySystem : ISimSystem
             if (world.Faiths.GetValueOrDefault(realm.FaithId) is { HolySiteLostEventId: not 0 } mine && world.Regions.TryGetValue(mine.HolyRegionId, out var holy)
                 && Realms.SovereignOf(world, holy)?.Id == enemy.Id && (mine.Zeal >= 40 || tenets.Contains("zealous") || tenets.Contains("warlike")))
                 options.Add(new(CasusBelli.HolyWar, enemy.Id, mine.HolySiteLostEventId, holy.Id, 0, 40));
+
+            // An old hatred between their races is a pretext of its own (sub-project 13), stirred by the ruler's coming to power.
+            if (Peoples.Bond(Peoples.Of(world, realm), Peoples.Of(world, enemy)) < 0 && ruler is not null && Fates.Accession(ctx.Log, ruler) is { } reign)
+                options.Add(new(CasusBelli.AncientHatred, enemy.Id, reign.Id, Border(world, realm, enemy), 0, 12));
 
             // Declared rivals quarrel over the land between them.
             if (realm.Treaties.FirstOrDefault(t => t.Kind == TreatyKind.Rivalry && t.With == enemy.Id) is { } rivalry)

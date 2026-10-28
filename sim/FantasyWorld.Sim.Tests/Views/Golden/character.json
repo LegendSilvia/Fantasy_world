@@ -3,7 +3,7 @@
   "name": "Fath of Cunvei",
   "house": "house#1",
   "kicker": "Character · House Cunvei",
-  "line": "Lord of Drerithby · age 66 · born before recorded history",
+  "line": "Lord of Drerithby · Meim · age 66 · born before recorded history",
   "traits": [
     "calm",
     "devout",
@@ -23,77 +23,32 @@
     {
       "year": 2,
       "text": {
-        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of the Kingdom of Thonae.",
+        "text": "Keth of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 24,
             "length": 15,
             "entity": "char#17"
           },
           {
-            "start": 62,
+            "start": 32,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 60,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 32,
+      "eventId": 29,
       "highlight": false
     },
     {
       "year": 2,
       "text": {
-        "text": "End of Gil was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
-        "links": [
-          {
-            "start": 0,
-            "length": 10,
-            "entity": "char#15"
-          },
-          {
-            "start": 27,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 55,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 33,
-      "highlight": false
-    },
-    {
-      "year": 2,
-      "text": {
-        "text": "Broth of Cunvei and Fath of Cunvei fell out over the clash of a diligent nature with a lazy one.",
-        "links": [
-          {
-            "start": 0,
-            "length": 15,
-            "entity": "char#4"
-          },
-          {
-            "start": 20,
-            "length": 14,
-            "entity": "char#1"
-          }
-        ]
-      },
-      "eventId": 45,
-      "highlight": false
-    },
-    {
-      "year": 16,
-      "text": {
-        "text": "Fath of Cunvei knighted Teilbeith of Bandbia in the service of the Kingdom of Thonae.",
+        "text": "Fath of Cunvei knighted End of Gil in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
@@ -102,23 +57,23 @@
           },
           {
             "start": 24,
-            "length": 20,
-            "entity": "char#18"
+            "length": 10,
+            "entity": "char#15"
           },
           {
-            "start": 67,
+            "start": 57,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 126,
+      "eventId": 30,
       "highlight": false
     },
     {
-      "year": 16,
+      "year": 19,
       "text": {
-        "text": "Fath of Cunvei and Lond of Cunvei fell out over the clash of a calm nature with a wrathful one.",
+        "text": "Fath of Cunvei and Broth of Cunvei fell out over the clash of a calm nature with a wrathful one.",
         "links": [
           {
             "start": 0,
@@ -127,33 +82,38 @@
           },
           {
             "start": 19,
-            "length": 14,
-            "entity": "char#3"
+            "length": 15,
+            "entity": "char#4"
           }
         ]
       },
-      "eventId": 131,
+      "eventId": 141,
       "highlight": false
     },
     {
-      "year": 18,
+      "year": 21,
       "text": {
-        "text": "Broth of Cunvei and Fath of Cunvei fell out over the clash of a diligent nature with a lazy one.",
+        "text": "Fath of Cunvei knighted Tas of Bandbia in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 15,
-            "entity": "char#4"
-          },
-          {
-            "start": 20,
             "length": 14,
             "entity": "char#1"
+          },
+          {
+            "start": 24,
+            "length": 14,
+            "entity": "char#29"
+          },
+          {
+            "start": 61,
+            "length": 17,
+            "entity": "realm#1"
           }
         ]
       },
-      "eventId": 139,
-      "highlight": false
+      "eventId": 152,
+      "highlight": true
     }
   ],
   "folded": 0,

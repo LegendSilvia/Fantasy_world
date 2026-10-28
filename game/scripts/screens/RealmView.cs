@@ -16,6 +16,7 @@ public partial class RealmView : DocumentPage
         Facts.AddChild(Ui.Kicker("At a glance"));
         if (Realm.Ruler is { } ruler) Fact("Ruler", ruler.Name, ruler.Ref);
         Fact("Capital", Realm.Capital.Label, Realm.Capital.Ref);
+        if (Realm.Race is { } race) Fact("People", race);
         if (Realm.Liege is { } liege) Fact("Liege", liege.Name, liege.Ref);
         Fact("Succession", Realm.SuccessionLaw);
         if (Realm.Faith is { } faith) Fact("Faith", faith.Name);

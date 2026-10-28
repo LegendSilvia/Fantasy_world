@@ -1,15 +1,15 @@
 {
   "outcome": {
-    "eventId": 61,
-    "year": 5,
+    "eventId": 149,
+    "year": 20,
     "category": "characters",
     "title": {
-      "text": "Keth of Bandbia died in childbirth at the age of 29.",
+      "text": "Hesgres of Geigith was killed by monsters at the age of 32.",
       "links": [
         {
           "start": 0,
-          "length": 15,
-          "entity": "char#17"
+          "length": 18,
+          "entity": "char#33"
         }
       ]
     },
@@ -20,31 +20,21 @@
   "layers": [
     [
       {
-        "eventId": 60,
-        "year": 5,
+        "eventId": 148,
+        "year": 20,
         "category": "characters",
         "title": {
-          "text": "Steil of Bandbia was born at Greindrondcross to Keth of Bandbia and Gral of Bandbia.",
+          "text": "Hesgres of Geigith hunted the monsters of Gisreach and was killed.",
           "links": [
             {
               "start": 0,
-              "length": 16,
-              "entity": "char#31"
+              "length": 18,
+              "entity": "char#33"
             },
             {
-              "start": 29,
-              "length": 15,
-              "entity": "settlement#16"
-            },
-            {
-              "start": 48,
-              "length": 15,
-              "entity": "char#17"
-            },
-            {
-              "start": 68,
-              "length": 15,
-              "entity": "char#16"
+              "start": 42,
+              "length": 8,
+              "entity": "region#7"
             }
           ]
         },
@@ -56,8 +46,8 @@
   ],
   "edges": [
     {
-      "from": 60,
-      "to": 61,
+      "from": 148,
+      "to": 149,
       "kind": "trigger",
       "label": "because"
     }
@@ -65,22 +55,18 @@
   "summary": "Traced back within the year, through one root cause.",
   "people": [
     {
-      "ref": "char#17",
-      "name": "Keth of Bandbia"
-    },
-    {
-      "ref": "char#31",
-      "name": "Steil of Bandbia"
-    },
-    {
-      "ref": "char#16",
-      "name": "Gral of Bandbia"
+      "ref": "char#33",
+      "name": "Hesgres of Geigith"
     }
   ],
   "places": [
     {
-      "ref": "settlement#16",
-      "name": "Greindrondcross"
+      "ref": "settlement#17",
+      "name": "Braestilby"
+    },
+    {
+      "ref": "region#7",
+      "name": "Gisreach"
     }
   ],
   "systems": [
@@ -88,27 +74,17 @@
   ],
   "consequences": [],
   "story": {
-    "text": "In Year 5, Steil of Bandbia was born at Greindrondcross to Keth of Bandbia and Gral of Bandbia. And so Keth of Bandbia died in childbirth at the age of 29.",
+    "text": "In Year 20, Hesgres of Geigith hunted the monsters of Gisreach and was killed. And so Hesgres of Geigith was killed by monsters at the age of 32.",
     "links": [
       {
-        "start": 11,
-        "length": 16,
-        "entity": "char#31"
+        "start": 12,
+        "length": 18,
+        "entity": "char#33"
       },
       {
-        "start": 40,
-        "length": 15,
-        "entity": "settlement#16"
-      },
-      {
-        "start": 59,
-        "length": 15,
-        "entity": "char#17"
-      },
-      {
-        "start": 79,
-        "length": 15,
-        "entity": "char#16"
+        "start": 54,
+        "length": 8,
+        "entity": "region#7"
       }
     ]
   }

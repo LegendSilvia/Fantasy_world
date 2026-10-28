@@ -78,6 +78,7 @@ public static partial class English
         "border dispute" => "over a disputed border",
         "glory" => "for glory",
         "revolution" => "in revolution, to throw off its rule",
+        "ancient hatred" => "out of an ancient hatred between their peoples",
         _ => $"for {kind}",
     };
 

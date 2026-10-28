@@ -284,7 +284,7 @@ async function render(kind, key, year) {
 
 function realm(r) {
     const stat = (name, value, max = 100) => `<div><span>${name}</span><b style="width:${Math.max(2, Math.min(100, value / max * 100))}%"></b><span>${value}</span></div>`;
-    return `<div class="kicker">${esc(r.rank)} · ${esc(r.government)}</div><h2>${esc(r.title)}</h2>`
+    return `<div class="kicker">${esc(r.rank)} · ${esc(r.government)}${r.race ? ` · ${esc(r.race)}` : ""}</div><h2>${esc(r.title)}</h2>`
         + `<p>${r.ruler ? `Ruled by ${mention(r.ruler)}` : "Without a ruler"} from ${place(r.capital)}. ${r.regions} regions.</p>`
         + `<div class="bars">${stat("Legitimacy", r.legitimacy)}${stat("Stability", r.stability)}</div>`
         + (r.liege ? `<p>Sworn to ${mention(r.liege)}.</p>` : "")

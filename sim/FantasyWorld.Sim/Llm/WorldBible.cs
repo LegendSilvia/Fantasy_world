@@ -17,6 +17,21 @@ public static class WorldBible
         data.AppendLine("Cultures:");
         foreach (var culture in world.Cultures.Values)
             data.AppendLine($"- {PromptText.Data(culture.Name)} ({culture.Lineage.ToString().ToLowerInvariant()} lineage)");
+        if (world.Races.Count > 0)
+        {
+            // The peoples (sub-project 13): names, looks, natures, and how they stand with each other.
+            data.AppendLine("Races:");
+            foreach (var race in world.Races.Values)
+            {
+                var foes = race.Foes.Select(id => world.Races.GetValueOrDefault(id)?.Name).OfType<string>().ToList();
+                var friends = race.Friends.Select(id => world.Races.GetValueOrDefault(id)?.Name).OfType<string>().ToList();
+                data.AppendLine($"- {PromptText.Data(race.Name)}: {PromptText.Data(race.Looks)}. {PromptText.Data(race.Nature)} Temper: {race.Temper}"
+                    + (foes.Count > 0 ? $"; old foes of the {string.Join(", ", foes.Select(f => PromptText.Data(f)))}" : "")
+                    + (friends.Count > 0 ? $"; old friends of the {string.Join(", ", friends.Select(f => PromptText.Data(f)))}" : ""));
+            }
+            data.AppendLine("Peoples by culture: " + string.Join("; ", world.Cultures.Values.Where(c => world.Races.ContainsKey(c.RaceId))
+                .Select(c => $"{PromptText.Data(c.Name)} are {PromptText.Data(world.Races[c.RaceId].Name)}")));
+        }
         data.AppendLine("Faiths:");
         foreach (var faith in world.Faiths.Values)
             data.AppendLine($"- {PromptText.Data(faith.Name)}, worshipping {PromptText.Data(faith.Deity)}; tenets: {string.Join(", ", faith.Tenets.Select(t => PromptText.Data(t)))}");

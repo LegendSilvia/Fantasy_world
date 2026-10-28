@@ -25,7 +25,9 @@ public static class Briefs
         {
             $"{PromptText.Data(Names.Full(world, c))}, {c.Sex.ToString().ToLowerInvariant()}, aged {c.Age(today)}, {Role(c)}"
                 + (world.Settlements.TryGetValue(c.SettlementId, out var home) ? $" of {PromptText.Data(home.Name)}" : ""),
-            $"Culture: {Named(world.Cultures.GetValueOrDefault(c.CultureId)?.Name)}; faith: {Named(world.Faiths.GetValueOrDefault(c.FaithId)?.Name)}",
+            $"Culture: {Named(world.Cultures.GetValueOrDefault(c.CultureId)?.Name)}"
+                + (Peoples.Of(world, c) is { } race ? $" ({PromptText.Data(race.Name)})" : "")
+                + $"; faith: {Named(world.Faiths.GetValueOrDefault(c.FaithId)?.Name)}",
             $"Traits: {(c.Traits.Count > 0 ? string.Join(", ", c.Traits) : "none of note")}",
             $"Ambition: {c.Ambition}; renown {c.Renown.ToString("0", CultureInfo.InvariantCulture)}/100",
             "Strengths: " + string.Join(", ", Attributes.Names.Select(n => $"{n} {c.Attributes.Get(n)}")),

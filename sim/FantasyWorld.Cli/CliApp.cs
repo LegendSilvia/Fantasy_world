@@ -19,7 +19,8 @@ public static partial class CliApp
 {
     public const string Usage = """
         Usage:
-          fw new <world-file> [--seed <n>] [--size tiny|medium|large] [--prehistory <years>]   (default 100; tiny 0)
+          fw new <world-file> [--seed <n>] [--size tiny|medium|large|huge] [--prehistory <years>]   (default 100; tiny 0)
+          fw invent <world-file>                   Claude names and describes a new world's races (before its history)
           fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
           fw catchup <world-file> [--quiet]         simulate the real time that has passed, then the digest (--quiet: none)
           fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--keep-marker]   the broadcast's episode since it last aired
@@ -89,6 +90,7 @@ public static partial class CliApp
                 "structures" => StructureList(path, output),
                 "view" => View(path, rest, output),
                 "tell" => Tell(path, rest, output, providers),
+                "invent" => Invent(path, output, providers),
                 "digest" => DigestCommand(path, rest, output, providers),
                 "live" => Live(path, rest, output, clock, providers),
                 "follow" => Follow(path, rest, output, follow: true),

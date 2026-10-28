@@ -17,6 +17,9 @@ public sealed class Culture
     public long HomeRegionId { get; init; }
     public long FaithId { get; set; }
 
+    /// <summary>The race its people are (sub-project 13); 0 in worlds made before races.</summary>
+    public long RaceId { get; set; }
+
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
 }
 

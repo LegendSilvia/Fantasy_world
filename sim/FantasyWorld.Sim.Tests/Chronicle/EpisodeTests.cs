@@ -24,7 +24,8 @@ public class EpisodeTests
         Assert.Equal(0, world.LastBroadcastEventId); // building never moves the marker
         var back = Episode.FromJson(episode.ToJson());
         Assert.Equal(episode, back with { Stories = episode.Stories, Sections = episode.Sections });
-        Assert.Equal(episode.Sections, back.Sections);
+        // (Compared as JSON: a face-off's figures are lists, which records compare by reference.)
+        Assert.Equal(System.Text.Json.JsonSerializer.Serialize(episode.Sections, Episode.Json), System.Text.Json.JsonSerializer.Serialize(back.Sections, Episode.Json));
         // The sections are the script, in order, and each is a chapter with a title.
         Assert.Equal(episode.Script, Episode.ScriptOf(episode.Parts));
         Assert.Equal(EpisodeSection.Opening, episode.Parts[0].Kind);

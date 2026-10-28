@@ -2,165 +2,176 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 153 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 152 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
     {
       "number": 1,
-      "place": "settlement#3",
-      "label": "Drerithby",
-      "position": {
-        "x": 0.3515625,
-        "y": 0.1953125
-      },
-      "eventId": 30
-    },
-    {
-      "number": 3,
-      "place": "region#7",
-      "label": "Gisreach",
-      "position": {
-        "x": 0.6796875,
-        "y": 0.1953125
-      },
-      "eventId": 151
-    },
-    {
-      "number": 4,
-      "place": "region#3",
-      "label": "Thonae",
-      "position": {
-        "x": 0.3203125,
-        "y": 0.3515625
-      },
-      "eventId": 64
-    },
-    {
-      "number": 5,
-      "place": "settlement#16",
-      "label": "Greindrondcross",
-      "position": {
-        "x": 0.8828125,
-        "y": 0.4296875
-      },
-      "eventId": 32
-    },
-    {
-      "number": 8,
       "place": "region#2",
       "label": "Taramdale",
       "position": {
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "eventId": 150
+      "eventId": 135
+    },
+    {
+      "number": 3,
+      "place": "settlement#3",
+      "label": "Drerithby",
+      "position": {
+        "x": 0.3515625,
+        "y": 0.1953125
+      },
+      "eventId": 27
+    },
+    {
+      "number": 5,
+      "place": "region#3",
+      "label": "Thonae",
+      "position": {
+        "x": 0.3203125,
+        "y": 0.3515625
+      },
+      "eventId": 59
+    },
+    {
+      "number": 6,
+      "place": "settlement#16",
+      "label": "Greindrondcross",
+      "position": {
+        "x": 0.8828125,
+        "y": 0.4296875
+      },
+      "eventId": 29
     }
   ],
   "headline": {
     "number": 1,
-    "category": "politics",
-    "kicker": "A new era",
+    "category": "structures",
+    "kicker": "A labyrinth cleared",
     "title": {
-      "text": "The Banners Age of Thonae begins",
-      "links": []
+      "text": "The Deeps of Taramdale is cleared",
+      "links": [
+        {
+          "start": 0,
+          "length": 22,
+          "entity": "structure#1"
+        }
+      ]
     },
     "body": {
-      "text": "Spring of Year 2.",
-      "links": []
+      "text": "Giaskia of Gendtialing cleared the Deeps of Taramdale. Earlier that year, Giaskia of Gendtialing found the Gold Chalice in the depths of Taramdale.",
+      "links": [
+        {
+          "start": 0,
+          "length": 22,
+          "entity": "char#37"
+        },
+        {
+          "start": 31,
+          "length": 22,
+          "entity": "structure#1"
+        },
+        {
+          "start": 103,
+          "length": 16,
+          "entity": "artifact#5"
+        },
+        {
+          "start": 137,
+          "length": 9,
+          "entity": "region#2"
+        }
+      ]
     },
-    "eventId": 30,
-    "canExplain": false
+    "eventId": 135,
+    "canExplain": true
   },
   "items": [
     {
       "number": 2,
+      "category": "faithAndMagic",
+      "text": {
+        "text": "Giaskia of Gendtialing slew the Lich of the Deeps of Taramdale in Taramdale.",
+        "links": [
+          {
+            "start": 0,
+            "length": 22,
+            "entity": "char#37"
+          },
+          {
+            "start": 28,
+            "length": 34,
+            "entity": "monster#1"
+          },
+          {
+            "start": 66,
+            "length": 9,
+            "entity": "region#2"
+          }
+        ]
+      },
+      "eventId": 133
+    },
+    {
+      "number": 3,
+      "category": "politics",
+      "text": {
+        "text": "The Banners Age of Thonae began.",
+        "links": []
+      },
+      "eventId": 27
+    },
+    {
+      "number": 4,
       "category": "politics",
       "text": {
         "text": "The Age of Long Peace of Thonae began.",
         "links": []
       },
-      "eventId": 46
+      "eventId": 42
     },
     {
-      "number": 3,
-      "category": "characters",
-      "text": {
-        "text": "Gral of Bandbia cleared Gisreach of monsters.",
-        "links": [
-          {
-            "start": 0,
-            "length": 15,
-            "entity": "char#16"
-          },
-          {
-            "start": 24,
-            "length": 8,
-            "entity": "region#7"
-          }
-        ]
-      },
-      "eventId": 151
-    },
-    {
-      "number": 4,
+      "number": 5,
       "category": "nature",
       "text": {
-        "text": "Plague broke out in Thonae.",
+        "text": "Sickness swept through Thonae.",
         "links": [
           {
-            "start": 20,
+            "start": 23,
             "length": 6,
             "entity": "region#3"
           }
         ]
       },
-      "eventId": 64
-    },
-    {
-      "number": 5,
-      "category": "characters",
-      "text": {
-        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of the Kingdom of Thonae.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 24,
-            "length": 15,
-            "entity": "char#17"
-          },
-          {
-            "start": 62,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 32
+      "eventId": 59
     },
     {
       "number": 6,
       "category": "characters",
       "text": {
-        "text": "Gral of Bandbia and Nasgre of Stel grew close.",
+        "text": "Keth of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
             "length": 15,
-            "entity": "char#16"
+            "entity": "char#17"
           },
           {
-            "start": 20,
+            "start": 32,
             "length": 14,
-            "entity": "char#19"
+            "entity": "char#1"
+          },
+          {
+            "start": 60,
+            "length": 17,
+            "entity": "realm#1"
           }
         ]
       },
-      "eventId": 67
+      "eventId": 29
     },
     {
       "number": 7,
@@ -185,27 +196,32 @@
           }
         ]
       },
-      "eventId": 47
+      "eventId": 43
     },
     {
       "number": 8,
-      "category": "structures",
+      "category": "characters",
       "text": {
-        "text": "Rarun of Cathreindis was driven back from level three of the Deeps of Taramdale.",
+        "text": "Lond of Cunvei and Meinrall of Cond were wed at Drerithby.",
         "links": [
           {
             "start": 0,
-            "length": 20,
-            "entity": "char#39"
+            "length": 14,
+            "entity": "char#3"
           },
           {
-            "start": 57,
-            "length": 22,
-            "entity": "structure#1"
+            "start": 19,
+            "length": 16,
+            "entity": "char#5"
+          },
+          {
+            "start": 48,
+            "length": 9,
+            "entity": "settlement#3"
           }
         ]
       },
-      "eventId": 150
+      "eventId": 60
     }
   ]
 }

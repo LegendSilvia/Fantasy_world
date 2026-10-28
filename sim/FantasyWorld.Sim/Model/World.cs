@@ -65,6 +65,7 @@ public sealed class World
     public SortedDictionary<long, TradeRoute> Routes { get; init; } = new();
     public SortedDictionary<long, Monster> Monsters { get; init; } = new();
     public SortedDictionary<long, Continent> Continents { get; init; } = new();
+    public SortedDictionary<long, Race> Races { get; init; } = new();
 
     /// <summary>Region → realm at world creation: the baseline that history replays from (map history slider).</summary>
     public SortedDictionary<long, long> FoundingOwners { get; init; } = new();

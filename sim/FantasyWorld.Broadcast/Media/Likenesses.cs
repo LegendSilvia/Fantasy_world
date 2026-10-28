@@ -238,7 +238,9 @@ public static class Likenesses
             return null;
         if (kind == Character.Kind && world.Characters.TryGetValue(id, out var c))
         {
-            var culture = world.Cultures.TryGetValue(c.CultureId, out var cu) ? $" of the {cu.Name} people" : "";
+            // A race is painted as it looks (sub-project 13): its name means nothing to the painter.
+            var culture = Peoples.Of(world, c) is { } race ? $" of the {race.Name} race, {race.Looks}"
+                : world.Cultures.TryGetValue(c.CultureId, out var cu) ? $" of the {cu.Name} people" : "";
             var role = c.Role switch
             {
                 Role.Lord => "noble lord", Role.Knight => "knight", Role.Mage => "mage", Role.Priest => "priest", Role.Merchant => "merchant",

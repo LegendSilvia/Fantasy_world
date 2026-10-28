@@ -1,6 +1,6 @@
 {
   "worldName": "Dromothholt",
-  "summary": "Two realms, 24 settlements, one open labyrinth.",
+  "summary": "Two realms, 24 settlements, no open labyrinths.",
   "year": 21,
   "firstYear": 1,
   "historical": true,
@@ -234,7 +234,7 @@
       "card": {
         "kicker": "Kaerhiand · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 452 · 0 events this year"
+        "line": "Pop. 453 · 0 events this year"
       },
       "marks": []
     },
@@ -285,7 +285,7 @@
       "card": {
         "kicker": "Raembridge · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 951 · 0 events this year"
+        "line": "Pop. 952 · 0 events this year"
       },
       "marks": []
     },
@@ -302,7 +302,7 @@
       "card": {
         "kicker": "Gresford · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 844 · 0 events this year"
+        "line": "Pop. 838 · 0 events this year"
       },
       "marks": []
     },
@@ -319,7 +319,7 @@
       "card": {
         "kicker": "Gerrouhaven · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 988 · 0 events this year"
+        "line": "Pop. 994 · 0 events this year"
       },
       "marks": []
     },
@@ -336,7 +336,7 @@
       "card": {
         "kicker": "Droumkarnbridge · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 338 · 0 events this year"
+        "line": "Pop. 342 · 0 events this year"
       },
       "marks": []
     },
@@ -404,7 +404,7 @@
       "card": {
         "kicker": "Fasthar · Village",
         "title": "Held by the County of Veirwold since the founding",
-        "line": "Pop. 410 · 0 events this year"
+        "line": "Pop. 411 · 0 events this year"
       },
       "marks": []
     },
@@ -421,7 +421,7 @@
       "card": {
         "kicker": "Greindrondcross · Town",
         "title": "Held by the County of Veirwold since the founding",
-        "line": "Pop. 1,925 · 0 events this year"
+        "line": "Pop. 1,925 · 1 event this year"
       },
       "marks": [
         "temple"
@@ -440,7 +440,7 @@
       "card": {
         "kicker": "Braestilby · Village",
         "title": "Held by the County of Veirwold since the founding",
-        "line": "Pop. 479 · 0 events this year"
+        "line": "Pop. 478 · 0 events this year"
       },
       "marks": []
     },
@@ -474,7 +474,7 @@
       "card": {
         "kicker": "Heith · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 993 · 0 events this year"
+        "line": "Pop. 991 · 0 events this year"
       },
       "marks": []
     },
@@ -491,7 +491,7 @@
       "card": {
         "kicker": "Outh · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 1,252 · 0 events this year"
+        "line": "Pop. 1,254 · 0 events this year"
       },
       "marks": []
     },
@@ -570,13 +570,13 @@
     {
       "ref": "structure#1",
       "name": "The Deeps of Taramdale",
-      "kind": "Labyrinth",
-      "state": "Standing",
+      "kind": "Ruin",
+      "state": "Ruined",
       "position": {
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "detail": "level 2 of 3"
+      "detail": "cleared"
     }
   ],
   "borders": [
@@ -706,22 +706,7 @@
       ]
     }
   ],
-  "monsters": [
-    {
-      "ref": "monster#1",
-      "name": "The Lich of the Deeps of Taramdale",
-      "breed": "lich",
-      "might": 61,
-      "legendary": false,
-      "slumbering": false,
-      "position": {
-        "x": 0.4921875,
-        "y": 0.4296875
-      },
-      "roseEventId": 120,
-      "guarding": true
-    }
-  ],
+  "monsters": [],
   "realms": [
     {
       "ref": "realm#1",
