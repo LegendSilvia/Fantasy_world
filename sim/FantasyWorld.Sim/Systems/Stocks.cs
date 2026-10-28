@@ -128,5 +128,5 @@ public static class Stocks
     }
 
     /// <summary>How much a shortage stirs the realm's towns: unrest added to each one's target.</summary>
-    public const double UnrestPerShortage = 8;
+    public const double UnrestPerShortage = 10;
 }

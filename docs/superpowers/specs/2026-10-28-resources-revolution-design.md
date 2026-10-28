@@ -1,6 +1,6 @@
 # Fantasy World — Realms' Resources and Revolution (sub-project 12)
 
-**Status:** R1 built (2026-10-28); R2 next · **Asked by:** the owner, 2026-10-27 ("kingdom etc's resources and revolution"); decisions
+**Status:** R1 and R2 built (2026-10-28); R3 next · **Asked by:** the owner, 2026-10-27 ("kingdom etc's resources and revolution"); decisions
 2026-10-28 · **Builds on:** the economy (region deposits), realms' stability, settlement revolts, the war system, the
 decider (Claude)
 
@@ -32,15 +32,18 @@ and lets discontent grow into a **revolution**.
 | Building | A work uses 50 timber and 50 stone a year; what the stock lacks is bought from the treasury (2 gold each); a work whose realm can do neither is held up, like war or plague holds it up today |
 | Contentment | Each kind in plenty raises the realm's stability target a little (at most three); each shortage lowers it and raises its settlements' unrest, so want breeds riots and riots breed revolution |
 
-### 3.2 Revolution (R2)
+### 3.2 Revolution (R2, as built)
 
-| Topic | Proposed |
+| Topic | Built |
 |---|---|
-| When | A realm whose stability has collapsed, with settlements in revolt (two, or a third of its towns), may see a revolution, at most one at a time |
-| Leader | The most fitting discontented notable of the realm, not the ruler or the ruler's heir: ambitious or wronged, bold, from a revolting town; becomes a rebel |
-| Civil war | The rebels hold the revolting towns' regions as a rebel realm under the leader, at war with the crown (casus belli "revolution"); the war system fights it |
-| Ends | Crown wins: the rebel realm falls, its land returns, the leader dies or flees. Rebels win: the leader chooses (Claude, within the choice budget; the rules weigh it otherwise) to **overthrow** the ruler (takes the throne; the realm may change its government) or **break away** (the rebel realm becomes independent) |
-| Told | Revolution begun and ended are headline news; the civil war gets a face-off |
+| When | Yearly, an independent realm that is **unsettled** (stability below 35) with towns in revolt beyond its capital's land, and no revolution under way, rises with a chance of 30% for each such town (at most 75%). Want, instability and war weariness stir its towns (unrest rises as stability falls below 45, by a tenth of war weariness, and by 10 for each shortage), so riots breed revolution |
+| Leader | An adult of a revolting town who is not the ruler, the ruler's heir or a lord: the more martial, cunning and persuasive, renowned, ambitious, bold and wronged by the ruler, and a rebel first. Takes the town (a lord there is put out) |
+| Rebel realm | The revolting towns' lands, named after the leader's land (or town), new colours, the towns' coffers and the lands' share of the crown's treasury and stores |
+| Civil war | The rebels declare war on the crown (casus belli "revolution", "The … Revolution"); the war system fights it, with the usual muster of a year and a day and a face-off |
+| Ends | **Crushed** (the crown wins): the rebel realm folds back into the crown, the leader is executed or flees into exile. **Breakaway** (a stalemate, or the leader's choice): the rebels stay free. **Overthrow** (the leader's choice): the leader takes the crown's throne (the old ruler executed or exiled), the rebel realm folds into the crown, and if the leader chose to remake it, its government changes (a merchant republic under a steward, else an elective kingdom; an elective kingdom is made a crown). The leader chooses through the decider (Claude, within the choice budget): break away, seize, or remake |
+| Told | `RevolutionBegan` and `RevolutionEnded` are headline news (importance 80, with templates for each end), `FledIntoExile` for the exiled; the history replay follows the rebel realm's land |
+
+In six 150-year test worlds: ten revolutions, five crushed, three broken away, two overthrown.
 
 ### 3.3 Told and shown (R3)
 

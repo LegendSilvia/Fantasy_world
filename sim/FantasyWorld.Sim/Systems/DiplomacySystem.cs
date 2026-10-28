@@ -56,7 +56,7 @@ public sealed class DiplomacySystem : ISimSystem
             var choice = _decider.Decide(new DecisionBrief(ruler.Id, "war or peace", choices), ctx.Rng);
             if (choice.Key == "peace") continue;
             using (ctx.Annotate("motive", choice.Reasoning))
-                Declare(ctx, realm, options[int.Parse(choice.Key[4..], CultureInfo.InvariantCulture)]);
+                Declare(ctx, _inventor, realm, options[int.Parse(choice.Key[4..], CultureInfo.InvariantCulture)]);
         }
     }
 
@@ -220,7 +220,8 @@ public sealed class DiplomacySystem : ISimSystem
         return options;
     }
 
-    private void Declare(SimContext ctx, Realm attacker, CasusBelliOption cb)
+    /// <summary>Declares a war (its muster begins); allies may join either side. Also how a revolution's civil war begins.</summary>
+    public static War Declare(SimContext ctx, IInventor inventor, Realm attacker, CasusBelliOption cb)
     {
         var world = ctx.World;
         var defender = world.Realms[cb.Against];
@@ -238,12 +239,13 @@ public sealed class DiplomacySystem : ISimSystem
             CasusBelli.HolyWar when target is not null && target.Id == world.Faiths[attacker.FaithId].HolyRegionId => $"The Holy War for {target.Name}",
             CasusBelli.HolyWar => $"The Holy War of {world.Faiths[attacker.FaithId].Deity}",
             CasusBelli.Independence => $"The {defender.Name} Rebellion",
+            CasusBelli.Revolution => $"The {defender.Name} Revolution",
             CasusBelli.Revenge => $"The War of {attacker.Name}'s Vengeance",
             CasusBelli.Glory when Realms.RulerOf(world, attacker) is { } glorious => $"The War of {glorious.Name}'s Glory",
             _ => $"The {target?.Name ?? defender.Name} War",
         };
         var warId = world.Ids.Peek(War.Kind);
-        var invention = _inventor.Invent(new InventionBrief("war", $"{War.Kind}#{warId}",
+        var invention = inventor.Invent(new InventionBrief("war", $"{War.Kind}#{warId}",
             $"A war of {cb.Kind} declared by {Statecraft.Title(attacker)} on {Statecraft.Title(defender)}"
             + (target is null ? "" : $" over {target.Name}") + $", in year {ctx.Date.Year}.", name));
         name = invention.Name;
@@ -296,7 +298,7 @@ public sealed class DiplomacySystem : ISimSystem
                     Payload: new Dictionary<string, string> { ["side"] = side == war.Attackers ? "attackers" : "defenders" },
                     Place: world.Settlements[ally.CapitalId].Ref,
                     Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 1.0) }, Importance: 45, Tags: new[] { "Politics", "War" }));
-            }
+            }        return war;
     }
 
     /// <summary>

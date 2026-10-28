@@ -22,6 +22,7 @@ public static class DefaultSystems
         new RegionSystem(),
         new SettlementSystem(),
         new RealmSystem(inventor),
+        new RevolutionSystem(inventor),
         new DiplomacySystem(decider, inventor),
         new MilitarySystem(arbiter, decider),
         new TradeSystem(),

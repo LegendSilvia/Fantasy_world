@@ -51,6 +51,7 @@ public static partial class English
         "battle" => "fell in battle",
         "a duel" => "was killed in a duel",
         "burned for sorcery" => "was burned for sorcery",
+        "executed" => "was executed",
         "old wounds" => "died of old wounds",
         _ => $"was killed by {InProse(cause)}",
     };
@@ -76,6 +77,7 @@ public static partial class English
         "independence" => "for its freedom",
         "border dispute" => "over a disputed border",
         "glory" => "for glory",
+        "revolution" => "in revolution, to throw off its rule",
         _ => $"for {kind}",
     };
 

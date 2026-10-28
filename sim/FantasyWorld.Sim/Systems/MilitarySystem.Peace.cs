@@ -20,8 +20,8 @@ public sealed partial class MilitarySystem
     {
         var world = ctx.World;
         bool Standing(long id) => world.Realms.TryGetValue(id, out var r) && !r.Destroyed;
-        if (!Standing(war.AttackerId) || !war.Attackers.Any(Standing)) { MakePeace(ctx, war, attackerWon: false, white: !Standing(war.DefenderId)); return; }
-        if (!Standing(war.DefenderId) || !war.Defenders.Any(Standing)) { MakePeace(ctx, war, attackerWon: true, white: false); return; }
+        if (!Standing(war.AttackerId) || !war.Attackers.Any(Standing)) { MakePeace(ctx, war, attackerWon: false, white: !Standing(war.DefenderId), _decider); return; }
+        if (!Standing(war.DefenderId) || !war.Defenders.Any(Standing)) { MakePeace(ctx, war, attackerWon: true, white: false, _decider); return; }
 
         var years = (ctx.Date.Day - war.StartDay) / (double)Core.WorldDate.DaysPerYear;
         if (Math.Abs(war.Score) >= DecisiveScore)
@@ -36,13 +36,13 @@ public sealed partial class MilitarySystem
             }), ctx.Rng);
             if (choice is null || choice.Key == "accept")
                 using (ctx.Annotate("motive", choice?.Reasoning))
-                    MakePeace(ctx, war, attackerWon, white: false);
+                    MakePeace(ctx, war, attackerWon, white: false, _decider);
         }
-        else if (years >= 5 && Math.Abs(war.Score) < 25) MakePeace(ctx, war, attackerWon: false, white: true);
-        else if (years >= 10) MakePeace(ctx, war, attackerWon: war.Score > 0, white: Math.Abs(war.Score) < 10);
+        else if (years >= 5 && Math.Abs(war.Score) < 25) MakePeace(ctx, war, attackerWon: false, white: true, _decider);
+        else if (years >= 10) MakePeace(ctx, war, attackerWon: war.Score > 0, white: Math.Abs(war.Score) < 10, _decider);
     }
 
-    public static WorldEvent MakePeace(SimContext ctx, War war, bool attackerWon, bool white)
+    public static WorldEvent MakePeace(SimContext ctx, War war, bool attackerWon, bool white, IDecider? decider = null)
     {
         var world = ctx.World;
         var winner = world.Realms[attackerWon ? war.AttackerId : war.DefenderId];
@@ -51,8 +51,17 @@ public sealed partial class MilitarySystem
         var terms = new List<string>();
         var cessions = new List<Region>();
         var vassalise = false;
+        string? revolution = null;
+        DecisionOption? choice = null;
 
-        if (white) terms.Add("status quo");
+        if (war.CasusBelli == CasusBelli.Revolution)
+        {
+            // A civil war: the rebels' leader, if they won, chooses what comes of it; a stalemate leaves them free.
+            if (attackerWon && !white) choice = RevolutionSystem.Choose(ctx, decider ?? new RulesDecider(), war);
+            revolution = RevolutionSystem.Outcome(attackerWon, white, choice?.Key);
+            terms.Add(RevolutionSystem.Terms(revolution, choice?.Key));
+        }
+        else if (white) terms.Add("status quo");
         else if (war.CasusBelli == CasusBelli.Independence)
         {
             // The former liege declares this war: winning restores its vassal, losing confirms independence.
@@ -109,6 +118,7 @@ public sealed partial class MilitarySystem
                      && (Realms.SovereignOf(world, r) is not { } owner || war.Involves(owner.Id) || !AtWarWith(world, r.OccupierRealmId, owner.Id))))
             region.OccupierRealmId = 0;
 
+        if (revolution is not null) RevolutionSystem.End(ctx, war, peace, revolution, choice);
         if (!white && terms.Any(t => t.StartsWith("return of", StringComparison.Ordinal)) && Realms.RulerOf(world, winner) is { } claimant)
             Fates.MoveToHolder(world.Artifacts[war.TargetArtifactId], claimant, peace.Id, "returned");
         foreach (var region in cessions.Where(r => !winner.Destroyed && r.OwnerRealmId != 0))

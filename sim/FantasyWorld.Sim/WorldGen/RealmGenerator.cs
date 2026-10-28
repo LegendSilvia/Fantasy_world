@@ -13,7 +13,7 @@ namespace FantasyWorld.Sim.WorldGen;
 /// </summary>
 public static class RealmGenerator
 {
-    private static readonly string[] Palette =
+    public static readonly string[] Palette =
         { "crimson", "azure", "gold", "silver", "sable", "vert", "purpure", "orange", "white", "russet" };
 
     public static void Generate(World world, Rng rng)
@@ -78,12 +78,7 @@ public static class RealmGenerator
             CapitalId = capital.Id,
             LiegeId = liegeId,
             Government = government,
-            SuccessionLaw = government switch
-            {
-                Government.ElectiveKingdom or Government.MerchantRepublic or Government.Theocracy => SuccessionLaw.Elective,
-                Government.Tribal => SuccessionLaw.Seniority,
-                _ => SuccessionLaw.Primogeniture,
-            },
+            SuccessionLaw = SuccessionFor(government),
             MagicLaw = tenets.Contains("arcane") || government == Government.Magocracy ? MagicLaw.Embraced
                 : tenets.Contains("zealous") || tenets.Contains("pacifist") ? MagicLaw.Outlawed
                 : MagicLaw.Licensed,
@@ -97,6 +92,14 @@ public static class RealmGenerator
         region.OwnerRealmId = realm.Id;
         return realm;
     }
+
+    /// <summary>The succession a government keeps: councils and temples elect, tribes follow seniority, crowns pass to the eldest.</summary>
+    public static SuccessionLaw SuccessionFor(Government government) => government switch
+    {
+        Government.ElectiveKingdom or Government.MerchantRepublic or Government.Theocracy => SuccessionLaw.Elective,
+        Government.Tribal => SuccessionLaw.Seniority,
+        _ => SuccessionLaw.Primogeniture,
+    };
 
     /// <summary>Multi-source Dijkstra over travel days: each region → the nearest source region.</summary>
     public static Dictionary<long, long> NearestSource(RegionGraph graph, IReadOnlyList<long> sources)

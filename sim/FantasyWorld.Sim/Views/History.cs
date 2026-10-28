@@ -26,7 +26,7 @@ public sealed record PoliticalMap(
 /// <summary>
 /// History at a date (sub-project 2 §5): the political world replayed from the founding baseline through cessions,
 /// occupations, liberations, peaces (with their vassalage terms), declarations of independence, realms' falls and
-/// allies joining wars. Today's answer is the live state. Worlds saved before the baseline existed cannot be replayed:
+/// allies joining wars, revolutions. Today's answer is the live state. Worlds saved before the baseline existed cannot be replayed:
 /// their map is the live state, marked not historical.
 /// </summary>
 public static class History
@@ -83,6 +83,32 @@ public static class History
                         && ev.Actors.TryGetValue("vanquished", out var vassal) && ev.Actors.TryGetValue("victor", out var overlord)
                         && !fallen.Contains(vassal.Id))
                         lieges[vassal.Id] = overlord.Id;
+                    break;
+                case "RevolutionBegan" when ev.Actors.TryGetValue("rebels", out var rising):
+                    // As RevolutionSystem: the lands that rose pass to the rebels.
+                    foreach (var id in (ev.Payload.GetValueOrDefault(Systems.RevolutionSystem.RegionIds) ?? "")
+                                 .Split(',', StringSplitOptions.RemoveEmptyEntries).Select(long.Parse))
+                    {
+                        owner[id] = rising.Id;
+                        occupation.Remove(id);
+                    }
+                    break;
+                case "RevolutionEnded" when ev.Actors.TryGetValue("rebels", out var rebels) && ev.Actors.TryGetValue("realm", out var crown)
+                                             && ev.Payload.GetValueOrDefault("outcome") is Systems.RevolutionSystem.Crushed or Systems.RevolutionSystem.Overthrown
+                                             && !fallen.Contains(crown.Id):
+                    // The rebel realm folds back into the crown.
+                    fallen.Add(rebels.Id);
+                    foreach (var id in owner.Where(o => o.Value == rebels.Id).Select(o => o.Key).ToList())
+                    {
+                        owner[id] = crown.Id;
+                        occupation.Remove(id);
+                    }
+                    foreach (var id in occupation.Where(o => o.Value.Realm == rebels.Id).Select(o => o.Key).ToList()) occupation.Remove(id);
+                    foreach (var (attackers, defenders) in sides.Values)
+                    {
+                        attackers.Remove(rebels.Id);
+                        defenders.Remove(rebels.Id);
+                    }
                     break;
                 case "IndependenceDeclared" when ev.Actors.TryGetValue("realm", out var free):
                     lieges[free.Id] = 0;

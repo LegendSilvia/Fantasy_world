@@ -80,9 +80,9 @@ public sealed class Realm
     public List<Treaty> Treaties { get; init; } = new();
     public List<RealmMemory> Memories { get; init; } = new();
 
-    /// <summary>Active conditions ("legitimacyCollapsed", …) mapped to the event that began them.</summary>
     private SortedDictionary<string, double> _stocks = new(StringComparer.Ordinal);
 
+    /// <summary>Active conditions ("legitimacyCollapsed", "short:ore", "revolution", …) mapped to the event that began them.</summary>
     public SortedDictionary<string, long> Conditions
     {
         get => _conditions;

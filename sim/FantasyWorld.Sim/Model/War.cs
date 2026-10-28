@@ -15,6 +15,9 @@ public static class CasusBelli
     public const string Independence = "independence";
     public const string BorderDispute = "border dispute";
     public const string Glory = "glory";
+
+    /// <summary>A realm's people rose under a leader and hold their towns against the crown (sub-project 12).</summary>
+    public const string Revolution = "revolution";
 }
 
 public sealed class War
