@@ -264,6 +264,17 @@ public partial class Film : Node
         Entrance((float)(t - _faceOffStart));
     }
 
+    /// <summary>
+    /// The Short's portrait row: its middle's height on the stage and the strip's thickness (the portraits' height and a
+    /// little more); without portraits, a strip a fifth of the screen high at its upper third.
+    /// </summary>
+    private (float Y, float Height) Row(Vector2 screen)
+    {
+        if (_slideA is null || _faceOffStage is null) return (screen.Y * 0.3f, screen.Y * 0.2f);
+        var rect = _slideA.GetGlobalRect();
+        return (rect.GetCenter().Y - _faceOffStage.GlobalPosition.Y, rect.Size.Y * 1.1f);
+    }
+
     /// <summary>The share of the way from <paramref name="from"/> to <paramref name="to"/> seconds, 0 to 1.</summary>
     private static float Span(float s, float from, float to) => Math.Clamp((s - from) / (to - from), 0, 1);
 
@@ -286,19 +297,28 @@ public partial class Film : Node
         // The bands sweep in across each other, then sink to a glow behind the card.
         var sweep = EaseOut(Span(s, 0.05f, 0.5f));
         var glow = 0.85f - 0.6f * Span(s, 1.2f, 1.7f);
-        void Band(ColorRect? band, float from, float rest)
+        // Wide: two broad bands, one high and one low. The Short: one versus strip behind the portraits, each side's
+        // colour coming in from its own edge and meeting the other's at the middle, where the VS lands.
+        var row = Row(screen);
+        void Band(ColorRect? band, float from, float rest, float y)
         {
             if (band is null) return;
-            band.Size = new Vector2(screen.X * 1.5f, screen.Y * 0.28f);
+            band.Size = _vertical ? new Vector2(screen.X * 0.75f, row.Height) : new Vector2(screen.X * 1.5f, screen.Y * 0.28f);
             band.PivotOffset = band.Size / 2;
             var x = from + (rest - from) * sweep;
-            band.Position = new Vector2(x - band.Size.X / 2, band.Position.Y);
+            band.Position = new Vector2(x - band.Size.X / 2, y - band.Size.Y / 2);
             band.Modulate = new Color(1, 1, 1, glow * Span(s, 0.05f, 0.15f));
         }
-        if (_bandA is not null) _bandA.Position = new Vector2(_bandA.Position.X, screen.Y * 0.3f - screen.Y * 0.14f);
-        if (_bandB is not null) _bandB.Position = new Vector2(_bandB.Position.X, screen.Y * 0.7f - screen.Y * 0.14f);
-        Band(_bandA, -screen.X, screen.X * 0.35f);
-        Band(_bandB, screen.X * 2, screen.X * 0.65f);
+        if (_vertical)
+        {
+            Band(_bandA, -screen.X, screen.X * 0.3f, row.Y);
+            Band(_bandB, screen.X * 2, screen.X * 0.7f, row.Y);
+        }
+        else
+        {
+            Band(_bandA, -screen.X, screen.X * 0.35f, screen.Y * 0.3f);
+            Band(_bandB, screen.X * 2, screen.X * 0.65f, screen.Y * 0.7f);
+        }
 
         // The images fly in from their own sides.
         var fly = Span(s, 0.2f, 0.75f);
@@ -318,6 +338,8 @@ public partial class Film : Node
             _bigVersus.Zoom = 3.2f - 2.2f * slam - 0.4f * away;
             _bigVersus.Turn = -0.35f * (1 - slam);
             _bigVersus.Modulate = new Color(1, 1, 1, Span(s, 0.45f, 0.6f) * (1 - away));
+            // In the Short it lands between the portraits, where the two colours meet.
+            if (_vertical) _bigVersus.Position = new Vector2((screen.X - _bigVersus.Size.X) / 2, row.Y - _bigVersus.Size.Y / 2);
             _bigVersus.Place();
         }
         // The Short's small VS between the images takes over as the great one goes.
