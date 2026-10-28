@@ -180,7 +180,7 @@ public sealed record BroadcastConfig
     private BroadcastConfig Validated()
     {
         if (Language != "en") throw new FormatException($"Only English broadcasts exist so far (language \"{Language}\").");
-        if (Size is not ("tiny" or "medium" or "large")) throw new FormatException($"Unknown size \"{Size}\".");
+        if (Size is not ("tiny" or "medium" or "large" or "huge")) throw new FormatException($"Unknown size \"{Size}\".");
         if (BackupDays < 1) throw new FormatException("backupDays must be at least 1.");
         if (Stories is < 0 or > 10) throw new FormatException("stories must be between 0 and 10.");
         if (MaxCharacters is < 300 or > 4000) throw new FormatException("maxCharacters must be between 300 and 4000 (a Discord post holds 4096).");
