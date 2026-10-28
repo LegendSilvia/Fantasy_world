@@ -253,6 +253,16 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task AnUnreadableTally_NeverStopsTheDay()
+    {
+        var run = new DailyRun(Config, _root, [_discord], () => Morning, _log, new RunOptions(Create: true), _ => null,
+            tally: _ => Task.FromResult<string?>("<!doctype html><title>The Chronicle</title>"));
+        Assert.Equal(DailyRun.Ok, await run.RunAsync());
+        Assert.Contains("the players' answers could not be applied", _log.ToString());
+        Assert.Single(_discord.Posts);
+    }
+
+    [Fact]
     public async Task ASpeechServiceThatAnswersNonsense_NeverStopsThePost()
     {
         var garbled = new GarbledSpeech();

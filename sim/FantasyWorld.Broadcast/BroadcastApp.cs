@@ -95,8 +95,17 @@ public static class BroadcastApp
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeout.CancelAfter(TimeSpan.FromSeconds(20));
             using var response = await http.GetAsync($"{site.TrimEnd('/')}/api/tally", timeout.Token).ConfigureAwait(false);
-            if (response.IsSuccessStatusCode) return await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
+            if (response.IsSuccessStatusCode)
+            {
+                // A site without the prayers' functions answers its page instead: only the tally's JSON counts.
+                var body = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
+                using (System.Text.Json.JsonDocument.Parse(body)) return body;
+            }
             output.WriteLine($"warning: the prayers' tally answered {(int)response.StatusCode}; no answers today.");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            output.WriteLine("warning: the prayers' tally answered something other than its counts; no answers today.");
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
         {

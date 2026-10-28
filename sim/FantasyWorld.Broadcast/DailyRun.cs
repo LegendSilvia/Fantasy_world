@@ -364,7 +364,9 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             {
                 var answers = Path.Combine(work.FullName, "tally.json");
                 await File.WriteAllTextAsync(answers, votes, ct).ConfigureAwait(false);
-                Fw("answer", worldPath, answers);
+                // The players' answers never stop the day: unreadable ones are left, and the world goes on.
+                try { Fw("answer", worldPath, answers); }
+                catch (InvalidOperationException) { log.WriteLine("warning: the players' answers could not be applied; the rules decide today."); }
             }
             Fw("catchup", worldPath, "--quiet");
             var dir = Path.Combine(work.FullName, "episode");
