@@ -22,7 +22,7 @@ public static partial class CliApp
           fw new <world-file> [--seed <n>] [--size tiny|medium|large|huge] [--prehistory <years>]   (default 100; tiny 0)
           fw invent <world-file>                   Claude names and describes a new world's races and nations' festivals
           fw answer <world-file> <tally.json>      the players' answers to prayers and blessings of face-offs
-          fw advance <world-file> <duration>        e.g. 30d, 4mo, 7y (debug fast-forward)
+          fw advance <world-file> <duration> [--quiet]  e.g. 30d, 4mo, 7y (debug fast-forward; --quiet lists no events)
           fw catchup <world-file> [--quiet]         simulate the real time that has passed, then the digest (--quiet: none)
           fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--keep-marker]   the broadcast's episode since it last aired
           fw snapshot <world-file> <copy>           a consistent single-file copy (safe to upload)
@@ -151,7 +151,7 @@ public static partial class CliApp
         store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         output.WriteLine($"Advanced {days} days to {sim.World.Date}.");
         PrintLlmSummary(output, gateway, fresh);
-        PrintEvents(output, sim.World, sim.Log.Since(lastId));
+        if (!rest.Contains("--quiet")) PrintEvents(output, sim.World, sim.Log.Since(lastId));
         return 0;
     }
 

@@ -118,6 +118,12 @@ public sealed record BroadcastConfig
 
     public string Size { get; init; } = "medium";
 
+    /// <summary>
+    /// The years a newly made world lives before its first episode (lived offline, after Claude names its peoples);
+    /// unset, as `fw new` would (a century, none for a tiny world).
+    /// </summary>
+    public int? PrehistoryYears { get; init; }
+
     /// <summary>Episodes are keyed by the broadcast date in this time zone.</summary>
     public string TimeZone { get; init; } = "Asia/Bangkok";
 

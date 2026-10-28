@@ -242,6 +242,17 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task ANewWorld_IsNamedThenLivesItsHistory_BeforeItsFirstEpisode()
+    {
+        var config = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "prehistoryYears": 2 }""");
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), config: config));
+        var log = _log.ToString();
+        Assert.True(log.IndexOf("fw invent", StringComparison.Ordinal) < log.IndexOf("fw advance", StringComparison.Ordinal));
+        Assert.Contains("2 years of history lived", log);
+        Assert.Single(_discord.Posts);
+    }
+
+    [Fact]
     public async Task ASpeechServiceThatAnswersNonsense_NeverStopsThePost()
     {
         var garbled = new GarbledSpeech();

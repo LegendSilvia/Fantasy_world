@@ -8,7 +8,9 @@ using FantasyWorld.Broadcast.Publishing;
 using FantasyWorld.Broadcast.Speech;
 using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Llm;
+using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Persist;
+using FantasyWorld.Sim.WorldGen;
 
 namespace FantasyWorld.Broadcast;
 
@@ -290,6 +292,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             var worldPath = Path.Combine(work.FullName, "world.fw.db");
             var pulled = await store.GetAsync(config.WorldKey, ct).ConfigureAwait(false);
             var copiedFromLive = false;
+            var created = false;
             if (pulled is null && _options.DryRun)
             {
                 pulled = await root.GetAsync(config.LivePrefix + config.WorldKey, ct).ConfigureAwait(false);
@@ -302,7 +305,10 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 if (!_options.Create)
                     throw new InvalidOperationException($"There is no world at {store.Prefix}{config.WorldKey}. " +
                                                         "Start the workflow by hand with 'create' to begin one; a scheduled run never does.");
-                Fw("new", worldPath, "--seed", config.Seed.ToString(CultureInfo.InvariantCulture), "--size", config.Size);
+                // Made without history first: Claude names its races and its nations' festivals (below), then its first
+                // century is lived offline (sub-project 13 N7), so the history already speaks of them by their names.
+                Fw("new", worldPath, "--seed", config.Seed.ToString(CultureInfo.InvariantCulture), "--size", config.Size, "--prehistory", "0");
+                created = true;
             }
             else
             {
@@ -335,11 +341,24 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             // The world's LLM settings follow broadcast.json each morning: the chronicler on the narrate tier, story beats
             // (the characters' choices and the fights, on the decide and arbitrate tiers' default model) off unless budgeted. Without ANTHROPIC_API_KEY the world runs offline and the template script ships.
             var llm = config.Llm;
-            Fw("llm", worldPath, "--provider", llm.Narrate ? "anthropic" : "none", "--model", $"narrate={llm.NarrateModel}",
+            void Llm(string provider) => Fw("llm", worldPath, "--provider", provider, "--model", $"narrate={llm.NarrateModel}",
                 "--story-beats", llm.StoryBeatsPerDay.ToString(CultureInfo.InvariantCulture),
                 "--fight-beats", llm.FightBeatsPerDay.ToString(CultureInfo.InvariantCulture),
                 "--narrations", llm.NarrationsPerDay.ToString(CultureInfo.InvariantCulture),
                 "--cap", llm.MonthlyCapUsd.ToString(CultureInfo.InvariantCulture));
+            Llm(llm.Narrate ? "anthropic" : "none");
+            if (created)
+            {
+                Fw("invent", worldPath);
+                var years = config.PrehistoryYears ?? Prehistory.DefaultYearsFor(Enum.Parse<WorldSize>(config.Size, ignoreCase: true));
+                if (years > 0)
+                {
+                    Llm("none");
+                    Fw("advance", worldPath, $"{years.ToString(CultureInfo.InvariantCulture)}y", "--quiet");
+                    Llm(llm.Narrate ? "anthropic" : "none");
+                }
+                log.WriteLine($"A new world was made: its races and festivals named, {years} years of history lived.");
+            }
             // The players' answers since yesterday (sub-project 13 N5: the players are the gods), before the day's history.
             if (tally is not null && await tally(ct).ConfigureAwait(false) is { Length: > 0 } votes)
             {
