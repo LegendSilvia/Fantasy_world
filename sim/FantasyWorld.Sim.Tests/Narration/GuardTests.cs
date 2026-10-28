@@ -19,6 +19,21 @@ public class GuardTests
     }
 
     [Fact]
+    public void ASentence_MayOpenWithAPlainWord_TheScriptOrTheTaskUses_ButNotWithAnInventedName()
+    {
+        // The live episode of 2026-10-28 lost the chronicler's script to these two openings.
+        const string brief = "Faern of Ostherow was humiliated at Haencellvale. What to make of it all?";
+        const string task = "your own view of the year: what it meant, who rose and who fell, what to watch for";
+        var script = "Faern of Ostherow was humiliated at Haencellvale. Humiliation, in that house, is long remembered. Watch the house of Ostherow.";
+        Assert.Empty(NarrationGuard.Problems(script, brief, task));
+        // A plain word the script uses in lowercase elsewhere may open a sentence too.
+        Assert.Empty(NarrationGuard.Problems("Ruin came to Haencellvale, and the ruin was long.", brief));
+        // Names are still names, at an opening or anywhere else, whatever the task says.
+        Assert.Equal(["name Orrin"], NarrationGuard.Problems(script + " Orrin wept.", brief, task));
+        Assert.Equal(["name Grief"], NarrationGuard.Problems("Grief lay on Haencellvale.", brief, task));
+    }
+
+    [Fact]
     public void TheGuard_ReadsPossessivesHyphensTitlesAndNumbersInWords()
     {
         const string brief = "In Year 76, the Duchy of Wosmeim ceded two regions; Nellsi of Ard died, aged 63.";

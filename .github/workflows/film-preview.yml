@@ -36,6 +36,17 @@ jobs:
           fw() { dotnet run --project sim/FantasyWorld.Cli -- "$@"; }
           fw new "$RUNNER_TEMP/world.fw.db" --seed 7 --size medium
           fw advance "$RUNNER_TEMP/world.fw.db" 10y | tail -n 1
+      - name: Check the image API key (makes no image; the key is never printed)
+        env:
+          FLUX_ACCESS_KEY: ${{ secrets.FLUX_ACCESS_KEY }}
+        run: |
+          key="$FLUX_ACCESS_KEY"
+          echo "key: ${#key} characters; whitespace inside or around: $([[ "$key" =~ [[:space:]] ]] && echo yes || echo no)"
+          base=$(jq -r '.images.baseUrl' broadcast.json)
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$base/generate" -H "content-type: application/json" \
+            -H "x-access-key: $key" -d '{"prompt":"a test","scenario":"no-such-scenario"}')
+          echo "curl: $code (400 = key accepted, 401 = refused)"
+          dotnet run --project sim/FantasyWorld.Broadcast -- check-images || true
       - name: Fetch the sample's portraits and battle still, or make them once
         # Made by the FLUX API like the broadcast's and kept in the bucket, so later previews reuse them; a 429 (the API's
         # day is spent) is never retried, and without the key or the bucket the card is filmed without them.

@@ -36,11 +36,16 @@ public static partial class NarrationGuard
         "Old", "Young", "Great", "Far",
     };
 
-    /// <summary>What the narration says that the brief does not: invented numbers and names.</summary>
-    public static IReadOnlyList<string> Problems(string narration, string brief)
+    /// <summary>
+    /// What the narration says that the brief does not: invented numbers and names. A sentence may open with a plain word
+    /// the narration itself uses in lowercase, one of the <paramref name="task"/>'s own words ("what to watch for" lets a
+    /// sentence open with "Watch"), or an abstract noun ("Humiliation"); never with a name the brief lacks.
+    /// </summary>
+    public static IReadOnlyList<string> Problems(string narration, string brief, string? task = null)
     {
         var briefWords = Words().Matches(brief).Select(m => m.Value).ToHashSet(StringComparer.Ordinal);
         var lowerBrief = briefWords.Select(w => w.ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
+        var plain = Words().Matches(narration + " " + (task ?? "")).Select(m => m.Value).Where(w => char.IsLower(w[0])).ToHashSet(StringComparer.Ordinal);
         var briefNumbers = Number().Matches(brief).Select(m => m.Value.Replace(",", "", StringComparison.Ordinal)).ToHashSet(StringComparer.Ordinal);
         var problems = new List<string>();
         foreach (Match m in Number().Matches(narration))
@@ -63,7 +68,8 @@ public static partial class NarrationGuard
             {
                 // A number word ("Nineteen fell") is checked as a number above, not as a name.
                 if (part.Length == 0 || !char.IsUpper(part[0]) || Titles.Contains(part) || briefWords.Contains(part) || IsNumberWord(part)) continue;
-                if (opening && (Openings.Contains(part) || lowerBrief.Contains(part.ToLowerInvariant()))) continue;
+                var lower = part.ToLowerInvariant();
+                if (opening && (Openings.Contains(part) || lowerBrief.Contains(lower) || plain.Contains(lower) || Abstract().IsMatch(lower))) continue;
                 problems.Add($"name {part}");
             }
         }
@@ -130,6 +136,10 @@ public static partial class NarrationGuard
     /// <summary>A capitalised word, with its possessive and hyphenated parts.</summary>
     [GeneratedRegex(@"(?<![\p{L}'’-])\p{Lu}[\p{L}'’-]*")]
     private static partial Regex Capitalised();
+
+    /// <summary>An abstract noun's ending (humiliation, ruthlessness, settlement, cruelty, kinship, childhood), never a name's here.</summary>
+    [GeneratedRegex(@"^\p{L}{3,}(?:tion|sion|ness|ment|ity|ship|hood)$")]
+    private static partial Regex Abstract();
 
     [GeneratedRegex(@"['’]s$|['’]$")]
     private static partial Regex Possessive();

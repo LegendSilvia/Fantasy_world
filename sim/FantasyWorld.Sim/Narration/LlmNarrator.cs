@@ -75,7 +75,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(1500, maxCharacters / 2));
         string? Why(string json) => Sections(json, parts.Count) is not { } texts ? $"not {parts.Count} sections"
             : string.Join("\n\n", texts).Length is var n && (n < minimum || n > maxCharacters) ? $"{n} characters, not {minimum} to {maxCharacters}"
-            : string.Join(", ", NarrationGuard.Problems(string.Join("\n\n", texts), facts).Distinct().Take(8)) is { Length: > 0 } problems ? problems
+            : string.Join(", ", NarrationGuard.Problems(string.Join("\n\n", texts), facts, task).Distinct().Take(8)) is { Length: > 0 } problems ? problems
             : null;
         var answer = story.Gateway.Ask(request, story.World.Date.Day, json => Why(json) is null, whyInvalid: json => Why(json) ?? "");
         if (answer is null || Sections(answer, parts.Count) is not { } written) return episode;

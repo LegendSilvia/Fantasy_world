@@ -33,6 +33,28 @@ public sealed class FluxImages(HttpClient http, string baseUrl, string accessKey
     public static FluxImages? FromEnvironment(HttpClient http, string baseUrl, Func<string, string?> env) =>
         env("FLUX_ACCESS_KEY") is { Length: > 0 } key ? new FluxImages(http, baseUrl, key) : null;
 
+    /// <summary>
+    /// Whether the API takes the key, without making an image: a request for a scenario that does not exist is refused
+    /// after the key is checked, so 400 means the key was accepted and 401 that it was not.
+    /// </summary>
+    public async Task<(bool Accepted, int Status)> CheckAsync(CancellationToken ct = default)
+    {
+        using var message = Request(new JsonObject { ["prompt"] = "a test", ["scenario"] = "no-such-scenario" });
+        using var response = await http.SendAsync(message, ct).ConfigureAwait(false);
+        return (response.StatusCode == HttpStatusCode.BadRequest, (int)response.StatusCode);
+    }
+
+    /// <summary>A request to make an image; the key is sent trimmed (a secret pasted with a trailing newline or space is refused as is).</summary>
+    private HttpRequestMessage Request(JsonObject body)
+    {
+        var message = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/generate")
+        {
+            Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
+        };
+        message.Headers.Add("x-access-key", accessKey.Trim());
+        return message;
+    }
+
     public async Task<MadeImage> MakeAsync(ImageRequest request, CancellationToken ct = default)
     {
         var body = new JsonObject
@@ -42,11 +64,7 @@ public sealed class FluxImages(HttpClient http, string baseUrl, string accessKey
         };
         if (request.Width is { } width) body["width"] = width;
         if (request.Height is { } height) body["height"] = height;
-        using var message = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/generate")
-        {
-            Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
-        };
-        message.Headers.Add("x-access-key", accessKey);
+        using var message = Request(body);
         using var response = await http.SendAsync(message, ct).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
             throw new ImageBudgetSpentException("the image API's daily budget is spent until 00:00 UTC");

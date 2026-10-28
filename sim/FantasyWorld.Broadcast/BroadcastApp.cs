@@ -15,6 +15,7 @@ public static class BroadcastApp
                fw-broadcast map <world-file> <out.png>   the political map as the broadcast posts it
                fw-broadcast get <key> <file> [--local <dir>]   copy an object of the bucket to a file (the film jobs)
                fw-broadcast put <file> <key> [--local <dir>]   store a file in the bucket (the film jobs)
+               fw-broadcast check-images [--config <broadcast.json>]   does the image API take FLUX_ACCESS_KEY? (makes no image)
           --dry-run   every step, under the staging prefix, posting to DISCORD_TEST_WEBHOOK_URL (if set)
           --upload-unlisted  with --dry-run: upload the staging video to YouTube as unlisted, a link to share
           --create    begin a new world when none is stored (never done by a scheduled run)
@@ -27,6 +28,8 @@ public static class BroadcastApp
     {
         if (args is ["map", var worldPath, var pngPath])
             return Map(worldPath, pngPath, output);
+        if (args is ["check-images", ..])
+            return await CheckImagesAsync(Option(args, "--config") ?? "broadcast.json", env, handler, output, ct).ConfigureAwait(false);
         if (args is ["get" or "put", var first, var second, ..] && args.Skip(3).All(a => a is "--local" || a == Option(args, "--local")))
             return await CopyAsync(args[0] == "get", first, second, Option(args, "--local"), env, handler, output, ct).ConfigureAwait(false);
         if (args is not ["run", ..] || args.Skip(1).Any(a => a.StartsWith("--", StringComparison.Ordinal)
@@ -114,6 +117,23 @@ public static class BroadcastApp
 
     /// <summary>A whole script with adaptive thinking can take minutes; the run itself has 45.</summary>
     public static readonly TimeSpan ScriptTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>Whether the image API takes FLUX_ACCESS_KEY, by a test that makes no image (the key is never printed).</summary>
+    private static async Task<int> CheckImagesAsync(string configPath, Func<string, string?> env, HttpMessageHandler? handler, TextWriter output,
+        CancellationToken ct)
+    {
+        var config = BroadcastConfig.Load(configPath);
+        using var http = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
+        if (Media.FluxImages.FromEnvironment(http, config.Images.BaseUrl, env) is not { } images)
+        {
+            output.WriteLine("error: FLUX_ACCESS_KEY is not set.");
+            return DailyRun.Failed;
+        }
+        var (accepted, status) = await images.CheckAsync(ct).ConfigureAwait(false);
+        output.WriteLine(accepted ? $"The image API accepts the key (it answered {status} to a test that makes no image)."
+            : $"error: the image API refused the key (it answered {status}).");
+        return accepted ? DailyRun.Ok : DailyRun.Failed;
+    }
 
     /// <summary>
     /// The film jobs' copies (sub-project 7 F2): <c>get &lt;key&gt; &lt;file&gt;</c> or <c>put &lt;file&gt; &lt;key&gt;</c>,

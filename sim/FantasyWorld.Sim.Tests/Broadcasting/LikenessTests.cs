@@ -251,4 +251,18 @@ public class LikenessTests
         Assert.Contains(painted, p => log.All.Single(e => e.Id == p.EventId).Type == "DuelFought");
         Assert.Contains(painted, p => p.Scene!.Contains("medieval fantasy") && !p.Scene.Contains("duellists"));
     }
+
+    [Fact]
+    public async Task TheKey_IsCheckedWithoutMakingAnImage_AndSentTrimmed()
+    {
+        var accepted = new StorageTests.FakeHttp((HttpStatusCode.BadRequest, "{\"error\":\"Unknown scenario\"}"));
+        Assert.Equal((true, 400), await new FluxImages(new HttpClient(accepted), "https://flux.example", "SECRET \n").CheckAsync());
+        var (request, body) = accepted.Seen.Single();
+        // A secret pasted with a trailing newline or space goes out as the key alone.
+        Assert.Equal("SECRET", request.Headers.GetValues("x-access-key").Single());
+        Assert.Equal("no-such-scenario", (string?)JsonNode.Parse(body!)!["scenario"]);
+
+        var refused = new StorageTests.FakeHttp((HttpStatusCode.Unauthorized, "{\"error\":\"Missing or wrong access key.\"}"));
+        Assert.Equal((false, 401), await new FluxImages(new HttpClient(refused), "https://flux.example", "WRONG").CheckAsync());
+    }
 }
