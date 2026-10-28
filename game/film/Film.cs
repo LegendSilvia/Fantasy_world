@@ -62,6 +62,7 @@ public partial class Film : Node
     // slanted bands, the images flying in from their sides, a great VS slamming down and shaking the screen, then the card
     // rising into place and its bars growing.
     private Slide? _slideA, _slideB, _slideCard, _bigVersus;
+    private Control? _rowVersus;
     private ColorRect? _flash, _bandA, _bandB;
     private string? _imagesDir;
 
@@ -235,6 +236,7 @@ public partial class Film : Node
             _faceOffStage?.QueueFree();
             _bars.Clear();
             _likenesses.Clear();
+            _rowVersus = null;
             _faceOffStage = FaceOffStage(f);
             _faceOffEvent = f.EventId;
             _faceOffStart = from;
@@ -300,6 +302,8 @@ public partial class Film : Node
             _bigVersus.Modulate = new Color(1, 1, 1, Span(s, 0.45f, 0.6f) * (1 - away));
             _bigVersus.Place();
         }
+        // The Short's small VS between the images takes over as the great one goes.
+        if (_rowVersus is not null) _rowVersus.Modulate = new Color(1, 1, 1, Span(s, 1.1f, 1.4f));
 
         // The blow shakes the screen, dying away.
         var shake = Span(s, 0.75f, 1.15f);
@@ -357,7 +361,7 @@ public partial class Film : Node
             if (shown)
             {
                 row.AddChild(a!);
-                var vs = Versus("VersusTall", 150);
+                var vs = _rowVersus = Versus("VersusTall", 150);
                 vs.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
                 row.AddChild(vs);
                 row.AddChild(b!);
@@ -415,6 +419,8 @@ public partial class Film : Node
         var material = new ShaderMaterial { Shader = new Shader { Code = BlurShader } };
         var blur = new ColorRect { Name = "Blur", Material = material, MouseFilter = Control.MouseFilterEnum.Ignore };
         blur.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        // A margin past the screen's edges, so a shaken scene never shows the map unblurred.
+        (blur.OffsetLeft, blur.OffsetTop, blur.OffsetRight, blur.OffsetBottom) = (-48, -48, 48, 48);
         stage.AddChild(blur);
         return (stage, material);
     }
