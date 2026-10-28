@@ -74,6 +74,8 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["Knighted"] = "{liege} knighted {knight} in the service of {realm}.",
         ["DistinguishedInBattle"] = "{character} won glory in the battle at {@place}.",
         ["WoundedInBattle"] = "{character} was {=wound} in the battle at {@place}.",
+        ["VengeanceSworn"] = "{sworn} escaped {foe} with their life and swore to return for revenge.",
+        ["TrainedForVengeance"] = "Years of honing their {=skill} made {sworn} a match for {foe}; they are ready to return for revenge.",
         ["ChampionsClashed"] = "Before the hosts at {@place}, {victor} of {victor realm} met {vanquished} of {vanquished realm} in single combat and {=outcome} them.",
         ["CapitalMoved"] = "{realm} moved its seat to {@place}.",
         ["CharacterBorn"] = "{child} was born at {@place} to {mother} and {father}.",

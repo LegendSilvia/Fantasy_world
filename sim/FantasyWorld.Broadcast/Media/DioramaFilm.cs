@@ -18,7 +18,7 @@ public sealed record FilmPlan(string Date, string Prefix, IReadOnlyList<FilmChun
 /// </summary>
 public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FantasyWorld.Sim.Chronicle.FaceOff? FaceOff = null,
     IReadOnlyList<FantasyWorld.Sim.Chronicle.CampaignMove>? Moves = null, string? Still = null,
-    IReadOnlyList<FantasyWorld.Sim.Chronicle.FightBeat>? Beats = null);
+    IReadOnlyList<FantasyWorld.Sim.Chronicle.FightBeat>? Beats = null, IReadOnlyList<string>? Lines = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). The daily run plans it once the narration's chapters exist: the
@@ -70,7 +70,14 @@ public static class DioramaFilm
             sections is { } parts && i < parts.Count ? parts[i].FaceOff : null,
             sections is { } moved && i < moved.Count ? moved[i].Moves : null,
             sections is { } painted && i < painted.Count ? painted[i].Still : null,
-            sections is { } fought && i < fought.Count ? fought[i].Beats : null)).ToList();
+            sections is { } fought && i < fought.Count ? fought[i].Beats : null,
+            sections is { } told && i < told.Count ? Sentences(told[i].Text) : null)).ToList();
+
+    /// <summary>A section's text as the Short's subtitles: its sentences, each cut to a phone's two lines.</summary>
+    public static IReadOnlyList<string> Sentences(string text) =>
+        System.Text.RegularExpressions.Regex.Split(text.Trim(), @"(?<=[.!?])\s+")
+            .Select(s => s.Trim()).Where(s => s.Length > 0)
+            .Select(s => s.Length <= 140 ? s : s[..137].TrimEnd() + "…").ToList();
 
     public static byte[] ToBytes<T>(T value) => JsonSerializer.SerializeToUtf8Bytes(value, Json);
 

@@ -104,12 +104,16 @@ public static class Encounters
         var outcomes = toTheDeath
             ? new List<EncounterOutcome>
             {
-                new("attacker_kills", p * 0.97 * 0.6, true, Fate.Unharmed, Fate.Dead),
+                // Even sworn to the death, a duel often ends short of it (the owner, 2026-10-28): the beaten may escape with
+                // a wound (and come back stronger for revenge), or both stagger away wounded.
+                new("attacker_kills", p * 0.97 * 0.45, true, Fate.Unharmed, Fate.Dead),
                 new("attacker_maims", p * 0.97 * 0.2, true, Fate.Unharmed, Fate.Maimed),
-                new("attacker_wounds", p * 0.97 * 0.2, true, Fate.Wounded, Fate.Wounded),
-                new("defender_kills", (1 - p) * 0.97 * 0.6, false, Fate.Dead, Fate.Unharmed),
+                new("attacker_wounds", p * 0.97 * 0.15, true, Fate.Wounded, Fate.Wounded),
+                new("attacker_escaped", p * 0.97 * 0.2, true, Fate.Unharmed, Fate.Wounded),
+                new("defender_kills", (1 - p) * 0.97 * 0.45, false, Fate.Dead, Fate.Unharmed),
                 new("defender_maims", (1 - p) * 0.97 * 0.2, false, Fate.Maimed, Fate.Unharmed),
-                new("defender_wounds", (1 - p) * 0.97 * 0.2, false, Fate.Wounded, Fate.Wounded),
+                new("defender_wounds", (1 - p) * 0.97 * 0.15, false, Fate.Wounded, Fate.Wounded),
+                new("defender_escaped", (1 - p) * 0.97 * 0.2, false, Fate.Wounded, Fate.Unharmed),
                 new("both_die", 0.03, false, Fate.Dead, Fate.Dead),
             }
             : new List<EncounterOutcome>

@@ -128,6 +128,32 @@ public class DeedsSystemTests
     }
 
     [Fact]
+    public void TheBeatenWhoEscape_SwearVengeance_AndTrainForTheirReturn()
+    {
+        var world = TestPeople.World();
+        var log = new EventLog();
+        var murder = log.Append(world.Date, new EventDraft("CharacterDied"));
+        var avenger = TestPeople.Add(world, 1, 25, traits: new[] { Traits.Brave });
+        var foe = TestPeople.Add(world, 2, 40);
+        avenger.Ambition = Ambitions.Vengeance;
+        avenger.AmbitionTarget = foe.Id;
+        avenger.Memories.Add(new Memory(murder.Id, foe.Id, -80, 80));
+        foe.Attributes.Prowess = 5;
+        var before = foe.Attributes.Prowess + foe.Attributes.Martial;
+        var sim = Make(world, "avenge", "attacker_escaped", log);
+
+        sim.AdvanceDays(360 * 4);
+
+        // The foe, beaten to a wound, got away and swore to come back for the avenger; each year since, they grew stronger.
+        var duel = sim.Log.All.First(e => e.Type == "DuelFought");
+        Assert.True(foe.IsAlive);
+        var sworn = sim.Log.All.Single(e => e.Type == "VengeanceSworn");
+        Assert.Equal((foe.Ref, avenger.Ref, duel.Id), (sworn.Actors["sworn"], sworn.Actors["foe"], sworn.Causes[0].EventId));
+        Assert.Equal((Ambitions.Vengeance, avenger.Id), (foe.Ambition, foe.AmbitionTarget));
+        Assert.True(foe.Attributes.Prowess + foe.Attributes.Martial > before);
+    }
+
+    [Fact]
     public void Vengeance_IsDropped_WhenTheFoeIsGone()
     {
         var world = TestPeople.World();

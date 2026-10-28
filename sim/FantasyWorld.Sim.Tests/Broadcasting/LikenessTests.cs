@@ -188,8 +188,8 @@ public class LikenessTests
         var told = await Likenesses.AttachAsync(episode, world, store, maker, "hand-painted", "2026-10-27", _ => Task.FromResult(true), new StringWriter());
         var still = maker.Asked.Single(r => r.Scenario == "environment");
         Assert.Equal((fight.Scene, false, fight.EventId, 1280, 720), (still.Prompt, still.Transparent, still.Seed, still.Width!.Value, still.Height!.Value));
-        Assert.Equal(Likenesses.StillKey(fight.EventId), told.Parts.Single(p => p.EventId == fight.EventId).Still);
-        Assert.NotNull(await store.GetAsync(Likenesses.StillKey(fight.EventId)));
+        Assert.Equal(Likenesses.StillKey(world, fight.EventId), told.Parts.Single(p => p.EventId == fight.EventId).Still);
+        Assert.NotNull(await store.GetAsync(Likenesses.StillKey(world, fight.EventId)));
     }
 
     [Fact]

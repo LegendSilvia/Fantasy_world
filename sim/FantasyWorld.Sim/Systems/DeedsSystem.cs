@@ -54,6 +54,8 @@ public sealed class DeedsSystem : ISimSystem
         PendingDuels(queue).Any(a => a.Data["challenger"] == characterId.ToString(CultureInfo.InvariantCulture)
                                      || a.Data["defender"] == characterId.ToString(CultureInfo.InvariantCulture));
 
+    public void OnYearlyTick(SimContext ctx) => Train(ctx);
+
     public void OnMonthlyTick(SimContext ctx)
     {
         var residents = ctx.World.ActiveCharacters.ToLookup(c => c.SettlementId);
@@ -126,7 +128,11 @@ public sealed class DeedsSystem : ISimSystem
         var free = !Challenged(ctx.Queue, c.Id);
         if (free && c.Ambition == Ambitions.Vengeance && world.Characters.TryGetValue(c.AmbitionTarget, out var foe) && foe.IsActive && foe.Id != c.Id
             && !Challenged(ctx.Queue, foe.Id) && nearby.Any(r => r.Id == world.Settlements[foe.SettlementId].RegionId))
-            options.Add(new($"avenge:{foe.Id}", 50 * bold, $"challenge {foe.Name} to the death"));
+        {
+            // A sworn avenger bides their time until they are a match for their foe, then comes for their life.
+            var ready = Encounters.Strength(world, c) >= Encounters.Strength(world, foe) * ReadyForRevenge;
+            options.Add(new($"avenge:{foe.Id}", (ready ? 60 : 8) * bold, $"challenge {foe.Name} to the death"));
+        }
 
         var rival = (neighbours ?? world.PeopleOf(home))
             .Where(o => o.Id != c.Id && o.IsActive && o.Stage(ctx.Date) != LifeStage.Child && Relations.Opinion(c, o) <= Relations.RivalAt)
@@ -323,6 +329,8 @@ public sealed class DeedsSystem : ISimSystem
         var ev = ctx.Emit(new EventDraft(success ? "ArtifactStolen" : "TheftFoiled",
             Actors: new Dictionary<string, EntityRef> { ["thief"] = thief.Ref, ["victim"] = victim.Ref, ["artifact"] = artifact.Ref },
             Place: ctx.World.Settlements[thief.SettlementId].Ref,
+            // How the victim came to hold it is what made it theirs to lose.
+            Causes: artifact.Provenance.LastOrDefault() is { EventId: > 0 } got ? new[] { new Cause(got.EventId, CauseKind.Enabler, 0.4) } : null,
             Importance: Math.Max(Fates.Importance(victim, 15), (int)(10 + artifact.Fame / 3)), Tags: new[] { "Characters", "Artifacts" }));
         Fates.Remember(victim, ev.Id, thief.Id, success ? -80 : -50, 80);
         if (success)
@@ -508,6 +516,11 @@ public sealed class DeedsSystem : ISimSystem
         Fates.Remember(loser, duel.Id, winner.Id, -60, 60);
         if (!toTheDeath && ctx.Rng.Chance(0.5)) Shame(loser);
         if (!toTheDeath && loser.Id != winner.Id) SwearVengeance(ctx, loser, winner);
+        // Who comes out of a fight to the death alive, beaten, swears to return (the owner, 2026-10-28: a nemesis).
+        var loserFate = outcome.AttackerWins ? outcome.DefenderFate : outcome.AttackerFate;
+        if (toTheDeath && loserFate != Fate.Dead && loser.Id != winner.Id && !loser.Has(Traits.Craven)
+            && !SagaSystem.IsDemonLord(ctx.World, loser))
+            Nemesis(ctx, loser, winner, duel);
         if (toTheDeath && outcome.AttackerWins && challenger.Ambition == Ambitions.Vengeance)
             challenger.Ambition = CharacterFactory.ChooseAmbition(challenger, ctx.Rng);
         Suffer(ctx, challenger, outcome.AttackerFate, "a duel", duel, outcome.AttackerFate == Fate.Dead ? defender : null);
@@ -538,6 +551,46 @@ public sealed class DeedsSystem : ISimSystem
         }
         foreach (var a in ctx.World.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Held && a.HolderId == c.Id))
             a.Fame = Math.Min(100, a.Fame + renown / 2);
+    }
+
+    /// <summary>How near a foe's strength a sworn avenger must come before returning for them.</summary>
+    public const double ReadyForRevenge = 0.9;
+
+    /// <summary>The beaten who escaped a fight to the death swear to come back for the victor's life.</summary>
+    private static void Nemesis(SimContext ctx, Character sworn, Character foe, WorldEvent duel)
+    {
+        if (sworn.Ambition == Ambitions.Vengeance && sworn.AmbitionTarget == foe.Id) return;
+        sworn.Ambition = Ambitions.Vengeance;
+        sworn.AmbitionTarget = foe.Id;
+        ctx.Emit(new EventDraft("VengeanceSworn",
+            Actors: new Dictionary<string, EntityRef> { ["sworn"] = sworn.Ref, ["foe"] = foe.Ref },
+            Place: ctx.World.Settlements[sworn.SettlementId].Ref,
+            Causes: new[] { new Cause(duel.Id, CauseKind.Trigger, 1.0) },
+            Importance: Math.Max(Fates.Importance(sworn, 22), Fates.Importance(foe, 18)), Tags: new[] { "Characters", "Deeds" }));
+    }
+
+    /// <summary>
+    /// Each year a sworn avenger whose foe still lives grows stronger at their best: a point of prowess or martial skill
+    /// (up to 20). The chronicle tells it once, the year they become a match for their foe and are ready to return.
+    /// </summary>
+    private static void Train(SimContext ctx)
+    {
+        foreach (var c in ctx.World.Characters.Values.Where(c => c.IsActive && c.Ambition == Ambitions.Vengeance).OrderBy(c => c.Id).ToList())
+        {
+            if (!ctx.World.Characters.TryGetValue(c.AmbitionTarget, out var foe) || !foe.IsActive) continue;
+            var a = c.Attributes;
+            var prowess = a.Prowess >= a.Martial;
+            if ((prowess ? a.Prowess : a.Martial) >= 20) continue;
+            bool Ready() => Encounters.Strength(ctx.World, c) >= Encounters.Strength(ctx.World, foe) * ReadyForRevenge;
+            var was = Ready();
+            if (prowess) a.Prowess++; else a.Martial++;
+            if (was || !Ready()) continue;
+            ctx.Emit(new EventDraft("TrainedForVengeance",
+                Actors: new Dictionary<string, EntityRef> { ["sworn"] = c.Ref, ["foe"] = foe.Ref },
+                Place: ctx.World.Settlements[c.SettlementId].Ref,
+                Payload: new Dictionary<string, string> { ["skill"] = prowess ? "prowess" : "martial skill" },
+                Importance: Fates.Importance(c, 10), Tags: new[] { "Characters" }));
+        }
     }
 
     /// <summary>The wrathful and the cruel do not forgive a humiliation or a theft: half of them swear vengeance.</summary>

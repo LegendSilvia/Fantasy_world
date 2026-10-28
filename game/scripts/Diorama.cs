@@ -17,6 +17,11 @@ public partial class Diorama : Node3D
     public const float PickRadius = 16f;
     public const float FrameOffset = 0.08f;
 
+    /// <summary>Where the world sits in the frame, as shares of the camera's distance: across (the screens' cards sit on the
+    /// right, so it is a little left of centre) and up; the vertical film sets its own.</summary>
+    public float FrameAcross { get; set; } = FrameOffset;
+    public float FrameUp { get; set; }
+
     private Geography? _geography;
     private bool _dragging;
     private Vector2 _pressedAt;
@@ -300,7 +305,8 @@ public partial class Diorama : Node3D
         Camera.Position = ToGodot(eye);
         Camera.LookAt(ToGodot(Rig.Target), Vector3.Up);
         // The screens' cards sit on the right, so the world is framed slightly left of centre.
-        Camera.HOffset = Rig.Distance * FrameOffset;
+        Camera.HOffset = Rig.Distance * FrameAcross;
+        Camera.VOffset = Rig.Distance * FrameUp;
     }
 
     private static readonly Rgb Plaster = BlockMesh.Hex(0xf1ebde);

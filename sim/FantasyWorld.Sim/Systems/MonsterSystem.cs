@@ -146,7 +146,10 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
         target.Wealth *= 1 - share;
         target.Unrest = Math.Min(100, target.Unrest + 15);
         beast.Notoriety = Math.Min(100, beast.Notoriety + 5 + beast.Might / 10);
-        var previous = ctx.Log.Involving(beast.Ref).LastOrDefault();
+        // The beast's own last deed leads to this one: its rising or last raid, never what others did about it (a prayer for
+        // deliverance from it, a hunt) — those are not why it raids.
+        var previous = ctx.Log.Involving(beast.Ref).LastOrDefault(e => e.Type is "MonsterRose" or "MonsterRaid" or "MonsterLegendary"
+                                                                       or "MonsterWoke" or "MonsterSlumbered" or "MonstersMigrated");
         var raid = ctx.Emit(new EventDraft("MonsterRaid", Actors: new Dictionary<string, EntityRef> { ["monster"] = beast.Ref },
             Place: target.Ref, Payload: new Dictionary<string, string> { ["dead"] = dead.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             Causes: previous is null ? null : new[] { new Cause(previous.Id, CauseKind.Enabler, 0.5) },

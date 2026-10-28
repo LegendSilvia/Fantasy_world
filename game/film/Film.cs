@@ -18,7 +18,8 @@ namespace FantasyWorld.Game.Film;
 /// its days as fought.
 /// </summary>
 public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FaceOff? FaceOff = null,
-    IReadOnlyList<CampaignMove>? Moves = null, string? Still = null, IReadOnlyList<FightBeat>? Beats = null);
+    IReadOnlyList<CampaignMove>? Moves = null, string? Still = null, IReadOnlyList<FightBeat>? Beats = null,
+    IReadOnlyList<string>? Lines = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). Renders one stretch of an episode's timed shot list from the day's
@@ -183,6 +184,9 @@ public partial class Film : Node
         if (_vertical)
         {
             main.Diorama.Camera.KeepAspect = Camera3D.KeepAspectEnum.Width;
+            // Closer in the Short, and the land raised to the middle, so it fills the tall frame rather than its lower half.
+            main.Diorama.Camera.Fov = 24;
+            (main.Diorama.FrameAcross, main.Diorama.FrameUp) = (0, -0.05f);
             var captions = Ui.Card("Captions", 960);
             var column = Ui.Column("Lines", 8);
             _caption = Ui.Line("", "Title", Palette.Ink, 40);
@@ -668,6 +672,18 @@ public partial class Film : Node
         return track;
     }
 
+    /// <summary>
+    /// The Short's subtitle: the sentence of the section being told at <paramref name="t"/>, its sentences spread evenly
+    /// over the section (the owner, 2026-10-28: a section with nothing on screen but the map still says what is happening).
+    /// </summary>
+    private static string Subtitle(IReadOnlyList<FilmShot> shots, int index, double t)
+    {
+        if (shots[index].Lines is not { Count: > 0 } lines) return "";
+        var (from, end) = (shots[index].Start, SectionEnd(shots, index));
+        var k = (int)Math.Floor((t - from) / Math.Max(0.001, end - from) * lines.Count);
+        return lines[Math.Clamp(k, 0, lines.Count - 1)];
+    }
+
     private static int IndexOf(IReadOnlyList<FilmShot> shots, FilmShot shot)
     {
         for (var i = 0; i < shots.Count; i++)
@@ -766,7 +782,7 @@ public partial class Film : Node
         var shot = ShotAt(shots, t);
         var index = IndexOf(shots, shot);
         _caption.Text = shot.Title;
-        var latest = _logged > 0 && _lines[_logged - 1] is { Move: true } line && line.At >= shot.Start ? line.Text : "";
+        var latest = _logged > 0 && _lines[_logged - 1] is { Move: true } line && line.At >= shot.Start ? line.Text : Subtitle(shots, index, t);
         _captionLine.Text = latest;
         _captionLine.Visible = latest.Length > 0;
         // Shown while the map is: after the section's still, before its face-off card comes up.

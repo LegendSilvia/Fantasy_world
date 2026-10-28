@@ -105,7 +105,8 @@ public static class FaceOffs
                 var (winner, loser) = challengerWon ? (sa.Name, sb.Name) : (sb.Name, sa.Name);
                 var how = outcome.EndsWith("kills", StringComparison.Ordinal) ? $"{loser} was slain"
                     : outcome.EndsWith("maims", StringComparison.Ordinal) ? $"{loser} was maimed"
-                    : outcome.EndsWith("wounds", StringComparison.Ordinal) ? "both were wounded" : $"{loser} yielded";
+                    : outcome.EndsWith("wounds", StringComparison.Ordinal) ? "both were wounded"
+                    : outcome.EndsWith("escaped", StringComparison.Ordinal) ? $"{loser} was wounded but escaped" : $"{loser} yielded";
                 return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, challengerWon ? 100 : 0, FaceOff.Fought,
                     $"{winner} won{(days is null ? "" : $" after {days} days")}; {how}.");
             }

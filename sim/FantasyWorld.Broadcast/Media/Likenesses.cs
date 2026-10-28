@@ -108,8 +108,11 @@ public static class Likenesses
     public static string? KeyFor(World world, string reference) =>
         reference.Split('#') is [var kind, var id] && long.TryParse(id, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
                                                    && kind is Character.Kind or Realm.Kind && Ask(world, reference, "") is { } request
-            ? $"{Prefix}{kind}-{id}-{Fingerprint(request.Prompt)}.png"
+            ? $"{Prefix}{kind}-{id}-{Fingerprint(World(world) + request.Prompt)}.png"
             : null;
+
+    /// <summary>Which world an image belongs to (its seed), so a new age's realm 3 or event 812 is never drawn as the old one's.</summary>
+    private static string World(World world) => world.Seed.ToString(CultureInfo.InvariantCulture) + ":";
 
     /// <summary>A stable short fingerprint of a picture's description (FNV-1a, 32 bits, as hex).</summary>
     public static string Fingerprint(string text)
@@ -165,7 +168,7 @@ public static class Likenesses
         // Every image wanted: each face-off side's (kept for good, reused), then each fight's still (made for its day).
         var keys = sides.ToDictionary(side => side.Ref, side => KeyFor(world, side.Ref));
         var wanted = sides.Select(side => (Key: keys[side.Ref], Label: side.Name, Ask: (Func<ImageRequest?>)(() => Ask(world, side.Ref, style))))
-            .Concat(fights.Select(f => (Key: (string?)StillKey(f.EventId), Label: f.Title,
+            .Concat(fights.Select(f => (Key: (string?)StillKey(world, f.EventId), Label: f.Title,
                 Ask: (Func<ImageRequest?>)(() => new ImageRequest(f.Scene!, "environment", style, false, f.EventId, StillWidth, StillHeight)))))
             .Where(w => w.Key is not null).ToList();
         var index = await IndexAsync(store, ct).ConfigureAwait(false);
@@ -186,7 +189,14 @@ public static class Likenesses
                 }
                 try
                 {
-                    var made = await maker!.MakeAsync(request, ct).ConfigureAwait(false);
+                    // The image API sometimes times out: one more try, never after a 429.
+                    MadeImage made;
+                    try { made = await maker!.MakeAsync(request, ct).ConfigureAwait(false); }
+                    catch (Exception first) when (first is IOException or HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+                    {
+                        log.WriteLine($"Images: {label}: {first.Message}; trying once more.");
+                        made = await maker!.MakeAsync(request, ct).ConfigureAwait(false);
+                    }
                     if (made.Warning is { Length: > 0 } warning) log.WriteLine($"Images: {label}: {warning}");
                     await store.PutAsync(key!, made.Bytes, made.Mime, ct).ConfigureAwait(false);
                     index[key!] = new Likeness(made.Bytes.LongLength, date, request.Prompt);
@@ -215,14 +225,15 @@ public static class Likenesses
         var sections = episode.Parts.Select(p =>
         {
             if (p.FaceOff is { } f) p = p with { FaceOff = f with { A = With(f.A), B = With(f.B) } };
-            if (p.Scene is not null && had.Contains(StillKey(p.EventId))) p = p with { Still = StillKey(p.EventId) };
+            if (p.Scene is not null && had.Contains(StillKey(world, p.EventId))) p = p with { Still = StillKey(world, p.EventId) };
             return p;
         }).ToList();
         return episode with { Sections = sections };
     }
 
     /// <summary>Where a fight's still is kept, by its event.</summary>
-    public static string StillKey(long eventId) => $"{Prefix}scene-{eventId.ToString(CultureInfo.InvariantCulture)}.png";
+    public static string StillKey(World world, long eventId) =>
+        $"{Prefix}scene-{Fingerprint(World(world))}-{eventId.ToString(CultureInfo.InvariantCulture)}.png";
 
     /// <summary>A still's size: 16:9, within the API's 1,536 and a multiple of 16.</summary>
     public const int StillWidth = 1280, StillHeight = 720;
@@ -263,8 +274,12 @@ public static class Likenesses
                 Government.Theocracy => "a holy sun emblem", Government.Magocracy => "an arcane star emblem", Government.MerchantRepublic => "a ship emblem",
                 Government.Tribal => "a beast's head emblem", Government.ElectiveKingdom => "a crowned tower emblem", _ => "a crowned lion emblem",
             };
-            return new ImageRequest($"the war banner of the {rank} of {r2.Name}, a tall swallow-tailed heraldic flag in {r2.Colors[0]} and "
-                                    + $"{r2.Colors.ElementAtOrDefault(1) ?? "white"} with {crest}, on a carved wooden pole with a gilded finial, medieval fantasy",
+            // A hanging pennant, flat and seen straight on (the owner, 2026-10-28): cloth on a gilded crossbar, a pointed
+            // foot, a stitched border, the crest at its heart.
+            return new ImageRequest($"the heraldic banner of the {rank} of {r2.Name}: a flat hanging pennant seen straight on, "
+                                    + $"{r2.Colors[0]} cloth with a stitched {r2.Colors.ElementAtOrDefault(1) ?? "gold"} border, hung from a "
+                                    + $"horizontal gilded rod with round finials, its bottom edge cut to a point, {crest} in the middle, "
+                                    + "no pole, no wind, symmetrical, medieval fantasy",
                 "game-asset", style, true, id);
         }
         return null;

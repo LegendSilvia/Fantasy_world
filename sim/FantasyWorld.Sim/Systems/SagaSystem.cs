@@ -102,7 +102,7 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
                     // For the history replay (Views.History): the lands the Dominion took.
                     [RevolutionSystem.RegionIds] = string.Join(",", lands.Select(l => l.Id.ToString(CultureInfo.InvariantCulture))),
                 },
-                Causes: Conditions.Cite(region.Conditions, (Conditions.LeySurge, CauseKind.Trigger, 0.8), (Conditions.Dangerous, CauseKind.Enabler, 0.7)),
+                Causes: Darkness(ctx, region, lands),
                 Importance: 95, Tags: new[] { "Magic", "War", "Politics" }));
         var treasury = world.Realms.Values.Where(r => !r.Destroyed && r.LiegeId == 0).Select(r => Math.Max(0, r.Treasury)).DefaultIfEmpty(1000).Average() * 2;
         var dominion = new Realm
@@ -303,5 +303,21 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
             Actors: new Dictionary<string, EntityRef> { ["demon lord"] = new(Character.Kind, saga.DemonLordId) },
             Place: ctx.Log.Get(saga.RoseEventId).Place, Payload: new Dictionary<string, string> { ["outcome"] = outcome },
             Causes: causes.Take(3).ToList(), Importance: 30, Tags: new[] { "Era" })).Id;
+    }
+
+    /// <summary>
+    /// Why a demon lord rose where it did: the ley surging and danger in its land, else the latest of its beasts' risings
+    /// or raids there (the darkness the chronicle can name).
+    /// </summary>
+    private static IReadOnlyList<Cause> Darkness(SimContext ctx, Region region, IReadOnlyCollection<Region> lands)
+    {
+        var cited = Conditions.Cite(region.Conditions, (Conditions.LeySurge, CauseKind.Trigger, 0.8), (Conditions.Dangerous, CauseKind.Enabler, 0.7));
+        if (cited.Count > 0) return cited;
+        var ids = lands.Select(l => l.Id).Append(region.Id).ToHashSet();
+        var settlements = ctx.World.Settlements.Values.Where(s => ids.Contains(s.RegionId)).Select(s => s.Ref).ToHashSet();
+        var beasts = ctx.World.Monsters.Values.Where(m => ids.Contains(m.RegionId)).Select(m => m.RoseEventId).Where(id => id != 0).ToHashSet();
+        var dark = ctx.Log.All.LastOrDefault(e => beasts.Contains(e.Id)
+                                                 || e.Type == "MonsterRaid" && e.Place is { } at && settlements.Contains(at));
+        return dark is null ? cited : new[] { new Cause(dark.Id, CauseKind.Enabler, 0.6) };
     }
 }

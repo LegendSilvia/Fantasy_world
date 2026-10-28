@@ -28,13 +28,13 @@ public class LlmArbiterTests
     private static string Whole(string outcome, int days, params (int Day, string Text)[] chapters) =>
         JsonSerializer.Serialize(new { outcome, days, chapters = chapters.Select(c => new { day = c.Day, text = c.Text }) });
 
-    private static (StoryContext Story, Encounter Duel) Setup(FakeLlmProvider fake, LlmJournal? journal = null)
+    private static (StoryContext Story, Encounter Duel) Setup(FakeLlmProvider fake, LlmJournal? journal = null, int weakProwess = 4)
     {
         var world = TestPeople.World();
         var strong = TestPeople.Add(world, 1, 30, role: Role.Knight);
         strong.Attributes.Prowess = 18;
         var weak = TestPeople.Add(world, 1, 30);
-        weak.Attributes.Prowess = 4;
+        weak.Attributes.Prowess = weakProwess;
         strong.Class = weak.Class = Classes.Warrior; // no counter: the odds are the gifts' alone
         var story = new StoryContext(world, new EventLog(), new LlmGateway(fake, On, journal ?? new LlmJournal()));
         return (story, Encounters.DuelBetween(world, strong, weak, toTheDeath: true));
@@ -184,7 +184,8 @@ public class LlmArbiterTests
         for (var i = 0; i < LlmArbiter.DramaBudget; i++)
             journal.Add(new LlmCall($"old{i}", ModelTier.Arbitrate, 0, "fake", "m", "{}", 0, 0, 0, 0, 0, DateTimeOffset.UnixEpoch, "upset"));
         var fake = new FakeLlmProvider(_ => Whole("attacker_kills", 1, (1, "It began."), (1, "It ended.")));
-        var (story, duel) = Setup(fake, journal);
+        // A closer match, so more than one outcome clears the tight floor.
+        var (story, duel) = Setup(fake, journal, weakProwess: 12);
         new LlmArbiter(story).Resolve(duel, new Rng(1));
         var request = fake.Requests.Single();
         Assert.All(Allowed(request), key => Assert.True(duel.Outcomes.Single(o => o.Key == key).Probability >= LlmArbiter.TightFloor));
@@ -194,7 +195,8 @@ public class LlmArbiterTests
     [Fact]
     public void UnderdogWins_AreMarkedAsUpsets()
     {
-        var fake = new FakeLlmProvider(_ => Whole("defender_wounds", 1, (1, "It began."), (1, "It ended.")));
+        // The underdog's likeliest win (a kill: duels to the death end short of it less often than not).
+        var fake = new FakeLlmProvider(_ => Whole("defender_kills", 1, (1, "It began."), (1, "It ended.")));
         var (story, duel) = Setup(fake);
         new LlmArbiter(story).Resolve(duel, new Rng(1));
         Assert.Equal("upset", story.Gateway.Journal.All.Single().Note);
