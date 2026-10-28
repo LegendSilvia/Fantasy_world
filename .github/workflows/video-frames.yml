@@ -1,0 +1,55 @@
+name: video-frames
+
+# A look at a stored video without downloading it: frames of an episode's Short (or its wide film) from the bucket,
+# kept as an artifact. For checking a dry run's Short, which is stored but never uploaded.
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'The episode date (yyyy-MM-dd)'
+        required: true
+      prefix:
+        description: 'staging/ or live/'
+        default: 'staging/'
+      video:
+        description: 'short or episode'
+        default: 'short'
+
+permissions:
+  contents: read
+
+jobs:
+  frames:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      DATE: ${{ inputs.date }}
+      PREFIX: ${{ inputs.prefix }}
+      VIDEO: ${{ inputs.video }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install ffmpeg
+        run: command -v ffmpeg || .github/scripts/apt-install.sh ffmpeg
+      - name: Fetch the video and take its frames
+        run: |
+          case "$VIDEO" in short|episode) ;; *) echo "error: video must be short or episode."; exit 1 ;; esac
+          [[ "$DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "error: date must be yyyy-MM-dd."; exit 1; }
+          dotnet build sim/FantasyWorld.Broadcast --configuration Release
+          dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- get "${PREFIX}episodes/$DATE/$VIDEO.mp4" "$RUNNER_TEMP/video.mp4"
+          mkdir -p "$RUNNER_TEMP/frames"
+          ffprobe -v error -show_entries format=duration -of csv=p=0 "$RUNNER_TEMP/video.mp4"
+          # A frame every six seconds, at half size.
+          ffmpeg -loglevel error -i "$RUNNER_TEMP/video.mp4" -vf "fps=1/6,scale=iw/2:-2" "$RUNNER_TEMP/frames/frame-%03d.png"
+          ls "$RUNNER_TEMP/frames" | wc -l
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.video }}-frames-${{ inputs.date }}
+          path: ${{ runner.temp }}/frames
+          retention-days: 7
