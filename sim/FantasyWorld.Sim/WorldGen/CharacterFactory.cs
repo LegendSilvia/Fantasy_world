@@ -10,7 +10,7 @@ namespace FantasyWorld.Sim.WorldGen;
 public static class CharacterFactory
 {
     public static Character Create(World world, Rng rng, long settlementId, Sex sex, long birthDay, long houseId,
-        Role role = Role.None, Character? father = null, Character? mother = null)
+        Role role = Role.None, Character? father = null, Character? mother = null, string? name = null)
     {
         var region = world.Regions[world.Settlements[settlementId].RegionId];
         var lineageParent = LineageParent(world, father, mother);
@@ -20,7 +20,7 @@ public static class CharacterFactory
         var character = new Character
         {
             Id = world.Ids.Take(Character.Kind),
-            Name = new NameGen(rng, culture?.Style).Given(),
+            Name = name ?? new NameGen(rng, culture?.Style).Given(),
             HouseId = houseId,
             Sex = sex,
             BirthDay = birthDay,

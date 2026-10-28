@@ -84,6 +84,15 @@ public static class History
                         && !fallen.Contains(vassal.Id))
                         lieges[vassal.Id] = overlord.Id;
                     break;
+                case "DemonLordRose" when ev.Actors.TryGetValue("realm", out var dominion):
+                    // As SagaSystem: the lands the demon lord took pass to its Dominion.
+                    foreach (var id in (ev.Payload.GetValueOrDefault(Systems.RevolutionSystem.RegionIds) ?? "")
+                                 .Split(',', StringSplitOptions.RemoveEmptyEntries).Select(long.Parse))
+                    {
+                        owner[id] = dominion.Id;
+                        occupation.Remove(id);
+                    }
+                    break;
                 case "RevolutionBegan" when ev.Actors.TryGetValue("rebels", out var rising):
                     // As RevolutionSystem: the lands that rose pass to the rebels.
                     foreach (var id in (ev.Payload.GetValueOrDefault(Systems.RevolutionSystem.RegionIds) ?? "")

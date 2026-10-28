@@ -21,6 +21,9 @@ public static class CasusBelli
 
     /// <summary>The old hatred between two races (sub-project 13).</summary>
     public const string AncientHatred = "ancient hatred";
+
+    /// <summary>A demon lord's hunger for the living lands (sub-project 13).</summary>
+    public const string DarkConquest = "dark conquest";
 }
 
 public sealed class War

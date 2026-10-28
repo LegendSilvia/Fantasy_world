@@ -26,7 +26,7 @@ public sealed class FamilySystem : ISimSystem
     public void OnMonthlyTick(SimContext ctx)
     {
         var world = ctx.World;
-        var singles = world.ActiveCharacters.Where(c => Marriageable(c, ctx.Date)).ToList();
+        var singles = world.ActiveCharacters.Where(c => Marriageable(c, ctx.Date) && !SagaSystem.IsDemonLord(world, c)).ToList();
         foreach (var c in singles)
             if (Marriageable(c, ctx.Date) && ctx.Rng.Chance(CourtshipPerMonth * (c.Ambition == Ambitions.Family ? 2 : 1)))
                 Court(ctx, c, singles);

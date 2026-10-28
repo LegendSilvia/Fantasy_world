@@ -105,6 +105,8 @@ public sealed partial class MilitarySystem : ISimSystem
             raised[s.Id] = levies;
         }
         var menAtArms = (int)Math.Clamp(realm.Treasury / 20, 0, 500);
+        // A demon lord's hosts are swollen by hordes from the dark (sub-project 13).
+        var horde = realm.Government == Government.Dominion ? SagaSystem.HordePerHost : 0;
         realm.Treasury -= menAtArms * 5;
         var serving = Active(world).SelectMany(a => a.Knights.Append(a.CommanderId)).ToHashSet();
         var knights = world.ActiveCharacters
@@ -123,7 +125,7 @@ public sealed partial class MilitarySystem : ISimSystem
             RealmId = realm.Id,
             WarId = war.Id,
             CommanderId = commander?.Id ?? 0,
-            Levies = raised.Values.Sum(),
+            Levies = raised.Values.Sum() + horde,
             MenAtArms = menAtArms,
             Knights = knights,
             Mages = mages,

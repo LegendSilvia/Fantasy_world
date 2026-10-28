@@ -273,6 +273,8 @@ public sealed partial class MilitarySystem
         // The rules' roll is drawn even when Claude chose the fate, keeping the stream alike.
         var rolled = _arbiter.Resolve(BattleFate(c, won), ctx.Rng).AttackerFate;
         var fate = chosen ?? rolled;
+        // Only the hero foretold, or a sealing, ends a demon lord (sub-project 13): in battle it is at most wounded.
+        if (fate == Fate.Dead && SagaSystem.IsDemonLord(ctx.World, c)) fate = Fate.Wounded;
         if (fate == Fate.Dead)
         {
             Fates.Die(ctx, c, "battle", new[] { new Cause(battle.Id, CauseKind.Trigger, 1.0) }, enemyCommander is { IsActive: true } ? enemyCommander : null);

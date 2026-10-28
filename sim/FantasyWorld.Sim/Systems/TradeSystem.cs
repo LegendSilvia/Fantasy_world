@@ -29,17 +29,7 @@ public sealed class TradeSystem : ISimSystem
         foreach (var route in world.Routes.Values.Where(r => r.State != RouteState.Closed).ToList())
         {
             var (from, to) = (world.Settlements[route.FromId], world.Settlements[route.ToId]);
-            if (!IsMarket(from) || !IsMarket(to))
-            {
-                // A market abandoned, or shrunk below a town, ends the road for good.
-                route.State = RouteState.Closed;
-                route.Volume = 0;
-                var gone = !IsMarket(from) ? from : to;
-                var why = ctx.Log.Involving(gone.Ref).LastOrDefault(e => e.Type is "SettlementAbandoned" or "SettlementDeclined");
-                ctx.Emit(new EventDraft("RouteClosed", Actors: Ends(route, from, to), Place: gone.Ref,
-                    Causes: why is null ? null : new[] { new Cause(why.Id, CauseKind.Trigger, 0.9) }, Importance: Compactor.MinorBelow, Tags: new[] { "Economy" }));
-                continue;
-            }
+            if (CloseIfDead(ctx, route)) continue;
             var blocked = Blocked(ctx, route);
             if (route.State == RouteState.Open && blocked is { } cut)
                 Sever(ctx, route, cut.Reason, cut.Place ?? from.Ref, cut.Cause);
@@ -57,6 +47,8 @@ public sealed class TradeSystem : ISimSystem
     public void OnYearlyTick(SimContext ctx)
     {
         var world = ctx.World;
+        // Towns change size in the settlements' yearly tick: a road to one no longer a market closes the same day.
+        foreach (var route in world.Routes.Values.Where(r => r.State != RouteState.Closed).ToList()) CloseIfDead(ctx, route);
         foreach (var route in world.Routes.Values.Where(r => r.State == RouteState.Open))
         {
             var (from, to) = (world.Settlements[route.FromId], world.Settlements[route.ToId]);
@@ -87,6 +79,20 @@ public sealed class TradeSystem : ISimSystem
 
     private static Dictionary<string, EntityRef> Ends(TradeRoute route, Settlement from, Settlement to) =>
         new() { ["route"] = route.Ref, ["from"] = from.Ref, ["to"] = to.Ref };
+
+    /// <summary>A market abandoned, or shrunk below a town, ends the road for good. True if it closed.</summary>
+    private static bool CloseIfDead(SimContext ctx, TradeRoute route)
+    {
+        var (from, to) = (ctx.World.Settlements[route.FromId], ctx.World.Settlements[route.ToId]);
+        if (IsMarket(from) && IsMarket(to)) return false;
+        route.State = RouteState.Closed;
+        route.Volume = 0;
+        var gone = !IsMarket(from) ? from : to;
+        var why = ctx.Log.Involving(gone.Ref).LastOrDefault(e => e.Type is "SettlementAbandoned" or "SettlementDeclined");
+        ctx.Emit(new EventDraft("RouteClosed", Actors: Ends(route, from, to), Place: gone.Ref,
+            Causes: why is null ? null : new[] { new Cause(why.Id, CauseKind.Trigger, 0.9) }, Importance: Compactor.MinorBelow, Tags: new[] { "Economy" }));
+        return true;
+    }
 
     public static bool IsMarket(Settlement s) => !s.Abandoned && s.Tier >= SettlementTier.Town;
 

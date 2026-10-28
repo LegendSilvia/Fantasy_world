@@ -52,6 +52,7 @@ public static partial class English
         "a duel" => "was killed in a duel",
         "burned for sorcery" => "was burned for sorcery",
         "executed" => "was executed",
+        "the sealing" => "gave their life to seal away the demon lord",
         "old wounds" => "died of old wounds",
         _ => $"was killed by {InProse(cause)}",
     };
@@ -79,6 +80,7 @@ public static partial class English
         "glory" => "for glory",
         "revolution" => "in revolution, to throw off its rule",
         "ancient hatred" => "out of an ancient hatred between their peoples",
+        "dark conquest" => "to swallow the living lands",
         _ => $"for {kind}",
     };
 

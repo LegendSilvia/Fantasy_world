@@ -13,7 +13,7 @@ public static class Statecraft
     public const string LegitimacyCollapsed = "legitimacyCollapsed";
     public const string StabilityCollapsed = "stabilityCollapsed";
 
-    public static string Title(Realm realm) => $"{realm.Rank} of {realm.Name}";
+    public static string Title(Realm realm) => realm.Government == Government.Dominion ? $"Dominion of {realm.Name}" : $"{realm.Rank} of {realm.Name}";
 
     public static void Remember(Realm realm, long eventId, long aboutRealm, double feeling, double weight) =>
         realm.Memories.Add(new RealmMemory(eventId, aboutRealm, feeling, weight));

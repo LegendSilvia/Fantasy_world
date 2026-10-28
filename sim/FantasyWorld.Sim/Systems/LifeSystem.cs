@@ -38,7 +38,8 @@ public sealed class LifeSystem : ISimSystem
         {
             if (!c.IsActive) continue;
             var region = world.Regions[world.Settlements[c.SettlementId].RegionId];
-            var risks = Risks(c, region, ctx.Date, Peoples.SpanOf(world, c));
+            // A demon lord does not age (sub-project 13).
+            var risks = Risks(c, region, ctx.Date, SagaSystem.IsDemonLord(world, c) ? 100 : Peoples.SpanOf(world, c));
             var total = risks.Sum(r => r.PerYear);
             if (ctx.Rng.Chance(total / 12))
             {

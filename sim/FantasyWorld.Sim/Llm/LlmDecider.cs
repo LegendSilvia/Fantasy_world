@@ -78,6 +78,7 @@ public sealed class LlmDecider(StoryContext story, IDecider? rules = null) : IDe
         "courtship" => $"{name} is free to marry and weighs the matches nearby.",
         "war or peace" => $"{name} rules a realm at peace and weighs the grievances history offers against keeping the peace.",
         "sue for peace" => $"{name}'s realm is losing a war, and the victors offer terms.",
+        "seal the demon lord" => $"{name}, a sage of great learning, can seal away the demon lord that terrorises the world, but the sealing will cost their life.",
         "after the revolution" => $"{name} led a revolution against the crown and has won its civil war, and must choose what comes of it.",
         "campaign" => $"{name} leads a host at war and chooses its next move this month: each move is a single march to a neighbouring land, or none.",
         _ => $"Driven by the ambition of {situation}, {name} considers what to do this season.",

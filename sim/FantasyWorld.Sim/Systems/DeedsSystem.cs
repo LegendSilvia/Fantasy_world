@@ -60,6 +60,8 @@ public sealed class DeedsSystem : ISimSystem
         foreach (var c in residents.SelectMany(g => g).OrderBy(c => c.Id).ToList())
         {
             if (!c.IsActive || c.Stage(ctx.Date) == LifeStage.Child) continue;
+            // The demon lord and the hero sworn against it keep to their saga (sub-project 13): no lesser deeds.
+            if (SagaSystem.Active(ctx.World) is { } saga && (c.Id == saga.DemonLordId || c.Id == saga.HeroId)) continue;
             if (c.Ambition == Ambitions.Vengeance
                 && !(ctx.World.Characters.TryGetValue(c.AmbitionTarget, out var target) && target.IsActive && target.Id != c.Id))
             {

@@ -7,7 +7,8 @@ namespace FantasyWorld.Sim.Model;
 /// <summary>Rank follows size: counties hold a few regions, empires many plus kingdom-sized vassals.</summary>
 public enum RealmRank { County, Duchy, Kingdom, Empire }
 
-public enum Government { FeudalMonarchy, ElectiveKingdom, Theocracy, Magocracy, MerchantRepublic, Tribal }
+/// <summary>Dominion: a demon lord's realm (sub-project 13), ruled by fear, raising hordes.</summary>
+public enum Government { FeudalMonarchy, ElectiveKingdom, Theocracy, Magocracy, MerchantRepublic, Tribal, Dominion }
 
 /// <summary>Who inherits the ruler's seat: eldest child, the court's ablest, or the eldest sibling first.</summary>
 public enum SuccessionLaw { Primogeniture, Elective, Seniority }
