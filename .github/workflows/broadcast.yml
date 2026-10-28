@@ -97,9 +97,12 @@ jobs:
       max-parallel: 20
       matrix:
         chunk: ${{ fromJson(needs.prepare.outputs.chunks) }}
+        # Each stretch is filmed wide (the episode's video) and tall (the vertical short, 1080×1920; the owner, 2026-10-28).
+        shape: [wide, tall]
     env:
       PLAN: ${{ needs.prepare.outputs.plan }}
       CHUNK: ${{ matrix.chunk }}
+      SHAPE: ${{ matrix.shape }}
       R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -140,18 +143,25 @@ jobs:
         run: |
           from=$(jq -r ".chunks[] | select(.index == $CHUNK) | .from" <<< "$PLAN")
           to=$(jq -r ".chunks[] | select(.index == $CHUNK) | .to" <<< "$PLAN")
-          echo "Filming stretch $CHUNK: $from–$to s."
-          timeout 1400 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path game \
-            --rendering-driver vulkan --rendering-method forward_plus --resolution 1920x1080 --fixed-fps 24 \
+          if [ "$SHAPE" = "tall" ]; then
+            if [ "$(jq -r '.youTube.shorts // true' broadcast.json)" != "true" ]; then echo "No shorts; the tall stretch is not filmed."; exit 0; fi
+            size=1080x1920; extra=(--vertical)
+          else
+            size=1920x1080; extra=()
+          fi
+          echo "Filming stretch $CHUNK ($SHAPE, $size): $from–$to s."
+          timeout 1400 xvfb-run -a -s "-screen 0 ${size}x24" "$GODOT" --path game \
+            --rendering-driver vulkan --rendering-method forward_plus --resolution "$size" --fixed-fps 24 \
             res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$RUNNER_TEMP/shots.json" \
-            --images "$RUNNER_TEMP/images" --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames"
+            --images "$RUNNER_TEMP/images" --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames" "${extra[@]}"
       - name: Encode and store the stretch
         run: |
+          if [ ! -d "$RUNNER_TEMP/frames" ]; then echo "Nothing filmed."; exit 0; fi
           prefix=$(jq -r .prefix <<< "$PLAN"); date=$(jq -r .date <<< "$PLAN")
           # Every stretch is encoded alike, so they join without being encoded again.
           ffmpeg -hide_banner -nostdin -loglevel error -y -framerate 24 -i "$RUNNER_TEMP/frames/frame%06d.png" \
             -c:v libx264 -preset veryfast -pix_fmt yuv420p -r 24 "$RUNNER_TEMP/chunk.mp4"
-          name=$(printf 'chunk-%02d.mp4' "$CHUNK")
+          name=$(printf 'chunk-%02d.mp4' "$CHUNK"); if [ "$SHAPE" = "tall" ]; then name="tall-$name"; fi
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- \
             put "$RUNNER_TEMP/chunk.mp4" "${prefix}episodes/$date/film/$name"
           echo "Stored $name ($(du -h "$RUNNER_TEMP/chunk.mp4" | cut -f1))."

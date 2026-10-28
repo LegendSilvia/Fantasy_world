@@ -35,7 +35,8 @@ public sealed record UploadState(string State, string? Session = null, long Leng
 /// episode only, so turning YouTube on never floods the channel with a week of videos. Without an account (dry runs) the
 /// video is made and stored but not uploaded. An episode without narration has nothing to show, so it waits.
 /// </summary>
-public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMaker video, BroadcastYouTube settings, Func<Episode, string?>? siteLink = null) : IEpisodeChannel, IStatefulChannel
+public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMaker video, BroadcastYouTube settings, Func<Episode, string?>? siteLink = null,
+    bool vertical = false) : IEpisodeChannel, IStatefulChannel
 {
     public const string TokenUrl = "https://oauth2.googleapis.com/token";
     public const string UploadUrl = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status";
@@ -50,7 +51,8 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
     private string _today = "";
     private int _uploads;
 
-    public string Name => "youtube";
+    /// <summary>The vertical short (the owner, 2026-10-28: a version for Shorts and TikTok) is a channel of its own.</summary>
+    public string Name => vertical ? "youtube-short" : "youtube";
 
     /// <summary>Whether this channel uploads (an account is set) or only makes the video (dry runs).</summary>
     public bool Uploads => account is not null;
@@ -62,13 +64,39 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 
     public static string StateKey(string date) => $"episodes/{date}/youtube.json";
 
+    /// <summary>The day's vertical short, and its upload's state.</summary>
+    public static string ShortVideoKey(string date) => $"episodes/{date}/short.mp4";
+
+    public static string ShortStateKey(string date) => $"episodes/{date}/youtube-short.json";
+
+    private string MyVideoKey(string date) => vertical ? ShortVideoKey(date) : VideoKey(date);
+
+    private string MyStateKey(string date) => vertical ? ShortStateKey(date) : StateKey(date);
+
     public void Attach(IObjectStore store, TextWriter log, string today) => (_store, _log, _today, _uploads) = (store, log, today, 0);
 
-    public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null, string? siteLink = null)
+    public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null, string? siteLink = null, bool shortForm = false)
     {
         var title = episode.Headline is { } headline ? $"{episode.WorldName}, Year {episode.ToYear}: {headline.Text}" : $"{episode.WorldName}, Year {episode.ToYear}";
         // YouTube refuses angle brackets in titles and descriptions.
         static string Plain(string text) => text.Replace('<', '‹').Replace('>', '›');
+        if (shortForm)
+        {
+            // A Short: its hashtag kept within the title's limit, a few lines and the link to the world.
+            const string tag = " #Shorts";
+            var shortTitle = ClipChars(Plain(title), MaxTitle - tag.Length) + tag;
+            var lines = (episode.Headline is { } h ? $"{h.Text}.\n\n" : "") + (siteLink is null ? "" : $"Explore the world: {siteLink}\n\n")
+                        + $"The chronicle of {episode.WorldName}, told by {episode.Chronicler}. A new episode every morning. #fantasy #worldbuilding";
+            return new JsonObject
+            {
+                ["snippet"] = new JsonObject
+                {
+                    ["title"] = shortTitle, ["description"] = ClipBytes(Plain(lines), MaxDescriptionBytes), ["categoryId"] = settings.CategoryId,
+                    ["tags"] = new JsonArray("shorts", "fantasy", "chronicle", "worldbuilding", Plain(episode.WorldName)),
+                },
+                ["status"] = new JsonObject { ["privacyStatus"] = settings.Privacy, ["selfDeclaredMadeForKids"] = false },
+            };
+        }
         // The chapter list leads, so it survives the description's limit; YouTube turns it into the video's chapters.
         var chapters = timeline?.ForYouTube() ?? [];
         var description = (chapters.Count > 0 ? Speech.Chapters.Lines(chapters) + "\n\n" : "")
@@ -119,7 +147,19 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                 // The diorama film when its stretches were all filmed; else the camera follows the sections over the map, when
                 // the run kept a shot list and the narration its chapters.
                 var chapters = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
-                if (settings.Diorama && await DioramaFilm.ChunksAsync(store, day, chapters, ct).ConfigureAwait(false) is { } filmed)
+                if (vertical)
+                {
+                    // The short is the tall film only (no pan over the map in its place), cut to a Short's length.
+                    var length = chapters is null ? DioramaFilm.MaxShortSeconds : DioramaFilm.ShortLength(chapters);
+                    if (chapters is null || await DioramaFilm.ChunksAsync(store, day, chapters, ct, tall: true, until: length).ConfigureAwait(false) is not { } tall)
+                    {
+                        _log.WriteLine($"youtube-short: the vertical film of {day} was not filmed in full; no short today.");
+                        return;
+                    }
+                    mp4 = await video.JoinAsync(tall, audio, length, ct).ConfigureAwait(false);
+                    _log.WriteLine($"youtube-short: the short of {day} was joined from {tall.Count} tall stretches ({length:0} s).");
+                }
+                else if (settings.Diorama && await DioramaFilm.ChunksAsync(store, day, chapters, ct).ConfigureAwait(false) is { } filmed)
                 {
                     mp4 = await video.JoinAsync(filmed, audio, ct).ConfigureAwait(false);
                     _log.WriteLine($"youtube: the diorama film of {day} was joined from {filmed.Count} filmed stretches.");
@@ -135,7 +175,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             {
                 throw new ChannelException($"the video could not be made ({e.Message}).");
             }
-            await store.PutAsync(VideoKey(day), mp4, "video/mp4", ct).ConfigureAwait(false);
+            await store.PutAsync(MyVideoKey(day), mp4, "video/mp4", ct).ConfigureAwait(false);
             if (account is null)
             {
                 _log.WriteLine($"youtube: the video of {day} was made and stored ({mp4.Length / 1024:N0} KB); dry runs do not upload.");
@@ -145,7 +185,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             _uploads++;
             var token = await TokenAsync(ct).ConfigureAwait(false);
             var timeline = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
-            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode))) };
+            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode), vertical)) };
             start.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Type", "video/mp4");
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Length", mp4.Length.ToString(CultureInfo.InvariantCulture));
@@ -220,7 +260,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             {
                 await SaveAsync(store, day, state with { State = UploadState.Abandoned, Session = null }, ct).ConfigureAwait(false);
                 _log.WriteLine($"warning: YouTube no longer knows the upload of {day}; it is not uploaded again, to avoid a duplicate. "
-                               + $"Check the channel, and delete {StateKey(day)} to try once more.");
+                               + $"Check the channel, and delete {MyStateKey(day)} to try once more.");
                 return;
             }
             if (response.StatusCode != (HttpStatusCode)308)
@@ -228,7 +268,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             var received = response.Headers.TryGetValues("Range", out var ranges) && ranges.FirstOrDefault() is { } range
                 ? long.Parse(range[(range.IndexOf('-') + 1)..], CultureInfo.InvariantCulture) + 1
                 : 0;
-            mp4 ??= await store.GetAsync(VideoKey(day), ct).ConfigureAwait(false)
+            mp4 ??= await store.GetAsync(MyVideoKey(day), ct).ConfigureAwait(false)
                     ?? throw new ChannelException($"the stored video of {day} is missing, so its upload cannot be finished.");
             await SendBytesAsync(store, day, state, token, mp4, received, ct).ConfigureAwait(false);
         }
@@ -255,15 +295,16 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 
     /// <summary>The day's video link, once it is up and anyone may watch it (public or unlisted); null otherwise.</summary>
     public static async Task<string?> WatchUrlAsync(IObjectStore store, string day, CancellationToken ct = default) =>
-        await LoadAsync(store, day, ct).ConfigureAwait(false) is { State: UploadState.Done, VideoId: { Length: > 0 } id, Privacy: "public" or "unlisted" }
+        (await store.GetAsync(StateKey(day), ct).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<UploadState>(bytes, Json) : null)
+            is { State: UploadState.Done, VideoId: { Length: > 0 } id, Privacy: "public" or "unlisted" }
             ? $"https://youtu.be/{id}"
             : null;
 
-    private static async Task<UploadState?> LoadAsync(IObjectStore store, string day, CancellationToken ct) =>
-        await store.GetAsync(StateKey(day), ct).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<UploadState>(bytes, Json) : null;
+    private async Task<UploadState?> LoadAsync(IObjectStore store, string day, CancellationToken ct) =>
+        await store.GetAsync(MyStateKey(day), ct).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<UploadState>(bytes, Json) : null;
 
-    private static Task SaveAsync(IObjectStore store, string day, UploadState state, CancellationToken ct) =>
-        store.PutAsync(StateKey(day), JsonSerializer.SerializeToUtf8Bytes(state, Json), "application/json", ct);
+    private Task SaveAsync(IObjectStore store, string day, UploadState state, CancellationToken ct) =>
+        store.PutAsync(MyStateKey(day), JsonSerializer.SerializeToUtf8Bytes(state, Json), "application/json", ct);
 
     private static string Yesterday(string today) =>
         DateOnly.TryParseExact(today, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)

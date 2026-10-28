@@ -11,6 +11,11 @@ public interface IVideoMaker
 
     /// <summary>The diorama film (sub-project 7 F2): its filmed stretches, in order, joined with the narration.</summary>
     Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default);
+
+    /// <summary>The film joined and cut at <paramref name="seconds"/> (a short; null for the whole). A maker that cannot cut
+    /// joins the whole.</summary>
+    Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, CancellationToken ct = default) =>
+        JoinAsync(chunks, narrationMp3, ct);
 }
 
 public sealed class VideoException(string message) : Exception(message);
@@ -118,17 +123,20 @@ public sealed class FfmpegVideo : IVideoMaker
     /// The arguments to join the stretches (listed in <paramref name="list"/> for ffmpeg's concat demuxer; all encoded
     /// alike, so the video is copied, not encoded again) with the narration, cut to the narration's length.
     /// </summary>
-    public static IReadOnlyList<string> JoinArguments(string list, string audio, string output) =>
+    public static IReadOnlyList<string> JoinArguments(string list, string audio, string output, double? seconds = null) =>
     [
         "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
         "-f", "concat", "-safe", "0", "-i", list,
         "-i", audio,
         "-map", "0:v:0", "-map", "1:a:0",
         "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
+        .. seconds is { } cut ? new[] { "-t", cut.ToString("0.###", CultureInfo.InvariantCulture) } : Array.Empty<string>(),
         "-shortest", "-movflags", "+faststart", output,
     ];
 
-    public async Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default) =>
+    public Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default) => JoinAsync(chunks, narrationMp3, null, ct);
+
+    public async Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, CancellationToken ct = default) =>
         await RunAsync(async dir =>
         {
             var lines = new List<string>();
@@ -141,7 +149,7 @@ public sealed class FfmpegVideo : IVideoMaker
             var (list, audio, output) = (Path.Combine(dir, "chunks.txt"), Path.Combine(dir, "narration.mp3"), Path.Combine(dir, "episode.mp4"));
             await File.WriteAllLinesAsync(list, lines, ct).ConfigureAwait(false);
             await File.WriteAllBytesAsync(audio, narrationMp3, ct).ConfigureAwait(false);
-            return (JoinArguments(list, audio, output), output);
+            return (JoinArguments(list, audio, output, seconds), output);
         }, ct).ConfigureAwait(false);
 
     /// <summary>Runs ffmpeg in a scratch folder the <paramref name="prepare"/> step fills, and returns the file it made.</summary>

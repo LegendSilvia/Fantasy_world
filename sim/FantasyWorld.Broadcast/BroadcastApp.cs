@@ -67,6 +67,8 @@ public static class BroadcastApp
         // YouTube goes first, so the Discord post can carry the day's video link.
         var channels = new List<IEpisodeChannel>();
         if (youtube is not null) channels.Add(youtube);
+        // The vertical short (the owner, 2026-10-28), after the episode's own video.
+        if (YouTubeChannel(config, options, env, http, TextWriter.Null, vertical: true) is { } shorts) channels.Add(shorts);
         if (env(webhookName) is { Length: > 0 } webhook)
             channels.Add(new DiscordWebhook(http, webhook, config.DiscordName, episode => config.Site.LinkFor(episode, options.DryRun)));
         else if (!options.DryRun)
@@ -122,9 +124,10 @@ public static class BroadcastApp
     /// channel) only makes and stores the video, so the first real video is not made in production, unless it is asked
     /// to upload it as unlisted (<c>--upload-unlisted</c>): the whole upload tried, with a link that can be shared but is not listed on the channel.
     /// </summary>
-    public static Channels.YouTube? YouTubeChannel(BroadcastConfig config, RunOptions options, Func<string, string?> env, HttpClient http, TextWriter output)
+    public static Channels.YouTube? YouTubeChannel(BroadcastConfig config, RunOptions options, Func<string, string?> env, HttpClient http, TextWriter output,
+        bool vertical = false)
     {
-        if (!config.YouTube.Upload) return null;
+        if (!config.YouTube.Upload || vertical && !(config.YouTube.Shorts && config.YouTube.Diorama)) return null;
         var uploads = !options.DryRun || options.UploadUnlisted;
         var account = uploads ? Channels.YouTubeAccount.FromEnvironment(env) : null;
         if (uploads && account is null)
@@ -134,7 +137,7 @@ public static class BroadcastApp
         }
         if (!config.Voice.Speak) output.WriteLine("warning: YouTube is set up but voice.speak is off, so there is no narration to make a video of.");
         var settings = options.DryRun ? config.YouTube with { Privacy = "unlisted" } : config.YouTube;
-        return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings, episode => config.Site.LinkFor(episode, options.DryRun));
+        return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings, episode => config.Site.LinkFor(episode, options.DryRun), vertical);
     }
 
     /// <summary>A whole script with adaptive thinking can take minutes; the run itself has 45.</summary>

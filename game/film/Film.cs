@@ -81,6 +81,14 @@ public partial class Film : Node
 
     private VBoxContainer _log = null!;
     private PanelContainer _logCard = null!;
+
+    /// <summary>
+    /// The vertical film (the owner, 2026-10-28: a version for Shorts and TikTok, <c>--vertical</c> at 1080×1920): the camera
+    /// keeps the map's width in view, the section's title and latest line are big captions in the lower third instead of
+    /// the log, and the face-off's images stand above its card.
+    /// </summary>
+    private bool _vertical;
+    private Label? _caption, _captionLine;
     private int _logged;
 
     /// <summary>A section lasts until the next begins; the last one, about this long.</summary>
@@ -121,6 +129,7 @@ public partial class Film : Node
         var (from, to) = (double.Parse(Arg("--from"), CultureInfo.InvariantCulture), double.Parse(Arg("--to"), CultureInfo.InvariantCulture));
         // The same rate as Godot's --fixed-fps, so each frame advances the camera by exactly one frame's time.
         var fps = Array.IndexOf(args, "--fps") >= 0 ? int.Parse(Arg("--fps"), CultureInfo.InvariantCulture) : 24;
+        _vertical = Array.IndexOf(args, "--vertical") >= 0;
         var shots = JsonSerializer.Deserialize<List<FilmShot>>(System.IO.File.ReadAllText(shotsPath),
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
         if (shots.Count == 0 || to <= from) throw new ArgumentException("film: no shots, or an empty stretch.");
@@ -149,6 +158,26 @@ public partial class Film : Node
         _logCard.Visible = false;
         hud.AddChild(_logCard);
         _hud = hud;
+        if (_vertical)
+        {
+            main.Diorama.Camera.KeepAspect = Camera3D.KeepAspectEnum.Width;
+            var captions = Ui.Card("Captions", 960);
+            var column = Ui.Column("Lines", 8);
+            _caption = Ui.Line("", "Title", Palette.Ink, 40);
+            _captionLine = Ui.Line("", "Line", Palette.Body, 26);
+            foreach (var label in new[] { _caption, _captionLine })
+            {
+                label.HorizontalAlignment = HorizontalAlignment.Center;
+                label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+                label.CustomMinimumSize = new Vector2(900, 0);
+                column.AddChild(label);
+            }
+            captions.AddChild(column);
+            (captions.AnchorLeft, captions.AnchorRight, captions.AnchorTop, captions.AnchorBottom) = (0.5f, 0.5f, 0.72f, 0.72f);
+            (captions.GrowHorizontal, captions.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
+            captions.Name = "Captions";
+            hud.AddChild(captions);
+        }
         _lines.AddRange(LogLines(shots));
         _moves = new Node3D { Name = "Moves" };
         main.Diorama.AddChild(_moves);
@@ -225,6 +254,23 @@ public partial class Film : Node
         var shown = a is not null || b is not null;
         var card = FaceOffCard(f);
         card.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        if (_vertical)
+        {
+            // Tall: the two images side by side above the card.
+            var column = Ui.Column("Column", 28);
+            column.Alignment = BoxContainer.AlignmentMode.Center;
+            column.SetAnchorsPreset(Control.LayoutPreset.Center);
+            (column.GrowHorizontal, column.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
+            if (shown)
+            {
+                row.AddChild(a ?? Spacer("ImageA"));
+                row.AddChild(b ?? Spacer("ImageB"));
+                column.AddChild(row);
+            }
+            column.AddChild(card);
+            stage.AddChild(column);
+            return stage;
+        }
         if (shown) row.AddChild(a ?? Spacer("ImageA"));
         row.AddChild(card);
         if (shown) row.AddChild(b ?? Spacer("ImageB"));
@@ -285,7 +331,8 @@ public partial class Film : Node
             var column = Ui.Column("Column", 10);
             column.AddChild(new TextureRect
             {
-                Name = "Picture", Texture = ImageTexture.CreateFromImage(image), CustomMinimumSize = new Vector2(StillWidth, StillHeight),
+                Name = "Picture", Texture = ImageTexture.CreateFromImage(image),
+                CustomMinimumSize = _vertical ? new Vector2(1000, 1000 * StillHeight / StillWidth) : new Vector2(StillWidth, StillHeight),
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
             });
             var caption = Ui.Line(shot.Title, "Caption", Palette.Ink, 22);
@@ -534,7 +581,15 @@ public partial class Film : Node
             var (_, text, move) = _lines[_logged];
             _log.AddChild(move ? Ui.Body($"· {text}", $"Line{_logged}", Palette.Muted, 12) : Ui.Body(text, $"Line{_logged}", Palette.Body, 14));
         }
-        _logCard.Visible = _logged > 0;
+        _logCard.Visible = _logged > 0 && !_vertical;
+        if (_caption is null || _captionLine is null) return;
+        // The vertical film's captions: the section told now, and its latest move or day if it has one.
+        var shot = ShotAt(shots, t);
+        _caption.Text = shot.Title;
+        var latest = _logged > 0 && _lines[_logged - 1] is { Move: true } line && line.At >= shot.Start ? line.Text : "";
+        _captionLine.Text = latest;
+        _captionLine.Visible = latest.Length > 0;
+        _caption.GetParent().GetParent<Control>().Visible = shot.Title.Length > 0 && shot.FaceOff is null && shot.Still is null;
     }
 
     /// <summary>

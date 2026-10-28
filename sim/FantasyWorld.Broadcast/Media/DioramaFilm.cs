@@ -36,7 +36,18 @@ public static class DioramaFilm
 
     public static string ShotsKey(string date) => $"episodes/{date}/film/shots.json";
 
-    public static string ChunkKey(string date, int index) => $"episodes/{date}/film/chunk-{index:00}.mp4";
+    public static string ChunkKey(string date, int index, bool tall = false) => $"episodes/{date}/film/{(tall ? "tall-" : "")}chunk-{index:00}.mp4";
+
+    /// <summary>A YouTube Short may run three minutes: the vertical film ends before this.</summary>
+    public const double MaxShortSeconds = 178;
+
+    /// <summary>How long the day's short runs: the whole narration if it fits, else up to the last section begun in time.</summary>
+    public static double ShortLength(Timeline timeline)
+    {
+        if (timeline.Length <= MaxShortSeconds) return timeline.Length;
+        var starts = timeline.Chapters.Select(c => (double)c.Start).Where(s => s <= MaxShortSeconds && s > 30).ToList();
+        return starts.Count > 0 ? starts.Max() : MaxShortSeconds;
+    }
 
     /// <summary>The stretches: each chapter, cut into equal parts of at most <see cref="MaxChunkSeconds"/>, ending with the narration.</summary>
     public static IReadOnlyList<FilmChunk> Chunks(Timeline timeline)
@@ -65,15 +76,17 @@ public static class DioramaFilm
 
     public static T? FromBytes<T>(byte[] bytes) => JsonSerializer.Deserialize<T>(bytes, Json);
 
-    /// <summary>The day's stretches, if every one of the plan was filmed and stored; otherwise null.</summary>
-    public static async Task<IReadOnlyList<byte[]>?> ChunksAsync(IObjectStore store, string date, Timeline timeline, CancellationToken ct = default)
+    /// <summary>The day's stretches (the tall ones for the short, up to <paramref name="until"/>), if every one was filmed and
+    /// stored; otherwise null.</summary>
+    public static async Task<IReadOnlyList<byte[]>?> ChunksAsync(IObjectStore store, string date, Timeline timeline, CancellationToken ct = default,
+        bool tall = false, double? until = null)
     {
-        var plan = Chunks(timeline);
+        var plan = Chunks(timeline).Where(c => until is not { } end || c.From < end).ToList();
         if (plan.Count == 0) return null;
         var films = new List<byte[]>();
         foreach (var chunk in plan)
         {
-            if (await store.GetAsync(ChunkKey(date, chunk.Index), ct).ConfigureAwait(false) is not { } bytes) return null;
+            if (await store.GetAsync(ChunkKey(date, chunk.Index, tall), ct).ConfigureAwait(false) is not { } bytes) return null;
             films.Add(bytes);
         }
         return films;

@@ -90,6 +90,15 @@ jobs:
           ls "$RUNNER_TEMP/frames" | wc -l
           # As the face-off's scene comes in, once it has; the battle's still; the moves on the map; then the result's card.
           for n in 000006 000040 000100 000118 000140 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
+      - name: Film the sample tall (the vertical short)
+        timeout-minutes: 20
+        run: |
+          timeout 1000 xvfb-run -a -s "-screen 0 1080x1920x24" "$GODOT" --path game \
+            --rendering-driver vulkan --rendering-method forward_plus --resolution 1080x1920 --fixed-fps 24 \
+            res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$GITHUB_WORKSPACE/game/tests/faceoff-shots.json" \
+            --images "$RUNNER_TEMP/images" \
+            --from 1 --to 8 --fps 24 --frames "$RUNNER_TEMP/tall" --vertical
+          for n in 000040 000100 000118 000164; do cp "$RUNNER_TEMP/tall/frame$n.png" "$RUNNER_TEMP/sample/tall-$n.png"; done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

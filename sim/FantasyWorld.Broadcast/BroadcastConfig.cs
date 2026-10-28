@@ -67,6 +67,13 @@ public sealed record BroadcastYouTube
     /// every stretch, or this is off, the camera pans over the political map instead.
     /// </summary>
     public bool Diorama { get; init; } = true;
+
+    /// <summary>
+    /// A vertical short of each episode (the owner, 2026-10-28: a version for YouTube Shorts and TikTok): the film jobs
+    /// also film it at 1080×1920, and it goes up as a Short of its own, cut to three minutes at most. The same file is kept
+    /// in the bucket (<c>episodes/&lt;date&gt;/short.mp4</c>) for TikTok.
+    /// </summary>
+    public bool Shorts { get; init; } = true;
 }
 
 /// <summary>The bucket's limit (the owner's word, 2026-10-27: 10 GB in all), kept by <see cref="Storage.StorageBudget"/>.</summary>
