@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FantasyWorld.Client;
 using FantasyWorld.Sim.Chronicle;
+using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Views;
 using Godot;
 
@@ -386,14 +387,25 @@ public partial class Film : Node
         }
     }
 
-    /// <summary>The showdown's VS emblem (<see cref="Client.Badges.Versus"/>), <paramref name="height"/> pixels tall, centred.</summary>
-    private static TextureRect Versus(string name, float height) => new()
+    /// <summary>The showdown's VS emblem, <paramref name="height"/> pixels tall, centred.</summary>
+    private static Control Versus(string name, float height) => Emblem(name, "versus", height);
+
+    /// <summary>
+    /// One of the painted emblems (the owner, 2026-10-28; made with the image API and kept in <c>game/emblems</c>): the VS
+    /// or a class's, <paramref name="height"/> pixels square; an empty box of that size if it is missing.
+    /// </summary>
+    private static Control Emblem(string name, string key, float height)
     {
-        Name = name, Texture = Badge.Texture(Client.Badges.Versus()),
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        CustomMinimumSize = new Vector2(height * Client.Badges.VersusWidth / Client.Badges.VersusHeight, height),
-        SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-    };
+        var path = $"res://emblems/{key}.png";
+        var size = new Vector2(height, height);
+        if (!ResourceLoader.Exists(path)) return new Control { Name = name, CustomMinimumSize = size };
+        return new TextureRect
+        {
+            Name = name, Texture = GD.Load<Texture2D>(path), CustomMinimumSize = size,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+    }
 
     /// <summary>A scene of its own over the diorama: a full-screen layer that blurs and darkens the map behind it.</summary>
     private static (Control Stage, ShaderMaterial Blur) Blurred(string name)
@@ -531,10 +543,14 @@ public partial class Film : Node
             line.Alignment = right ? BoxContainer.AlignmentMode.End : BoxContainer.AlignmentMode.Begin;
             var band = new ColorRect { Name = "Band", Color = Of(side), CustomMinimumSize = new Vector2(8, 26) };
             var title = Ui.Line(side.Name, "Name", Palette.Ink, 22);
-            if (right) { line.AddChild(title); line.AddChild(band); }
-            else { line.AddChild(band); line.AddChild(title); }
+            // A duellist's class: its emblem by the name, its title first among the notes.
+            var emblem = side.Class is { Length: > 0 } k ? Emblem("Class", k, 40) : null;
+            var parts = new Control?[] { band, emblem, title };
+            foreach (var part in right ? parts.Reverse() : parts)
+                if (part is not null) line.AddChild(part);
             box.AddChild(line);
-            var notes = Ui.Line(string.Join(" · ", side.Notes), "Notes", Palette.Muted, 13);
+            var said = side.Class is { Length: > 0 } calling ? side.Notes.Prepend(Classes.Title(calling)) : side.Notes;
+            var notes = Ui.Line(string.Join(" · ", said), "Notes", Palette.Muted, 13);
             notes.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
             box.AddChild(notes);
             return box;
@@ -548,6 +564,14 @@ public partial class Film : Node
         var kicker = Ui.Kicker(f.Kind == FaceOff.Duel || f.Stage != FaceOff.Challenge ? $"{moment} · {f.Stakes}" : "War is declared");
         kicker.HorizontalAlignment = HorizontalAlignment.Center;
         middle.AddChild(kicker);
+        // Which calling counters the other's, and what it is worth.
+        var (ka, kb) = (f.A.Class, f.B.Class);
+        if ((Classes.Counters(ka, kb) ? (ka, kb) : Classes.Counters(kb, ka) ? (kb, ka) : (null, null)) is ({ } win, { } lose))
+        {
+            var edge = Ui.Line($"{Classes.Title(win)} counters {Classes.Title(lose)} · +15%", "Edge", Client.WarLayout.Colour((win == ka ? f.A : f.B).Colour), 14);
+            edge.HorizontalAlignment = HorizontalAlignment.Center;
+            middle.AddChild(edge);
+        }
         names.AddChild(middle);
         names.AddChild(Name(f.B, true));
         column.AddChild(names);

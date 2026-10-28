@@ -21,7 +21,7 @@ public sealed record Tie(EntityRef Ref, string Name, string Relation, string Qua
 public sealed record CharacterScreen(
     EntityRef Ref, string Name, EntityRef? House, string Kicker, string Line, IReadOnlyList<string> Traits, string Ambition,
     Place? Location, IReadOnlyList<TimelineRow> Timeline, int Folded, int Earlier, IReadOnlyList<Tie> Ties, bool Followed,
-    Mention? Faith = null, bool Saint = false)
+    Mention? Faith = null, bool Saint = false, string? Class = null)
 {
     public const int TimelineImportance = 20;
 
@@ -61,7 +61,8 @@ public sealed record CharacterScreen(
         return new CharacterScreen(c.Ref, Names.Full(world, c), house?.Ref, house is null ? "Character" : $"Character · House {house.Name}",
             string.Join(" · ", line), c.Traits.ToList(), AmbitionText(world, c), location, timeline, life.Count - notable.Count, earlier,
             TiesOf(world, c), followed,
-            world.Faiths.TryGetValue(c.FaithId, out var faith) ? new Mention(faith.Ref, faith.Name) : null, c.SaintEventId != 0);
+            world.Faiths.TryGetValue(c.FaithId, out var faith) ? new Mention(faith.Ref, faith.Name) : null, c.SaintEventId != 0,
+            c.Class.Length > 0 ? c.Class : null);
     }
 
     private static string RoleLine(World world, Character c)

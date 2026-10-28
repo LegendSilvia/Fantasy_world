@@ -146,5 +146,6 @@
     "ref": "faith#2",
     "name": "The Way of Ciscoun"
   },
-  "saint": false
+  "saint": false,
+  "class": "mage"
 }

@@ -329,11 +329,11 @@ function gods(open, counts) {
         return `<div class="prayer"><p>${linked(p.text)}</p><div class="votes">`
             + vote("prayer", p.id, "grant", `Grant · ${n.grant}`) + vote("prayer", p.id, "deny", `Deny · ${n.deny}`) + `</div></div>`;
     }).join("");
-    const vs = open.versus ? `<img class="versus" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(open.versus)}" alt="vs">` : " vs ";
+    const vs = `<img class="versus" src="img/emblems/versus.png" alt="vs">`;
     const fights = open.faceOffs.map(f => {
         const n = counts.blessings?.[f.id] ?? { a: 0, b: 0 };
         const swatch = c => `<i style="background:${css(c)}"></i>`;
-        return `<div class="prayer"><p><b>${esc(f.a.name)}</b>${vs}<b>${esc(f.b.name)}</b> <span class="muted">(${esc(f.stakes)}; ${f.odds}% to ${100 - f.odds}%)</span></p><div class="votes">`
+        return `<div class="prayer"><p>${emblem(f.a.class)}<b>${esc(f.a.name)}</b>${vs}<b>${esc(f.b.name)}</b>${emblem(f.b.class)} <span class="muted">(${esc(f.stakes)}; ${f.odds}% to ${100 - f.odds}%)</span></p><div class="votes">`
             + vote("blessing", f.id, "a", `Bless ${esc(f.a.name)} · ${n.a}`, swatch(f.a.colour))
             + vote("blessing", f.id, "b", `Bless ${esc(f.b.name)} · ${n.b}`, swatch(f.b.colour)) + `</div></div>`;
     }).join("");
@@ -363,8 +363,12 @@ $("panel-body").addEventListener("click", async e => {
     }
 });
 
+/** A character class's painted emblem (sub-project 13), with its name as the tooltip; nothing for none. */
+const emblem = k => k ? `<img class="emblem" src="img/emblems/${esc(k)}.png" alt="${esc(k)}" title="${esc(k[0].toUpperCase() + k.slice(1))}">` : "";
+
 function character(c) {
-    return `<div class="kicker">${esc(c.kicker)}</div><h2>${esc(c.name)}</h2><p>${esc(c.line)}</p>`
+    return `<div class="kicker">${esc(c.kicker)}${c.class ? ` · ${esc(c.class[0].toUpperCase() + c.class.slice(1))}` : ""}</div>`
+        + `<h2>${emblem(c.class)}${esc(c.name)}</h2><p>${esc(c.line)}</p>`
         + `<div class="tags">${(c.traits ?? []).map(t => `<span>${esc(t)}</span>`).join("")}</div>`
         + `<p class="muted">${esc(c.ambition ?? "")}${c.location ? ` · ${place(c.location)}` : ""}${c.faith ? ` · ${mention(c.faith)}` : ""}</p>`
         + list("Ties", c.ties, t => `${esc(t.relation)}: ${ref(t.ref, t.name)}${t.qualifier ? ` <span class="muted">${esc(t.qualifier)}</span>` : ""}`)

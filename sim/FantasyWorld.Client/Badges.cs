@@ -5,12 +5,11 @@ namespace FantasyWorld.Client;
 /// <summary>
 /// The map's badges (the owner, 2026-10-28), drawn as SVG so the game, the film and the website show the same icons:
 /// a beast is a boss marker (a horned skull on a shield, its rim gold for a legend, its eyes dark while it sleeps), and
-/// a fight is crossed swords on a round plate (gold for one fought this past year, red while it goes on); a showdown's two
-/// sides meet across a VS on a jagged burst.
+/// a fight is crossed swords on a round plate (gold for one fought this past year, red while it goes on).
 /// </summary>
 public static class Badges
 {
-    public const int BossWidth = 64, BossHeight = 76, SwordsSize = 64, VersusWidth = 120, VersusHeight = 96;
+    public const int BossWidth = 64, BossHeight = 76, SwordsSize = 64;
 
     private const string Bone = "#efe6d2", Night = "#2b2230", Blood = "#5c1717", Gold = "#e3b94f", Ember = "#ff8a3d", Ash = "#77736b", War = "#c0392b";
 
@@ -50,27 +49,6 @@ public static class Badges
             <svg xmlns="http://www.w3.org/2000/svg" width="{SwordsSize}" height="{SwordsSize}" viewBox="0 0 64 64">
             <circle cx="32" cy="32" r="28.5" fill="{Night}" stroke="{rim}" stroke-width="3.5"/>
             {Sword(45)}{Sword(-45)}
-            </svg>
-            """;
-    }
-
-    /// <summary>The showdown's emblem (the owner, 2026-10-28): a slanted VS in bone, outlined in night, on a blood-red burst rimmed in gold.</summary>
-    public static string Versus()
-    {
-        var points = string.Join(" ", Enumerable.Range(0, 28).Select(k =>
-        {
-            var (angle, reach) = (Math.PI * k / 14, k % 2 == 0 ? 1.0 : k % 4 == 1 ? 0.7 : 0.78);
-            return string.Create(CultureInfo.InvariantCulture, $"{60 + 57 * reach * Math.Cos(angle):0.#},{48 + 45 * reach * Math.Sin(angle):0.#}");
-        }));
-        const string S = "M95 33 C90 24 70 24 69 35 C68 46 93 44 92 57 C91 70 69 71 63 61";
-        return $"""
-            <svg xmlns="http://www.w3.org/2000/svg" width="{VersusWidth}" height="{VersusHeight}" viewBox="0 0 120 96">
-            <polygon points="{points}" fill="{Blood}" stroke="{Gold}" stroke-width="3" stroke-linejoin="round"/>
-            <g transform="translate(7 0) skewX(-10)">
-            <path d="M17 25 H33 L41 51 L50 25 H66 L49 71 H34 Z" fill="{Bone}" stroke="{Night}" stroke-width="3.5" stroke-linejoin="round"/>
-            <path d="{S}" fill="none" stroke="{Night}" stroke-width="16" stroke-linecap="round"/>
-            <path d="{S}" fill="none" stroke="{Bone}" stroke-width="9.5" stroke-linecap="round"/>
-            </g>
             </svg>
             """;
     }
