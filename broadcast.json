@@ -1,7 +1,7 @@
 {
-  "worldKey": "world.fw.db",
-  "seed": 20261027,
-  "size": "medium",
+  "worldKey": "newage.fw.db",
+  "seed": 20261028,
+  "size": "huge",
   "timeZone": "Asia/Bangkok",
   "language": "en",
   "livePrefix": "live/",
