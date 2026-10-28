@@ -46,9 +46,9 @@ public class FaceOffTests
         Assert.Equal(17, f.A.Stats.Single(s => s.Name == "Prowess").Value);
         Assert.All(f.A.Stats.Where(s => s.Name != "Renown"), s => Assert.Equal(20, s.Max));
         Assert.Contains("aged 30", f.A.Notes);
-        Assert.Equal($"Face-off: {f.A.Name} v {f.B.Name}", section.Title);
+        Assert.Equal($"{f.A.Name} vs {f.B.Name}", section.Title);
         // Told plainly when no chronicler answers: who is stronger at what, and the odds.
-        Assert.StartsWith($"The face-off: {f.A.Name} against {f.B.Name}, to the death, at ", section.Text);
+        Assert.StartsWith($"The gauntlet is thrown: {f.A.Name} against {f.B.Name}, to the death, at ", section.Text);
         Assert.True(section.Text.Contains($"{f.A.Name} is the stronger in martial and prowess; {f.B.Name} in intrigue"), section.Text);
         Assert.EndsWith($"The odds favour {f.A.Name}, 71 in a hundred.", section.Text);
         // Not told again among the stories, and the episode keeps it through a round trip.
@@ -127,8 +127,8 @@ public class FaceOffTests
         Assert.Equal(f.OddsA, round[index].FaceOff!.OddsA);
 
         var post = DiscordWebhook.Payload(episode, "The Chronicle").ToJsonString();
-        Assert.Contains("Face-offs", post);
-        Assert.Contains($"{f.A.Name} v {f.B.Name} (to the death): 71% to 29%", post);
+        Assert.Contains("Showdowns", post);
+        Assert.Contains($"{f.A.Name} vs {f.B.Name} (to the death): 71% to 29%", post);
     }
 
     [Fact]

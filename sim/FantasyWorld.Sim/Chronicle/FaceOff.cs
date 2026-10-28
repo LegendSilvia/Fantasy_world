@@ -210,8 +210,8 @@ public static class FaceOffs
         var (a, b) = (Better(f.A, f.B), Better(f.B, f.A));
         var favoured = f.OddsA >= 50 ? (f.A.Name, f.OddsA) : (f.B.Name, 100 - f.OddsA);
         var opening = f.Kind == FaceOff.Duel
-            ? $"The face-off: {f.A.Name} against {f.B.Name}, {f.Stakes}, at {place}, a year and a day from the challenge."
-            : $"The face-off: {f.A.Name} against {f.B.Name} in {f.Stakes}; the hosts muster for a year before they meet.";
+            ? $"The gauntlet is thrown: {f.A.Name} against {f.B.Name}, {f.Stakes}, at {place}, a year and a day from the challenge."
+            : $"War is declared: {f.A.Name} against {f.B.Name} in {f.Stakes}; the hosts muster for a year before they meet.";
         var strengths = (a.Length, b.Length) switch
         {
             (0, 0) => "They are evenly matched.",

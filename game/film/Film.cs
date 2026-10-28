@@ -264,6 +264,9 @@ public partial class Film : Node
             if (shown)
             {
                 row.AddChild(a ?? Spacer("ImageA"));
+                var vs = Versus("VersusTall", 150);
+                vs.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+                row.AddChild(vs);
                 row.AddChild(b ?? Spacer("ImageB"));
                 column.AddChild(row);
             }
@@ -277,6 +280,15 @@ public partial class Film : Node
         stage.AddChild(row);
         return stage;
     }
+
+    /// <summary>The showdown's VS emblem (<see cref="Client.Badges.Versus"/>), <paramref name="height"/> pixels tall, centred.</summary>
+    private static TextureRect Versus(string name, float height) => new()
+    {
+        Name = name, Texture = Badge.Texture(Client.Badges.Versus()),
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+        CustomMinimumSize = new Vector2(height * Client.Badges.VersusWidth / Client.Badges.VersusHeight, height),
+        SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+    };
 
     /// <summary>A scene of its own over the diorama: a full-screen layer that blurs and darkens the map behind it.</summary>
     private static (Control Stage, ShaderMaterial Blur) Blurred(string name)
@@ -423,11 +435,15 @@ public partial class Film : Node
             return box;
         }
         names.AddChild(Name(f.A, false));
-        var moment = f.Stage switch { FaceOff.Fought => "Result", FaceOff.UnderWay => "Under way", _ => "Face-off" };
-        var kicker = Ui.Kicker(f.Kind == FaceOff.Duel || f.Stage != FaceOff.Challenge ? $"{moment} · {f.Stakes}" : "Face-off · war");
+        // Between them, the VS emblem over the moment: the challenge, the clash under way, or the verdict.
+        var middle = Ui.Column("Middle", 4);
+        middle.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        middle.AddChild(Versus("Versus", 84));
+        var moment = f.Stage switch { FaceOff.Fought => "The verdict", FaceOff.UnderWay => "The clash rages", _ => "The challenge" };
+        var kicker = Ui.Kicker(f.Kind == FaceOff.Duel || f.Stage != FaceOff.Challenge ? $"{moment} · {f.Stakes}" : "War is declared");
         kicker.HorizontalAlignment = HorizontalAlignment.Center;
-        kicker.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-        names.AddChild(kicker);
+        middle.AddChild(kicker);
+        names.AddChild(middle);
         names.AddChild(Name(f.B, true));
         column.AddChild(names);
 
@@ -462,7 +478,7 @@ public partial class Film : Node
         odds.AddChild(split);
         odds.AddChild(Figure(100 - f.OddsA, false, "%"));
         // A fought fight's bar is all the victor's; one under way still shows the chance reckoned at its challenge.
-        var chance = Ui.Kicker(f.Stage switch { FaceOff.Fought => "Victor", FaceOff.UnderWay => "Chance of winning, as reckoned at the challenge", _ => "Chance of winning" });
+        var chance = Ui.Kicker(f.Stage switch { FaceOff.Fought => "Victory", FaceOff.UnderWay => "The odds, as they stood at the challenge", _ => "Who will prevail?" });
         chance.HorizontalAlignment = HorizontalAlignment.Center;
         column.AddChild(chance);
         column.AddChild(odds);

@@ -329,10 +329,11 @@ function gods(open, counts) {
         return `<div class="prayer"><p>${linked(p.text)}</p><div class="votes">`
             + vote("prayer", p.id, "grant", `Grant · ${n.grant}`) + vote("prayer", p.id, "deny", `Deny · ${n.deny}`) + `</div></div>`;
     }).join("");
+    const vs = open.versus ? `<img class="versus" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(open.versus)}" alt="vs">` : " vs ";
     const fights = open.faceOffs.map(f => {
         const n = counts.blessings?.[f.id] ?? { a: 0, b: 0 };
         const swatch = c => `<i style="background:${css(c)}"></i>`;
-        return `<div class="prayer"><p><b>${esc(f.a.name)}</b> v <b>${esc(f.b.name)}</b> <span class="muted">(${esc(f.stakes)}; ${f.odds}% to ${100 - f.odds}%)</span></p><div class="votes">`
+        return `<div class="prayer"><p><b>${esc(f.a.name)}</b>${vs}<b>${esc(f.b.name)}</b> <span class="muted">(${esc(f.stakes)}; ${f.odds}% to ${100 - f.odds}%)</span></p><div class="votes">`
             + vote("blessing", f.id, "a", `Bless ${esc(f.a.name)} · ${n.a}`, swatch(f.a.colour))
             + vote("blessing", f.id, "b", `Bless ${esc(f.b.name)} · ${n.b}`, swatch(f.b.colour)) + `</div></div>`;
     }).join("");
@@ -340,7 +341,7 @@ function gods(open, counts) {
         + `<p class="muted">The people of the world pray to their gods. Grant or deny each prayer, and bless a side in the fights to come: `
         + `at the next dawn the gods do as most of you chose.</p>`
         + (prayers || `<p class="muted">No one prays today.</p>`)
-        + `<h3>Fights to come</h3>` + (fights || `<p class="muted">No fight awaits a blessing.</p>`);
+        + `<h3>Showdowns to come</h3>` + (fights || `<p class="muted">No fight awaits a blessing.</p>`);
 }
 
 $("gods").addEventListener("click", () => setHash({ panel: "gods/today" }));

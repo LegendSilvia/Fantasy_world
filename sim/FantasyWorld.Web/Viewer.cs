@@ -60,7 +60,7 @@ public static class Viewer
                 id = f.EventId, kind = f.Kind, stakes = f.Stakes, odds = f.OddsA,
                 a = new { name = f.A.Name, colour = V3(WarLayout.Colour(f.A.Colour)) }, b = new { name = f.B.Name, colour = V3(WarLayout.Colour(f.B.Colour)) },
             });
-        return JsonSerializer.Serialize(new { prayers, faceOffs }, Json);
+        return JsonSerializer.Serialize(new { prayers, faceOffs, versus = Badges.Versus() }, Json);
         static float[] V3(Vector3 v) => [v.X, v.Y, v.Z];
     }
 

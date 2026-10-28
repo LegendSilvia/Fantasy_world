@@ -66,10 +66,10 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
         if (faceOffs.Count > 0)
             fields.Add(new JsonObject
             {
-                ["name"] = "Face-offs",
+                ["name"] = "Showdowns",
                 ["value"] = Clip(string.Join("\n", faceOffs.Select(f => f.Stage == Sim.Chronicle.FaceOff.Fought
-                    ? $"🏆 {f.A.Name} v {f.B.Name} ({f.Stakes}): {f.Result}"
-                    : $"⚔ {f.A.Name} v {f.B.Name} ({f.Stakes}): {f.OddsA}% to {100 - f.OddsA}%"
+                    ? $"🏆 {f.A.Name} vs {f.B.Name} ({f.Stakes}): {f.Result}"
+                    : $"⚔ {f.A.Name} vs {f.B.Name} ({f.Stakes}): {f.OddsA}% to {100 - f.OddsA}%"
                       + (f.Stage == Sim.Chronicle.FaceOff.UnderWay ? $", {f.Result}" : ""))), MaxField),
                 ["inline"] = false,
             });

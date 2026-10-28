@@ -129,7 +129,7 @@ public sealed record Episode(
         var dated = toYear - fromYear > 1 || chosen.Select(e => e.Date.Year).Distinct().Count() > 1;
         var lines = chosen.ToDictionary(e => e.Id, e => dated ? $"In Year {e.Date.Year}, {narrator.Clause(e)}" : narrator.Sentence(e));
         var titles = chosen.Append(top).Where(e => e is not null).ToDictionary(e => e!.Id, e => Title(narrator, e!));
-        var challenges = faceOffs.Select(f => new EpisodeSection(EpisodeSection.Challenge, $"Face-off: {f.A.Name} v {f.B.Name}",
+        var challenges = faceOffs.Select(f => new EpisodeSection(EpisodeSection.Challenge, $"{f.A.Name} vs {f.B.Name}",
             FaceOffs.Tell(f, log.TryGet(f.EventId, out var declared) ? narrator.PlaceOf(declared) ?? "the appointed place" : "the appointed place"),
             f.EventId, f)).ToList();
         // Each war's moves in the episode go with the first section that tells the war: a few are read, all are shown.
