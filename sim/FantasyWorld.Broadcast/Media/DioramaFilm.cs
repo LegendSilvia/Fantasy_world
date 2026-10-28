@@ -14,10 +14,11 @@ public sealed record FilmPlan(string Date, string Prefix, IReadOnlyList<FilmChun
 /// A shot as the diorama film reads it: from a moment on, a point on the map (0–1), how close, the section's title (for the
 /// film's log), for a face-off both sides' figures and the odds (shown as a card over the diorama), and for a war its moves
 /// in the episode (each drawn as an arrow and logged in turn while the section is told), and for a fight its still image
-/// (its key in the store, shown over the blurred map).
+/// (its key in the store, shown over the blurred map) and its days as fought (logged in turn).
 /// </summary>
 public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FantasyWorld.Sim.Chronicle.FaceOff? FaceOff = null,
-    IReadOnlyList<FantasyWorld.Sim.Chronicle.CampaignMove>? Moves = null, string? Still = null);
+    IReadOnlyList<FantasyWorld.Sim.Chronicle.CampaignMove>? Moves = null, string? Still = null,
+    IReadOnlyList<FantasyWorld.Sim.Chronicle.FightBeat>? Beats = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). The daily run plans it once the narration's chapters exist: the
@@ -57,7 +58,8 @@ public static class DioramaFilm
         Shots.Timed(shots, timeline).Select((s, i) => new FilmShot(s.Start, s.Shot.X, s.Shot.Y, s.Shot.Zoom, timeline.Chapters[i].Title,
             sections is { } parts && i < parts.Count ? parts[i].FaceOff : null,
             sections is { } moved && i < moved.Count ? moved[i].Moves : null,
-            sections is { } painted && i < painted.Count ? painted[i].Still : null)).ToList();
+            sections is { } painted && i < painted.Count ? painted[i].Still : null,
+            sections is { } fought && i < fought.Count ? fought[i].Beats : null)).ToList();
 
     public static byte[] ToBytes<T>(T value) => JsonSerializer.SerializeToUtf8Bytes(value, Json);
 

@@ -13,10 +13,11 @@ namespace FantasyWorld.Game.Film;
 
 /// <summary>
 /// A shot of the episode film from a moment on: a point on the map (0–1), how close (1 = the whole map), its section's title,
-/// for a face-off both sides' figures and the odds, for a war its moves in the episode, and for a fight its still image.
+/// for a face-off both sides' figures and the odds, for a war its moves in the episode, and for a fight its still image and
+/// its days as fought.
 /// </summary>
 public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FaceOff? FaceOff = null,
-    IReadOnlyList<CampaignMove>? Moves = null, string? Still = null);
+    IReadOnlyList<CampaignMove>? Moves = null, string? Still = null, IReadOnlyList<FightBeat>? Beats = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). Renders one stretch of an episode's timed shot list from the day's
@@ -473,7 +474,10 @@ public partial class Film : Node
         return shot.Moves is { Count: > 0 } ? shot.Start + (end - shot.Start) / 2 : end;
     }
 
-    /// <summary>The log's lines: every section's title but the opening's (it names the world), each followed by its moves.</summary>
+    /// <summary>
+    /// The log's lines: every section's title but the opening's (it names the world), each followed by its moves (at the
+    /// times their arrows are drawn) or, for a fight, its days, spread over the section like the moves.
+    /// </summary>
     private static IEnumerable<(double At, string Text, bool Move)> LogLines(IReadOnlyList<FilmShot> shots)
     {
         for (var i = 1; i < shots.Count; i++)
@@ -481,7 +485,19 @@ public partial class Film : Node
             if (shots[i].Title.Length > 0) yield return (shots[i].Start, shots[i].Title, false);
             var times = MoveTimes(shots, i);
             for (var k = 0; k < times.Count; k++) yield return (times[k], shots[i].Moves![k].Line, true);
+            if (times.Count > 0 || shots[i].Beats is not { Count: > 1 } beats) continue;
+            var (from, end) = (shots[i].Start, SectionEnd(shots, i));
+            for (var k = 0; k < beats.Count; k++)
+                yield return (from + (end - from) * (k + 1) / (beats.Count + 1), $"Day {beats[k].Day}: {FirstSentence(beats[k].Text)}", true);
         }
+    }
+
+    /// <summary>A day's account cut to its first sentence, for a line of the log.</summary>
+    private static string FirstSentence(string text)
+    {
+        var end = text.IndexOfAny(['.', '!', '?']);
+        var first = end > 0 ? text[..(end + 1)] : text;
+        return first.Length <= 110 ? first : first[..107].TrimEnd() + "…";
     }
 
     /// <summary>The log holds a line for every section begun by <paramref name="t"/>, and for every move told by then.</summary>

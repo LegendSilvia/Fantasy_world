@@ -16,11 +16,11 @@ public sealed record EpisodeStory(long EventId, int Year, string Category, strin
 /// One section of an episode (sub-project 7 §3), read aloud on its own and shown as a chapter: its kind (opening,
 /// headline, face-off, story, comment, closing), the chapter's title, its text and the event it tells (0 for the opening and
 /// closing); a face-off carries both sides' figures, and the first section telling a war carries the war's moves in the
-/// episode (sub-project 10 C3). A fight's section carries the description of its still image (never read aloud) and,
+/// episode (sub-project 10 C3); a fight's section, its days as fought (sub-project 8 B3). A section with a picture carries the description of its still image (never read aloud) and,
 /// once the broadcast has it, the image's key in its store. The sections' texts, joined by blank lines, are the script.
 /// </summary>
 public sealed record EpisodeSection(string Kind, string Title, string Text, long EventId = 0, FaceOff? FaceOff = null,
-    IReadOnlyList<CampaignMove>? Moves = null, string? Scene = null, string? Still = null)
+    IReadOnlyList<CampaignMove>? Moves = null, string? Scene = null, string? Still = null, IReadOnlyList<FightBeat>? Beats = null)
 {
     /// <summary>Why: "how it came to this", in episodes made before 2026-10-27; Comment: the chronicler's view of the year that replaced it.</summary>
     public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
@@ -88,9 +88,13 @@ public sealed record Episode(
             .Select(e => FaceOffs.For(world, e)).OfType<FaceOff>().Take(FaceOffs.PerEpisode).ToList();
         var chosen = new List<WorldEvent>();
         var people = new HashSet<EntityRef>(top?.Actors.Values.Where(a => a.Kind == Character.Kind) ?? Array.Empty<EntityRef>());
+        // A fight that lasted days is one story, however many of its days made the news.
+        var fights = new HashSet<long>();
+        if (top is not null && Fights.RootOf(log, top) is var topFight and not 0) fights.Add(topFight);
         foreach (var ev in ranked.Where(e => e != top && faceOffs.All(f => f.EventId != e.Id)))
         {
             if (chosen.Count == stories) break;
+            if (Fights.RootOf(log, ev) is var fight and not 0 && !fights.Add(fight)) continue;
             var who = ev.Actors.Values.Where(a => a.Kind == Character.Kind).ToList();
             if (who.Any(people.Contains)) continue;
             if (chosen.Prepend(top).Any(c => c is not null && c.Type == ev.Type && c.Actors.Values.Intersect(ev.Actors.Values).Any())) continue;
@@ -129,7 +133,15 @@ public sealed record Episode(
             return sections.Select(s => s.EventId != 0 && log.TryGet(s.EventId, out var ev) && Campaign.WarOf(ev) is var war and not 0
                                         && told.Add(war) && MovesOf(war) is { Count: > 0 } moves
                 ? s with { Text = Campaign.Tell(moves, s.EventId) is { Length: > 0 } march ? $"{s.Text}\n\n{march}" : s.Text, Moves = moves }
-                : s).ToList();
+                : s).Select(WithBeats).ToList();
+        }
+        // A fight's section carries its days; a few are read aloud (never one its text already gives).
+        EpisodeSection WithBeats(EpisodeSection s)
+        {
+            if (s.Kind is not (EpisodeSection.Headline or EpisodeSection.Story) || s.EventId == 0 || !log.TryGet(s.EventId, out var ev)
+                || Fights.Beats(log, ev) is not { Count: > 1 } beats) return s;
+            var fresh = beats.Where(b => !s.Text.Contains(b.Text, StringComparison.Ordinal)).ToList();
+            return s with { Text = Fights.Tell(fresh) is { Length: > 0 } told ? $"{s.Text}\n\n{told}" : s.Text, Beats = beats };
         }
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
             WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff));
