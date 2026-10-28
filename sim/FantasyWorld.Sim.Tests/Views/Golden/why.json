@@ -1,6 +1,6 @@
 {
   "outcome": {
-    "eventId": 150,
+    "eventId": 190,
     "year": 20,
     "category": "characters",
     "title": {
@@ -20,7 +20,7 @@
   "layers": [
     [
       {
-        "eventId": 149,
+        "eventId": 189,
         "year": 20,
         "category": "characters",
         "title": {
@@ -46,8 +46,8 @@
   ],
   "edges": [
     {
-      "from": 149,
-      "to": 150,
+      "from": 189,
+      "to": 190,
       "kind": "trigger",
       "label": "because"
     }

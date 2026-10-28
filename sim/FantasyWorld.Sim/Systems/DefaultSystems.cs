@@ -24,6 +24,7 @@ public static class DefaultSystems
         new RealmSystem(inventor),
         new RevolutionSystem(inventor),
         new SagaSystem(decider, arbiter, inventor),
+        new FestivalSystem(inventor),
         new DiplomacySystem(decider, inventor),
         new MilitarySystem(arbiter, decider),
         new TradeSystem(),

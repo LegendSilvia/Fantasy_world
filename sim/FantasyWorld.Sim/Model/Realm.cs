@@ -71,6 +71,9 @@ public sealed class Realm
 
     public bool Destroyed { get; set; }
 
+    /// <summary>The nation's own festival (sub-project 13); null until founded.</summary>
+    public Festival? Festival { get; set; }
+
     /// <summary>Seat name → character id.</summary>
     public SortedDictionary<string, long> Council
     {
