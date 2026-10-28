@@ -222,6 +222,8 @@ public partial class WarLayer : Node3D
     }
 
     /// <summary>Crossed swords over a battlefield; this year's battles pulse.</summary>
+    /// <summary>Crossed swords where a fight is (the owner, 2026-10-28): a battle or duel of this past year, or one under way
+    /// (red-rimmed, pulsing); a duel's badge is smaller.</summary>
     private static Node3D Swords(MapBattle battle, Geography geography, bool recent)
     {
         var node = new Node3D
@@ -229,19 +231,8 @@ public partial class WarLayer : Node3D
             Name = $"Battle{battle.EventId}",
             Position = Diorama.ToGodot(Client.Projection.ToBlock(geography.Terrain, battle.Position, 0.018f)),
         };
-        var steel = new StandardMaterial3D { AlbedoColor = Ui.C(BlockMesh.Hex(0xd8d6d0)), Metallic = 0.8f, Roughness = 0.25f };
-        foreach (var angle in new[] { 0.7f, -0.7f })
-        {
-            var sword = new Node3D { Rotation = new Vector3(0, 0, angle) };
-            sword.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.0022f, 0.026f, 0.0012f) }, MaterialOverride = steel });
-            sword.AddChild(new MeshInstance3D
-            {
-                Position = new Vector3(0, -0.009f, 0), Mesh = new BoxMesh { Size = new Vector3(0.009f, 0.0018f, 0.002f) },
-                MaterialOverride = new StandardMaterial3D { AlbedoColor = Ui.C(Palette.Conflict), Roughness = 0.6f },
-            });
-            node.AddChild(sword);
-        }
-        if (recent) node.SetMeta("pulse", true);
+        node.AddChild(Badge.Sprite(Client.Badges.Swords(battle.UnderWay), battle.Kind == MapBattle.Duel ? 0.03f : 0.04f, "Badge"));
+        if (recent || battle.UnderWay) node.SetMeta("pulse", true);
         return node;
     }
 

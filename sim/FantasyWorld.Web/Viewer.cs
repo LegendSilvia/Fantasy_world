@@ -122,6 +122,22 @@ public static class Viewer
                 colour = V(WarLayout.Colour(a.Colour)), commander = a.Commander?.Name,
             }),
             arrows = WarLayout.Arrows(map, geography).Select(a => new { army = a.Army.ToString(), mesh = Convert.ToBase64String(Pack(a.Mesh)) }),
+            // The map's badges (the owner, 2026-10-28): boss markers over beasts, crossed swords where fights are.
+            beasts = (map.Monsters ?? []).Select(m => new
+            {
+                name = m.Name, breed = m.Breed, might = m.Might, at = V(Projection.ToBlock(grid, m.Position, 0)), eventId = m.RoseEventId,
+                badge = m.Slumbering ? "asleep" : m.Legendary ? "legend" : "boss",
+            }),
+            fights = (map.Battles ?? []).Select(b => new
+            {
+                kind = b.Kind, underWay = b.UnderWay, at = V(Projection.ToBlock(grid, b.Position, 0)), eventId = b.EventId,
+                badge = b.UnderWay ? "underway" : "fought",
+            }),
+            badges = new Dictionary<string, string>
+            {
+                ["boss"] = Badges.Boss(false, false), ["legend"] = Badges.Boss(true, false), ["asleep"] = Badges.Boss(false, true),
+                ["fought"] = Badges.Swords(false), ["underway"] = Badges.Swords(true),
+            },
         };
         return JsonSerializer.Serialize(scene, Json);
     }

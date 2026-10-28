@@ -45,7 +45,13 @@ public sealed record MapMonster(EntityRef Ref, string Name, string Breed, int Mi
 public sealed record MapRealm(EntityRef Ref, string Name, string Rank, string Colour, string Accent, MapPoint Position, int Regions);
 
 /// <summary>A battle of the last year: where, who won, and the event to explain it.</summary>
-public sealed record MapBattle(long EventId, int Year, MapPoint Position, EntityRef Victor, EntityRef Vanquished, EntityRef War);
+/// <summary>A fight on the map (the owner, 2026-10-28: crossed swords where fights occur): a battle or a duel, fought this past
+/// year (Victor and Vanquished) or still under way (the attacker or challenger, then the defender). War is unset for a duel.</summary>
+public sealed record MapBattle(long EventId, int Year, MapPoint Position, EntityRef Victor, EntityRef Vanquished, EntityRef War,
+    string Kind = MapBattle.Battle, bool UnderWay = false)
+{
+    public const string Battle = "battle", Duel = "duel";
+}
 
 /// <summary>
 /// The *Diorama map HUD* (sub-project 2 §3.2) at any date: regions with their holder and occupier, settlement pins with
@@ -204,10 +210,41 @@ public sealed record MapScreen(
         return routes;
     }
 
-    private static IReadOnlyList<MapBattle> BattlesBefore(World world, EventLog log, WorldDate date) =>
-        log.All.Where(e => e.Type == "BattleFought" && e.Date <= date && e.Date.Day > date.Day - BattleDays && e.Place is { } p && MapPoint.Of(world, p) is not null)
-            .Select(e => new MapBattle(e.Id, e.Date.Year, MapPoint.Of(world, e.Place!.Value)!, e.Actors["victor"], e.Actors["vanquished"], e.Actors["war"]))
-            .ToList();
+    /// <summary>The fights of the past year, and those begun and not yet ended (a battle or duel that lasts days).</summary>
+    private static IReadOnlyList<MapBattle> BattlesBefore(World world, EventLog log, WorldDate date)
+    {
+        var fights = new List<MapBattle>();
+        var ended = new HashSet<long>();
+        foreach (var e in log.All)
+        {
+            if (e.Date > date) break;
+            if (e.Type is "BattleFought" or "BattleBrokenOff" or "DuelFought" or "DuelCalledOff")
+                foreach (var c in e.Causes.Where(c => c.Kind == CauseKind.Trigger)) ended.Add(c.EventId);
+        }
+        foreach (var e in log.All)
+        {
+            if (e.Date > date) break;
+            if (e.Place is not { } p || MapPoint.Of(world, p) is not { } at) continue;
+            var recent = e.Date.Day > date.Day - BattleDays;
+            switch (e.Type)
+            {
+                case "BattleFought" when recent:
+                    fights.Add(new MapBattle(e.Id, e.Date.Year, at, e.Actors["victor"], e.Actors["vanquished"], e.Actors["war"]));
+                    break;
+                case "BattleJoined" when !ended.Contains(e.Id) && e.Actors.TryGetValue("attacker", out var a) && e.Actors.TryGetValue("defender", out var d):
+                    fights.Add(new MapBattle(e.Id, e.Date.Year, at, a, d, e.Actors.GetValueOrDefault("war"), MapBattle.Battle, UnderWay: true));
+                    break;
+                case "DuelFought" when recent && e.Actors.TryGetValue("challenger", out var a) && e.Actors.TryGetValue("defender", out var d):
+                    var challengerWon = e.Payload.GetValueOrDefault("outcome")?.StartsWith("attacker", StringComparison.Ordinal) ?? true;
+                    fights.Add(new MapBattle(e.Id, e.Date.Year, at, challengerWon ? a : d, challengerWon ? d : a, default, MapBattle.Duel));
+                    break;
+                case "DuelBegun" when !ended.Contains(e.Id) && e.Actors.TryGetValue("challenger", out var a) && e.Actors.TryGetValue("defender", out var d):
+                    fights.Add(new MapBattle(e.Id, e.Date.Year, at, a, d, default, MapBattle.Duel, UnderWay: true));
+                    break;
+            }
+        }
+        return fights;
+    }
 
     /// <summary>A landmark is building until its completion event, and ruined once its settlement's ruin event has passed.</summary>
     private static string StructureState(World world, EventLog log, Structure st, WorldDate date)

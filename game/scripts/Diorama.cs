@@ -315,50 +315,18 @@ public partial class Diorama : Node3D
         return Rgb.Clamp(roof * (Math.Clamp(luma, 0.32f, 0.62f) / Math.Max(0.01f, luma)), Rgb.Zero, Rgb.One);
     }
 
-    /// <summary>A beast in its lair: a dark spiked token with glowing eyes; legends wear a turning gold ring; sleepers are grey.</summary>
+    /// <summary>
+    /// A beast in its lair: a boss marker floating above it (the owner, 2026-10-28), a horned skull on a shield, larger
+    /// the mightier the beast; legends wear gold, sleepers are grey.
+    /// </summary>
     private static Node3D BeastNode(MapMonster beast, Geography geography)
     {
         var node = new Node3D
         {
             Name = $"monster{beast.Ref.Id}",
-            Position = ToGodot(Client.Projection.ToBlock(geography.Terrain, beast.Position, 0)) + new Vector3(-0.03f, 0, 0.02f),
+            Position = ToGodot(Client.Projection.ToBlock(geography.Terrain, beast.Position, 0)) + new Vector3(-0.03f, 0.012f, 0.02f),
         };
-        var size = 0.02f + 0.02f * beast.Might / 100f;
-        var hide = new StandardMaterial3D { AlbedoColor = Ui.C(beast.Slumbering ? BlockMesh.Hex(0x77736b) : BlockMesh.Hex(0x2b2230)), Roughness = 0.7f };
-        node.AddChild(new MeshInstance3D
-        {
-            Name = "Body", Position = new Vector3(0, size * 0.35f, 0),
-            Mesh = new SphereMesh { Radius = size * 0.45f, Height = size * 0.7f, RadialSegments = 10, Rings = 5 }, MaterialOverride = hide,
-        });
-        for (var k = 0; k < 3; k++)
-        {
-            var angle = k * Mathf.Tau / 3;
-            node.AddChild(new MeshInstance3D
-            {
-                Name = $"Spike{k}", Position = new Vector3(Mathf.Cos(angle) * size * 0.22f, size * 0.85f, Mathf.Sin(angle) * size * 0.22f),
-                Rotation = new Vector3(Mathf.Sin(angle) * 0.4f, 0, -Mathf.Cos(angle) * 0.4f),
-                Mesh = new CylinderMesh { TopRadius = 0, BottomRadius = size * 0.12f, Height = size * 0.5f, RadialSegments = 5 }, MaterialOverride = hide,
-            });
-        }
-        if (!beast.Slumbering)
-            node.AddChild(new MeshInstance3D
-            {
-                Name = "Eyes", Position = new Vector3(0, size * 0.45f, size * 0.42f),
-                Mesh = new BoxMesh { Size = new Vector3(size * 0.4f, size * 0.07f, size * 0.05f) },
-                MaterialOverride = new StandardMaterial3D { AlbedoColor = Ui.C(BlockMesh.Hex(0xff8a3d)), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded },
-            });
-        if (beast.Legendary)
-        {
-            var ring = new MeshInstance3D
-            {
-                Name = "Legend", Position = new Vector3(0, 0.002f, 0),
-                Mesh = new TorusMesh { InnerRadius = size * 0.75f, OuterRadius = size * 0.85f, Rings = 24, RingSegments = 6 },
-                MaterialOverride = new StandardMaterial3D { AlbedoColor = Ui.C(BlockMesh.Hex(0xc9a227)), Metallic = 0.7f, Roughness = 0.3f },
-            };
-            node.AddChild(ring);
-            var spin = ring.CreateTween().SetLoops();
-            spin.TweenProperty(ring, "rotation:y", Mathf.Tau, 6.0).From(0f);
-        }
+        node.AddChild(Badge.Sprite(Client.Badges.Boss(beast.Legendary, beast.Slumbering), 0.04f + 0.02f * beast.Might / 100f, "Badge"));
         return node;
     }
 

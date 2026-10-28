@@ -125,6 +125,14 @@ async function showYear(year) {
         dynamic.add(banner(army));
         label(esc(army.commander ? `${army.name} · ${army.commander}` : army.name), "army", lift(army.at, 0.1), 40, () => {});
     }
+    // Badges: a boss marker over each beast, crossed swords where a fight was or is (a click asks why).
+    const badge = (key, size, title) => `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.badges[key])}" style="height:${size}px" alt="" title="${esc(title)}">`;
+    for (const beast of s.beasts)
+        label(badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
+            () => setHash({ panel: `why/${beast.eventId}` }));
+    for (const fight of s.fights)
+        label(badge(fight.badge, fight.kind === "duel" ? 26 : 34, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`), "badge", lift(fight.at, 0.02), 75,
+            () => setHash({ panel: `why/${fight.eventId}` }));
     for (const place of s.settlements)
         label(esc(place.name), place.kind === "Conflict" || place.kind === "RecentEvent" ? "news" : "", lift(place.at, 0.03),
             10 + place.size * 100, () => setHash({ panel: `settlement/${id(place.ref)}` }));
@@ -200,10 +208,10 @@ function placeLabels() {
     for (const l of [...labels].sort((a, b) => b.priority - a.priority)) {
         p.copy(l.at).project(camera);
         // Towns are named only once the camera comes close; realms and hosts always.
-        const close = l.kind === "realm" || l.kind === "army" || l.priority > 60 || distance < 2.2;
+        const close = l.kind === "realm" || l.kind === "army" || l.kind === "badge" || l.priority > 60 || distance < 2.2;
         if (!close || p.z > 1 || Math.abs(p.x) > 1.05 || Math.abs(p.y) > 1.05) { l.element.style.display = "none"; continue; }
         const x = (p.x + 1) / 2 * w, y = (1 - p.y) / 2 * h;
-        const box = { x: x - 60, y: y - 26, w: 120, h: 24 };
+        const box = l.kind === "badge" ? { x: x - 13, y: y - 34, w: 26, h: 32 } : { x: x - 60, y: y - 26, w: 120, h: 24 };
         if (taken.some(t => box.x < t.x + t.w && t.x < box.x + box.w && box.y < t.y + t.h && t.y < box.y + box.h)) { l.element.style.display = "none"; continue; }
         taken.push(box);
         l.element.style.display = "";

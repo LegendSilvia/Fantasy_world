@@ -140,4 +140,28 @@ public class MapScreenTests
         Assert.Equal(("Ruined", "Standing"), (At(spire, null), At(walls, null)));
         Assert.Equal(("Building", "Building"), (At(spire, new WorldDate(360)), At(walls, new WorldDate(360))));
     }
+
+    [Fact]
+    public void Fights_AreMarked_WhileTheyGoOn_AndForAYearAfter()
+    {
+        var world = WorldGenerator.Generate(new WorldGenOptions(3, WorldSize.Tiny), DateTimeOffset.UnixEpoch);
+        var log = new EventLog();
+        var (a, b) = (world.Characters.Values.First(), world.Characters.Values.Skip(1).First());
+        var (r1, r2) = (world.Realms.Values.First(), world.Realms.Values.Last());
+        var town = world.Settlements.Values.First();
+        var duel = new Dictionary<string, EntityRef> { ["challenger"] = a.Ref, ["defender"] = b.Ref };
+        var begun = log.Append(world.Date, new EventDraft("DuelBegun", Actors: duel, Place: town.Ref));
+        var joined = log.Append(world.Date, new EventDraft("BattleJoined",
+            Actors: new Dictionary<string, EntityRef> { ["attacker"] = r1.Ref, ["defender"] = r2.Ref }, Place: world.Regions[town.RegionId].Ref));
+        var going = MapScreen.Build(world, log).Battles!;
+        Assert.Equal(new[] { (begun.Id, MapBattle.Duel, true), (joined.Id, MapBattle.Battle, true) },
+            going.Select(f => (f.EventId, f.Kind, f.UnderWay)));
+
+        var fought = log.Append(world.Date, new EventDraft("DuelFought", Actors: duel, Place: town.Ref,
+            Payload: new Dictionary<string, string> { ["outcome"] = "defender_wounds" }, Causes: new[] { new Cause(begun.Id, CauseKind.Trigger, 1) }));
+        var after = MapScreen.Build(world, log).Battles!;
+        var mark = Assert.Single(after, f => f.Kind == MapBattle.Duel);
+        Assert.Equal((fought.Id, false, b.Ref), (mark.EventId, mark.UnderWay, mark.Victor));
+        Assert.Contains(after, f => f.EventId == joined.Id && f.UnderWay);
+    }
 }

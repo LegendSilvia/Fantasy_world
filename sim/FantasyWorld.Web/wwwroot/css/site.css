@@ -51,6 +51,8 @@ html, body {
 .label.realm i { width: 6px; height: 18px; border-radius: 2px; display: block; }
 .label.realm small { display: block; font-size: 10px; letter-spacing: 0; opacity: .75; text-transform: lowercase; }
 .label.army { background: var(--ink); color: var(--card); font-size: 11px; }
+.label.badge { background: none; box-shadow: none; padding: 0; line-height: 0; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); }
+.label.badge img { display: block; width: auto; }
 .label.news::before { content: "●"; color: var(--conflict); margin-right: 4px; }
 
 #bar {
