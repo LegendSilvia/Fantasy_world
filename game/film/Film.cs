@@ -56,6 +56,12 @@ public partial class Film : Node
     private Control? _faceOffStage;
     private ShaderMaterial? _blur;
     private readonly List<Control> _likenesses = new();
+
+    // The showdown's entrance (the owner, 2026-10-28: a dramatic transition): a flash, both sides' colours sweeping in as
+    // slanted bands, the images flying in from their sides, a great VS slamming down and shaking the screen, then the card
+    // rising into place and its bars growing.
+    private Slide? _slideA, _slideB, _slideCard, _bigVersus;
+    private ColorRect? _flash, _bandA, _bandB;
     private string? _imagesDir;
 
     /// <summary>The map behind a face-off: blurred (taps from a coarse mip level) and darkened as <c>amount</c> rises to 1.</summary>
@@ -234,26 +240,112 @@ public partial class Film : Node
             _hud.AddChild(_faceOffStage);
         }
         _faceOffStage.Visible = true;
-        var grown = (float)Math.Clamp((t - _faceOffStart) / 1.0, 0, 1);
-        grown = 1 - (1 - grown) * (1 - grown);
-        _blur!.SetShaderParameter("amount", grown);
-        foreach (var image in _likenesses) image.Modulate = new Color(1, 1, 1, grown);
+        Entrance((float)(t - _faceOffStart));
+    }
+
+    /// <summary>The share of the way from <paramref name="from"/> to <paramref name="to"/> seconds, 0 to 1.</summary>
+    private static float Span(float s, float from, float to) => Math.Clamp((s - from) / (to - from), 0, 1);
+
+    private static float EaseOut(float u) => 1 - (1 - u) * (1 - u) * (1 - u);
+
+    /// <summary>Overshoots a little before settling, as a thing thrown into place does.</summary>
+    private static float EaseBack(float u)
+    {
+        const float c = 1.70158f;
+        return 1 + (c + 1) * MathF.Pow(u - 1, 3) + c * MathF.Pow(u - 1, 2);
+    }
+
+    /// <summary>The entrance, <paramref name="s"/> seconds after the card's moment came: all of it a pure function of the time, so every frame of a film filmed in stretches agrees.</summary>
+    private void Entrance(float s)
+    {
+        var screen = _hud.Size;
+        _blur!.SetShaderParameter("amount", EaseOut(Span(s, 0, 0.5f)));
+        if (_flash is not null) _flash.Color = new Color(1, 1, 1, 0.85f * (1 - Span(s, 0, 0.3f)));
+
+        // The bands sweep in across each other, then sink to a glow behind the card.
+        var sweep = EaseOut(Span(s, 0.05f, 0.5f));
+        var glow = 0.85f - 0.6f * Span(s, 1.2f, 1.7f);
+        void Band(ColorRect? band, float from, float rest)
+        {
+            if (band is null) return;
+            band.Size = new Vector2(screen.X * 1.5f, screen.Y * 0.28f);
+            band.PivotOffset = band.Size / 2;
+            var x = from + (rest - from) * sweep;
+            band.Position = new Vector2(x - band.Size.X / 2, band.Position.Y);
+            band.Modulate = new Color(1, 1, 1, glow * Span(s, 0.05f, 0.15f));
+        }
+        if (_bandA is not null) _bandA.Position = new Vector2(_bandA.Position.X, screen.Y * 0.3f - screen.Y * 0.14f);
+        if (_bandB is not null) _bandB.Position = new Vector2(_bandB.Position.X, screen.Y * 0.7f - screen.Y * 0.14f);
+        Band(_bandA, -screen.X, screen.X * 0.35f);
+        Band(_bandB, screen.X * 2, screen.X * 0.65f);
+
+        // The images fly in from their own sides.
+        var fly = Span(s, 0.2f, 0.75f);
+        foreach (var (slide, side) in new[] { (_slideA, -1f), (_slideB, 1f) })
+        {
+            if (slide is null) continue;
+            slide.Shift = new Vector2(side * screen.X * 0.6f * (1 - EaseBack(fly)), 0);
+            slide.Modulate = new Color(1, 1, 1, Span(s, 0.2f, 0.45f));
+            slide.Place();
+        }
+
+        // The great VS slams down, holds, and gives way to the card.
+        if (_bigVersus is not null)
+        {
+            var slam = EaseOut(Span(s, 0.45f, 0.75f));
+            var away = Span(s, 1.1f, 1.4f);
+            _bigVersus.Zoom = 3.2f - 2.2f * slam - 0.4f * away;
+            _bigVersus.Turn = -0.35f * (1 - slam);
+            _bigVersus.Modulate = new Color(1, 1, 1, Span(s, 0.45f, 0.6f) * (1 - away));
+            _bigVersus.Place();
+        }
+
+        // The blow shakes the screen, dying away.
+        var shake = Span(s, 0.75f, 1.15f);
+        var amplitude = shake is > 0 and < 1 ? 18 * (1 - shake) : 0;
+        _faceOffStage!.Position = new Vector2(amplitude * MathF.Sin(shake * 40), amplitude * MathF.Cos(shake * 33));
+
+        // The card rises into place, then its bars grow.
+        if (_slideCard is not null)
+        {
+            var rise = EaseBack(Span(s, 1.0f, 1.4f));
+            _slideCard.Shift = new Vector2(0, 160 * (1 - rise));
+            _slideCard.Zoom = 0.9f + 0.1f * rise;
+            _slideCard.Modulate = new Color(1, 1, 1, Span(s, 1.0f, 1.2f));
+            _slideCard.Place();
+        }
+        var grown = EaseOut(Span(s, 1.2f, 2.2f));
+        foreach (var image in _likenesses) image.Modulate = Colors.White;
         foreach (var (bar, width) in _bars) bar.CustomMinimumSize = new Vector2(Math.Max(1, width * grown), bar.CustomMinimumSize.Y);
+    }
+
+    private static Slide Sliding(string name, Control child)
+    {
+        var slide = new Slide { Name = name, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+        slide.AddChild(child);
+        return slide;
     }
 
     /// <summary>The face-off's scene: the blur over the whole screen, then the images and the card in a row at its middle.</summary>
     private Control FaceOffStage(FaceOff f)
     {
         (var stage, _blur) = Blurred("FaceOffStage");
+        Color Of(FaceOffSide side) => Ui.C(Client.WarLayout.Colour(side.Colour));
+        _bandA = new ColorRect { Name = "BandA", Color = Of(f.A), Rotation = -0.21f, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _bandB = new ColorRect { Name = "BandB", Color = Of(f.B), Rotation = -0.21f, MouseFilter = Control.MouseFilterEnum.Ignore };
+        stage.AddChild(_bandA);
+        stage.AddChild(_bandB);
 
         var row = Ui.Row("Row", 36);
         row.Alignment = BoxContainer.AlignmentMode.Center;
         row.SetAnchorsPreset(Control.LayoutPreset.Center);
         (row.GrowHorizontal, row.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
-        var (a, b) = (Likeness(f.A, "ImageA"), Likeness(f.B, "ImageB"));
-        var shown = a is not null || b is not null;
-        var card = FaceOffCard(f);
-        card.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        var (imageA, imageB) = (Likeness(f.A, "ImageA"), Likeness(f.B, "ImageB"));
+        var shown = imageA is not null || imageB is not null;
+        _slideA = shown ? Sliding("SlideA", imageA ?? Spacer("ImageA")) : null;
+        _slideB = shown ? Sliding("SlideB", imageB ?? Spacer("ImageB")) : null;
+        Control? a = _slideA, b = _slideB;
+        var card = _slideCard = Sliding("SlideCard", FaceOffCard(f));
         if (_vertical)
         {
             // Tall: the two images side by side above the card.
@@ -263,22 +355,35 @@ public partial class Film : Node
             (column.GrowHorizontal, column.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
             if (shown)
             {
-                row.AddChild(a ?? Spacer("ImageA"));
+                row.AddChild(a!);
                 var vs = Versus("VersusTall", 150);
                 vs.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
                 row.AddChild(vs);
-                row.AddChild(b ?? Spacer("ImageB"));
+                row.AddChild(b!);
                 column.AddChild(row);
             }
             column.AddChild(card);
             stage.AddChild(column);
+            return Finish(stage);
+        }
+        if (shown) row.AddChild(a!);
+        row.AddChild(card);
+        if (shown) row.AddChild(b!);
+        stage.AddChild(row);
+        return Finish(stage);
+
+        // Over all of it, the great VS and the flash.
+        Control Finish(Control stage)
+        {
+            _bigVersus = Sliding("BigVersus", Versus("Versus", 300));
+            _bigVersus.SetAnchorsPreset(Control.LayoutPreset.Center);
+            (_bigVersus.GrowHorizontal, _bigVersus.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
+            stage.AddChild(_bigVersus);
+            _flash = new ColorRect { Name = "Flash", Color = new Color(1, 1, 1, 0), MouseFilter = Control.MouseFilterEnum.Ignore };
+            _flash.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            stage.AddChild(_flash);
             return stage;
         }
-        if (shown) row.AddChild(a ?? Spacer("ImageA"));
-        row.AddChild(card);
-        if (shown) row.AddChild(b ?? Spacer("ImageB"));
-        stage.AddChild(row);
-        return stage;
     }
 
     /// <summary>The showdown's VS emblem (<see cref="Client.Badges.Versus"/>), <paramref name="height"/> pixels tall, centred.</summary>
