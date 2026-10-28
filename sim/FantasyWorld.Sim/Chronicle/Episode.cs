@@ -24,6 +24,15 @@ public sealed record EpisodeSection(string Kind, string Title, string Text, long
 {
     /// <summary>Why: "how it came to this", in episodes made before 2026-10-27; Comment: the chronicler's view of the year that replaced it.</summary>
     public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
+
+    /// <summary>The prayers of the year and the gods' answers (sub-project 13 N5): the players answer them on the website.</summary>
+    public const string Prayers = "prayers";
+
+    /// <summary>The events the prayers' section tells (never among the stories).</summary>
+    public static readonly IReadOnlySet<string> PrayerEvents = new HashSet<string>(StringComparer.Ordinal) { "PrayerOffered", "PrayerAnswered", "PrayerUnheeded", "GodsBlessed" };
+
+    /// <summary>At most this many new prayers are read aloud.</summary>
+    public const int PrayersTold = 3;
 }
 
 /// <summary>
@@ -75,7 +84,7 @@ public sealed record Episode(
         var events = log.Since(sinceEventId).Where(e => !first || e.Date.Day > world.Date.Day - WorldDate.DaysPerYear).ToList();
         var fromYear = log.TryGet(sinceEventId, out var last) ? last.Date.Year : events.Count > 0 ? events[0].Date.Year : world.Date.Year;
         var toYear = world.Date.Year;
-        var ranked = events.Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
+        var ranked = events.Where(e => !EpisodeSection.PrayerEvents.Contains(e.Type)).Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
             .OrderByDescending(x => x.Score).ThenBy(x => x.Event.Id).Select(x => x.Event).ToList();
         // News that shapes the world leads (a war, a fall, a legend), however famous the people in smaller stories are.
         // The engine's own weight decides among them, so a realm's fall outranks a famous lord's death.
@@ -153,8 +162,9 @@ public sealed record Episode(
             var fresh = beats.Where(b => !s.Text.Contains(b.Text, StringComparison.Ordinal)).ToList();
             return s with { Text = Fights.Tell(fresh) is { Length: > 0 } told ? $"{s.Text}\n\n{told}" : s.Text, Beats = beats };
         }
+        var prayers = PrayersOf(events, narrator);
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
-            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff));
+            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, prayers));
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
@@ -214,7 +224,8 @@ public sealed record Episode(
         narrator.PlaceOf(ev) is { } place ? $"{Views.Categories.Kicker(ev)} at {English.Capitalise(place)}" : Views.Categories.Kicker(ev);
 
     private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
-        IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff)
+        IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff,
+        EpisodeSection? prayers = null)
     {
         var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
         if (headline is not null)
@@ -226,8 +237,27 @@ public sealed record Episode(
             var line = lines[stories[i].EventId];
             sections.Add(new(EpisodeSection.Story, titles[stories[i].EventId], i == 0 ? $"Elsewhere in the chronicle:\n\n{line}" : line, stories[i].EventId));
         }
+        if (prayers is not null) sections.Add(prayers);
         if (comment is not null) sections.Add(new(EpisodeSection.Comment, "The chronicler's view", comment));
         sections.Add(new(EpisodeSection.Closing, "Until tomorrow", signOff));
         return sections;
+    }
+
+    /// <summary>
+    /// The prayers' section (sub-project 13 N5): how the gods answered since the last episode, then the new prayers, and
+    /// the call to the players to answer them. Null when no one prayed and nothing was answered.
+    /// </summary>
+    private static EpisodeSection? PrayersOf(IReadOnlyList<WorldEvent> events, TemplateNarrator narrator)
+    {
+        var answers = events.Where(e => e.Type is "PrayerAnswered" or "PrayerUnheeded" or "GodsBlessed").Select(narrator.Sentence).ToList();
+        var offered = events.Where(e => e.Type == "PrayerOffered").OrderByDescending(e => e.Importance).ThenBy(e => e.Id)
+            .Take(EpisodeSection.PrayersTold).Select(narrator.Sentence).ToList();
+        if (answers.Count == 0 && offered.Count == 0) return null;
+        var parts = new List<string>();
+        if (answers.Count > 0) parts.Add("The gods have answered. " + string.Join(" ", answers));
+        if (offered.Count > 0)
+            parts.Add("New prayers rise to the gods. " + string.Join(" ", offered)
+                      + " You are their gods: grant or deny them, and bless a side in the fights to come, on the chronicle's map before the next dawn.");
+        return new EpisodeSection(EpisodeSection.Prayers, "Prayers to the gods", string.Join("\n\n", parts));
     }
 }

@@ -78,7 +78,29 @@ public static class BroadcastApp
         // The LLM key, like every secret, comes from the environment given (never the process's own, so tests cannot spend).
         return await new DailyRun(config, store, channels, clock, output, options,
             settings => Llm.LlmProviders.Create(settings, env, ScriptTimeout), Speech.ElevenLabs.FromEnvironment(http, env),
-            Media.FluxImages.FromEnvironment(http, config.Images.BaseUrl, env)).RunAsync(ct).ConfigureAwait(false);
+            Media.FluxImages.FromEnvironment(http, config.Images.BaseUrl, env),
+            config.Site.Url is { } site ? token => Tally(http, site, output, token) : null).RunAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The players' votes from the site (sub-project 13 N5): its prayers' tally, or null (said in the log) when the site
+    /// cannot be reached; the day goes on without them.
+    /// </summary>
+    public static async Task<string?> Tally(HttpClient http, string site, TextWriter output, CancellationToken ct)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(20));
+            using var response = await http.GetAsync($"{site.TrimEnd('/')}/api/tally", timeout.Token).ConfigureAwait(false);
+            if (response.IsSuccessStatusCode) return await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
+            output.WriteLine($"warning: the prayers' tally answered {(int)response.StatusCode}; no answers today.");
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            output.WriteLine($"warning: the prayers' tally could not be fetched ({e.GetType().Name}); no answers today.");
+        }
+        return null;
     }
 
     private static int Map(string worldPath, string pngPath, TextWriter output)

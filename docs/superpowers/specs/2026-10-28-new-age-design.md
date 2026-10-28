@@ -1,6 +1,6 @@
 # Fantasy World — A New Age: continents, races, gods and the demon lord (sub-project 13)
 
-**Status:** design, building · **Asked by:** the owner, 2026-10-28 ("i want more fantasy aspect") · **Builds on:** world
+**Status:** N1–N6 built (2026-10-28), with the fight result face-offs (F3) and the map badges (M1); N7 (the new age) and V1 (the vertical short) to come · **Asked by:** the owner, 2026-10-28 ("i want more fantasy aspect") · **Builds on:** world
 generation, cultures and faiths, monsters, labyrinths, heroes, the decider and inventor (Claude), the daily broadcast,
 the website (Cloudflare Pages)
 
@@ -94,6 +94,29 @@ that happen around it (marriages, duels, tourneys). A new realm founds its festi
 When N1–N6 are built and checked: a new Huge world is generated (with Claude's races, festivals and names) and
 pre-simulated, the old world is archived in the bucket (its episodes, videos and site stay), and the broadcast's first
 episode of the new age introduces the world. The website shows the new world; the old one stays at an archive link.
+
+## 3.10 Also asked (the owner, 2026-10-28)
+
+- **F3 — a fight's face-off:** a fight's section shows its face-off as it stands: the result (victor, how it ended, the
+  losses) or its course so far (its day, the chance reckoned at its challenge); the film brings the card up after the
+  section's still and moves.
+- **M1 — map badges:** beasts are boss markers (a horned skull on a shield; gold for legends, grey asleep), fights are
+  crossed swords (gold once fought this past year, red while under way, battles and duels alike); game, film, website.
+- **V1 — a vertical short:** each episode also as a 9:16 short for YouTube Shorts and TikTok, the same content in a layout
+  of its own.
+
+## 3.11 As built
+
+- N1: `TerrainOptions.Continents`, `ContinentNamer`, `RegionGraphBuilder.AddCrossings` (three crossings between every two
+  continents), `WorldSize.Huge` (448², 300 regions).
+- N2: `Race`, `RaceGenerator` (and `Invent` via `fw invent`), `Peoples`; gifts at birth, span in mortality, opinion ±20,
+  `ancient hatred` casus belli, unrest +3/+7 under another race.
+- N3: treasures every other level (`Artifact.Level`), continent breeds, sea monsters (`RiseFromTheSea`), `HostAttackedAtSea`.
+- N4: `SagaSystem`, `Saga`, `Government.Dominion`; ends slain, sealed, driven out, or a dark age.
+- N5: `PrayerSystem`, `Prayer`, `World.Favour`, `Tally`; `fw answer`; the episode's prayers section; the website's
+  Prayers panel; Pages Functions `site/functions/api/vote.js` and `tally.js` on the D1 database `fantasy-world-prayers`;
+  the daily run fetches the tally before the day's history.
+- N6: `FestivalSystem`, `Realm.Festival`; `fw invent` asks Claude for every nation's festival.
 
 ## 4. Milestones
 

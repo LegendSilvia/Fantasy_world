@@ -196,6 +196,8 @@ jobs:
             dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "$prefix$world" "$RUNNER_TEMP/world.fw.db"
             dotnet run --configuration Release --project sim/FantasyWorld.Cli -- export-web "$RUNNER_TEMP/world.fw.db" "$bundle"
           fi
+          # The prayers' Pages Functions (sub-project 13 N5) deploy from site/, with the viewer copied into it.
+          rm -rf site/public && cp -r "$RUNNER_TEMP/site/wwwroot" site/public
           echo "project=$(jq -r '.site.project // "fantasy-world-chronicle"' broadcast.json)" >> "$GITHUB_OUTPUT"
           if [ "$DRY_RUN" = "true" ]; then echo "branch=staging" >> "$GITHUB_OUTPUT"; else echo "branch=main" >> "$GITHUB_OUTPUT"; fi
       - name: Create the Pages project (once; already there is fine)
@@ -206,9 +208,19 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.R2_ACCOUNT_ID }}
           command: pages project create ${{ steps.build.outputs.project }} --production-branch=main
-      - name: Deploy the site
+      - name: Deploy the site, with the players' prayers
         id: deploy
         if: steps.token.outputs.ready == 'true'
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.R2_ACCOUNT_ID }}
+          workingDirectory: site
+          command: pages deploy --project-name=${{ steps.build.outputs.project }} --branch=${{ steps.build.outputs.branch }} --commit-dirty=true
+      - name: Deploy the site without the prayers (the token cannot bind their database)
+        id: plain
+        if: steps.token.outputs.ready == 'true' && steps.deploy.outcome == 'failure'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -217,7 +229,7 @@ jobs:
       - name: Say where it is
         if: steps.token.outputs.ready == 'true'
         env:
-          URL: ${{ steps.deploy.outputs.deployment-url }}
+          URL: ${{ steps.deploy.outputs.deployment-url || steps.plain.outputs.deployment-url }}
         run: echo "The world is at $URL (set site.url in broadcast.json to link to it from the posts)."
 
   publish:

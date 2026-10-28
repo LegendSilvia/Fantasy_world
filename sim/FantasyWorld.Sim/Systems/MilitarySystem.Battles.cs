@@ -53,7 +53,9 @@ public sealed partial class MilitarySystem
         var martial = world.Characters.TryGetValue(army.CommanderId, out var c) ? c.Attributes.Martial : 5;
         // Arms by the realm's stocks: short of ore it fights weaker, with horses stronger (sub-project 12).
         var arms = world.Realms.TryGetValue(army.RealmId, out var realm) ? Stocks.Arms(realm) : 1;
-        return troops * (0.6 + martial / 25.0) * (army.Morale / 100 + 0.2) * (0.5 + army.Supply / 200) * arms;
+        // The gods' favour, by prayer or a players' blessing (sub-project 13 N5).
+        var favour = realm is not null && PrayerSystem.Favoured(world, realm.Ref) ? PrayerSystem.FavourStrength : 1;
+        return troops * (0.6 + martial / 25.0) * (army.Morale / 100 + 0.2) * (0.5 + army.Supply / 200) * arms * favour;
     }
 
     private void Battle(SimContext ctx, War war, Army attacker, Army defender, Region region)

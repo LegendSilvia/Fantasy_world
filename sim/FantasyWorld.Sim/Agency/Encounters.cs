@@ -91,7 +91,7 @@ public static class Encounters
         var age = c.Age(world.Date);
         if (age < 18) strength -= 4;
         if (age >= 55) strength -= (age - 50) / 5;
-        return Math.Max(1, strength);
+        return Math.Max(1, strength) * (Systems.PrayerSystem.Favoured(world, c.Ref) ? Systems.PrayerSystem.FavourStrength : 1);
     }
 
     public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath)

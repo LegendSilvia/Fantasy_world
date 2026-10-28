@@ -37,7 +37,9 @@ public sealed record WorldSnapshot(
     SortedDictionary<long, Monster>? Monsters = null,
     SortedDictionary<long, Continent>? Continents = null,
     SortedDictionary<long, Race>? Races = null,
-    SortedDictionary<long, Saga>? Sagas = null)
+    SortedDictionary<long, Saga>? Sagas = null,
+    SortedDictionary<long, Prayer>? Prayers = null,
+    SortedDictionary<string, long>? Favour = null)
 {
     public const int CurrentVersion = 6;
 
@@ -70,7 +72,9 @@ public sealed record WorldSnapshot(
         world.Monsters,
         world.Continents,
         world.Races,
-        world.Sagas);
+        world.Sagas,
+        world.Prayers,
+        world.Favour);
 
     /// <summary>Rebuilds the world. Older snapshots lack newer entities, which load empty.</summary>
     public World ToWorld() => new()
@@ -101,6 +105,8 @@ public sealed record WorldSnapshot(
         Continents = Copy(Continents),
         Races = Copy(Races),
         Sagas = Copy(Sagas),
+        Prayers = Copy(Prayers),
+        Favour = Favour is null ? new SortedDictionary<string, long>(StringComparer.Ordinal) : new SortedDictionary<string, long>(Favour, StringComparer.Ordinal),
     };
 
     private static SortedDictionary<long, T> Copy<T>(SortedDictionary<long, T>? source) =>

@@ -282,6 +282,7 @@ async function render(kind, key, year) {
         return `<div class="kicker">${esc(s.card.kicker)}</div><h2>${esc(s.name)}</h2><p>${esc(s.card.title)}</p><p class="muted">${esc(s.card.line)}</p>`
             + (s.holder ? `<p>Held by ${ref(s.holder, "its lord")}</p>` : "");
     }
+    if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
     if (kind === "character") return character(screen);
@@ -305,6 +306,61 @@ function realm(r) {
         + list("Treaties", r.treaties, t => `${esc(t.kind)} with ${mention(t.with)} <span class="muted">since Year ${t.sinceYear}</span>`)
         + list("Eras", r.eras, e => `Year ${e.year}: <a data-ref="event#${e.eventId}">${esc(e.name)}</a> <span class="muted">${esc(e.phase)}</span>`);
 }
+
+// ---------- The players are the gods (sub-project 13 N5) ----------
+
+/** Today's answers so far, from the site's prayers database; empty when there is none (a local copy of the site). */
+async function tally() {
+    try {
+        const response = await fetch("api/tally", { cache: "no-store" });
+        return response.ok ? await response.json() : { prayers: {}, blessings: {} };
+    } catch { return { prayers: {}, blessings: {} }; }
+}
+
+const chosen = (() => { try { return JSON.parse(localStorage.getItem("fw-votes") ?? "{}"); } catch { return {}; } })();
+
+function gods(open, counts) {
+    const vote = (kind, id, choice, label, extra = "") => {
+        const mine = chosen[`${kind}/${id}`] === choice ? " chosen" : "";
+        return `<button class="${mine.trim()}" data-vote="${kind}" data-item="${id}" data-choice="${choice}">${extra}${label}</button>`;
+    };
+    const prayers = open.prayers.map(p => {
+        const n = counts.prayers?.[p.id] ?? { grant: 0, deny: 0 };
+        return `<div class="prayer"><p>${linked(p.text)}</p><div class="votes">`
+            + vote("prayer", p.id, "grant", `Grant · ${n.grant}`) + vote("prayer", p.id, "deny", `Deny · ${n.deny}`) + `</div></div>`;
+    }).join("");
+    const fights = open.faceOffs.map(f => {
+        const n = counts.blessings?.[f.id] ?? { a: 0, b: 0 };
+        const swatch = c => `<i style="background:${css(c)}"></i>`;
+        return `<div class="prayer"><p><b>${esc(f.a.name)}</b> v <b>${esc(f.b.name)}</b> <span class="muted">(${esc(f.stakes)}; ${f.odds}% to ${100 - f.odds}%)</span></p><div class="votes">`
+            + vote("blessing", f.id, "a", `Bless ${esc(f.a.name)} · ${n.a}`, swatch(f.a.colour))
+            + vote("blessing", f.id, "b", `Bless ${esc(f.b.name)} · ${n.b}`, swatch(f.b.colour)) + `</div></div>`;
+    }).join("");
+    return `<div class="kicker">You are the gods</div><h2>Prayers to the gods</h2>`
+        + `<p class="muted">The people of the world pray to their gods. Grant or deny each prayer, and bless a side in the fights to come: `
+        + `at the next dawn the gods do as most of you chose.</p>`
+        + (prayers || `<p class="muted">No one prays today.</p>`)
+        + `<h3>Fights to come</h3>` + (fights || `<p class="muted">No fight awaits a blessing.</p>`);
+}
+
+$("gods").addEventListener("click", () => setHash({ panel: "gods/today" }));
+
+$("panel-body").addEventListener("click", async e => {
+    const button = e.target.closest("button[data-vote]");
+    if (!button) return;
+    const { vote: kind, item, choice } = button.dataset;
+    button.disabled = true;
+    try {
+        const response = await fetch("api/vote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, item: +item, choice }) });
+        if (!response.ok) throw new Error(`${response.status}`);
+        chosen[`${kind}/${item}`] = choice;
+        try { localStorage.setItem("fw-votes", JSON.stringify(chosen)); } catch { }
+        $("panel-body").innerHTML = gods(JSON.parse(await call("Prayers")), await tally());
+    } catch {
+        button.disabled = false;
+        button.textContent = "The gods could not hear you; try again";
+    }
+});
 
 function character(c) {
     return `<div class="kicker">${esc(c.kicker)}</div><h2>${esc(c.name)}</h2><p>${esc(c.line)}</p>`

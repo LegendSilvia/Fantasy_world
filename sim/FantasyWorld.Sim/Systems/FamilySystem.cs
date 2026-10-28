@@ -97,7 +97,7 @@ public sealed class FamilySystem : ISimSystem
         return wedding;
     }
 
-    private static void Birth(SimContext ctx, Character mother, Character father)
+    internal static void Birth(SimContext ctx, Character mother, Character father)
     {
         var world = ctx.World;
         var houseId = CharacterFactory.LineageParent(world, father, mother)!.HouseId;

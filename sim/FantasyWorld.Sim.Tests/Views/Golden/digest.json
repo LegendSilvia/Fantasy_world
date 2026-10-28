@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 195 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 210 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -14,7 +14,7 @@
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "eventId": 170
+      "eventId": 185
     },
     {
       "number": 3,
@@ -34,7 +34,7 @@
         "x": 0.3203125,
         "y": 0.3515625
       },
-      "eventId": 71
+      "eventId": 78
     },
     {
       "number": 6,
@@ -44,7 +44,17 @@
         "x": 0.8828125,
         "y": 0.4296875
       },
-      "eventId": 33
+      "eventId": 34
+    },
+    {
+      "number": 7,
+      "place": "settlement#24",
+      "label": "Niar",
+      "position": {
+        "x": 0.2578125,
+        "y": 0.7890625
+      },
+      "eventId": 51
     }
   ],
   "headline": {
@@ -67,7 +77,7 @@
         {
           "start": 0,
           "length": 22,
-          "entity": "char#37"
+          "entity": "char#38"
         },
         {
           "start": 31,
@@ -86,7 +96,7 @@
         }
       ]
     },
-    "eventId": 170,
+    "eventId": 185,
     "canExplain": true
   },
   "items": [
@@ -99,7 +109,7 @@
           {
             "start": 0,
             "length": 22,
-            "entity": "char#37"
+            "entity": "char#38"
           },
           {
             "start": 28,
@@ -113,7 +123,7 @@
           }
         ]
       },
-      "eventId": 168
+      "eventId": 183
     },
     {
       "number": 3,
@@ -131,68 +141,68 @@
         "text": "The Age of Long Peace of Thonae began.",
         "links": []
       },
-      "eventId": 48
+      "eventId": 49
     },
     {
       "number": 5,
       "category": "nature",
       "text": {
-        "text": "Sickness swept through Thonae.",
+        "text": "Plague broke out in Thonae.",
         "links": [
           {
-            "start": 23,
+            "start": 20,
             "length": 6,
             "entity": "region#3"
           }
         ]
       },
-      "eventId": 71
+      "eventId": 78
     },
     {
       "number": 6,
       "category": "characters",
       "text": {
-        "text": "Keth of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
+        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 15,
-            "entity": "char#17"
-          },
-          {
-            "start": 32,
             "length": 14,
             "entity": "char#1"
           },
           {
-            "start": 60,
+            "start": 24,
+            "length": 15,
+            "entity": "char#17"
+          },
+          {
+            "start": 62,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 33
+      "eventId": 34
     },
     {
       "number": 7,
-      "category": "characters",
+      "category": "faithAndMagic",
       "text": {
-        "text": "The Kingdom of Thonae kept the Tourney of Crowns: champions joust and wrestle before the throne.",
+        "text": "Stiath of Vallbrorneth prayed to Ciscoun for an heir.",
         "links": [
           {
-            "start": 4,
-            "length": 17,
-            "entity": "realm#1"
+            "start": 0,
+            "length": 22,
+            "entity": "char#24"
           }
         ]
       },
-      "eventId": 50
+      "eventId": 51
     },
     {
       "number": 8,
       "category": "characters",
       "text": {
-        "text": "Lond of Cunvei and Meinrall of Cond were wed at Drerithby.",
+        "text": "Lond of Cunvei married Meinrall of Cond at Drerithby.",
         "links": [
           {
             "start": 0,
@@ -200,18 +210,18 @@
             "entity": "char#3"
           },
           {
-            "start": 19,
+            "start": 23,
             "length": 16,
             "entity": "char#5"
           },
           {
-            "start": 48,
+            "start": 43,
             "length": 9,
             "entity": "settlement#3"
           }
         ]
       },
-      "eventId": 72
+      "eventId": 79
     }
   ]
 }

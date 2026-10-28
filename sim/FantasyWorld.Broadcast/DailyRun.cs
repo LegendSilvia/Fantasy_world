@@ -27,7 +27,7 @@ public sealed record RunOptions(bool DryRun = false, bool Create = false, bool U
 /// </summary>
 public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnlyList<IEpisodeChannel> channels,
     Func<DateTimeOffset> clock, TextWriter log, RunOptions? options = null, Func<LlmSettings, ILlmProvider?>? providers = null,
-    ISpeech? speech = null, IImageMaker? images = null)
+    ISpeech? speech = null, IImageMaker? images = null, Func<CancellationToken, Task<string?>>? tally = null)
 {
     /// <summary>Exit codes: published; nothing published (the world is untouched); the episode is out but a channel failed.</summary>
     public const int Ok = 0, Failed = 1, Partial = 2;
@@ -340,6 +340,13 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 "--fight-beats", llm.FightBeatsPerDay.ToString(CultureInfo.InvariantCulture),
                 "--narrations", llm.NarrationsPerDay.ToString(CultureInfo.InvariantCulture),
                 "--cap", llm.MonthlyCapUsd.ToString(CultureInfo.InvariantCulture));
+            // The players' answers since yesterday (sub-project 13 N5: the players are the gods), before the day's history.
+            if (tally is not null && await tally(ct).ConfigureAwait(false) is { Length: > 0 } votes)
+            {
+                var answers = Path.Combine(work.FullName, "tally.json");
+                await File.WriteAllTextAsync(answers, votes, ct).ConfigureAwait(false);
+                Fw("answer", worldPath, answers);
+            }
             Fw("catchup", worldPath, "--quiet");
             var dir = Path.Combine(work.FullName, "episode");
             Fw(["episode", worldPath, "--out", dir, "--date", date,

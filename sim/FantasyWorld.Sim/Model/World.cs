@@ -67,6 +67,10 @@ public sealed class World
     public SortedDictionary<long, Continent> Continents { get; init; } = new();
     public SortedDictionary<long, Race> Races { get; init; } = new();
     public SortedDictionary<long, Saga> Sagas { get; init; } = new();
+    public SortedDictionary<long, Prayer> Prayers { get; init; } = new();
+
+    /// <summary>The gods' favour (sub-project 13 N5): "char#12" or "realm#3" → the last day it lasts.</summary>
+    public SortedDictionary<string, long> Favour { get; init; } = new(StringComparer.Ordinal);
 
     /// <summary>Region → realm at world creation: the baseline that history replays from (map history slider).</summary>
     public SortedDictionary<long, long> FoundingOwners { get; init; } = new();

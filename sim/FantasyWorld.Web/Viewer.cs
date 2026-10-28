@@ -6,6 +6,7 @@ using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Persist;
+using FantasyWorld.Sim.Systems;
 using FantasyWorld.Sim.Views;
 using Microsoft.JSInterop;
 
@@ -39,6 +40,30 @@ public static class Viewer
     /// A screen's JSON, as the game's views make it: <c>map</c> (arg: a year, or empty for today), <c>character</c>,
     /// <c>family</c>, <c>realm</c>, <c>artifact</c> (arg: an id), <c>why</c> (arg: an event id), <c>chronicle</c> (arg: a year, or empty).
     /// </summary>
+    /// <summary>
+    /// What the players may answer today (sub-project 13 N5): the open prayers (who prays, to whom, for what, told as the
+    /// chronicle tells it) and the face-offs still to be fought, with both sides, as JSON.
+    /// </summary>
+    [JSInvokable]
+    public static string Prayers()
+    {
+        var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
+        var prayers = World.Prayers.Values.Where(p => p.IsOpen && Log.TryGet(p.EventId, out _)).OrderByDescending(p => p.Day).ThenBy(p => p.Id)
+            .Select(p => new
+            {
+                id = p.Id, plea = p.Plea, god = World.Faiths.GetValueOrDefault(p.FaithId)?.Deity, text = narrator.Sentence(Log.Get(p.EventId)),
+                supplicant = World.Characters[p.SupplicantId].Ref.ToString(), year = new WorldDate(p.Day).Year,
+            });
+        var faceOffs = PrayerSystem.Blessable(World, Log).Select(e => FantasyWorld.Sim.Chronicle.FaceOffs.For(World, e)).OfType<FantasyWorld.Sim.Chronicle.FaceOff>()
+            .Select(f => new
+            {
+                id = f.EventId, kind = f.Kind, stakes = f.Stakes, odds = f.OddsA,
+                a = new { name = f.A.Name, colour = V3(WarLayout.Colour(f.A.Colour)) }, b = new { name = f.B.Name, colour = V3(WarLayout.Colour(f.B.Colour)) },
+            });
+        return JsonSerializer.Serialize(new { prayers, faceOffs }, Json);
+        static float[] V3(Vector3 v) => [v.X, v.Y, v.Z];
+    }
+
     [JSInvokable]
     public static string Screen(string kind, string arg)
     {

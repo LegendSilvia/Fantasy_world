@@ -25,6 +25,7 @@ public static class DefaultSystems
         new RevolutionSystem(inventor),
         new SagaSystem(decider, arbiter, inventor),
         new FestivalSystem(inventor),
+        new PrayerSystem(),
         new DiplomacySystem(decider, inventor),
         new MilitarySystem(arbiter, decider),
         new TradeSystem(),

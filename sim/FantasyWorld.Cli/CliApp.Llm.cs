@@ -58,6 +58,20 @@ public static partial class CliApp
         return 0;
     }
 
+    /// <summary>The players' answers (sub-project 13 N5): a tally of votes applied to the world before its next history.</summary>
+    private static int Answer(string path, string[] rest, TextWriter output)
+    {
+        if (rest.Length < 1) return UsageError(output);
+        using var store = OpenExisting(path);
+        var (world, log, queue) = store.Load();
+        var ctx = new FantasyWorld.Sim.Engine.SimContext(world, log, queue, Rng.ForStream(world.Seed, "answers", world.Date.Day));
+        var told = PrayerSystem.Apply(ctx, Tally.Parse(File.ReadAllText(rest[0])));
+        store.Save(world, log, queue);
+        output.WriteLine($"The gods answered: {told.Count(e => e.Type == "PrayerAnswered")} prayer(s) granted, "
+                         + $"{told.Count(e => e.Type == "PrayerUnheeded")} unheeded, {told.Count(e => e.Type == "GodsBlessed")} side(s) blessed.");
+        return 0;
+    }
+
     private static int Tell(string path, string[] rest, TextWriter output, Func<LlmSettings, ILlmProvider?> providers)
     {
         if (rest.Length < 1) return UsageError(output);
