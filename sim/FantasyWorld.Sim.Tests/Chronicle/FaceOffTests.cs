@@ -43,20 +43,20 @@ public class FaceOffTests
         var f = section.FaceOff!;
         Assert.Equal((FaceOff.Duel, declared.Id, "to the death", 71), (f.Kind, f.EventId, f.Stakes, f.OddsA));
         Assert.Equal((strong.Ref.ToString(), sly.Ref.ToString()), (f.A.Ref, f.B.Ref));
-        Assert.Equal(17, f.A.Stats.Single(s => s.Name == "Prowess").Value);
-        Assert.All(f.A.Stats.Where(s => s.Name != "Renown"), s => Assert.Equal(20, s.Max));
+        Assert.Equal(17, f.A.Stats.Single(s => s.Name == "Might").Value);
+        Assert.All(f.A.Stats.Where(s => s.Name is not ("Glory" or "Relics")), s => Assert.Equal(20, s.Max));
         Assert.Contains("aged 30", f.A.Notes);
         Assert.Equal($"{f.A.Name} vs {f.B.Name}", section.Title);
         // Told plainly when no chronicler answers: who is stronger at what, and the odds.
         Assert.StartsWith($"The gauntlet is thrown: {f.A.Name} against {f.B.Name}, to the death, at ", section.Text);
-        Assert.True(section.Text.Contains($"{f.A.Name} is the stronger in martial and prowess; {f.B.Name} in intrigue"), section.Text);
+        Assert.True(section.Text.Contains($"{f.A.Name} is the stronger in might and valour; {f.B.Name} in cunning"), section.Text);
         Assert.EndsWith($"The odds favour {f.A.Name}, 71 in a hundred.", section.Text);
         // Not told again among the stories, and the episode keeps it through a round trip.
         Assert.DoesNotContain(episode.Stories, s => s.EventId == declared.Id);
         var back = Episode.FromJson(episode.ToJson()).Parts.Single(p => p.Kind == EpisodeSection.Challenge).FaceOff;
         Assert.Equal(System.Text.Json.JsonSerializer.Serialize(f), System.Text.Json.JsonSerializer.Serialize(back));
         Assert.Contains("Chance of winning:", f.Figures());
-        Assert.Contains("prowess 17", f.Figures());
+        Assert.Contains("might 17", f.Figures());
     }
 
     [Fact]
@@ -78,9 +78,9 @@ public class FaceOffTests
         Assert.Equal((FaceOff.War, "the War of Ash", 35), (f.Kind, f.Stakes, f.OddsA));
         Assert.Equal((120d, 200d), (f.A.Stats[0].Value, f.B.Stats[0].Value));
         Assert.Equal((200d, 200d), (f.A.Stats[0].Max, f.B.Stats[0].Max));
-        Assert.Equal((900d, 900d), (f.A.Stats.Single(s => s.Name == "Treasury").Max, f.B.Stats.Single(s => s.Name == "Treasury").Max));
-        Assert.Equal((40d, 0d, 40d), (f.A.Stats.Single(s => s.Name == "Ore").Value, f.B.Stats.Single(s => s.Name == "Ore").Value, f.B.Stats.Single(s => s.Name == "Ore").Max));
-        Assert.Equal((0d, 12d), (f.A.Stats.Single(s => s.Name == "Horses").Value, f.B.Stats.Single(s => s.Name == "Horses").Value));
+        Assert.Equal((900d, 900d), (f.A.Stats.Single(s => s.Name == "War chest").Max, f.B.Stats.Single(s => s.Name == "War chest").Max));
+        Assert.Equal((40d, 0d, 40d), (f.A.Stats.Single(s => s.Name == "Steel").Value, f.B.Stats.Single(s => s.Name == "Steel").Value, f.B.Stats.Single(s => s.Name == "Steel").Max));
+        Assert.Equal((0d, 12d), (f.A.Stats.Single(s => s.Name == "Steeds").Value, f.B.Stats.Single(s => s.Name == "Steeds").Value));
         Assert.Contains("short of ore", f.B.Notes);
         Assert.EndsWith($"The odds favour {f.B.Name}, 65 in a hundred.", FaceOffs.Tell(f, "nowhere"));
         Assert.Equal(declared.Id, Episode.Build(world, log, 0, "2026-10-27").Parts.Single(p => p.Kind == EpisodeSection.Challenge).EventId);
@@ -105,7 +105,7 @@ public class FaceOffTests
 
         var prompt = fake.Requests.Single().Prompt;
         Assert.Contains("Face-off figures:", prompt);
-        Assert.Contains("prowess 17", prompt);
+        Assert.Contains("might 17", prompt);
         Assert.Contains("commentator", prompt);
         Assert.Equal(Episode.ChroniclerWriter, written.Writer);
         Assert.StartsWith("A prowess of 17 against 8", written.Parts.Single(p => p.Kind == EpisodeSection.Challenge).Text);

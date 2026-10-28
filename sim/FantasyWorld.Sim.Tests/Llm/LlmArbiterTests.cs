@@ -35,6 +35,7 @@ public class LlmArbiterTests
         strong.Attributes.Prowess = 18;
         var weak = TestPeople.Add(world, 1, 30);
         weak.Attributes.Prowess = 4;
+        strong.Class = weak.Class = Classes.Warrior; // no counter: the odds are the gifts' alone
         var story = new StoryContext(world, new EventLog(), new LlmGateway(fake, On, journal ?? new LlmJournal()));
         return (story, Encounters.DuelBetween(world, strong, weak, toTheDeath: true));
     }

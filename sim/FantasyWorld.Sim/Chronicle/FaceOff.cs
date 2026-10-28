@@ -12,10 +12,11 @@ public sealed record FaceOffStat(string Name, double Value, double Max);
 
 /// <summary>
 /// A side of a face-off: who, their heraldic colour, their figures and a few words about them (traits, age, ruler), and
-/// their image once the broadcast has one (a duellist's portrait or a realm's banner: its key in the broadcast's store).
+/// their image once the broadcast has one (a duellist's portrait or a realm's banner: its key in the broadcast's store), and
+/// a duellist's class (<see cref="Classes"/>; the card shows its emblem, and which side's counters the other's).
 /// </summary>
 public sealed record FaceOffSide(string Ref, string Name, string Colour, IReadOnlyList<FaceOffStat> Stats, IReadOnlyList<string> Notes,
-    string? Image = null);
+    string? Image = null, string? Class = null);
 
 /// <summary>
 /// A face-off (sub-project 8 §7, "the challenge"): a duel or a war declared this episode, both sides side by side with their
@@ -149,32 +150,48 @@ public static class FaceOffs
         return 50;
     }
 
-    /// <summary>A duellist: the six attributes (0–20) and renown (0–100); traits, age and wounds as notes.</summary>
+    /// <summary>
+    /// A duellist, in a fantasy's terms (the owner, 2026-10-28): might (prowess), valour (martial), cunning (intrigue) and
+    /// arcana (lore), each 0–20 with what their artifacts add; glory (renown, 0–100); the relics they carry; their class;
+    /// race, age, traits and wounds as notes.
+    /// </summary>
     private static FaceOffSide Fighter(World world, Character c, string fallbackColour)
     {
-        var stats = Attributes.Names.Select(n => new FaceOffStat(char.ToUpperInvariant(n[0]) + n[1..], c.Attributes.Get(n), 20)).Append(new FaceOffStat("Renown", Math.Round(c.Renown), 100)).ToList();
+        var relics = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Held && a.HolderId == c.Id).ToList();
+        FaceOffStat Gift(string name, string attribute)
+        {
+            var value = c.Attributes.Get(attribute) + relics.Sum(r => r.Bonus(attribute));
+            return new FaceOffStat(name, value, Math.Max(20, value));
+        }
+        var stats = new List<FaceOffStat>
+        {
+            Gift("Might", "prowess"), Gift("Valour", "martial"), Gift("Cunning", "intrigue"), Gift("Arcana", "lore"),
+            new("Glory", Math.Round(c.Renown), 100), new("Relics", relics.Count, Math.Max(1, relics.Count)),
+        };
         var notes = new List<string> { $"aged {c.Age(world.Date)}" };
+        if (Peoples.Of(world, c) is { } race) notes.Insert(0, race.Name.ToLowerInvariant());
         notes.AddRange(c.Traits.Take(4));
         if (c.Wounds.Count > 0) notes.Add(c.Wounds.Count == 1 ? "bearing a wound" : "bearing old wounds");
         var colour = world.Houses.TryGetValue(c.HouseId, out var house) && world.Realms.Values.FirstOrDefault(r => Realms.RulerOf(world, r)?.HouseId == house.Id) is { } realm
             ? realm.Colors[0] : fallbackColour;
-        return new FaceOffSide(c.Ref.ToString(), Names.Full(world, c), colour, stats, notes);
+        return new FaceOffSide(c.Ref.ToString(), Names.Full(world, c), colour, stats, notes, Class: Classes.Of(world, c));
     }
 
-    /// <summary>A realm at war: its fighting strength (both bars on one scale), land, treasure, ore and horses in store,
-    /// legitimacy and stability; its ruler and rank as notes, and any shortage.</summary>
+    /// <summary>A realm at war, in a fantasy's terms: its hosts (fighting strength, both bars on one scale), lands, war chest,
+    /// steel and steeds in store, the crown's right (legitimacy) and morale (stability); its ruler and rank as notes, and
+    /// any shortage.</summary>
     private static FaceOffSide Host(World world, Realm realm, double strength, double strongest)
     {
         var land = Realms.Territory(world, realm).Count();
         var stats = new List<FaceOffStat>
         {
-            new("Strength", Math.Round(strength), Math.Max(1, strongest)),
-            new("Regions", land, Math.Max(1, land)),
-            new("Treasury", Math.Round(Math.Max(0, realm.Treasury)), Math.Max(1, realm.Treasury)),
-            new("Ore", Math.Round(Stocks.Stock(realm, ResourceKinds.Ore)), Math.Max(1, Stocks.Stock(realm, ResourceKinds.Ore))),
-            new("Horses", Math.Round(Stocks.Stock(realm, ResourceKinds.Horses)), Math.Max(1, Stocks.Stock(realm, ResourceKinds.Horses))),
-            new("Legitimacy", Math.Round(realm.Legitimacy), 100),
-            new("Stability", Math.Round(realm.Stability), 100),
+            new(realm.Government == Government.Dominion ? "Horde" : "Hosts", Math.Round(strength), Math.Max(1, strongest)),
+            new("Lands", land, Math.Max(1, land)),
+            new("War chest", Math.Round(Math.Max(0, realm.Treasury)), Math.Max(1, realm.Treasury)),
+            new("Steel", Math.Round(Stocks.Stock(realm, ResourceKinds.Ore)), Math.Max(1, Stocks.Stock(realm, ResourceKinds.Ore))),
+            new("Steeds", Math.Round(Stocks.Stock(realm, ResourceKinds.Horses)), Math.Max(1, Stocks.Stock(realm, ResourceKinds.Horses))),
+            new("Crown's right", Math.Round(realm.Legitimacy), 100),
+            new("Morale", Math.Round(realm.Stability), 100),
         };
         var notes = new List<string> { realm.Rank.ToString().ToLowerInvariant() };
         if (Realms.RulerOf(world, realm) is { } ruler) notes.Add($"ruled by {Names.Full(world, ruler)}");
@@ -183,14 +200,19 @@ public static class FaceOffs
     }
 
     /// <summary>
-    /// Puts both sides' relative figures (regions, treasury, ore, horses) on one scale, so their bars compare: each side's bar is drawn
+    /// Puts both sides' relative figures (lands, war chest, steel, steeds, relics, and gifts past 20) on one scale, so their bars compare: each side's bar is drawn
     /// against the larger of the two.
     /// </summary>
     public static FaceOff Scaled(FaceOff f)
     {
         FaceOffSide Rescale(FaceOffSide side, FaceOffSide other) => side with
         {
-            Stats = side.Stats.Select((s, i) => s.Name is "Regions" or "Treasury" or "Ore" or "Horses" && i < other.Stats.Count ? s with { Max = Math.Max(1, Math.Max(s.Value, other.Stats[i].Value)) } : s).ToList(),
+            Stats = side.Stats.Select((s, i) => i >= other.Stats.Count ? s : s.Name switch
+            {
+                "Lands" or "War chest" or "Steel" or "Steeds" or "Relics" => s with { Max = Math.Max(1, Math.Max(s.Value, other.Stats[i].Value)) },
+                "Might" or "Valour" or "Cunning" or "Arcana" => s with { Max = Math.Max(20, Math.Max(s.Value, other.Stats[i].Value)) },
+                _ => s,
+            }).ToList(),
         };
         return f with { A = Rescale(f.A, f.B), B = Rescale(f.B, f.A) };
     }

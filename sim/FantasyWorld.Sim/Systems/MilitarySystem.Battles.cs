@@ -75,6 +75,10 @@ public sealed partial class MilitarySystem
     public static double Heroism(World world, Army army) =>
         1 + Math.Min(MostHeroism, Notables(world, army).Sum(id => Encounters.Strength(world, world.Characters[id])) / 150);
 
+    /// <summary>The class of a host's commander, if it has one (a commander whose class counters the other's leads 15% better).</summary>
+    public static string? CommanderClass(World world, Army army) =>
+        world.Characters.TryGetValue(army.CommanderId, out var c) && c.IsActive ? Classes.Of(world, c) : null;
+
     private static double Readiness(World world, Army army)
     {
         // Arms by the realm's stocks: short of ore it fights weaker, with horses stronger (sub-project 12).
@@ -95,7 +99,8 @@ public sealed partial class MilitarySystem
         Character? Best(Army army) => Notables(world, army).Select(id => world.Characters[id])
             .OrderByDescending(c => Encounters.Strength(world, c)).ThenBy(c => c.Id).FirstOrDefault();
         if (Best(attacker) is not { } a || Best(defender) is not { } d || !ctx.Rng.Chance(ChampionsMeet)) return null;
-        var (sa, sd) = (Encounters.Strength(world, a), Encounters.Strength(world, d));
+        var (ka, kd) = (Classes.Of(world, a), Classes.Of(world, d));
+        var (sa, sd) = (Encounters.Strength(world, a) * Classes.Edge(ka, kd), Encounters.Strength(world, d) * Classes.Edge(kd, ka));
         var attackerWins = ctx.Rng.Chance(sa / (sa + sd));
         var slain = ctx.Rng.Chance(ChampionSlain);
         var (victor, vanquished) = attackerWins ? (a, d) : (d, a);
@@ -123,8 +128,9 @@ public sealed partial class MilitarySystem
     {
         var world = ctx.World;
         var champions = Champions(ctx, war, attacker, defender, region);
-        var a = Strength(world, attacker, region) * (champions == true ? ChampionsWin : 1);
-        var d = Strength(world, defender, region) * (champions == false ? ChampionsWin : 1);
+        var (ca, cd) = (CommanderClass(world, attacker), CommanderClass(world, defender));
+        var a = Strength(world, attacker, region) * (champions == true ? ChampionsWin : 1) * Classes.Edge(ca, cd);
+        var d = Strength(world, defender, region) * (champions == false ? ChampionsWin : 1) * Classes.Edge(cd, ca);
         if (Friendly(world, war, world.Realms[defender.RealmId], region)) d *= 1.2;
         if (region.Biome is Biome.Hills or Biome.Mountain or Biome.Forest or Biome.Swamp or Biome.Jungle) d *= 1.15;
         // The rules' roll is drawn first, as always, so the stream is the same whether or not Claude answers.

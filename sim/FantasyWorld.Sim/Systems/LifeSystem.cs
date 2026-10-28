@@ -117,10 +117,11 @@ public sealed class LifeSystem : ISimSystem
             return;
         }
         c.Ambition = CharacterFactory.ChooseAmbition(c, ctx.Rng);
+        c.Class = Classes.Choose(world, c);
         ctx.Emit(new EventDraft("ComingOfAge",
             Actors: new Dictionary<string, EntityRef> { ["character"] = c.Ref },
             Place: world.Settlements[c.SettlementId].Ref,
-            Payload: new Dictionary<string, string> { ["ambition"] = c.Ambition },
+            Payload: new Dictionary<string, string> { ["ambition"] = c.Ambition, ["class"] = c.Class },
             Importance: Fates.Importance(c, heirApparent ? 15 : 5), Tags: new[] { "Characters" }));
     }
 }

@@ -96,8 +96,10 @@ public static class Encounters
 
     public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath)
     {
-        var a = Strength(world, attacker);
-        var d = Strength(world, defender);
+        // A calling that counters the other's fights 15% stronger (the owner, 2026-10-28).
+        var (ka, kd) = (Classes.Of(world, attacker), Classes.Of(world, defender));
+        var a = Strength(world, attacker) * Classes.Edge(ka, kd);
+        var d = Strength(world, defender) * Classes.Edge(kd, ka);
         var p = a / (a + d);
         var outcomes = toTheDeath
             ? new List<EncounterOutcome>

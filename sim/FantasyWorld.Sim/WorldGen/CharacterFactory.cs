@@ -35,6 +35,8 @@ public static class CharacterFactory
         };
         character.Ambition = ChooseAmbition(character, rng);
         world.Characters[character.Id] = character;
+        // One made grown has its calling already; a child takes one at coming of age.
+        if (character.Age(world.Date) >= Character.AdultAge) character.Class = Classes.Choose(world, character);
         father?.Children.Add(character.Id);
         mother?.Children.Add(character.Id);
         if (world.Houses.TryGetValue(houseId, out var house) && house.FounderId == 0) house.FounderId = character.Id;

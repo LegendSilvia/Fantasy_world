@@ -77,6 +77,7 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
             $"{new NameGen(ctx.Rng).Proper()} the Undying"));
         var house = CharacterFactory.NewHouse(world, ctx.Rng, region.CultureId, seat.Id);
         var demon = CharacterFactory.Create(world, ctx.Rng, seat.Id, Sex.Male, ctx.Date.Day - 400L * WorldDate.DaysPerYear, house.Id, Role.Lord, name: named.Name);
+        demon.Class = Classes.Warlock;
         foreach (var attribute in Attributes.Names) demon.Attributes.Set(attribute, Math.Max(demon.Attributes.Get(attribute), 16));
         (demon.Attributes.Martial, demon.Attributes.Prowess) = (20, 20);
         demon.Traits.Clear();
