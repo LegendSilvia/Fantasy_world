@@ -1,38 +1,288 @@
 [
-  { "start": 0, "x": 0.5, "y": 0.5, "zoom": 1, "title": "Opening" },
-  {
-    "start": 1, "x": 0.45, "y": 0.55, "zoom": 2.5, "title": "Face-off: Aldren of Vale v Morwyn of Esk",
-    "faceOff": {
-      "kind": "duel", "eventId": 1, "stakes": "to the death", "oddsA": 62,
-      "a": {
-        "ref": "char#1", "name": "Aldren of Vale", "colour": "crimson",
-        "stats": [
-          { "name": "Martial", "value": 15, "max": 20 }, { "name": "Diplomacy", "value": 7, "max": 20 },
-          { "name": "Stewardship", "value": 9, "max": 20 }, { "name": "Intrigue", "value": 5, "max": 20 },
-          { "name": "Lore", "value": 6, "max": 20 }, { "name": "Prowess", "value": 17, "max": 20 },
-          { "name": "Renown", "value": 64, "max": 100 }
-        ],
-        "notes": [ "aged 31", "brave", "wrathful" ], "image": "images/preview-a.png"
-      },
-      "b": {
-        "ref": "char#2", "name": "Morwyn of Esk", "colour": "azure",
-        "stats": [
-          { "name": "Martial", "value": 8, "max": 20 }, { "name": "Diplomacy", "value": 13, "max": 20 },
-          { "name": "Stewardship", "value": 11, "max": 20 }, { "name": "Intrigue", "value": 16, "max": 20 },
-          { "name": "Lore", "value": 12, "max": 20 }, { "name": "Prowess", "value": 9, "max": 20 },
-          { "name": "Renown", "value": 41, "max": 100 }
-        ],
-        "notes": [ "aged 38", "deceitful", "bearing a wound" ], "image": "images/preview-b.png"
-      }
-    }
-  },
-  {
-    "start": 4, "x": 0.5, "y": 0.5, "zoom": 2.5, "title": "Battle at Harrow", "still": "images/preview-scene.png",
-    "moves": [
-      { "eventId": 11, "line": "The host of Vale left Ashford and came to Harrow.", "from": { "x": 0.46, "y": 0.5 }, "to": { "x": 0.5, "y": 0.48 }, "side": "attacker", "invasion": false },
-      { "eventId": 12, "line": "The host of Vale crossed out of Harrow into the enemy's land at Kesmoor.", "from": { "x": 0.5, "y": 0.48 }, "to": { "x": 0.53, "y": 0.51 }, "side": "attacker", "invasion": true },
-      { "eventId": 13, "line": "The host of Esk left Dunmere and came to Kesmoor.", "from": { "x": 0.57, "y": 0.55 }, "to": { "x": 0.535, "y": 0.52 }, "side": "defender", "invasion": false }
+ {
+  "start": 0,
+  "x": 0.5,
+  "y": 0.5,
+  "zoom": 1,
+  "title": "Opening"
+ },
+ {
+  "start": 1,
+  "x": 0.45,
+  "y": 0.55,
+  "zoom": 2.5,
+  "title": "Face-off: Aldren of Vale v Morwyn of Esk",
+  "faceOff": {
+   "kind": "duel",
+   "eventId": 1,
+   "stakes": "to the death",
+   "oddsA": 62,
+   "a": {
+    "ref": "char#1",
+    "name": "Aldren of Vale",
+    "colour": "crimson",
+    "stats": [
+     {
+      "name": "Martial",
+      "value": 15,
+      "max": 20
+     },
+     {
+      "name": "Diplomacy",
+      "value": 7,
+      "max": 20
+     },
+     {
+      "name": "Stewardship",
+      "value": 9,
+      "max": 20
+     },
+     {
+      "name": "Intrigue",
+      "value": 5,
+      "max": 20
+     },
+     {
+      "name": "Lore",
+      "value": 6,
+      "max": 20
+     },
+     {
+      "name": "Prowess",
+      "value": 17,
+      "max": 20
+     },
+     {
+      "name": "Renown",
+      "value": 64,
+      "max": 100
+     }
+    ],
+    "notes": [
+     "aged 31",
+     "brave",
+     "wrathful"
+    ],
+    "image": "images/preview-a.png"
+   },
+   "b": {
+    "ref": "char#2",
+    "name": "Morwyn of Esk",
+    "colour": "azure",
+    "stats": [
+     {
+      "name": "Martial",
+      "value": 8,
+      "max": 20
+     },
+     {
+      "name": "Diplomacy",
+      "value": 13,
+      "max": 20
+     },
+     {
+      "name": "Stewardship",
+      "value": 11,
+      "max": 20
+     },
+     {
+      "name": "Intrigue",
+      "value": 16,
+      "max": 20
+     },
+     {
+      "name": "Lore",
+      "value": 12,
+      "max": 20
+     },
+     {
+      "name": "Prowess",
+      "value": 9,
+      "max": 20
+     },
+     {
+      "name": "Renown",
+      "value": 41,
+      "max": 100
+     }
+    ],
+    "notes": [
+     "aged 38",
+     "deceitful",
+     "bearing a wound"
+    ],
+    "image": "images/preview-b.png"
+   }
+  }
+ },
+ {
+  "start": 4,
+  "x": 0.5,
+  "y": 0.5,
+  "zoom": 2.5,
+  "title": "Battle at Harrow",
+  "still": "images/preview-scene.png",
+  "moves": [
+   {
+    "eventId": 11,
+    "line": "The host of Vale left Ashford and came to Harrow.",
+    "from": {
+     "x": 0.46,
+     "y": 0.5
+    },
+    "to": {
+     "x": 0.5,
+     "y": 0.48
+    },
+    "side": "attacker",
+    "invasion": false
+   },
+   {
+    "eventId": 12,
+    "line": "The host of Vale crossed out of Harrow into the enemy's land at Kesmoor.",
+    "from": {
+     "x": 0.5,
+     "y": 0.48
+    },
+    "to": {
+     "x": 0.53,
+     "y": 0.51
+    },
+    "side": "attacker",
+    "invasion": true
+   },
+   {
+    "eventId": 13,
+    "line": "The host of Esk left Dunmere and came to Kesmoor.",
+    "from": {
+     "x": 0.57,
+     "y": 0.55
+    },
+    "to": {
+     "x": 0.535,
+     "y": 0.52
+    },
+    "side": "defender",
+    "invasion": false
+   }
+  ],
+  "faceOff": {
+   "kind": "war",
+   "eventId": 14,
+   "stakes": "the battle at Harrow",
+   "oddsA": 100,
+   "a": {
+    "ref": "realm#1",
+    "name": "Vale",
+    "colour": "crimson",
+    "stats": [
+     {
+      "name": "Losses",
+      "value": 120,
+      "max": 480
+     },
+     {
+      "name": "Strength",
+      "value": 2400,
+      "max": 2400
+     },
+     {
+      "name": "Regions",
+      "value": 9,
+      "max": 9
+     },
+     {
+      "name": "Treasury",
+      "value": 52000,
+      "max": 52000
+     },
+     {
+      "name": "Ore",
+      "value": 900,
+      "max": 900
+     },
+     {
+      "name": "Horses",
+      "value": 640,
+      "max": 640
+     },
+     {
+      "name": "Legitimacy",
+      "value": 71,
+      "max": 100
+     },
+     {
+      "name": "Stability",
+      "value": 58,
+      "max": 100
+     }
+    ],
+    "notes": [
+     "kingdom",
+     "ruled by Aldren of Vale"
     ]
-  },
-  { "start": 8, "x": 0.5, "y": 0.5, "zoom": 1, "title": "Until tomorrow" }
+   },
+   "b": {
+    "ref": "realm#2",
+    "name": "Esk",
+    "colour": "azure",
+    "stats": [
+     {
+      "name": "Losses",
+      "value": 480,
+      "max": 480
+     },
+     {
+      "name": "Strength",
+      "value": 1500,
+      "max": 2400
+     },
+     {
+      "name": "Regions",
+      "value": 6,
+      "max": 9
+     },
+     {
+      "name": "Treasury",
+      "value": 31000,
+      "max": 52000
+     },
+     {
+      "name": "Ore",
+      "value": 0,
+      "max": 900
+     },
+     {
+      "name": "Horses",
+      "value": 220,
+      "max": 640
+     },
+     {
+      "name": "Legitimacy",
+      "value": 54,
+      "max": 100
+     },
+     {
+      "name": "Stability",
+      "value": 33,
+      "max": 100
+     }
+    ],
+    "notes": [
+     "duchy",
+     "ruled by Morwyn of Esk",
+     "short of ore"
+    ]
+   },
+   "stage": "fought",
+   "result": "Vale won after 3 days; 120 of theirs and 480 of Esk's fell."
+  }
+ },
+ {
+  "start": 8,
+  "x": 0.5,
+  "y": 0.5,
+  "zoom": 1,
+  "title": "Until tomorrow"
+ }
 ]

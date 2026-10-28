@@ -130,4 +130,54 @@ public class FaceOffTests
         Assert.Contains("Face-offs", post);
         Assert.Contains($"{f.A.Name} v {f.B.Name} (to the death): 71% to 29%", post);
     }
+
+    [Fact]
+    public void ADuelUnderWay_ShowsItsDay_AndTheOddsOfItsChallenge_AndAFoughtOne_ItsResult()
+    {
+        var (world, log, strong, sly, declared) = ADuelDeclared();
+        var place = world.Settlements[sly.SettlementId].Ref;
+        var duel = new Dictionary<string, EntityRef> { ["challenger"] = strong.Ref, ["defender"] = sly.Ref };
+        var begun = log.Append(world.Date, new EventDraft("DuelBegun", Actors: duel, Place: place,
+            Payload: new Dictionary<string, string> { ["stakes"] = "to the death", ["days"] = "3" },
+            Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 1.0) }, Importance: 30));
+        var turned = log.Append(world.Date, new EventDraft("DuelTurned", Actors: duel, Place: place,
+            Payload: new Dictionary<string, string> { ["stakes"] = "to the death", ["day"] = "2", ["days"] = "3" },
+            Causes: new[] { new Cause(begun.Id, CauseKind.Trigger, 1.0) }, Importance: 20));
+
+        var going = FaceOffs.OfFight(world, log, turned)!;
+        Assert.Equal((FaceOff.UnderWay, 71, "day 2 of 3, still undecided"), (going.Stage, going.OddsA, going.Result));
+        Assert.Contains("So far: day 2 of 3", going.Figures());
+
+        var fought = log.Append(world.Date, new EventDraft("DuelFought", Actors: duel, Place: place,
+            Payload: new Dictionary<string, string> { ["stakes"] = "to the death", ["outcome"] = "defender_kills", ["days"] = "3" },
+            Causes: new[] { new Cause(begun.Id, CauseKind.Trigger, 1.0) }, Importance: 40));
+        var result = FaceOffs.OfFight(world, log, fought)!;
+        Assert.Equal((FaceOff.Fought, 0), (result.Stage, result.OddsA));
+        Assert.Equal($"{result.B.Name} won after 3 days; {result.A.Name} was slain.", result.Result);
+        Assert.Contains($"Result: {result.B.Name} won", result.Figures());
+        Assert.DoesNotContain("Chance of winning", result.Figures());
+
+        // In the episode, the fight's section carries the card of how it ended.
+        var episode = Episode.Build(world, log, declared.Id, "2026-10-28");
+        var section = Assert.Single(episode.Parts, p => p.FaceOff is { Stage: FaceOff.Fought });
+        Assert.Equal(fought.Id, section.FaceOff!.EventId);
+    }
+
+    [Fact]
+    public void AFoughtBattle_ShowsTheVictor_AndBothSidesLosses()
+    {
+        var world = TestRealms.TwoKingdoms();
+        var log = new EventLog();
+        var battle = log.Append(world.Date, new EventDraft("BattleFought",
+            Actors: new Dictionary<string, EntityRef> { ["victor"] = world.Realms[2].Ref, ["vanquished"] = world.Realms[1].Ref },
+            Place: world.Regions[1].Ref,
+            Payload: new Dictionary<string, string> { ["victor losses"] = "120", ["vanquished losses"] = "480" }, Importance: 50, Tags: new[] { "War" }));
+
+        var f = FaceOffs.OfFight(world, log, battle)!;
+        Assert.Equal((FaceOff.Fought, 100, world.Realms[2].Name), (f.Stage, f.OddsA, f.A.Name));
+        Assert.Equal(("Losses", 120d, 480d), (f.A.Stats[0].Name, f.A.Stats[0].Value, f.B.Stats[0].Value));
+        Assert.Equal((480d, 480d), (f.A.Stats[0].Max, f.B.Stats[0].Max));
+        Assert.Equal(f.A.Stats.Select(x => x.Name), f.B.Stats.Select(x => x.Name));
+        Assert.Equal($"{world.Realms[2].Name} won; 120 of theirs and 480 of {world.Realms[1].Name}'s fell.", f.Result);
+    }
 }

@@ -23,15 +23,22 @@ public sealed record FaceOffSide(string Ref, string Name, string Colour, IReadOn
 /// shows it in the two sides' colours). Stored on the episode's section, so the narration, the film and the posts read the
 /// same figures.
 /// </summary>
-public sealed record FaceOff(string Kind, long EventId, string Stakes, FaceOffSide A, FaceOffSide B, int OddsA)
+public sealed record FaceOff(string Kind, long EventId, string Stakes, FaceOffSide A, FaceOffSide B, int OddsA,
+    string Stage = FaceOff.Challenge, string? Result = null)
 {
     public const string Duel = "duel", War = "war";
+
+    /// <summary>The face-off's moment (the owner, 2026-10-28): a challenge before the fight, a fight under way (OddsA the
+    /// chance reckoned at its declaration), or a fight fought (OddsA 100 or 0, the victor's side; Result says how).</summary>
+    public const string Challenge = "challenge", UnderWay = "under way", Fought = "fought";
 
     /// <summary>The figures as a brief reads them, one line a side (for the chronicler, and for the narration guard's facts).</summary>
     public string Figures() =>
         string.Join("\n", new[] { A, B }.Select(s => $"{s.Name}: " + string.Join(", ", s.Stats.Select(f => $"{f.Name.ToLowerInvariant()} {Number(f.Value)}"))
                                                     + (s.Notes.Count > 0 ? $"; {string.Join(", ", s.Notes)}" : "")))
-        + $"\nChance of winning: {A.Name} {OddsA} in a hundred, {B.Name} {100 - OddsA} in a hundred.";
+        + (Stage == Fought
+            ? $"\nResult: {Result}"
+            : $"\nChance of winning: {A.Name} {OddsA} in a hundred, {B.Name} {100 - OddsA} in a hundred." + (Result is null ? "" : $"\nSo far: {Result}"));
 
     private static string Number(double value) => Math.Round(value).ToString(CultureInfo.InvariantCulture);
 }
@@ -64,6 +71,82 @@ public static class FaceOffs
             default:
                 return null;
         }
+    }
+
+    /// <summary>The fights whose sections get a face-off of their result or of their course so far.</summary>
+    public static readonly IReadOnlySet<string> Fights = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "DuelBegun", "DuelTurned", "DuelFought", "BattleJoined", "BattleTurned", "BattleFought",
+    };
+
+    /// <summary>
+    /// The face-off of a fight told in the episode (the owner, 2026-10-28): the two sides as they stand now, with how it
+    /// ended (who won, how they fared, the losses) or how far it has gone (its day, the odds reckoned at its declaration).
+    /// </summary>
+    public static FaceOff? OfFight(World world, EventLog log, WorldEvent ev)
+    {
+        if (!Fights.Contains(ev.Type)) return null;
+        var place = ev.Place is { } at ? Names.Of(world)(at) : null;
+        var day = ev.Payload.GetValueOrDefault("day");
+        var days = ev.Payload.GetValueOrDefault("days");
+        var soFar = day is not null && days is not null ? $"day {day} of {days}, still undecided"
+            : days is not null ? $"the first of {days} days, still undecided" : "still undecided";
+        switch (ev.Type)
+        {
+            case "DuelBegun" or "DuelTurned" or "DuelFought" when ev.Actors.TryGetValue("challenger", out var a) && ev.Actors.TryGetValue("defender", out var b)
+                                                                 && world.Characters.TryGetValue(a.Id, out var challenger) && world.Characters.TryGetValue(b.Id, out var defender):
+            {
+                var stakes = ev.Payload.GetValueOrDefault("stakes") ?? "first blood";
+                var (sa, sb) = (Fighter(world, challenger, "crimson"), Fighter(world, defender, "azure"));
+                if (ev.Type != "DuelFought") return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, DeclaredOdds(log, ev), FaceOff.UnderWay, soFar);
+                var outcome = ev.Payload.GetValueOrDefault("outcome") ?? "";
+                var challengerWon = outcome.StartsWith("attacker", StringComparison.Ordinal);
+                var (winner, loser) = challengerWon ? (sa.Name, sb.Name) : (sb.Name, sa.Name);
+                var how = outcome.EndsWith("kills", StringComparison.Ordinal) ? $"{loser} was slain"
+                    : outcome.EndsWith("maims", StringComparison.Ordinal) ? $"{loser} was maimed"
+                    : outcome.EndsWith("wounds", StringComparison.Ordinal) ? "both were wounded" : $"{loser} yielded";
+                return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, challengerWon ? 100 : 0, FaceOff.Fought,
+                    $"{winner} won{(days is null ? "" : $" after {days} days")}; {how}.");
+            }
+            case "BattleJoined" or "BattleTurned" when ev.Actors.TryGetValue("attacker", out var a) && ev.Actors.TryGetValue("defender", out var b)
+                                                       && world.Realms.TryGetValue(a.Id, out var attacker) && world.Realms.TryGetValue(b.Id, out var defender):
+            {
+                var (sa, sd) = (DiplomacySystem.Strength(world, attacker), DiplomacySystem.Strength(world, defender));
+                return Scaled(new FaceOff(FaceOff.War, ev.Id, place is null ? "battle" : $"the battle at {place}",
+                    Host(world, attacker, sa, Math.Max(sa, sd)), Host(world, defender, sd, Math.Max(sa, sd)), DeclaredOdds(log, ev), FaceOff.UnderWay, soFar));
+            }
+            case "BattleFought" when ev.Actors.TryGetValue("victor", out var a) && ev.Actors.TryGetValue("vanquished", out var b)
+                                     && world.Realms.TryGetValue(a.Id, out var victor) && world.Realms.TryGetValue(b.Id, out var vanquished):
+            {
+                var (sv, sq) = (DiplomacySystem.Strength(world, victor), DiplomacySystem.Strength(world, vanquished));
+                double Lost(string key) => double.TryParse(ev.Payload.GetValueOrDefault(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0;
+                var (lv, lq) = (Lost("victor losses"), Lost("vanquished losses"));
+                FaceOffSide WithLosses(FaceOffSide side, double lost) =>
+                    side with { Stats = side.Stats.Prepend(new FaceOffStat("Losses", lost, Math.Max(1, Math.Max(lv, lq)))).ToList() };
+                var f = Scaled(new FaceOff(FaceOff.War, ev.Id, place is null ? "battle" : $"the battle at {place}",
+                    Host(world, victor, sv, Math.Max(sv, sq)), Host(world, vanquished, sq, Math.Max(sv, sq)), 100, FaceOff.Fought,
+                    $"{victor.Name} won{(days is null ? "" : $" after {days} days")}; {Number(lv)} of theirs and {Number(lq)} of {vanquished.Name}'s fell."));
+                return f with { A = WithLosses(f.A, lv), B = WithLosses(f.B, lq) };
+            }
+            default:
+                return null;
+        }
+    }
+
+    private static string Number(double value) => Math.Round(value).ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>The chance its declaration reckoned for the fight's first side (50 when none was): the declaration is a cause
+    /// of the fight's beginning, which is a cause of each later day.</summary>
+    private static int DeclaredOdds(EventLog log, WorldEvent ev)
+    {
+        var frontier = new List<WorldEvent> { ev };
+        for (var depth = 0; depth < 4 && frontier.Count > 0; depth++)
+        {
+            if (frontier.FirstOrDefault(e => e.Payload.ContainsKey("odds")) is { } declared
+                && int.TryParse(declared.Payload["odds"], NumberStyles.Integer, CultureInfo.InvariantCulture, out var odds)) return odds;
+            frontier = frontier.SelectMany(e => e.Causes).Select(c => log.TryGet(c.EventId, out var cause) ? cause : null).OfType<WorldEvent>().ToList();
+        }
+        return 50;
     }
 
     /// <summary>A duellist: the six attributes (0–20) and renown (0–100); traits, age and wounds as notes.</summary>
@@ -107,7 +190,7 @@ public static class FaceOffs
     {
         FaceOffSide Rescale(FaceOffSide side, FaceOffSide other) => side with
         {
-            Stats = side.Stats.Select((s, i) => s.Name is "Regions" or "Treasury" or "Ore" or "Horses" ? s with { Max = Math.Max(1, Math.Max(s.Value, other.Stats[i].Value)) } : s).ToList(),
+            Stats = side.Stats.Select((s, i) => s.Name is "Regions" or "Treasury" or "Ore" or "Horses" && i < other.Stats.Count ? s with { Max = Math.Max(1, Math.Max(s.Value, other.Stats[i].Value)) } : s).ToList(),
         };
         return f with { A = Rescale(f.A, f.B), B = Rescale(f.B, f.A) };
     }

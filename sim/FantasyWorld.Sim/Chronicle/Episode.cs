@@ -133,7 +133,17 @@ public sealed record Episode(
             return sections.Select(s => s.EventId != 0 && log.TryGet(s.EventId, out var ev) && Campaign.WarOf(ev) is var war and not 0
                                         && told.Add(war) && MovesOf(war) is { Count: > 0 } moves
                 ? s with { Text = Campaign.Tell(moves, s.EventId) is { Length: > 0 } march ? $"{s.Text}\n\n{march}" : s.Text, Moves = moves }
-                : s).Select(WithBeats).ToList();
+                : s).Select(WithBeats).Select(WithFight).ToList();
+        }
+        // A fight's section shows its face-off as it stands (the owner, 2026-10-28): the result if it ended within the
+        // episode, else its course so far.
+        EpisodeSection WithFight(EpisodeSection s)
+        {
+            if (s.FaceOff is not null || s.Kind is not (EpisodeSection.Headline or EpisodeSection.Story) || s.EventId == 0
+                || !log.TryGet(s.EventId, out var ev) || !FaceOffs.Fights.Contains(ev.Type)) return s;
+            var root = Fights.RootOf(log, ev);
+            var latest = events.LastOrDefault(e => FaceOffs.Fights.Contains(e.Type) && Fights.RootOf(log, e) == root) ?? ev;
+            return FaceOffs.OfFight(world, log, latest) is { } f ? s with { FaceOff = f } : s;
         }
         // A fight's section carries its days; a few are read aloud (never one its text already gives).
         EpisodeSection WithBeats(EpisodeSection s)

@@ -67,7 +67,10 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
             fields.Add(new JsonObject
             {
                 ["name"] = "Face-offs",
-                ["value"] = Clip(string.Join("\n", faceOffs.Select(f => $"⚔ {f.A.Name} v {f.B.Name} ({f.Stakes}): {f.OddsA}% to {100 - f.OddsA}%")), MaxField),
+                ["value"] = Clip(string.Join("\n", faceOffs.Select(f => f.Stage == Sim.Chronicle.FaceOff.Fought
+                    ? $"🏆 {f.A.Name} v {f.B.Name} ({f.Stakes}): {f.Result}"
+                    : $"⚔ {f.A.Name} v {f.B.Name} ({f.Stakes}): {f.OddsA}% to {100 - f.OddsA}%"
+                      + (f.Stage == Sim.Chronicle.FaceOff.UnderWay ? $", {f.Result}" : ""))), MaxField),
                 ["inline"] = false,
             });
         // The chapters, so a listener can see what is in the episode (and jump to it on YouTube).

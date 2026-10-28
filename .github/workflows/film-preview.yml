@@ -1,7 +1,7 @@
 name: film-preview
 
 # A look at the film's cards without a whole broadcast: a fresh world, the sample shot list in game/tests (a face-off on the
-# blurred map with both duellists' portraits, then a battle's still and its war's moves drawn in turn),
+# blurred map with both duellists' portraits, then a battle's still, its war's moves drawn in turn and its result's card),
 # filmed for a few seconds at 1080p as the broadcast films, and a few frames kept as an artifact.
 on:
   workflow_dispatch:
@@ -88,8 +88,8 @@ jobs:
             --from 1 --to 8 --fps 24 --frames "$RUNNER_TEMP/frames"
           mkdir -p "$RUNNER_TEMP/sample"
           ls "$RUNNER_TEMP/frames" | wc -l
-          # As the face-off's scene comes in, once it has; the battle's still; then the moves on the map.
-          for n in 000006 000040 000108 000152 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
+          # As the face-off's scene comes in, once it has; the battle's still; the moves on the map; then the result's card.
+          for n in 000006 000040 000100 000118 000140 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

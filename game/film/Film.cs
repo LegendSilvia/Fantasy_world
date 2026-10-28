@@ -168,7 +168,7 @@ public partial class Film : Node
             Log(shots, t);
             ShowMoves(shots, t, main.Geography!);
             ShowStill(shots, t);
-            ShowFaceOff(ShotAt(shots, t), t);
+            ShowFaceOff(shots, t);
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             var image = GetViewport().GetTexture().GetImage();
             var error = image.SavePng(System.IO.Path.Combine(framesDir, $"frame{n:000000}.png"));
@@ -183,9 +183,13 @@ public partial class Film : Node
     /// figure as two bars growing out from its name, and the odds as one bar in the two colours; the bars grow in over the
     /// section's first second. Hidden for any other section.
     /// </summary>
-    private void ShowFaceOff(FilmShot shot, double t)
+    private void ShowFaceOff(IReadOnlyList<FilmShot> shots, double t)
     {
-        if (shot.FaceOff is not { } f)
+        var index = shots.Count - 1;
+        while (index > 0 && shots[index].Start > t) index--;
+        var shot = shots[index];
+        var from = CardFrom(shots, index);
+        if (shot.FaceOff is not { } f || t < from)
         {
             if (_faceOffStage is not null) _faceOffStage.Visible = false;
             return;
@@ -197,7 +201,7 @@ public partial class Film : Node
             _likenesses.Clear();
             _faceOffStage = FaceOffStage(f);
             _faceOffEvent = f.EventId;
-            _faceOffStart = shot.Start;
+            _faceOffStart = from;
             _hud.AddChild(_faceOffStage);
         }
         _faceOffStage.Visible = true;
@@ -372,7 +376,8 @@ public partial class Film : Node
             return box;
         }
         names.AddChild(Name(f.A, false));
-        var kicker = Ui.Kicker(f.Kind == FaceOff.Duel ? $"Face-off · {f.Stakes}" : "Face-off · war");
+        var moment = f.Stage switch { FaceOff.Fought => "Result", FaceOff.UnderWay => "Under way", _ => "Face-off" };
+        var kicker = Ui.Kicker(f.Kind == FaceOff.Duel || f.Stage != FaceOff.Challenge ? $"{moment} · {f.Stakes}" : "Face-off · war");
         kicker.HorizontalAlignment = HorizontalAlignment.Center;
         kicker.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         names.AddChild(kicker);
@@ -409,10 +414,18 @@ public partial class Film : Node
         _bars.Add((right, full * (100 - f.OddsA) / 100f));
         odds.AddChild(split);
         odds.AddChild(Figure(100 - f.OddsA, false, "%"));
-        var chance = Ui.Kicker("Chance of winning");
+        // A fought fight's bar is all the victor's; one under way still shows the chance reckoned at its challenge.
+        var chance = Ui.Kicker(f.Stage switch { FaceOff.Fought => "Victor", FaceOff.UnderWay => "Chance of winning, as reckoned at the challenge", _ => "Chance of winning" });
         chance.HorizontalAlignment = HorizontalAlignment.Center;
         column.AddChild(chance);
         column.AddChild(odds);
+        if (f.Result is { Length: > 0 } result)
+        {
+            var told = Ui.Line(char.ToUpperInvariant(result[0]) + result[1..], "Result", Palette.Ink, 17);
+            told.HorizontalAlignment = HorizontalAlignment.Center;
+            told.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            column.AddChild(told);
+        }
         return card;
     }
 
@@ -455,9 +468,22 @@ public partial class Film : Node
     {
         var shot = shots[index];
         if (shot.Moves is not { Count: > 0 } moves) return [];
-        var (from, end) = (StillUntil(shots, index) ?? shot.Start, SectionEnd(shots, index));
+        var (from, end) = (StillUntil(shots, index) ?? shot.Start, ResultFrom(shots, index) ?? SectionEnd(shots, index));
         return moves.Select((_, k) => from + (end - from) * (k + 1) / (moves.Count + 1)).ToList();
     }
+
+    /// <summary>
+    /// When a fight's face-off (its result, or its course so far; the owner, 2026-10-28) comes up: over the section's last
+    /// two fifths, after its still and moves; null for a section without one. A challenge's card holds the whole section.
+    /// </summary>
+    public static double? ResultFrom(IReadOnlyList<FilmShot> shots, int index)
+    {
+        var shot = shots[index];
+        if (shot.FaceOff is not { } f || f.Stage == FaceOff.Challenge) return null;
+        return shot.Start + (SectionEnd(shots, index) - shot.Start) * 0.6;
+    }
+
+    private static double CardFrom(IReadOnlyList<FilmShot> shots, int index) => ResultFrom(shots, index) ?? shots[index].Start;
 
     private static double SectionEnd(IReadOnlyList<FilmShot> shots, int index) =>
         index + 1 < shots.Count ? shots[index + 1].Start : shots[index].Start + LastSectionSeconds;
@@ -470,7 +496,7 @@ public partial class Film : Node
     {
         var shot = shots[index];
         if (shot.Still is not { Length: > 0 }) return null;
-        var end = SectionEnd(shots, index);
+        var end = ResultFrom(shots, index) ?? SectionEnd(shots, index);
         return shot.Moves is { Count: > 0 } ? shot.Start + (end - shot.Start) / 2 : end;
     }
 
