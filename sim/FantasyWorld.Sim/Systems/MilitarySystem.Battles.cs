@@ -51,7 +51,9 @@ public sealed partial class MilitarySystem
         var magic = region.LeyPower / 50.0;
         var troops = army.Levies + army.MenAtArms * 3.0 + army.Knights.Count * 25 + army.Mages * 30 * magic;
         var martial = world.Characters.TryGetValue(army.CommanderId, out var c) ? c.Attributes.Martial : 5;
-        return troops * (0.6 + martial / 25.0) * (army.Morale / 100 + 0.2) * (0.5 + army.Supply / 200);
+        // Arms by the realm's stocks: short of ore it fights weaker, with horses stronger (sub-project 12).
+        var arms = world.Realms.TryGetValue(army.RealmId, out var realm) ? Stocks.Arms(realm) : 1;
+        return troops * (0.6 + martial / 25.0) * (army.Morale / 100 + 0.2) * (0.5 + army.Supply / 200) * arms;
     }
 
     private void Battle(SimContext ctx, War war, Army attacker, Army defender, Region region)

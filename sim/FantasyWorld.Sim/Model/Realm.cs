@@ -81,10 +81,22 @@ public sealed class Realm
     public List<RealmMemory> Memories { get; init; } = new();
 
     /// <summary>Active conditions ("legitimacyCollapsed", …) mapped to the event that began them.</summary>
+    private SortedDictionary<string, double> _stocks = new(StringComparer.Ordinal);
+
     public SortedDictionary<string, long> Conditions
     {
         get => _conditions;
         init => _conditions = Sorted.From(value);
+    }
+
+    /// <summary>
+    /// What the realm's domain has yielded and not yet spent (sub-project 12): ore, horses, timber, stone and the rare
+    /// kinds, by name; see <see cref="Systems.Stocks"/>.
+    /// </summary>
+    public SortedDictionary<string, double> Stocks
+    {
+        get => _stocks;
+        init => _stocks = Sorted.From(value);
     }
 
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);

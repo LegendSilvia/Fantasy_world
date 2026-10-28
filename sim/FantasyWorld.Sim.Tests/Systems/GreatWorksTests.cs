@@ -17,6 +17,8 @@ public class GreatWorksTests
         var world = TestRealms.TwoKingdoms();
         var seat = world.Settlements[1];
         (seat.Tier, seat.Wealth) = (SettlementTier.Town, 1_000_000);
+        // A rich realm has the timber and stone to build with (only the structure system runs here, so no stocks fill).
+        foreach (var realm in world.Realms.Values) realm.Stocks[ResourceKinds.Timber] = realm.Stocks[ResourceKinds.Stone] = 1_000_000;
         var lord = world.Characters[seat.LordId];
         lord.Traits.AddRange(lordTraits);
         var architect = TestPeople.Add(world, 1, 35);

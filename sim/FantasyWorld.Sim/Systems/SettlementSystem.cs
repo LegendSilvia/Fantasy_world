@@ -79,6 +79,8 @@ public sealed class SettlementSystem : ISimSystem
         if (region.Conditions.ContainsKey(Conditions.Shortage)) target += 50;
         if (region.Conditions.ContainsKey(Conditions.Plague)) target += 15;
         if (s.Walls == 0 && region.Danger > 60) target += 5;
+        // A realm short of what it needs stirs its towns (sub-project 12).
+        if (Realms.SovereignOf(ctx.World, region) is { } realm) target += Stocks.Shortages(realm).Count() * Stocks.UnrestPerShortage;
         s.Unrest = Math.Clamp(s.Unrest + (target - s.Unrest) * 0.25 + ctx.Rng.NextInt(-3, 4), 0, 100);
     }
 

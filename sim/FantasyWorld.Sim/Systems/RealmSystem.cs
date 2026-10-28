@@ -40,6 +40,7 @@ public sealed class RealmSystem : ISimSystem
         {
             if (realm.Destroyed || !Statecraft.SecureCapital(ctx, realm, CapitalLossCauses(ctx, realm))) continue;
             Collect(world, realm);
+            Stocks.Fill(ctx, realm);
             if (realm.Rank >= RealmRank.Duchy)
                 FillCouncil(ctx, realm, residents ??= world.ActiveCharacters.ToLookup(c => c.SettlementId));
         }
@@ -147,7 +148,8 @@ public sealed class RealmSystem : ISimSystem
         var settlements = Realms.Domain(world, realm).SelectMany(world.LivingSettlements).ToList();
         var unrest = settlements.Count > 0 ? settlements.Average(s => s.Unrest) : 0;
         var hungry = Realms.Domain(world, realm).Count(r => r.Conditions.ContainsKey(Conditions.Shortage));
-        var stabilityTarget = 30 + realm.Legitimacy * 0.4 - realm.WarWeariness * 0.3 - unrest * 0.3 - hungry * 5;
+        // Plenty steadies a realm and want unsettles it (sub-project 12).
+        var stabilityTarget = 30 + realm.Legitimacy * 0.4 - realm.WarWeariness * 0.3 - unrest * 0.3 - hungry * 5 + Stocks.Contentment(world, realm);
         realm.Stability = Math.Clamp(realm.Stability + (stabilityTarget - realm.Stability) * 0.3, 0, 100);
 
         Threshold(ctx, realm, Statecraft.LegitimacyCollapsed, realm.Legitimacy < 25, realm.Legitimacy >= 40,

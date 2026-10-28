@@ -137,6 +137,8 @@ public sealed partial class MilitarySystem : ISimSystem
         ctx.Emit(new EventDraft("ArmyRaised", Actors: actors, Place: world.Regions[army.RegionId].Ref,
             Payload: new Dictionary<string, string> { ["soldiers"] = army.Soldiers.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             Causes: new[] { new Cause(war.DeclaredEventId, CauseKind.Trigger, 1.0) }, Importance: 25, Tags: new[] { "War" }));
+        // Arming the host draws on the realm's ore (sub-project 12).
+        Stocks.Use(ctx, realm, ResourceKinds.Ore, army.Soldiers * Stocks.OreToRaise, war.DeclaredEventId);
         return army;
     }
 
@@ -229,7 +231,8 @@ public sealed partial class MilitarySystem : ISimSystem
             }
             army.DaysToNext = days;
         }
-        army.DaysToNext -= MarchDaysPerMonth;
+        // A mounted host covers a fifth more ground (sub-project 12).
+        army.DaysToNext -= MarchDaysPerMonth * (Stocks.Mounted(world.Realms[army.RealmId]) ? 1.2 : 1);
         if (army.DaysToNext > 0) return;
         army.DaysToNext = 0;
         army.RegionId = army.Path[0];
@@ -277,6 +280,9 @@ public sealed partial class MilitarySystem : ISimSystem
         }
 
         realm.Treasury -= army.MenAtArms * 0.5 + army.Knights.Count * 2 + army.Mages * 3;
+        // A host in the field wears out arms and horses (sub-project 12).
+        Stocks.Use(ctx, realm, ResourceKinds.Ore, army.Soldiers * Stocks.OrePerSoldier, war.DeclaredEventId);
+        Stocks.Use(ctx, realm, ResourceKinds.Horses, army.Knights.Count * Stocks.HorsesPerKnight + army.Soldiers * Stocks.HorsesPerSoldier, war.DeclaredEventId);
         if (realm.Treasury < 0)
         {
             army.MenAtArms = (int)(army.MenAtArms * 0.9);

@@ -79,7 +79,7 @@ public sealed class DiplomacySystem : ISimSystem
         var territory = Realms.Territory(world, realm).Select(r => r.Id).ToHashSet();
         var levies = world.Settlements.Values.Where(s => !s.Abandoned && territory.Contains(s.RegionId)).Sum(s => s.Adults) * 0.05;
         var knights = world.ActiveCharacters.Count(c => c.Role == Role.Knight && territory.Contains(world.Settlements[c.SettlementId].RegionId));
-        return levies + Math.Max(0, realm.Treasury) / 50 * 3 + knights * 20;
+        return (levies + Math.Max(0, realm.Treasury) / 50 * 3 + knights * 20) * Stocks.Arms(realm);
     }
 
     public static bool AtWar(World world, Realm realm) => world.Wars.Values.Any(w => !w.Ended && w.Involves(realm.Id));

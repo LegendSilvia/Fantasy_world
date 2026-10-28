@@ -20,6 +20,8 @@ public class StructureSystemTests
         var seat = world.Settlements[1];
         seat.Tier = SettlementTier.Town;
         seat.Wealth = 1_000_000;
+        // Only the structure system runs, so no stocks fill: a wealthy realm has its timber and stone in hand.
+        foreach (var realm in world.Realms.Values) realm.Stocks[ResourceKinds.Timber] = realm.Stocks[ResourceKinds.Stone] = 1_000_000;
         var sim = Make(world);
 
         sim.AdvanceDays(360 * 60);

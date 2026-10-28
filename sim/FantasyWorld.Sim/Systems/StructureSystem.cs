@@ -92,11 +92,17 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
         }
     }
 
-    /// <summary>What holds a work up this year: war at the town, plague or famine in its land (the event that began it).</summary>
+    /// <summary>
+    /// What holds a work up this year: war at the town, plague or famine in its land, or its realm short of timber or
+    /// stone (the event that began it).
+    /// </summary>
     private static long Hindrance(SimContext ctx, Settlement seat)
     {
         var world = ctx.World;
         var region = world.Regions[seat.RegionId];
+        if (Realms.SovereignOf(world, region) is { } realm)
+            foreach (var kind in new[] { ResourceKinds.Timber, ResourceKinds.Stone })
+                if (Stocks.Short(realm, kind) && !Stocks.CanBuild(realm, kind)) return realm.Conditions["short:" + kind];
         if (region.OccupierRealmId != 0 || region.BesiegerArmyId != 0)
             return ctx.Log.Involving(region.Ref).Concat(ctx.Log.Involving(seat.Ref))
                 .Where(e => e.Type is "RegionOccupied" or "SiegeBegan" or "SiegeEnded").Select(e => e.Id).DefaultIfEmpty().Max();
@@ -172,6 +178,13 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 continue;
             }
             work.DelayedByEventId = 0;
+            // The year's work uses the realm's timber and stone, bought when its land has none (sub-project 12); what it can
+            // neither find nor pay for holds the work up from next year.
+            if (Realms.SovereignOf(world, world.Regions[seat.RegionId]) is { } payer)
+            {
+                Stocks.Supply(ctx, payer, ResourceKinds.Timber, Stocks.BuildingCost);
+                Stocks.Supply(ctx, payer, ResourceKinds.Stone, Stocks.BuildingCost);
+            }
             var step = ctx.Rng.NextInt(7, 17) * (work.Rushed ? 1.6 : 1);
             work.Progress = Math.Min(100, work.Progress + step);
             seat.Wealth = Math.Max(0, seat.Wealth - 0.02 * seat.Wealth);
