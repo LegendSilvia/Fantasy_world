@@ -63,7 +63,8 @@
      "brave",
      "wrathful"
     ],
-    "image": "images/preview-a.png"
+    "image": "images/preview-a.png",
+    "class": "warrior"
    },
    "b": {
     "ref": "char#2",
@@ -111,7 +112,8 @@
      "deceitful",
      "bearing a wound"
     ],
-    "image": "images/preview-b.png"
+    "image": "images/preview-b.png",
+    "class": "mage"
    }
   }
  },
