@@ -39,6 +39,9 @@ public sealed class Region
     /// <summary>The culture and faith most of the region's people share (0 for worlds generated before Plan 3).</summary>
     public long CultureId { get; set; }
 
+    /// <summary>The continent the region lies on (its island's nearest continent); 0 in worlds made before continents.</summary>
+    public long ContinentId { get; set; }
+
     public long FaithId { get; set; }
 
     /// <summary>The realm that holds the region directly (0 = unclaimed).</summary>

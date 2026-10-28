@@ -9,9 +9,13 @@ public sealed record TerrainOptions(
     double LandFraction = 0.55,
     double MountainFraction = 0.08,
     double HillFraction = 0.14,
-    int MinIslandTiles = 150);
+    int MinIslandTiles = 150,
+    int Continents = 0);
 
-/// <summary>Seed → elevation, temperature, moisture and biome for every tile. A floating block ringed by sea.</summary>
+/// <summary>
+/// Seed → elevation, temperature, moisture and biome for every tile. A floating block ringed by sea: one landmass, or
+/// with <see cref="TerrainOptions.Continents"/> that many continents parted by open sea (sub-project 13).
+/// </summary>
 public static class TerrainGenerator
 {
     public const byte SeaLevel = 100;
@@ -20,7 +24,8 @@ public static class TerrainGenerator
     public static TerrainGrid Generate(ulong seed, TerrainOptions options)
     {
         var grid = new TerrainGrid(options.Width, options.Height) { SeaLevel = SeaLevel };
-        var raw = RawElevation(grid, new Noise2D(StableHash.Derive(seed, "terrain/height")));
+        var raw = RawElevation(grid, new Noise2D(StableHash.Derive(seed, "terrain/height")),
+            options.Continents > 1 ? ContinentCentres(options.Continents, Rng.ForStream(seed, "terrain/continents", 0)) : null);
         var landLevel = Percentile(raw, 1 - options.LandFraction);
         WriteElevation(grid, raw, landLevel);
         SinkSmallIslands(grid, options.MinIslandTiles);
@@ -47,7 +52,35 @@ public static class TerrainGenerator
         return moisture < 0.32 ? Biome.Desert : moisture < 0.55 ? Biome.Savanna : Biome.Jungle;
     }
 
-    private static double[] RawElevation(TerrainGrid grid, Noise2D noise)
+    /// <summary>Where each continent lies, in the block's −1…1 coordinates, and how far it reaches: spread evenly round the
+    /// middle at a random turn, a little jittered.</summary>
+    public static IReadOnlyList<(double X, double Y, double Reach)> ContinentCentres(int count, Rng rng)
+    {
+        var turn = rng.NextDouble() * Math.PI * 2;
+        var (ring, reach) = count switch { 2 => (0.55, 0.42), 3 => (0.56, 0.36), _ => (0.6, 0.31) };
+        return Enumerable.Range(0, count).Select(k =>
+        {
+            var angle = turn + k * Math.PI * 2 / count + (rng.NextDouble() - 0.5) * 0.4;
+            var r = ring * (0.85 + rng.NextDouble() * 0.3);
+            return (Math.Cos(angle) * r, Math.Sin(angle) * r, reach * (0.85 + rng.NextDouble() * 0.3));
+        }).ToList();
+    }
+
+    /// <summary>
+    /// How far a point lies from the nearest continent's heart, measured in coordinates warped by noise (so coasts are
+    /// ragged, with bays and peninsulas), capped in the open sea so the noise can raise islands there, and rising
+    /// steeply near the block's edge.
+    /// </summary>
+    private static double ContinentFalloff(IReadOnlyList<(double X, double Y, double Reach)> continents, double dx, double dy,
+        Noise2D noise, double u, double v)
+    {
+        var wx = dx + (noise.Fractal(u + 17.3, v + 5.1, 3) - 0.5) * 0.7;
+        var wy = dy + (noise.Fractal(u + 41.7, v + 29.9, 3) - 0.5) * 0.7;
+        var near = continents.Min(c => ((wx - c.X) * (wx - c.X) + (wy - c.Y) * (wy - c.Y)) / (c.Reach * c.Reach));
+        return Math.Min(0.75, 0.3 * near) + 6 * Math.Pow(Math.Max(0, Math.Max(Math.Abs(dx), Math.Abs(dy)) - 0.75), 2);
+    }
+
+    private static double[] RawElevation(TerrainGrid grid, Noise2D noise, IReadOnlyList<(double X, double Y, double Reach)>? continents = null)
     {
         var raw = new double[grid.Count];
         for (var y = 0; y < grid.Height; y++)
@@ -55,7 +88,10 @@ public static class TerrainGenerator
             {
                 var dx = (x + 0.5) / grid.Width * 2 - 1;
                 var dy = (y + 0.5) / grid.Height * 2 - 1;
-                var falloff = 0.5 * (dx * dx + dy * dy);
+                // Land rises towards the middle, or towards the nearest continent's heart.
+                var falloff = continents is null
+                    ? 0.5 * (dx * dx + dy * dy)
+                    : ContinentFalloff(continents, dx, dy, noise, x * 2.0 / grid.Width, y * 2.0 / grid.Height);
                 var edge = x < BorderWidth || y < BorderWidth || x >= grid.Width - BorderWidth || y >= grid.Height - BorderWidth;
                 raw[grid.Index(x, y)] = edge
                     ? -1

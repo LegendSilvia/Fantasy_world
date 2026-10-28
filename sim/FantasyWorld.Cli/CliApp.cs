@@ -117,7 +117,7 @@ public static partial class CliApp
         var seed = seedText is null ? (ulong)now.UtcTicks : ulong.Parse(seedText, CultureInfo.InvariantCulture);
         var sizeText = Option(rest, "--size") ?? "medium";
         if (!Enum.TryParse<WorldSize>(sizeText, ignoreCase: true, out var size) || !Enum.IsDefined(size))
-            throw new FormatException($"Unknown size '{sizeText}'. Use tiny, medium or large.");
+            throw new FormatException($"Unknown size '{sizeText}'. Use tiny, medium, large or huge.");
 
         var years = int.Parse(Option(rest, "--prehistory") ?? Prehistory.DefaultYearsFor(size).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
         if (years is < 0 or > 1000) throw new FormatException("--prehistory must be between 0 and 1000 years.");

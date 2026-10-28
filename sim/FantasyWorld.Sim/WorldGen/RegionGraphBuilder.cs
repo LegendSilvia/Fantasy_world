@@ -39,7 +39,38 @@ public static class RegionGraphBuilder
             links.Add(new RegionLink(a, b, LinkKind.Land, Math.Round(days, 2), length, river > 0, pass));
         }
         AddSeaLanes(grid, layout, links);
+        AddCrossings(grid, layout, links);
         return new RegionGraph(links);
+    }
+
+    public const int CrossingsPerShore = 3;
+
+    /// <summary>
+    /// Between every two continents (sub-project 13), the shortest few crossings from coast to coast that the
+    /// connecting lanes did not already make, each from a different port: ships sail between lands at several places.
+    /// </summary>
+    private static void AddCrossings(TerrainGrid grid, RegionLayout layout, List<RegionLink> links)
+    {
+        var landmass = ContinentNamer.LandmassOfRegions(grid, layout);
+        var masses = Enumerable.Range(1, layout.Count).Select(r => landmass[r]).Distinct().Order().ToList();
+        if (masses.Count < 2) return;
+        var coastal = Enumerable.Range(1, layout.Count).Where(r => layout.Tiles[r].Any(i => grid.Has(i, TileFlags.Coast))).ToList();
+        foreach (var (m, n) in masses.SelectMany((m, i) => masses.Skip(i + 1).Select(n => (m, n))))
+        {
+            var used = new HashSet<int>();
+            foreach (var (a, b) in coastal.Where(r => landmass[r] == m)
+                         .SelectMany(a => coastal.Where(r => landmass[r] == n).Select(b => (a, b)))
+                         .OrderBy(p => Distance(layout, p.a, p.b)).ThenBy(p => p.a).ThenBy(p => p.b))
+            {
+                if (used.Count >= CrossingsPerShore * 2) break;
+                if (used.Contains(a) || used.Contains(b)) continue;
+                used.Add(a);
+                used.Add(b);
+                var (lo, hi) = (Math.Min(a, b), Math.Max(a, b));
+                if (links.Any(l => l.A == lo && l.B == hi)) continue;
+                links.Add(new RegionLink(lo, hi, LinkKind.Sea, Math.Round(Distance(layout, a, b) * SeaDaysPerTile + 2, 2), 0, false, false));
+            }
+        }
     }
 
     private static void AddSeaLanes(TerrainGrid grid, RegionLayout layout, List<RegionLink> links)

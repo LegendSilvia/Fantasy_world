@@ -4,17 +4,19 @@ using FantasyWorld.Sim.Model;
 
 namespace FantasyWorld.Sim.WorldGen;
 
-/// <summary>Tiny is for tests and quick demos; Medium and Large are real worlds (spec: 100–120 regions).</summary>
-public enum WorldSize { Tiny, Medium, Large }
+/// <summary>Tiny is for tests and quick demos; Medium and Large are real worlds (spec: 100–120 regions); Huge is the new
+/// age's world (sub-project 13): three times the land, about 300 regions on two to four continents.</summary>
+public enum WorldSize { Tiny, Medium, Large, Huge }
 
 public sealed record WorldGenOptions(ulong Seed, WorldSize Size = WorldSize.Medium)
 {
-    public int MapSize => Size == WorldSize.Tiny ? 64 : 256;
+    public int MapSize => Size switch { WorldSize.Tiny => 64, WorldSize.Huge => 448, _ => 256 };
 
     public int TargetRegions => Size switch
     {
         WorldSize.Tiny => 12,
         WorldSize.Medium => 100,
+        WorldSize.Huge => 300,
         _ => 120,
     };
 
@@ -24,7 +26,12 @@ public sealed record WorldGenOptions(ulong Seed, WorldSize Size = WorldSize.Medi
         {
             var defaults = new TerrainOptions();
             var land = MapSize * MapSize * defaults.LandFraction;
-            return defaults with { Width = MapSize, Height = MapSize, MinIslandTiles = (int)(land / TargetRegions / 2) };
+            var continents = Size == WorldSize.Huge ? 2 + (int)(StableHash.Derive(Seed, "worldgen/continents") % 3) : 0;
+            return defaults with
+            {
+                Width = MapSize, Height = MapSize, MinIslandTiles = (int)(land / TargetRegions / 2), Continents = continents,
+                LandFraction = continents > 0 ? 0.42 : defaults.LandFraction,
+            };
         }
     }
 }
@@ -57,6 +64,7 @@ public static class WorldGenerator
         PeopleGenerator.Populate(world, Stream("people"));
         RealmGenerator.Generate(world, Stream("realms"));
         world.Name = new NameGen(Stream("world-name")).Region();
+        ContinentNamer.Name(world, terrain, layout, Stream("continents"));
         return world;
     }
 }

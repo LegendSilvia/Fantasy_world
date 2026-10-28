@@ -14,6 +14,7 @@ public sealed class NameGen
     private static readonly string[] SettlementSuffixes =
         { "ford", "by", "ton", "wick", "stead", "burg", "haven", "bridge", "mere", "cross" };
     private static readonly string[] HouseSuffixes = { "ar", "en", "is", "ow", "eth", "ard", "ing" };
+    private static readonly string[] LandSuffixes = { "ia", "or", "eth", "ara", "on", "und" };
 
     private readonly Rng _rng;
     private readonly NameStyle _style;
@@ -30,6 +31,9 @@ public sealed class NameGen
     public string Settlement() => Unique(() => Root() + (_rng.Chance(0.6) ? Pick(SettlementSuffixes) : ""));
 
     public string House() => Unique(() => Root() + (_rng.Chance(0.5) ? Pick(HouseSuffixes) : ""));
+
+    /// <summary>A continent's name: a root with a grand ending (Valdoria, Kesmor).</summary>
+    public string Continent() => Unique(() => Root() + Pick(LandSuffixes));
 
     /// <summary>A culture, faith or deity name.</summary>
     public string Proper() => Unique(Root);
