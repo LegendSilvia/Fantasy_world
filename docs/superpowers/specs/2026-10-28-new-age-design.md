@@ -117,6 +117,10 @@ episode of the new age introduces the world. The website shows the new world; th
   Prayers panel; Pages Functions `site/functions/api/vote.js` and `tally.js` on the D1 database `fantasy-world-prayers`;
   the daily run fetches the tally before the day's history.
 - N6: `FestivalSystem`, `Realm.Festival`; `fw invent` asks Claude for every nation's festival.
+- N7 (so far): a world the daily run creates is made with no history (`fw new --prehistory 0`), named by Claude
+  (`fw invent`: races and festivals), then lives `prehistoryYears` (a century; none for tiny) offline with Claude off
+  (`fw advance --quiet`), before its first episode. The switch itself (a new `worldKey`, `size` huge, a new seed) waits
+  for the owner.
 
 ## 4. Milestones
 
