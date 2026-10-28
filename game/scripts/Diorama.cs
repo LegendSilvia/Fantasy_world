@@ -178,7 +178,7 @@ public partial class Diorama : Node3D
         {
             var lines = Roads.Where(r => r.Open == open).Select(r => r.Line).ToList();
             if (lines.Count == 0) continue;
-            var part = DashedRibbons(lines, colour, dash, gap, width: 0.0019f, halo: 0.0036f);
+            var part = DashedRibbons(lines, colour, dash, gap, width: 0.0009f, halo: 0.0017f);
             for (var s = 0; s < part.GetSurfaceCount(); s++)
             {
                 roads.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, part.SurfaceGetArrays(s));
