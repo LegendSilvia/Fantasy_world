@@ -75,6 +75,30 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ "$CREATE" = "true" ]; then args+=(--create); fi
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
+      - name: Fetch the day's video for the run's artifacts
+        if: always() && env.PLAN != ''
+        continue-on-error: true
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          prefix=$(jq -r .prefix <<< "$PLAN"); date=$(jq -r .date <<< "$PLAN")
+          fw() { dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "$@"; }
+          mkdir -p "$RUNNER_TEMP/video"
+          for name in episode.mp4 short.mp4 thumbnail.jpg script.txt; do
+            fw get "${prefix}episodes/$date/$name" "$RUNNER_TEMP/video/$date-$name" || echo "No $name for $date."
+          done
+      - name: Keep the day's video with the run (download it from the run's page)
+        if: always() && env.PLAN != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: episode-video
+          path: ${{ runner.temp }}/video/
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Hand the plan to the film jobs
         id: plan
         if: always()
@@ -263,8 +287,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      # A video is made only for YouTube (with its secrets) or on a dry run; otherwise ffmpeg is not installed.
-      MAKES_VIDEO: ${{ secrets.YOUTUBE_REFRESH_TOKEN != '' || inputs.dry-run == true }}
+      # The video is made every day (uploaded to YouTube only with its secrets), so ffmpeg is always installed.
+      MAKES_VIDEO: 'true'
+      PLAN: ${{ needs.prepare.outputs.plan }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -301,6 +326,30 @@ jobs:
           if [ "$DRY_RUN" = "true" ] && [ "$UPLOAD_UNLISTED" = "true" ]; then args+=(--upload-unlisted); fi
           if [ "$CREATE" = "true" ]; then args+=(--create); fi
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
+      - name: Fetch the day's video for the run's artifacts
+        if: always() && env.PLAN != ''
+        continue-on-error: true
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          prefix=$(jq -r .prefix <<< "$PLAN"); date=$(jq -r .date <<< "$PLAN")
+          fw() { dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "$@"; }
+          mkdir -p "$RUNNER_TEMP/video"
+          for name in episode.mp4 short.mp4 thumbnail.jpg script.txt; do
+            fw get "${prefix}episodes/$date/$name" "$RUNNER_TEMP/video/$date-$name" || echo "No $name for $date."
+          done
+      - name: Keep the day's video with the run (download it from the run's page)
+        if: always() && env.PLAN != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: episode-video
+          path: ${{ runner.temp }}/video/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # GitHub turns off the schedule of a public repository after 60 days without activity: the first scheduled run of
   # each month (Bangkok time) commits a one-line heartbeat, unless broadcast.json turns keepAlive off. A month whose

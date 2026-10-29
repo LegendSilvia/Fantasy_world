@@ -235,7 +235,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             if (!vertical) await MakeThumbnailAsync(store, episode, mp4, ct).ConfigureAwait(false);
             if (account is null)
             {
-                _log.WriteLine($"youtube: the video of {day} was made and stored ({mp4.Length / 1024:N0} KB); dry runs do not upload.");
+                _log.WriteLine($"youtube: the video of {day} was made and stored ({mp4.Length / 1024:N0} KB); not uploaded (a dry run, or no YouTube secrets).");
                 return;
             }
 

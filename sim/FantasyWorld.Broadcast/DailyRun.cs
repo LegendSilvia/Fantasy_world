@@ -70,6 +70,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         try
         {
             manifest = Manifest.FromBytes(await store.GetAsync(Manifest.Key, ct).ConfigureAwait(false));
+            await NewWorldTakesTodayAsync(store, manifest, date, ct).ConfigureAwait(false);
             if (manifest.Day(date).Done(Manifest.EpisodeStep))
             {
                 log.WriteLine("Today's episode is already built; the world is not touched again today.");
@@ -286,6 +287,24 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         (entry.AudioBytes, entry.AudioSeconds) = (audio.Length, Voiceover.Seconds(audio.Length, Voiceover.Kbps(config.Voice.OutputFormat)));
         entry.Steps[Manifest.AudioStep] = clock();
         return SaveAsync(store, manifest, ct);
+    }
+
+    /// <summary>
+    /// A world begun afresh on a day the old one already aired (the owner, 2026-10-29: "start a new world fresh, rerender
+    /// and upload"): only on a run started with 'create' when no world is stored at the configured key yet. Today's
+    /// stored episode, narration, film and upload states belong to the old world, so they are cleared and the day is made
+    /// again (and posted again) from the new one; earlier days stay in the archive as they were.
+    /// </summary>
+    private async Task NewWorldTakesTodayAsync(PrefixedStore store, Manifest manifest, string date, CancellationToken ct)
+    {
+        if (!_options.Create || !manifest.Episodes.TryGetValue(date, out var day) || day.Steps.Count == 0
+            || await store.GetAsync(config.WorldKey, ct).ConfigureAwait(false) is not null) return;
+        var old = await store.ListAsync($"episodes/{date}/", ct).ConfigureAwait(false);
+        foreach (var key in old) await store.DeleteAsync(key, ct).ConfigureAwait(false);
+        manifest.Episodes.Remove(date);
+        manifest.WorldName = null;
+        await store.PutAsync(Manifest.Key, manifest.ToBytes(), "application/json", ct).ConfigureAwait(false);
+        log.WriteLine($"A new world begins today: the old world's episode of {date} ({old.Count} stored files) is cleared and the day is made again.");
     }
 
     private async Task<Episode> MakeEpisodeAsync(PrefixedStore store, Manifest manifest, string date, CancellationToken ct)

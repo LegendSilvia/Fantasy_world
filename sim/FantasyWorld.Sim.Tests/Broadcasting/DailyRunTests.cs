@@ -231,6 +231,27 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task ANewWorldBegunOnADayTheOldOneAired_TakesTheDay_AndIsPostedAgain()
+    {
+        var speech = new PronouncerTests.FakeSpeech();
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), speech: speech));
+        Assert.Single(_discord.Posts);
+        await _root.PutAsync("live/episodes/2026-10-27/film/chunk-00.mp4", [1], "video/mp4"); // the old world's film
+
+        // A rerun of the same world never redoes the day, even with 'create'.
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(1), new RunOptions(Create: true), speech: speech));
+        Assert.Single(_discord.Posts);
+
+        var fresh = BroadcastConfig.Parse(""" { "seed": 4, "size": "tiny", "worldKey": "fresh.fw.db" } """);
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(2), new RunOptions(Create: true), speech: speech, config: fresh));
+        Assert.Contains("A new world begins today", _log.ToString());
+        Assert.Null(await Get("live/episodes/2026-10-27/film/chunk-00.mp4"));
+        Assert.NotNull(await Get("live/fresh.fw.db"));
+        Assert.Equal(2, _discord.Posts.Count);
+        Assert.Equal(2, speech.Spoken.Count(Opens));
+    }
+
+    [Fact]
     public async Task DryRuns_ShareTheLiveBudget()
     {
         var tight = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "voice": { "monthlyCharacterBudget": 5000 } }""");
@@ -538,8 +559,9 @@ public class DailyRunTests : IDisposable
         Assert.Equal("public", BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Privacy);
         Assert.Equal(DailyRun.Failed, await BroadcastApp.RunAsync(["run", "--upload-unlisted", "--local", _dir.Path], TextWriter.Null, () => Morning, env.GetValueOrDefault));
         var quiet = new StringWriter();
-        Assert.Null(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), _ => null, new HttpClient(), quiet));
-        Assert.Contains("YouTube secrets are not set", quiet.ToString());
+        // Without the secrets the live video is still made and stored, never uploaded.
+        Assert.False(BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), _ => null, new HttpClient(), quiet)!.Uploads);
+        Assert.Contains("YouTube secrets are not set, so the video is made and stored", quiet.ToString());
         Assert.DoesNotContain("SECRET-TOKEN", output.ToString());
         Assert.Equal(DailyRun.Failed, await BroadcastApp.RunAsync(["publish"], output, () => Morning, env.GetValueOrDefault));
     }

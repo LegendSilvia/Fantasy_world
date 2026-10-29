@@ -238,7 +238,7 @@ public class YouTubeTests : IDisposable
         await dry.PublishAsync(Sample(), [1], [2]);
         Assert.Empty(google.Seen);
         Assert.NotNull(await _store.GetAsync(YouTube.VideoKey("2026-10-27")));
-        Assert.Contains("dry runs do not upload", _log.ToString());
+        Assert.Contains("not uploaded (a dry run, or no YouTube secrets)", _log.ToString());
     }
 
     [Fact]

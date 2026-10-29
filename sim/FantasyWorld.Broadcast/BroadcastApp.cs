@@ -139,11 +139,9 @@ public static class BroadcastApp
         if (!config.YouTube.Upload || vertical && !(config.YouTube.Shorts && config.YouTube.Diorama)) return null;
         var uploads = !options.DryRun || options.UploadUnlisted;
         var account = uploads ? Channels.YouTubeAccount.FromEnvironment(env) : null;
-        if (uploads && account is null)
-        {
-            output.WriteLine("YouTube: the YouTube secrets are not set, so no video is uploaded.");
-            return null;
-        }
+        // Without the secrets the video is still made and stored (the owner, 2026-10-29: the film is rendered every day and
+        // can be downloaded from the run), only not uploaded.
+        if (uploads && account is null) output.WriteLine("YouTube: the YouTube secrets are not set, so the video is made and stored but not uploaded.");
         if (!config.Voice.Speak) output.WriteLine("warning: YouTube is set up but voice.speak is off, so there is no narration to make a video of.");
         var settings = options.DryRun ? config.YouTube with { Privacy = "unlisted" } : config.YouTube;
         return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings, episode => config.Site.LinkFor(episode, options.DryRun), vertical);
