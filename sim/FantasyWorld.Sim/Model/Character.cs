@@ -103,6 +103,12 @@ public sealed class Character
     /// <summary>Their calling (<see cref="Classes"/>), taken at coming of age; empty until then.</summary>
     public string Class { get; set; } = "";
 
+    /// <summary>The abilities won through what befell them (<see cref="Model.Abilities"/>); the signature one is not stored.</summary>
+    public List<Ability> Abilities { get; init; } = new();
+
+    /// <summary>The last day what befell them changed them (<see cref="Systems.TransformSystem"/>); 0 for never.</summary>
+    public long ChangedDay { get; set; }
+
     /// <summary>The event that declared them a saint after death (0 if not one).</summary>
     public long SaintEventId { get; set; }
 

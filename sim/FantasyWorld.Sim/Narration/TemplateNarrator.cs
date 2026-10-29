@@ -92,6 +92,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["BattleJoined"] = "At {@place}, {attacker} and {defender} joined a battle of {war} that was not decided in a day.",
         ["BattleTurned"] = "The battle between {attacker} and {defender} at {@place} raged on.",
         ["BattleBrokenOff"] = "The battle between {attacker} and {defender} at {@place} was broken off.",
+        ["CharacterTransformed"] = "What befell {who} changed them: they came away with {=text}.",
         ["SecretRevealed"] = "{delver} reached the bottom of {structure} and walked away with its glory, and with a secret of the world, {=title}: {=text}",
         ["ArmyMoved"] = "{army} marched from {from} into {@place}.",
         ["HostAttackedAtSea"] = "{monster} fell on the ships of {army} at sea off {@place}; {=lost} were lost to the deep.",
@@ -277,6 +278,15 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
     {
         ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
+        // A character changed by what befell them (the owner, 2026-10-29), by what the change was.
+        ("CharacterTransformed", e => e.Payload.GetValueOrDefault("kind") == "awakening",
+            "{who} was not the same after it: something woke in them, and they rose a {=title}: {=text}."),
+        ("CharacterTransformed", e => e.Payload.GetValueOrDefault("kind") == "art",
+            "From it {who} made an art of fighting all their own, {=title}: {=text}."),
+        ("CharacterTransformed", e => e.Payload.GetValueOrDefault("kind") == "vengeance",
+            "{who} rose from it a changed soul, sworn to destroy {foe}."),
+        ("CharacterTransformed", e => e.Payload.GetValueOrDefault("kind") == "desire",
+            "{who} came back from it with a new hunger: {=text}."),
         // Who cleared a labyrinth, and what they walked away with (the owner, 2026-10-29).
         ("LabyrinthCleared", e => e.Actors.ContainsKey("artifact"), "{delver} cleared {structure}, and walked away with {artifact}."),
         ("SecretRevealed", e => e.Actors.ContainsKey("artifact"),

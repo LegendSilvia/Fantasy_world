@@ -31,7 +31,11 @@ public static class Briefs
             $"Traits: {(c.Traits.Count > 0 ? string.Join(", ", c.Traits) : "none of note")}",
             $"Ambition: {c.Ambition}; renown {c.Renown.ToString("0", CultureInfo.InvariantCulture)}/100",
             "Strengths: " + string.Join(", ", Attributes.Names.Select(n => $"{n} {c.Attributes.Get(n)}")),
+            // Their calling and what they can do in a fight (the owner, 2026-10-29), so the fight is told as their deeds.
+            $"Class: {PromptText.Data(Classes.Title(Classes.Of(world, c)))}; abilities: {PromptText.Data(Abilities.Brief(world, c), 600)}",
+            $"Fights: {Talents.Brief(c)}",
         };
+        if (Chronicle.Reputation.Of(world, story.Log).Line(c.Id) is { } known) lines.Add($"Renowned: {PromptText.Data(known, 300)}");
         if (c.Wounds.Count > 0) lines.Add($"Wounds: {string.Join(", ", c.Wounds.Select(w => PromptText.Data(w)))}");
         if (world.Characters.TryGetValue(c.SpouseId, out var spouse)) lines.Add($"Spouse: {PromptText.Data(Names.Full(world, spouse))}");
         var memories = c.Memories.OrderByDescending(m => Math.Abs(m.Feeling) * m.Weight).ThenBy(m => m.EventId).Take(5).ToList();

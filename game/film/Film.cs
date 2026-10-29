@@ -628,7 +628,7 @@ public partial class Film : Node
             var band = new ColorRect { Name = "Band", Color = Of(side), CustomMinimumSize = new Vector2(Px(8), Px(26)) };
             var title = Ui.Line(side.Name, "Name", Palette.Ink, Px(22));
             // A duellist's class: its emblem by the name, its title first among the notes.
-            var emblem = side.Class is { Length: > 0 } k ? Emblem("Class", k, Px(40)) : null;
+            var emblem = side.Class is { Length: > 0 } k ? Emblem("Class", Classes.Base(k), Px(40)) : null;
             var parts = new Control?[] { band, emblem, title };
             foreach (var part in right ? parts.Reverse() : parts)
                 if (part is not null) line.AddChild(part);

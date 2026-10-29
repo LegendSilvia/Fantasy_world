@@ -130,7 +130,7 @@ public static class Viewer
                 var realm = home is not null && World.Regions.TryGetValue(home.RegionId, out var region) ? World.Realms.GetValueOrDefault(region.OwnerRealmId) : null;
                 return new
                 {
-                    @ref = c.Ref.ToString(), name = c.Name, @class = c.Class, role = c.Role.ToString().ToLowerInvariant(), age = c.Age(World.Date),
+                    @ref = c.Ref.ToString(), name = c.Name, @class = Classes.Base(c.Class), title = c.Class.Length > 0 ? Classes.Title(c.Class) : "", role = c.Role.ToString().ToLowerInvariant(), age = c.Age(World.Date),
                     renown = (int)Math.Round(c.Renown), realm = realm?.Name, home = home?.Name,
                 };
             });
@@ -159,6 +159,28 @@ public static class Viewer
         }, Json);
         static float[] V3(Vector3 v) => [v.X, v.Y, v.Z];
     }
+
+    /// <summary>
+    /// How a character fights and what they are known for (the owner, 2026-10-29): their class (awakened ones by their own
+    /// name), talents, abilities (the signature one, then those won since), and their renown in the world.
+    /// </summary>
+    [JSInvokable]
+    public static string Fighter(string characterId)
+    {
+        var id = long.Parse(characterId, CultureInfo.InvariantCulture);
+        if (!World.Characters.TryGetValue(id, out var c)) return "null";
+        var calling = Classes.Of(World, c);
+        _reputation ??= FantasyWorld.Sim.Chronicle.Reputation.Of(World, Log);
+        return JsonSerializer.Serialize(new
+        {
+            @class = Classes.Base(calling), title = Classes.Title(calling), awakened = Classes.IsAwakened(calling),
+            talents = Talents.Of(c).Select(t => new { name = t.Name, shows = t.Shows }),
+            abilities = Abilities.Of(World, c).Select(a => new { name = a.Name, text = a.Text, @event = a.EventId != 0 ? $"event#{a.EventId}" : null }),
+            known = _reputation.Of(c.Id),
+        }, Json);
+    }
+
+    private static FantasyWorld.Sim.Chronicle.Reputation? _reputation;
 
     /// <summary>A beast's card (the owner, 2026-10-29): what it is, its legend, where it lairs, and its deeds, newest first.</summary>
     [JSInvokable]

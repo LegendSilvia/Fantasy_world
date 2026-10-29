@@ -1,15 +1,15 @@
 {
   "outcome": {
-    "eventId": 206,
+    "eventId": 215,
     "year": 20,
     "category": "characters",
     "title": {
-      "text": "Hesgres of Geigith was killed by monsters, aged 32.",
+      "text": "Giaskia of Gendtialing was killed by monsters at the age of 37.",
       "links": [
         {
           "start": 0,
-          "length": 18,
-          "entity": "char#33"
+          "length": 22,
+          "entity": "char#38"
         }
       ]
     },
@@ -20,19 +20,19 @@
   "layers": [
     [
       {
-        "eventId": 205,
+        "eventId": 214,
         "year": 20,
         "category": "characters",
         "title": {
-          "text": "Hesgres of Geigith hunted the monsters of Gisreach and was killed.",
+          "text": "Giaskia of Gendtialing hunted the monsters of Gisreach and was killed.",
           "links": [
             {
               "start": 0,
-              "length": 18,
-              "entity": "char#33"
+              "length": 22,
+              "entity": "char#38"
             },
             {
-              "start": 42,
+              "start": 46,
               "length": 8,
               "entity": "region#7"
             }
@@ -46,8 +46,8 @@
   ],
   "edges": [
     {
-      "from": 205,
-      "to": 206,
+      "from": 214,
+      "to": 215,
       "kind": "trigger",
       "label": "because"
     }
@@ -55,14 +55,14 @@
   "summary": "Traced back within the year, through one root cause.",
   "people": [
     {
-      "ref": "char#33",
-      "name": "Hesgres of Geigith"
+      "ref": "char#38",
+      "name": "Giaskia of Gendtialing"
     }
   ],
   "places": [
     {
-      "ref": "settlement#17",
-      "name": "Braestilby"
+      "ref": "settlement#18",
+      "name": "Droukolford"
     },
     {
       "ref": "region#7",
@@ -74,15 +74,15 @@
   ],
   "consequences": [],
   "story": {
-    "text": "In Year 20, Hesgres of Geigith hunted the monsters of Gisreach and was killed. And so Hesgres of Geigith was killed by monsters, aged 32.",
+    "text": "In Year 20, Giaskia of Gendtialing hunted the monsters of Gisreach and was killed. And so Giaskia of Gendtialing was killed by monsters at the age of 37.",
     "links": [
       {
         "start": 12,
-        "length": 18,
-        "entity": "char#33"
+        "length": 22,
+        "entity": "char#38"
       },
       {
-        "start": 54,
+        "start": 58,
         "length": 8,
         "entity": "region#7"
       }

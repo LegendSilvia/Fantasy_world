@@ -327,7 +327,7 @@ async function render(kind, key, year) {
     }
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
-    if (kind === "character") return character(screen);
+    if (kind === "character") return character(screen, JSON.parse(await call("Fighter", key)));
     if (kind === "why") return why(screen);
     if (kind === "artifact") return `<div class="kicker">Artifact</div><h2>${esc(screen.name ?? screen.title ?? "")}</h2><p>${esc(screen.lore ?? "")}</p>`;
     throw new Error(kind);
@@ -428,8 +428,8 @@ function beastCard(b, pics) {
 
 /** The world's notable people, most renowned first, with a filter by name, class, realm or home (the owner, 2026-10-29). */
 function people(p) {
-    const row = c => `<li data-find="${esc([c.name, c.class, c.role, c.realm, c.home].filter(Boolean).join(" ").toLowerCase())}">`
-        + `${emblem(c.class)}${ref(c.ref, c.name)} <span class="muted">· ${esc([c.class, c.role].filter(Boolean).join(", "))}, ${c.age}`
+    const row = c => `<li data-find="${esc([c.name, c.class, c.title, c.role, c.realm, c.home].filter(Boolean).join(" ").toLowerCase())}">`
+        + `${emblem(c.class)}${ref(c.ref, c.name)} <span class="muted">· ${esc([c.title, c.role].filter(Boolean).join(", "))}, ${c.age}`
         + `${c.realm ? ` · ${esc(c.realm)}` : ""}${c.home ? ` · ${esc(c.home)}` : ""} · renown ${c.renown}</span></li>`;
     return `<div class="kicker">The people of the world</div><h2>Who is who</h2>`
         + `<input id="people-find" class="find" type="search" placeholder="Find by name, class, realm or home">`
@@ -493,13 +493,16 @@ $("panel-body").addEventListener("click", async e => {
 });
 
 /** A character class's painted emblem (sub-project 13), with its name as the tooltip; nothing for none. */
-const emblem = k => k ? `<img class="emblem" src="img/emblems/${esc(k)}.png" alt="${esc(k)}" title="${esc(k[0].toUpperCase() + k.slice(1))}">` : "";
+const emblem = k => k ? `<img class="emblem" src="img/emblems/${esc(k.split(":")[0])}.png" alt="" title="${esc(k.includes(":") ? k.split(":")[1] : k[0].toUpperCase() + k.slice(1))}">` : "";
 
-function character(c) {
-    return `<div class="kicker">${esc(c.kicker)}${c.class ? ` · ${esc(c.class[0].toUpperCase() + c.class.slice(1))}` : ""}</div>`
-        + `<h2>${emblem(c.class)}${esc(c.name)}</h2><p>${esc(c.line)}</p>`
+function character(c, f) {
+    return `<div class="kicker">${esc(c.kicker)}${f ? ` · ${esc(f.title)}${f.awakened ? " (awakened)" : ""}` : ""}</div>`
+        + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2><p>${esc(c.line)}</p>`
+        + (f?.known?.length ? `<p class="known">Known as ${f.known.map(esc).join(", ")}</p>` : "")
         + `<div class="tags">${(c.traits ?? []).map(t => `<span>${esc(t)}</span>`).join("")}</div>`
         + `<p class="muted">${esc(c.ambition ?? "")}${c.location ? ` · ${place(c.location)}` : ""}${c.faith ? ` · ${mention(c.faith)}` : ""}</p>`
+        + (f ? `<h3>In a fight</h3><p class="muted">${f.talents.map(t => `<b>${esc(t.name)}</b>: ${esc(t.shows)}`).join(" · ") || "No gift above the common."}</p>`
+            + `<ul>${f.abilities.map(a => `<li><b>${esc(a.name)}</b> <span class="muted">${esc(a.text)}</span>${a.event ? ` · ${ref(a.event, "how")}` : ""}</li>`).join("")}</ul>` : "")
         + list("Ties", c.ties, t => `${esc(t.relation)}: ${ref(t.ref, t.name)}${t.qualifier ? ` <span class="muted">${esc(t.qualifier)}</span>` : ""}`)
         + list("Life", c.timeline, row => `<span class="muted">Year ${row.year}</span> ${linked(row.text)} <a data-ref="event#${row.eventId}" title="Why?">why</a>`);
 }

@@ -73,7 +73,7 @@
     {
       "year": 19,
       "text": {
-        "text": "Fath of Cunvei and Broth of Cunvei fell out over the clash of a calm nature with a wrathful one.",
+        "text": "Fath of Cunvei and Broth of Cunvei became rivals over the clash of a calm nature with a wrathful one.",
         "links": [
           {
             "start": 0,
@@ -87,7 +87,7 @@
           }
         ]
       },
-      "eventId": 197,
+      "eventId": 206,
       "highlight": false
     },
     {
@@ -112,7 +112,7 @@
           }
         ]
       },
-      "eventId": 211,
+      "eventId": 221,
       "highlight": true
     }
   ],

@@ -3,6 +3,7 @@ using System.Text.Json;
 using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Events;
 using FantasyWorld.Sim.Llm;
+using FantasyWorld.Sim.Model;
 using FantasyWorld.Sim.Query;
 
 namespace FantasyWorld.Sim.Narration;
@@ -33,7 +34,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
                    + "commentator before a bout (both sides' strengths and weaknesses from the figures given, where each could win or lose it, "
                    + "and whom the odds favour, in words only: never a percentage, a chance or odds as a number; without deciding it), each other story "
                    + "briefly (where a section lists a war's marches, say each in a few words, how long and from where to where, naming no place between; "
-                   + "where it gives a fight's days, tell the fight blow by blow through them, day by day, to its end), "
+                   + "where it gives a fight's days, tell the fight blow by blow through them, day by day, to its end: what each fighter did, how "
+                   + "the other answered, each blow shaped by how that fighter fights, the abilities they used and the twist that turned it), "
                    + "then (where the brief has a section asking what to make of it all) your own view of the year as its chronicler: "
                    + "what it meant, who rose and who fell, what to watch for, ending in a conclusion of your own; judge and wonder freely, "
                    + "but state no fact the brief does not give. Then a closing line from "
@@ -51,7 +53,13 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         // Names (some invented by the LLM earlier) enter the prompt only as data, section by section (spec §8.6).
         // A face-off's figures go with its section, for the commentary; they are facts the narration may use.
         // A war's moves go with its section likewise, in the order they were made.
-        string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures(), 1200)})" : "")
+        // A duel's fighters come with their abilities and what they are known for, so the fight is told as their deeds.
+        var reputation = Reputation.Of(story.World, story.Log);
+        string Fighters(FaceOff f) => f.Kind != FaceOff.Duel ? "" : string.Concat(new[] { f.A, f.B }.Select(side =>
+            side.Ref.Split('#') is [_, var idText] && long.TryParse(idText, out var cid) && story.World.Characters.TryGetValue(cid, out var c)
+                ? $"\n{side.Name}: fights {Talents.Brief(c)}; abilities {Abilities.Brief(story.World, c)}" + (reputation.Line(c.Id) is { } known ? $"; {known}" : "")
+                : ""));
+        string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures() + Fighters(f), 2000)})" : "")
                                             + (p.Moves is { Count: > 0 } m ? $"\n(The war's marches:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "")
                                             + (p.Beats is { Count: > 1 } b ? $"\n(The fight, day by day:\n{PromptText.Data(Fights.Brief(b), 2400)})" : "");
         // A scene to paint is marked with the template's picture of it, for the chronicler's own (the episode's stills).

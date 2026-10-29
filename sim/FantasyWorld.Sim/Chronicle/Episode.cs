@@ -92,7 +92,13 @@ public sealed record Episode(
         var toYear = world.Date.Year;
         // A clearing that revealed a secret is told by the secret's story, which says who cleared it and what they took.
         var told = events.Where(e => e.Type == "SecretRevealed").SelectMany(e => e.Causes.Select(c => c.EventId)).ToHashSet();
-        var ranked = events.Where(e => !EpisodeSection.PrayerEvents.Contains(e.Type) && !(e.Type == "LabyrinthCleared" && told.Contains(e.Id))).Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
+        // A character changed by a deed is told right after the deed, in its section (the owner, 2026-10-29), never on its own
+        // while the deed is in the episode.
+        var inWindow = events.Select(e => e.Id).ToHashSet();
+        var changes = events.Where(e => e.Type == "CharacterTransformed").ToList();
+        var changedBy = changes.Where(e => e.Causes.Any(c => inWindow.Contains(c.EventId))).Select(e => e.Id).ToHashSet();
+        var ranked = events.Where(e => !EpisodeSection.PrayerEvents.Contains(e.Type) && !(e.Type == "LabyrinthCleared" && told.Contains(e.Id))
+                                       && !changedBy.Contains(e.Id)).Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
             .OrderByDescending(x => x.Score).ThenBy(x => x.Event.Id).Select(x => x.Event).ToList();
         // News that shapes the world leads (a war, a fall, a legend), however famous the people in smaller stories are.
         // The engine's own weight decides among them, so a realm's fall outranks a famous lord's death.
@@ -160,7 +166,7 @@ public sealed record Episode(
             return sections.Select(s => s.EventId != 0 && log.TryGet(s.EventId, out var ev) && Campaign.WarOf(ev) is var war and not 0
                                         && told.Add(war) && MovesOf(war) is { Count: > 0 } moves
                 ? s with { Text = Campaign.Tell(moves) is { Length: > 0 } march ? $"{s.Text}\n\n{march}" : s.Text, Moves = moves }
-                : s).Select(WithBeats).Select(WithFight).ToList();
+                : s).Select(WithBeats).Select(WithFight).Select(WithChanges).ToList();
         }
         // A fight's section shows its face-off as it stands (the owner, 2026-10-28): the result if it ended within the
         // episode, else its course so far.
@@ -179,6 +185,16 @@ public sealed record Episode(
                 || Fights.Beats(log, ev) is not { Count: > 1 } beats) return s;
             var fresh = beats.Where(b => !s.Text.Contains(b.Text, StringComparison.Ordinal)).ToList();
             return s with { Text = Fights.Tell(fresh) is { Length: > 0 } told ? $"{s.Text}\n\n{told}" : s.Text, Beats = beats };
+        }
+        // The changes a section's deed made: its own event, or for a fight any of its days (they share its first day).
+        EpisodeSection WithChanges(EpisodeSection s)
+        {
+            if (s.EventId == 0 || !log.TryGet(s.EventId, out var ev)) return s;
+            var root = FaceOffs.Fights.Contains(ev.Type) || ev.Type.StartsWith("Duel", StringComparison.Ordinal) ? Fights.RootOf(log, ev) : ev.Id;
+            bool Mine(long cause) => cause == ev.Id || (log.TryGet(cause, out var c) && (c.Id == root
+                || ((FaceOffs.Fights.Contains(c.Type) || c.Type.StartsWith("Duel", StringComparison.Ordinal)) && Fights.RootOf(log, c) == root)));
+            var lines = changes.Where(t => t.Causes.Any(c => Mine(c.EventId))).Select(narrator.Sentence).ToList();
+            return lines.Count == 0 ? s : s with { Text = $"{s.Text} {string.Join(" ", lines)}" };
         }
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
             WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection, primerSection));

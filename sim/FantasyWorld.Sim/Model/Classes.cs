@@ -27,15 +27,29 @@ public static class Classes
         [Ranger] = (Paladin, "arrows from afar find slow plate"),
     };
 
-    public static bool Counters(string? a, string? b) => a is not null && b is not null && Wheel.TryGetValue(a, out var w) && w.Beats == b;
+    /// <summary>
+    /// An awakened class (the owner, 2026-10-29): a calling a character grew into through what befell them, named by Claude,
+    /// kept as "base:Name" (mage:Stormcaller); it stands where its base stands on the wheel, and fights a tenth stronger.
+    /// </summary>
+    public const double AwakenedEdge = 1.10;
 
-    /// <summary>The edge of <paramref name="a"/> over <paramref name="b"/>: 1.15 if it counters, else 1.</summary>
-    public static double Edge(string? a, string? b) => Counters(a, b) ? CounterEdge : 1;
+    public static string Awaken(string baseClass, string name) => $"{Base(baseClass)}:{name}";
+
+    /// <summary>The base calling of a class: the class itself, or what an awakened one grew from.</summary>
+    public static string Base(string? k) => k is null ? "" : k.IndexOf(':') is var i and >= 0 ? k[..i] : k;
+
+    public static bool IsAwakened(string? k) => k is not null && k.Contains(':');
+
+    public static bool Counters(string? a, string? b) => a is not null && b is not null && Wheel.TryGetValue(Base(a), out var w) && w.Beats == Base(b);
+
+    /// <summary>The edge of <paramref name="a"/> over <paramref name="b"/>: 1.15 if it counters, a tenth more if awakened.</summary>
+    public static double Edge(string? a, string? b) => (Counters(a, b) ? CounterEdge : 1) * (IsAwakened(a) ? AwakenedEdge : 1);
 
     /// <summary>Why a class beats the one it counters, in a few words.</summary>
-    public static string Why(string a) => Wheel.TryGetValue(a, out var w) ? w.Why : "";
+    public static string Why(string a) => Wheel.TryGetValue(Base(a), out var w) ? w.Why : "";
 
-    public static string Title(string k) => k.Length == 0 ? k : char.ToUpperInvariant(k[0]) + k[1..];
+    /// <summary>A class as it reads: "Mage", or an awakened one's own name ("Stormcaller").</summary>
+    public static string Title(string k) => k.IndexOf(':') is var i and >= 0 ? k[(i + 1)..] : k.Length == 0 ? k : char.ToUpperInvariant(k[0]) + k[1..];
 
     /// <summary>A character's class: the one they took, or for a child (who has none yet), the one they would take.</summary>
     public static string Of(World world, Character c) => c.Class is { Length: > 0 } k ? k : Choose(world, c);
