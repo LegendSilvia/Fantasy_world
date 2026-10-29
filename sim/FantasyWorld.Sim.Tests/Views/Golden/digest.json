@@ -2,208 +2,228 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 231 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 302 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
     {
       "number": 1,
-      "place": "settlement#24",
-      "label": "Niar",
+      "place": "settlement#16",
+      "label": "Greindrondcross",
       "position": {
-        "x": 0.2578125,
-        "y": 0.7890625
-      },
-      "eventId": 228
-    },
-    {
-      "number": 5,
-      "place": "region#2",
-      "label": "Taramdale",
-      "position": {
-        "x": 0.4921875,
+        "x": 0.8828125,
         "y": 0.4296875
       },
-      "eventId": 194
+      "eventId": 38
+    },
+    {
+      "number": 6,
+      "place": "region#8",
+      "label": "Veirwold",
+      "position": {
+        "x": 0.6953125,
+        "y": 0.4609375
+      },
+      "eventId": 121
+    },
+    {
+      "number": 8,
+      "place": "settlement#3",
+      "label": "Drerithby",
+      "position": {
+        "x": 0.3515625,
+        "y": 0.1953125
+      },
+      "eventId": 160
     }
   ],
   "headline": {
     "number": 1,
-    "category": "characters",
-    "kicker": "A changed soul",
+    "category": "war",
+    "kicker": "War",
     "title": {
-      "text": "Stiath of Vallbrorneth rose from it a changed soul, sworn to destroy Coth of Rialling",
+      "text": "The Veirwold Rebellion begins",
       "links": [
         {
           "start": 0,
           "length": 22,
-          "entity": "char#24"
-        },
-        {
-          "start": 69,
-          "length": 16,
-          "entity": "char#11"
+          "entity": "war#1"
         }
       ]
     },
     "body": {
-      "text": "Earlier that year, at Niar, Coth of Rialling met Stiath of Vallbrorneth to first blood.",
+      "text": "The Kingdom of Thonae declared war on the County of Veirwold for its freedom, and so began the Veirwold Rebellion. Earlier that year, the County of Veirwold threw off the rule of the Kingdom of Thonae.",
       "links": [
         {
-          "start": 22,
-          "length": 4,
-          "entity": "settlement#24"
+          "start": 4,
+          "length": 17,
+          "entity": "realm#1"
         },
         {
-          "start": 28,
-          "length": 16,
-          "entity": "char#11"
+          "start": 42,
+          "length": 18,
+          "entity": "realm#3"
         },
         {
-          "start": 49,
+          "start": 91,
           "length": 22,
-          "entity": "char#24"
+          "entity": "war#1"
         }
       ]
     },
-    "eventId": 228,
+    "eventId": 38,
     "canExplain": true
   },
   "items": [
     {
       "number": 2,
-      "category": "characters",
+      "category": "war",
       "text": {
-        "text": "Stiath of Vallbrorneth came back from it with a new hunger: a longing to master the powers they glimpsed.",
+        "text": "The Kingdom of Thonae declared war on the County of Veirwold for its freedom, and so began the Veirwold Rebellion.",
         "links": [
           {
-            "start": 0,
+            "start": 4,
+            "length": 17,
+            "entity": "realm#1"
+          },
+          {
+            "start": 42,
+            "length": 18,
+            "entity": "realm#3"
+          },
+          {
+            "start": 91,
             "length": 22,
-            "entity": "char#24"
+            "entity": "war#2"
           }
         ]
       },
-      "eventId": 152
+      "eventId": 162
     },
     {
       "number": 3,
-      "category": "characters",
+      "category": "war",
       "text": {
-        "text": "Coth of Rialling fought Stiath of Vallbrorneth to the death at Niar.",
+        "text": "The Veirwold Rebellion ended; the Kingdom of Thonae prevailed over the County of Veirwold: vassalage restored.",
         "links": [
           {
             "start": 0,
-            "length": 16,
-            "entity": "char#11"
-          },
-          {
-            "start": 24,
             "length": 22,
-            "entity": "char#24"
+            "entity": "war#1"
           },
           {
-            "start": 63,
-            "length": 4,
-            "entity": "settlement#24"
+            "start": 34,
+            "length": 17,
+            "entity": "realm#1"
+          },
+          {
+            "start": 71,
+            "length": 18,
+            "entity": "realm#3"
           }
         ]
       },
-      "eventId": 200
+      "eventId": 127
     },
     {
       "number": 4,
-      "category": "characters",
+      "category": "war",
       "text": {
-        "text": "Coth of Rialling challenged Stiath of Vallbrorneth to a duel (to the death), to be fought at Niar in a year and a day.",
+        "text": "The Veirwold Rebellion ended; the Kingdom of Thonae prevailed over the County of Veirwold: vassalage restored.",
         "links": [
           {
             "start": 0,
-            "length": 16,
-            "entity": "char#11"
-          },
-          {
-            "start": 28,
             "length": 22,
-            "entity": "char#24"
+            "entity": "war#2"
           },
           {
-            "start": 93,
-            "length": 4,
-            "entity": "settlement#24"
+            "start": 34,
+            "length": 17,
+            "entity": "realm#1"
+          },
+          {
+            "start": 71,
+            "length": 18,
+            "entity": "realm#3"
           }
         ]
       },
-      "eventId": 192
+      "eventId": 199
     },
     {
       "number": 5,
-      "category": "characters",
+      "category": "politics",
       "text": {
-        "text": "Gral of Bandbia found the Gold Chalice in the depths of Taramdale.",
+        "text": "The County of Veirwold threw off the rule of the Kingdom of Thonae.",
         "links": [
           {
-            "start": 0,
-            "length": 15,
-            "entity": "char#16"
+            "start": 4,
+            "length": 18,
+            "entity": "realm#3"
           },
           {
-            "start": 22,
-            "length": 16,
-            "entity": "artifact#5"
-          },
-          {
-            "start": 56,
-            "length": 9,
-            "entity": "region#2"
+            "start": 49,
+            "length": 17,
+            "entity": "realm#1"
           }
         ]
       },
-      "eventId": 194
+      "eventId": 36
     },
     {
       "number": 6,
-      "category": "characters",
+      "category": "war",
       "text": {
-        "text": "At Niar, Stiath of Vallbrorneth met Coth of Rialling to first blood.",
+        "text": "Steillmuth of Viallciath fought with distinction at Veirwold.",
         "links": [
           {
-            "start": 3,
-            "length": 4,
-            "entity": "settlement#24"
+            "start": 0,
+            "length": 24,
+            "entity": "char#12"
           },
           {
-            "start": 9,
-            "length": 22,
-            "entity": "char#24"
-          },
-          {
-            "start": 36,
-            "length": 16,
-            "entity": "char#11"
+            "start": 52,
+            "length": 8,
+            "entity": "region#8"
           }
         ]
       },
-      "eventId": 151
+      "eventId": 121
     },
     {
       "number": 7,
-      "category": "characters",
+      "category": "war",
       "text": {
-        "text": "Giaskia of Gendtialing slew the monsters of Taramdale.",
+        "text": "Veindbron of Breindard won glory in the battle at Veirwold.",
         "links": [
           {
             "start": 0,
             "length": 22,
-            "entity": "char#38"
+            "entity": "char#5"
           },
           {
-            "start": 44,
-            "length": 9,
-            "entity": "region#2"
+            "start": 50,
+            "length": 8,
+            "entity": "region#8"
           }
         ]
       },
       "eventId": 198
+    },
+    {
+      "number": 8,
+      "category": "politics",
+      "text": {
+        "text": "The Kingdom of Thonae was reduced to a duchy.",
+        "links": [
+          {
+            "start": 4,
+            "length": 17,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 160
     }
   ]
 }

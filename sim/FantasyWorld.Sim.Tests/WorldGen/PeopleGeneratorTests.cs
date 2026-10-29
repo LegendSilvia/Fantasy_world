@@ -52,7 +52,7 @@ public class PeopleGeneratorTests
         var world = Medium();
         foreach (var c in world.Characters.Values)
         {
-            Assert.InRange(c.Traits.Count, 2, 5);
+            Assert.InRange(c.Traits.Count, 2, 6); // three or four of the old pairs, a flaw or virtue, and some are unyielding
             Assert.True(world.Cultures.ContainsKey(c.CultureId));
             if (c.FatherId == 0)
                 Assert.Equal(world.Regions[world.Settlements[c.SettlementId].RegionId].CultureId, c.CultureId);

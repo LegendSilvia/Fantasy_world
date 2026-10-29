@@ -5,6 +5,9 @@ namespace FantasyWorld.Sim.Model;
 /// its own name, breed and lore; a sworn companion is the character (<see cref="CharacterId"/>). The event that joined
 /// them, and its day.
 /// </summary>
+/// <summary>A fighter's own weapon, as Claude made it to suit them: a name if it has one, what it is, and its story.</summary>
+public sealed record Gear(string Name, string What, string Lore);
+
 public sealed record Companion(string Name, string Kind, string What, string Lore, long CharacterId, long EventId, long Day)
 {
     public const string Beast = "beast", Sworn = "sworn";
@@ -16,14 +19,22 @@ public sealed record Companion(string Name, string Kind, string What, string Lor
 /// </summary>
 public static class Arms
 {
-    private static readonly Dictionary<string, string> Common = new(StringComparer.Ordinal)
+    // What each calling carries without a relic, six to a calling (the owner, 2026-10-29: a wider pool), chosen by the
+    // character so a world always arms alike. After the chronicle airs, Claude arms each fighter to suit them (Character.Weapon).
+    private static readonly Dictionary<string, string[]> Common = new(StringComparer.Ordinal)
     {
-        [Classes.Warrior] = "a heavy longsword and a battered shield",
-        [Classes.Rogue] = "a pair of long knives",
-        [Classes.Mage] = "a carved staff of old wood",
-        [Classes.Paladin] = "a warhammer and a shield bearing their god's sign",
-        [Classes.Warlock] = "a black-bladed dagger and a grimoire",
-        [Classes.Ranger] = "a longbow of yew and a hunting knife",
+        [Classes.Warrior] = ["a heavy longsword and a battered shield", "a notched greataxe", "a spear and a round shield painted with their colours",
+            "a pair of hand-axes", "a two-handed sword taller than a child", "a flanged mace and a kite shield"],
+        [Classes.Rogue] = ["a pair of long knives", "a slim rapier and a parrying dagger", "a hooked sickle-blade", "a sheaf of throwing knives and a short blade",
+            "a garrotte and a stiletto", "a curved sabre worn low on the hip"],
+        [Classes.Mage] = ["a carved staff of old wood", "a wand of black glass", "a staff tipped with a cracked crystal", "a book of spells chained to the belt",
+            "a ring of iron that hums when they speak", "a rod of bone wound with silver"],
+        [Classes.Paladin] = ["a warhammer and a shield bearing their god's sign", "a broadsword blessed at the altar", "a morning star and a tower shield",
+            "a long-hafted poleaxe", "a holy relic-sword passed down their order", "a flail and a shield studded with prayers"],
+        [Classes.Warlock] = ["a black-bladed dagger and a grimoire", "a staff of twisted thorn", "a skull-headed rod", "a curved blade that drinks the light",
+            "a chain of iron links that moves on its own", "a mask of bone and a sickle"],
+        [Classes.Ranger] = ["a longbow of yew and a hunting knife", "a recurved horn bow and a hatchet", "a heavy crossbow and a boar spear",
+            "a short bow and a pair of fighting knives", "a sling and a stone-headed club", "a hunting spear and a quiver of barbed arrows"],
     };
 
     /// <summary>The weapon: a held weapon relic (its name, what it is, its lore), else the calling's own.</summary>
@@ -34,7 +45,8 @@ public static class Arms
         return relic is not null
             ? (relic.Name, $"a weapon of {relic.Material}" + (relic.Powers.Count > 0 ? $" ({string.Join(", ", relic.Powers.Select(p => p.Attribute is null ? p.Kind : $"+{p.Amount} {p.Attribute}"))})" : ""),
                 relic.Lore, relic.Id)
-            : ("", Common.GetValueOrDefault(Classes.Base(Classes.Of(world, c))) ?? Common[Classes.Warrior], "", 0);
+            : c.Weapon is { } own ? (own.Name, own.What, own.Lore, 0)
+            : ("", (Common.GetValueOrDefault(Classes.Base(Classes.Of(world, c))) ?? Common[Classes.Warrior]) is var pool ? pool[(int)(c.Id % pool.Length)] : "", "", 0);
     }
 
     /// <summary>A beast companion fights at their side: this much stronger.</summary>

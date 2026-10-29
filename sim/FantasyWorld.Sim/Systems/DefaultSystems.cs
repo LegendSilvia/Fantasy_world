@@ -41,6 +41,8 @@ public static class DefaultSystems
         new PromotionSystem(),
         new StructureSystem(inventor),
         new LoreSystem(inventor),
+        new GoalSystem(),
+        new GrowthSystem(),
         new ChronicleSystem(),
     };
 }

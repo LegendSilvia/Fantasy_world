@@ -97,6 +97,12 @@ public sealed class Character
     /// <summary>Lasting injuries, e.g. "sword arm".</summary>
     public List<string> Wounds { get; init; } = new();
 
+    /// <summary>Their own signature ability, made by Claude to suit them once the chronicle airs; null: their calling's.</summary>
+    public Ability? Signature { get; set; }
+
+    /// <summary>Their own weapon, made by Claude to suit them once the chronicle airs; null: their calling's (a relic outranks both).</summary>
+    public Gear? Weapon { get; set; }
+
     /// <summary>0–100. Grows with deeds; raises the importance of their events.</summary>
     public double Renown { get; set; }
 

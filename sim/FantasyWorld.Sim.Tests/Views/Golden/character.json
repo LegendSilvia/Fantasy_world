@@ -7,6 +7,7 @@
   "traits": [
     "calm",
     "devout",
+    "gracious",
     "lazy",
     "trusting"
   ],
@@ -23,32 +24,32 @@
     {
       "year": 2,
       "text": {
-        "text": "Keth of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
+        "text": "Ornstiall of Vorn was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 15,
-            "entity": "char#17"
+            "length": 17,
+            "entity": "char#10"
           },
           {
-            "start": 32,
+            "start": 34,
             "length": 14,
             "entity": "char#1"
           },
           {
-            "start": 60,
+            "start": 62,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 35,
+      "eventId": 39,
       "highlight": false
     },
     {
       "year": 2,
       "text": {
-        "text": "Fath of Cunvei knighted End of Gil in the service of the Kingdom of Thonae.",
+        "text": "Fath of Cunvei knighted Ciath of Viallciath in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
@@ -57,23 +58,23 @@
           },
           {
             "start": 24,
-            "length": 10,
-            "entity": "char#15"
+            "length": 19,
+            "entity": "char#13"
           },
           {
-            "start": 57,
+            "start": 66,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 36,
+      "eventId": 40,
       "highlight": false
     },
     {
-      "year": 19,
+      "year": 16,
       "text": {
-        "text": "Fath of Cunvei and Broth of Cunvei became rivals over the clash of a calm nature with a wrathful one.",
+        "text": "Fath of Cunvei and Lond of Cunvei became rivals over the clash of a calm nature with a wrathful one.",
         "links": [
           {
             "start": 0,
@@ -82,38 +83,58 @@
           },
           {
             "start": 19,
-            "length": 15,
-            "entity": "char#4"
+            "length": 14,
+            "entity": "char#3"
           }
         ]
       },
-      "eventId": 212,
+      "eventId": 268,
       "highlight": false
     },
     {
-      "year": 21,
+      "year": 18,
       "text": {
-        "text": "Tas of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
+        "text": "Hebiand of Kiangratheth was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 14,
-            "entity": "char#29"
+            "length": 23,
+            "entity": "char#34"
           },
           {
-            "start": 31,
+            "start": 40,
             "length": 14,
             "entity": "char#1"
           },
           {
-            "start": 59,
+            "start": 68,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 231,
-      "highlight": true
+      "eventId": 279,
+      "highlight": false
+    },
+    {
+      "year": 18,
+      "text": {
+        "text": "Mathvond of Cunvei and Fath of Cunvei became rivals over the clash of a wrathful nature with a calm one.",
+        "links": [
+          {
+            "start": 0,
+            "length": 18,
+            "entity": "char#4"
+          },
+          {
+            "start": 23,
+            "length": 14,
+            "entity": "char#1"
+          }
+        ]
+      },
+      "eventId": 286,
+      "highlight": false
     }
   ],
   "folded": 0,
@@ -135,7 +156,7 @@
     },
     {
       "ref": "char#4",
-      "name": "Broth of Cunvei",
+      "name": "Mathvond of Cunvei",
       "relation": "Child",
       "qualifier": "",
       "tone": "neutral"

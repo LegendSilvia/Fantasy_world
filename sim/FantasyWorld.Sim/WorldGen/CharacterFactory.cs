@@ -33,6 +33,22 @@ public static class CharacterFactory
             Traits = RollTraits(rng, father, mother),
             Role = role,
         };
+        // A few never give up: born so, or, more often, from a parent who never did. Drawn from the character itself, not
+        // the world's dice, so the rest of the world plays out as before.
+        if (Hash.Percent(character.Id, 7) < (father?.Has(Traits.Unyielding) == true || mother?.Has(Traits.Unyielding) == true ? 35 : 7))
+            character.Traits.Add(Traits.Unyielding);
+        // A flaw for some, a virtue for fewer, from the flaw-and-virtue pairs (the flaws may grow into the virtues later).
+        // At most one, never against what they already are.
+        var hasOne = Traits.Grown.Any(g => character.Traits.Contains(g.Flaw) || character.Traits.Contains(g.Virtue));
+        for (var i = 0; i < Traits.Grown.Count && !hasOne; i++)
+        {
+            var (flaw, virtue) = Traits.Grown[i];
+            var roll = Hash.Percent(character.Id, 40 + i);
+            if (roll >= 18) continue;
+            character.Traits.Add(roll < 12 ? flaw : virtue);
+            break;
+        }
+        character.Traits.Sort(StringComparer.Ordinal);
         character.Ambition = ChooseAmbition(character, rng);
         world.Characters[character.Id] = character;
         // One made grown has its calling already; a child takes one at coming of age.

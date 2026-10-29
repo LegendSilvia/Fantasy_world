@@ -49,6 +49,21 @@ public sealed class DeedsSystem : ISimSystem
     /// <summary>How keenly a challenge is weighed when a notable fighter is in it (an ordinary one weighs 10).</summary>
     public const int NotableUrge = 70;
 
+    /// <summary>How often a fight that matters turns a fighter's nature, in a hundred.</summary>
+    public const int TurnChance = 30;
+
+    /// <summary>A nature turned by a fight: one trait gives way to its opposite, told as news.</summary>
+    private static void Turn(SimContext ctx, Character c, Character foe, string from, string to, string how, long cause)
+    {
+        c.Traits.Remove(from);
+        if (!c.Traits.Contains(to)) c.Traits.Add(to);
+        c.Traits.Sort(StringComparer.Ordinal);
+        ctx.Emit(new EventDraft("TraitTurned", Actors: new Dictionary<string, EntityRef> { ["who"] = c.Ref, ["foe"] = foe.Ref },
+            Place: ctx.World.Settlements.GetValueOrDefault(c.SettlementId)?.Ref,
+            Payload: new Dictionary<string, string> { ["from"] = from, ["to"] = to, ["how"] = how },
+            Causes: new[] { new Cause(cause, CauseKind.Trigger, 0.9) }, Importance: Fates.Importance(c, 16), Tags: new[] { "Characters" }));
+    }
+
     /// <summary>A beat of a duel that lasts more than a day, told on its day (sub-project 8 §5).</summary>
     public const string DuelTurnKind = "duel-turn";
 
@@ -195,8 +210,8 @@ public sealed class DeedsSystem : ISimSystem
             case "steal": Steal(ctx, c, ctx.World.Artifacts[target]); break;
             case "study": c.Attributes.Lore = Math.Min(20, c.Attributes.Lore + 1); break;
             case "forge": Forge(ctx, c); break;
-            case "avenge" when target != c.Id: Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: true); break;
-            case "duel" when target != c.Id: Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: false); break;
+            case "avenge" when target != c.Id: Equip(ctx, c); Equip(ctx, ctx.World.Characters[target]); Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: true); break;
+            case "duel" when target != c.Id: Equip(ctx, c); Equip(ctx, ctx.World.Characters[target]); Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: false); break;
         }
     }
 
@@ -450,6 +465,41 @@ public sealed class DeedsSystem : ISimSystem
     }
 
     /// <summary>
+    /// Once the chronicle airs, a fighter stepping into a duel for the first time gets their own signature move and weapon,
+    /// made by Claude to suit them (the owner, 2026-10-29: Claude decides what suits each character); offline, or when no
+    /// answer comes, their calling's pools stand. A relic weapon outranks a made one.
+    /// </summary>
+    private void Equip(SimContext ctx, Character c)
+    {
+        var world = ctx.World;
+        if (world.LastBroadcastDate is null) return;
+        static string Clean(string text, int max)
+        {
+            var t = text.Replace("\"", "", StringComparison.Ordinal).Trim().TrimEnd('.');
+            return t.Length <= max ? t : t[..max].TrimEnd();
+        }
+        var calling = Classes.Of(world, c);
+        var facts = $"{c.Name}, {Narration.English.WithArticle(Classes.Title(calling))} of the {Peoples.Of(world, c)?.Name ?? "common folk"}, "
+                    + $"{c.Role.ToString().ToLowerInvariant()}, traits {string.Join(", ", c.Traits)}; in a fight: {Talents.Brief(c)}.";
+        if (c.Signature is null)
+        {
+            var pool = Abilities.Signature(world, c);
+            var named = _inventor.Invent(new InventionBrief("signature ability", $"{c.Ref}|signature",
+                facts + " Give them the one move in a fight that is theirs alone, fitting who they are: name it in two to four words, and tell what it does in a phrase.",
+                pool.Name));
+            if (named.Lore is { Length: > 0 } lore && Clean(named.Name, 40) is { Length: > 0 } name) c.Signature = new Ability(name, Clean(lore, 160));
+        }
+        var relic = world.Artifacts.Values.Any(a => a.Place == ArtifactPlace.Held && a.HolderId == c.Id && a.Type == ArtifactType.Weapon);
+        if (c.Weapon is null && !relic)
+        {
+            var named = _inventor.Invent(new InventionBrief("weapon", $"{c.Ref}|weapon",
+                facts + " Arm them as suits them: describe the weapon they carry in a short phrase (\"a notched greataxe of black iron\"), and tell its story in one sentence.",
+                Arms.Weapon(world, c).What));
+            if (named.Lore is { Length: > 0 } lore && Clean(named.Name, 80) is { Length: > 0 } what) c.Weapon = new Gear("", what, Clean(lore, 220));
+        }
+    }
+
+    /// <summary>
     /// The challenge (sub-project 8 §4): declared now with the odds as they stand, fought a year and a day later. The
     /// grudge behind it is its motive.
     /// </summary>
@@ -553,6 +603,17 @@ public sealed class DeedsSystem : ISimSystem
         {
             if (surged is not null) Awakenings.Announce(ctx, surged, surge!, was, cause, Awakenings.MidFight, ctx.World.Settlements[defender.SettlementId].Ref);
         }
+        // A fight that matters may turn a nature before a blow is struck (the owner, 2026-10-29): a coward finds courage
+        // defending their home, fighting for their life, or for the dead they mean to avenge; a calm one facing the foe they
+        // swore vengeance on is overtaken by rage. Rolled from the fighters themselves, not the world's dice.
+        foreach (var (c, foe) in new[] { (defender, challenger), (challenger, defender) })
+        {
+            var avenging = c.Ambition == Ambitions.Vengeance && c.AmbitionTarget == foe.Id;
+            if (c.Has(Traits.Craven) && (c == defender || toTheDeath || avenging) && Hash.Percent(c.Id, 21, declared) < TurnChance)
+                Turn(ctx, c, foe, Traits.Craven, Traits.Brave, "found courage when it mattered, and would not run", declared);
+            else if (c.Has(Traits.Calm) && avenging && Hash.Percent(c.Id, 22, declared) < TurnChance)
+                Turn(ctx, c, foe, Traits.Calm, Traits.Wrathful, "lost their calm at the sight of the one they had sworn to destroy", declared);
+        }
         var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath, surged?.Id ?? 0), ctx.Rng);
         if (outcome.Days <= 1)
         {
@@ -625,6 +686,20 @@ public sealed class DeedsSystem : ISimSystem
             challenger.Ambition = CharacterFactory.ChooseAmbition(challenger, ctx.Rng);
         Suffer(ctx, challenger, outcome.AttackerFate, "a duel", duel, outcome.AttackerFate == Fate.Dead ? defender : null);
         Suffer(ctx, defender, outcome.DefenderFate, "a duel", duel, outcome.DefenderFate == Fate.Dead ? challenger : null);
+        // What the fight leaves in them (the owner, 2026-10-29: more than courage): a cruel victor may spare the beaten and be
+        // changed by it; a brave one maimed may lose their nerve; a lazy one beaten may be shaken into discipline; a content
+        // victor may get a taste for more.
+        if (winner.IsAlive && loser.IsAlive && winner.Id != loser.Id)
+        {
+            if (winner.Has(Traits.Cruel) && Hash.Percent(winner.Id, 23, duel.Id) < TurnChance / 2)
+                Turn(ctx, winner, loser, Traits.Cruel, Traits.Kind, "stood over the beaten foe and, for once, showed mercy", duel.Id);
+            else if (winner.Has(Traits.Content) && Hash.Percent(winner.Id, 24, duel.Id) < TurnChance / 2)
+                Turn(ctx, winner, loser, Traits.Content, Traits.Ambitious, "tasted victory and found it wanted more", duel.Id);
+            if (loser.Has(Traits.Brave) && loser.Has(Traits.Maimed) && Hash.Percent(loser.Id, 25, duel.Id) < TurnChance)
+                Turn(ctx, loser, winner, Traits.Brave, Traits.Craven, "was maimed, and the nerve went out of them", duel.Id);
+            else if (loser.Has(Traits.Lazy) && Hash.Percent(loser.Id, 26, duel.Id) < TurnChance)
+                Turn(ctx, loser, winner, Traits.Lazy, Traits.Diligent, "was beaten, and swore never to be caught unready again", duel.Id);
+        }
         return duel;
     }
 

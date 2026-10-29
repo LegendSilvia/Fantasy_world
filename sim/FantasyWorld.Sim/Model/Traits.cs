@@ -16,6 +16,19 @@ public static class Traits
     public const string Diligent = "diligent", Lazy = "lazy";
     public const string Trusting = "trusting", Paranoid = "paranoid";
 
+    // Flaws and the virtues they may grow into (the owner, 2026-10-29: bad traits that turn good later in life, in a
+    // condition): given to some at birth, outside the old pairs' draws.
+    public const string Envious = "envious", Gracious = "gracious";
+    public const string Arrogant = "arrogant", Humble = "humble";
+    public const string Spiteful = "spiteful", Forgiving = "forgiving";
+    public const string Reckless = "reckless", Prudent = "prudent";
+
+    /// <summary>
+    /// Born to some, inherited by a few (the owner, 2026-10-29: a trait that never gives up): they never abandon what they
+    /// strive for, however often it throws them back.
+    /// </summary>
+    public const string Unyielding = "unyielding";
+
     // Acquired through events.
     public const string Scarred = "scarred";
     public const string Maimed = "maimed";
@@ -29,9 +42,15 @@ public static class Traits
         (Devout, Cynical), (Ambitious, Content), (Diligent, Lazy), (Trusting, Paranoid),
     };
 
+    /// <summary>The flaw-and-virtue pairs given at birth from the character itself (<see cref="Grown"/>).</summary>
+    public static readonly IReadOnlyList<(string Flaw, string Virtue)> Grown = new[]
+    {
+        (Envious, Gracious), (Arrogant, Humble), (Spiteful, Forgiving), (Reckless, Prudent),
+    };
+
     public static string? OppositeOf(string trait)
     {
-        foreach (var (a, b) in Opposites)
+        foreach (var (a, b) in Opposites.Concat(Grown))
         {
             if (a == trait) return b;
             if (b == trait) return a;
