@@ -239,7 +239,9 @@ public class DailyRunTests : IDisposable
         var used = SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"];
         await Run(Morning, new RunOptions(DryRun: true), speech: speech, config: tight, channel: new CountingChannel());
         Assert.Equal(2, speech.Spoken.Count(Opens));
-        Assert.Equal(2 * used, SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"]);
+        // The staging world is the live one after its episode aired, so its episode is the next (the legend in brief), but
+        // what it speaks is counted on the same ledger.
+        Assert.InRange(SpeechLedger.FromBytes(await Get(SpeechLedger.Key)).Characters["2026-10"], used + 300, 2 * used);
     }
 
     [Fact]

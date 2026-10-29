@@ -76,10 +76,10 @@ public static class Legends
         return ($"{titles[i]} of {English.InProse(where)}", texts[i]);
     }
 
-    /// <summary>The legend the episode tells: in full when it covers the legend's writing, else its summary.</summary>
+    /// <summary>The legend the episode tells: in full until an episode that told it so has aired, else its summary.</summary>
     public static string? Told(World world, long sinceEventId, out bool full)
     {
-        full = world.Legend is { } l && l.SinceEventId >= sinceEventId;
+        full = world.Legend is { Told: false };
         return world.Legend is null ? null : full ? world.Legend.Full : world.Legend.Summary;
     }
 }

@@ -28,13 +28,15 @@ public class LoreTests
         Assert.Equal(legend.Full, first.Parts[1].Text);
         Assert.DoesNotContain(legend.Summary, first.Parts[0].Text);
 
+        // A world given its legend after its first episode tells it in full in the next one, even with nothing new since.
+        Assert.Contains(Episode.Build(sim.World, sim.Log, sim.Log.All[^1].Id, "2026-10-30").Parts, p => p.Kind == EpisodeSection.Legend);
+
+        // Once an episode that told it in full has aired, the next ones tell it in brief, with no primer.
+        sim.World.Legend = legend with { Told = true };
         var later = Episode.Build(sim.World, sim.Log, sim.Log.All[^1].Id - 5, "2026-10-30");
         Assert.DoesNotContain(later.Parts, p => p.Kind == EpisodeSection.Legend);
+        Assert.DoesNotContain(later.Parts, p => p.Kind == EpisodeSection.Primer);
         Assert.EndsWith(legend.Summary, later.Parts[0].Text);
-
-        // A world given its legend after its first episode tells it in full in the next one.
-        sim.World.Legend = legend with { SinceEventId = sim.Log.All[^1].Id };
-        Assert.Contains(Episode.Build(sim.World, sim.Log, sim.Log.All[^1].Id, "2026-10-30").Parts, p => p.Kind == EpisodeSection.Legend);
     }
 
     [Fact]

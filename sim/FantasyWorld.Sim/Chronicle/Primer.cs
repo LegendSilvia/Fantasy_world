@@ -40,7 +40,7 @@ public static class Primer
             parts.Add($"In the dark places, the demon lord {demon.Name} has risen, and the people wait for a hero.");
         var notables = world.Characters.Values.Where(c => c.IsActive && c.Renown > 0).OrderByDescending(c => c.Renown).ThenBy(c => c.Id).Take(Notables).ToList();
         if (notables.Count > 0)
-            parts.Add("Names to know: " + English.List(notables.Select(c => c.Class.Length > 0 ? $"{c.Name}, a {c.Class}" : c.Name).ToList()) + ".");
+            parts.Add("Names to know: " + English.List(notables.Select(c => c.Class.Length > 0 ? $"{c.Name}, {English.WithArticle(Classes.IsAwakened(c.Class) ? Classes.Title(c.Class) : c.Class)}" : c.Name).ToList()) + ".");
         return parts.Count == 0 ? null : string.Join(" ", parts);
     }
 }

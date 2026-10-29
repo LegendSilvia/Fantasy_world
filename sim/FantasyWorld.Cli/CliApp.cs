@@ -210,6 +210,8 @@ public static partial class CliApp
         {
             world.LastBroadcastEventId = episode.LastEventId;
             world.LastBroadcastDate = date;
+            // The legend told in full has now aired: from the next episode on, it is told in brief.
+            if (world.Legend is { Told: false } legend && episode.Parts.Any(s => s.Kind == EpisodeSection.Legend)) world.Legend = legend with { Told = true };
             store.Save(world, log, queue, gateway.Journal);
         }
         else if (fresh.Count > 0) store.SaveJournal(gateway.Journal); // the world stays as it was; what was paid for is kept
