@@ -12,7 +12,11 @@ public sealed record Place(EntityRef Ref, string Label, MapPoint? Position);
 
 public sealed record TimelineRow(int Year, LinkedText Text, long EventId, bool Highlight);
 
-public sealed record Tie(EntityRef Ref, string Name, string Relation, string Qualifier, Tone Tone);
+/// <summary>
+/// One of a character's connections (the owner, 2026-10-29): who, how they are bound, and the bond between them, how much the
+/// character feels for them (−100…100), kept so the strength of a friendship can one day count in a fight.
+/// </summary>
+public sealed record Tie(EntityRef Ref, string Name, string Relation, string Qualifier, Tone Tone, int Bond = 0);
 
 /// <summary>
 /// The *Character page* (sub-project 2 §3.3): who they are, their traits and ambition, where they are, the timeline of
@@ -21,7 +25,7 @@ public sealed record Tie(EntityRef Ref, string Name, string Relation, string Qua
 public sealed record CharacterScreen(
     EntityRef Ref, string Name, EntityRef? House, string Kicker, string Line, IReadOnlyList<string> Traits, string Ambition,
     Place? Location, IReadOnlyList<TimelineRow> Timeline, int Folded, int Earlier, IReadOnlyList<Tie> Ties, bool Followed,
-    Mention? Faith = null, bool Saint = false, string? Class = null)
+    Mention? Faith = null, bool Saint = false, string? Class = null, Mention? AmbitionTarget = null, IReadOnlyList<string>? FormerNames = null)
 {
     public const int TimelineImportance = 20;
 
@@ -62,7 +66,9 @@ public sealed record CharacterScreen(
             string.Join(" · ", line), c.Traits.ToList(), AmbitionText(world, c), location, timeline, life.Count - notable.Count, earlier,
             TiesOf(world, c), followed,
             world.Faiths.TryGetValue(c.FaithId, out var faith) ? new Mention(faith.Ref, faith.Name) : null, c.SaintEventId != 0,
-            c.Class.Length > 0 ? c.Class : null);
+            c.Class.Length > 0 ? c.Class : null,
+            c.Ambition == Ambitions.Vengeance && world.Characters.TryGetValue(c.AmbitionTarget, out var foe) ? new Mention(foe.Ref, Names.Full(world, foe)) : null,
+            c.FormerNames.Count > 0 ? c.FormerNames.ToList() : null);
     }
 
     private static string RoleLine(World world, Character c)
@@ -90,14 +96,22 @@ public sealed record CharacterScreen(
         _ => "Ambition: a family of their own",
     };
 
+    /// <summary>The most friends and rivals shown beside family and companions.</summary>
+    public const int MostFeelings = 6;
+
+    /// <summary>
+    /// A character's connections (the owner, 2026-10-29): liege, spouse, parents, children, siblings, sworn companion, and the
+    /// people they love or hate most, each with the bond between them.
+    /// </summary>
     private static List<Tie> TiesOf(World world, Character c)
     {
         var ties = new List<Tie>();
+        int Bond(Character other) => (int)Math.Round(Relations.Opinion(c, other));
         void Add(Character? other, string relation, string qualifier, Tone tone)
         {
             if (other is null || other.Id == c.Id || ties.Any(t => t.Ref == other.Ref)) return;
             var q = other.Died is { } d ? (qualifier.Length > 0 ? $"{qualifier}, died Year {d.Year}" : $"died Year {d.Year}") : qualifier;
-            ties.Add(new Tie(other.Ref, Names.Full(world, other), relation, q, tone));
+            ties.Add(new Tie(other.Ref, Names.Full(world, other), relation, q, tone, Bond(other)));
         }
         Tone ToneOf(Character other) => Relations.Opinion(c, other) is var o && o >= Relations.FriendAt ? Tone.Warm : o <= Relations.RivalAt ? Tone.Hostile : Tone.Neutral;
         string Feeling(Character other) => ToneOf(other) switch { Tone.Warm => "loyal", Tone.Hostile => "resentful", _ => "" };
@@ -107,16 +121,23 @@ public sealed record CharacterScreen(
             && Realms.RulerOf(world, realm) is { } liege)
             Add(liege, "Liege", Feeling(liege), ToneOf(liege));
         Add(world.Characters.GetValueOrDefault(c.SpouseId), "Spouse", "", Tone.Warm);
-        Add(world.Characters.GetValueOrDefault(c.FatherId), "Father", "", Tone.Neutral);
-        Add(world.Characters.GetValueOrDefault(c.MotherId), "Mother", "", Tone.Neutral);
+        if (c.Companion is { Kind: Companion.Sworn, CharacterId: not 0 } sworn)
+            Add(world.Characters.GetValueOrDefault(sworn.CharacterId), "Sworn companion", "", Tone.Warm);
+        Add(world.Characters.GetValueOrDefault(c.FatherId), "Father", "", ToneOf2(world.Characters.GetValueOrDefault(c.FatherId)));
+        Add(world.Characters.GetValueOrDefault(c.MotherId), "Mother", "", ToneOf2(world.Characters.GetValueOrDefault(c.MotherId)));
         foreach (var child in c.Children.Select(id => world.Characters.GetValueOrDefault(id)).OfType<Character>())
-            Add(child, "Child", "", Tone.Neutral);
+            Add(child, "Child", "", ToneOf2(child));
+        foreach (var sibling in Fates.Siblings(world, c))
+            Add(sibling, "Sibling", "", ToneOf2(sibling));
         foreach (var other in c.Memories.Select(m => m.About).Distinct().Select(id => world.Characters.GetValueOrDefault(id)).OfType<Character>()
                      .Select(o => (Other: o, Opinion: Relations.Opinion(c, o)))
                      .Where(x => x.Opinion >= Relations.FriendAt || x.Opinion <= Relations.RivalAt)
-                     .OrderByDescending(x => Math.Abs(x.Opinion)).ThenBy(x => x.Other.Id).Take(3))
+                     .OrderByDescending(x => Math.Abs(x.Opinion)).ThenBy(x => x.Other.Id).Take(MostFeelings))
             Add(other.Other, other.Opinion > 0 ? "Friend" : "Rival", "", other.Opinion > 0 ? Tone.Warm : Tone.Hostile);
         return ties;
+
+        // Kin are neutral unless love or hate has grown between them.
+        Tone ToneOf2(Character? other) => other is null ? Tone.Neutral : ToneOf(other);
     }
 }
 

@@ -589,7 +589,8 @@ function character(c, f, pics = {}) {
         + (f?.calling ? `<div class="prayer"><p><b>Awakened: ${esc(f.calling.name)}</b></p><p>${esc(f.calling.origin)}</p>`
             + `<p><b>Power:</b> ${esc(f.calling.does)}. <b>Condition:</b> ${esc(f.calling.condition)}.</p></div>` : "")
         + `<div class="tags">${(c.traits ?? []).map(t => `<span>${esc(t)}</span>`).join("")}</div>`
-        + `<p class="muted">${esc(c.ambition ?? "")}${c.location ? ` · ${place(c.location)}` : ""}${c.faith ? ` · ${mention(c.faith)}` : ""}</p>`
+        + (c.formerNames?.length ? `<p class="muted">Once known as ${c.formerNames.map(esc).join(", then ")}</p>` : "")
+        + `<p class="muted">${ambition(c)}${c.location ? ` · ${place(c.location)}` : ""}${c.faith ? ` · ${mention(c.faith)}` : ""}</p>`
         + (f?.weapon ? `<p><b>Wields</b> ${f.weapon.name ? (f.weapon.ref ? ref(f.weapon.ref, f.weapon.name) : esc(f.weapon.name)) + ", " : ""}${esc(f.weapon.what)}`
             + (f.weapon.lore ? `<br><span class="muted">${esc(f.weapon.lore)}</span>` : "") + `</p>` : "")
         + (f?.companion ? `<p><b>${f.companion.kind === "beast" ? "At their side" : "Sworn companion"}</b> `
@@ -597,7 +598,8 @@ function character(c, f, pics = {}) {
             + (f.companion.lore ? `<br><span class="muted">${esc(f.companion.lore)}</span>` : "") + `</p>` : "")
         + (f ? `<h3>In a fight</h3><p class="muted">${f.talents.map(t => `<b>${esc(t.name)}</b>: ${esc(t.shows)}`).join(" · ") || "No gift above the common."}</p>`
             + `<ul>${f.abilities.map(a => `<li><b>${esc(a.name)}</b> <span class="muted">${esc(a.text)}</span>${a.event ? ` · ${ref(a.event, "how")}` : ""}</li>`).join("")}</ul>` : "")
-        + list("Ties", c.ties, t => `${esc(t.relation)}: ${ref(t.ref, t.name)}${t.qualifier ? ` <span class="muted">${esc(t.qualifier)}</span>` : ""}`)
+        + list("Connections", c.ties, t => `<span class="bond ${esc(t.tone ?? "").toLowerCase()}" title="Bond ${t.bond ?? 0}">${bond(t.bond)}</span> `
+            + `${esc(t.relation)}: ${ref(t.ref, t.name)}${t.qualifier ? ` <span class="muted">${esc(t.qualifier)}</span>` : ""}`)
         + list("Life", c.timeline, row => `<span class="muted">Year ${row.year}</span> ${linked(row.text)} <a data-ref="event#${row.eventId}" title="Why?">why</a>`);
 }
 
@@ -611,6 +613,11 @@ function why(w) {
 
 const list = (title, items, row) => items?.length ? `<h3>${title}</h3><ul>${items.map(i => `<li>${row(i)}</li>`).join("")}</ul>` : "";
 const mention = m => m ? ref(m.ref, m.name) : "";
+// A character's ambition, the one it is aimed at linked (the owner, 2026-10-29: trace a character by their name).
+const ambition = c => c.ambitionTarget && (c.ambition ?? "").endsWith(c.ambitionTarget.name)
+    ? esc(c.ambition.slice(0, -c.ambitionTarget.name.length)) + mention(c.ambitionTarget) : esc(c.ambition ?? "");
+// The bond between two, as a small mark: hearts for love, a crossed mark for hate, a dot between.
+const bond = b => b >= 70 ? "♥♥" : b >= 40 ? "♥" : b <= -70 ? "✕✕" : b <= -40 ? "✕" : "·";
 const place = p => p ? ref(p.ref, p.label ?? p.name) : "";
 const ref = (r, text) => `<a data-ref="${esc(r)}">${esc(text)}</a>`;
 const id = r => r.split("#")[1];

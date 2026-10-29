@@ -501,14 +501,32 @@
       "name": "Farnfand of Cunvei",
       "relation": "Father",
       "qualifier": "",
-      "tone": "neutral"
+      "tone": "neutral",
+      "bond": 27
     },
     {
       "ref": "char#1",
       "name": "Fath of Cunvei",
       "relation": "Mother",
       "qualifier": "died Year 4",
-      "tone": "neutral"
+      "tone": "neutral",
+      "bond": 15
+    },
+    {
+      "ref": "char#4",
+      "name": "Miandmein of Cunvei",
+      "relation": "Sibling",
+      "qualifier": "",
+      "tone": "warm",
+      "bond": 40
+    },
+    {
+      "ref": "char#36",
+      "name": "Stiall of Cunvei",
+      "relation": "Sibling",
+      "qualifier": "",
+      "tone": "neutral",
+      "bond": 15
     }
   ],
   "followed": false,
@@ -517,5 +535,7 @@
     "name": "The Way of Ciscoun"
   },
   "saint": false,
-  "class": "warrior"
+  "class": "warrior",
+  "ambitionTarget": null,
+  "formerNames": null
 }
