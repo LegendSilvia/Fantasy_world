@@ -678,22 +678,7 @@
       "sea": null
     }
   ],
-  "monsters": [
-    {
-      "ref": "monster#1",
-      "name": "The Lich of the Deeps of Gisreach",
-      "breed": "lich",
-      "might": 61,
-      "legendary": false,
-      "slumbering": false,
-      "position": {
-        "x": 0.6796875,
-        "y": 0.1953125
-      },
-      "roseEventId": 335,
-      "guarding": true
-    }
-  ],
+  "monsters": [],
   "realms": [
     {
       "ref": "realm#1",

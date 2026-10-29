@@ -32,6 +32,20 @@ public sealed class Monster
     public long SlainEventId { get; set; }
     public long SlayerId { get; set; }
 
+    /// <summary>
+    /// When the world first learned what it is (the owner, 2026-10-29): someone faced it and lived to tell. Until then it is an
+    /// unseen beast, nameless and unpainted to the chronicle's audience; 0 while unseen.
+    /// </summary>
+    public long RevealedEventId { get; set; }
+
+    /// <summary>Who faced it and lived to tell, 0 while unseen.</summary>
+    public long RevealedById { get; set; }
+
+    [JsonIgnore] public bool Revealed => RevealedEventId != 0;
+
+    /// <summary>What a beast no one has lived to describe is called: the audience does not know there is a beast at all.</summary>
+    public const string Unseen = "something";
+
     /// <summary>For a labyrinth's guardian (state Lairing): the labyrinth it guards; it never leaves to raid.</summary>
     public long LairStructureId { get; init; }
 

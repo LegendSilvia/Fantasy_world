@@ -36,6 +36,38 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
             if (beast.State == MonsterState.Lairing || !ctx.Rng.Chance(RaidPerMonth * (0.5 + beast.Might / 100))) continue;
             Raid(ctx, beast, lair);
         }
+        Witness(ctx);
+    }
+
+    /// <summary>
+    /// A beast is known once someone faces it and lives (the owner, 2026-10-29): of the month's events where a person met an
+    /// unseen beast (a hunt, a raid sworn on, a delve to its lair, a fight) the first whose person did not die of it reveals
+    /// the beast, told as news; until then it is an unseen beast to the chronicle's audience.
+    /// </summary>
+    private static void Witness(SimContext ctx)
+    {
+        var world = ctx.World;
+        if (world.Monsters.Values.All(m => m.Revealed)) return;
+        var since = ctx.Date.Day - 31;
+        var month = new List<WorldEvent>();
+        for (var i = ctx.Log.All.Count - 1; i >= 0 && ctx.Log.All[i].Date.Day > since; i--) month.Add(ctx.Log.All[i]);
+        month.Reverse();
+        foreach (var ev in month.Where(e => e.Type != "BeastSeen"))
+            foreach (var beastRef in ev.Actors.Values.Where(r => r.Kind == Monster.Kind).Distinct())
+            {
+                if (!world.Monsters.TryGetValue(beastRef.Id, out var beast) || beast.Revealed) continue;
+                var witness = ev.Actors.Values.Where(r => r.Kind == Character.Kind).Select(r => world.Characters.GetValueOrDefault(r.Id)).OfType<Character>()
+                    .FirstOrDefault(c => c.IsActive || !month.Any(d => d.Type == "CharacterDied" && d.Actors.GetValueOrDefault("deceased") == c.Ref
+                                                                      && d.Causes.Any(k => k.EventId == ev.Id)));
+                if (witness is null) continue;
+                var seen = ctx.Emit(new EventDraft("BeastSeen",
+                    Actors: new Dictionary<string, EntityRef> { ["witness"] = witness.Ref, ["monster"] = beast.Ref },
+                    Place: ev.Place, Payload: new Dictionary<string, string> { ["breed"] = beast.Breed, ["name"] = beast.Name },
+                    Causes: new[] { new Cause(ev.Id, CauseKind.Trigger, 1.0) },
+                    Importance: Math.Max(45, Fates.Importance(witness, 40)), Tags: new[] { "Characters", "Magic" }));
+                beast.RevealedEventId = seen.Id;
+                beast.RevealedById = witness.Id;
+            }
     }
 
     public void OnYearlyTick(SimContext ctx)

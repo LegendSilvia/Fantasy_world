@@ -87,7 +87,7 @@ public sealed record Episode(
         var chronicler = Narration.Chronicler.Of(world);
         // The first episode tells the latest year; the history before it is summed up in the cold open.
         var first = sinceEventId == 0;
-        var events = log.Since(sinceEventId).Where(e => !first || e.Date.Day > world.Date.Day - WorldDate.DaysPerYear).ToList();
+        var events = log.Since(sinceEventId).Where(e => (!first || e.Date.Day > world.Date.Day - WorldDate.DaysPerYear) && !Bestiary.Hidden(world, e)).ToList();
         var fromYear = log.TryGet(sinceEventId, out var last) ? last.Date.Year : events.Count > 0 ? events[0].Date.Year : world.Date.Year;
         var toYear = world.Date.Year;
         // A clearing that revealed a secret is told by the secret's story, which says who cleared it and what they took.

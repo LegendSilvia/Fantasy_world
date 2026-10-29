@@ -93,7 +93,7 @@ public class MapScreenTests
         };
         world.Structures[maze.Id] = maze;
         var guardian = new Monster { Id = world.Ids.Take(Monster.Kind), Name = "The Lich", Breed = "lich", RegionId = 2, Might = 60,
-            State = MonsterState.Lairing, RoseEventId = opened.Id, LairStructureId = maze.Id };
+            State = MonsterState.Lairing, RoseEventId = opened.Id, LairStructureId = maze.Id, RevealedEventId = opened.Id }; // seen, so on the map
         world.Monsters[guardian.Id] = guardian;
         maze.GuardianId = guardian.Id;
 

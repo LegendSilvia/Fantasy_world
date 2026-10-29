@@ -109,6 +109,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["FalselyAccused"] = "{accused} was falsely accused and driven out in {=title}, {=by}.",
         ["ResourceShortageBegan"] = "{realm} ran short of {=resource}.",
         ["WonderFound"] = "{finder} found {=name} in {@place}: {=what}. It is {=power}.",
+        ["BeastSeen"] = "{witness} faced the beast and lived to tell of it: {monster}, {=a:breed}.",
         ["SeaRouteOpened"] = "Ships began to sail between {from} and {to} across the sea, opening {route}.",
         ["ResourceShortageEnded"] = "{realm} had {=resource} enough again.",
         ["TraitTurned"] = "Facing {foe}, {who} {=how}: no longer {=from}, but {=to}.",
@@ -287,6 +288,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["LabyrinthOutbreak"] = "{monster} bursts from {structure}",
         ["CulpritUnmasked"] = "{culprit} is unmasked",
         ["WonderFound"] = "{finder} finds {=name}",
+        ["BeastSeen"] = "{monster} is seen",
         ["IdentityChanged"] = "{=from} becomes {=to}",
         ["ArtifactTaken"] = "{artifact} is stolen",
         ["KinTaken"] = "{child} is taken",
@@ -432,7 +434,11 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     /// <summary>The event as one sentence, without date or annotations (headlines, lists).</summary>
     public string Sentence(WorldEvent ev)
     {
-        var sentence = TemplateFor(ev) is { } template && Fill(template, ev) is { } filled ? filled : Generic(ev);
+        var template = TemplateFor(ev);
+        // An unseen beast's kind is not told either (the owner, 2026-10-29): only that a beast none has lived to describe did it.
+        if (template is not null && ev.Actors.Values.Any(r => r.Kind == Monster.Kind && world.Monsters.TryGetValue(r.Id, out var m) && !m.Revealed))
+            template = template.Replace(", {=a:breed},", "", StringComparison.Ordinal);
+        var sentence = template is not null && Fill(template, ev) is { } filled ? filled : Generic(ev);
         return English.Capitalise(sentence);
     }
 

@@ -251,7 +251,7 @@ public static class Likenesses
             .SelectMany(e => new[] { "challenger", "defender" }.Select(r => e.Actors.TryGetValue(r, out var a) ? a : (EntityRef?)null))
             .OfType<EntityRef>().Where(r => world.Characters.ContainsKey(r.Id)).Select(r => (Ref: r.ToString(), world.Characters[r.Id].Name));
         var wanted = world.Realms.Values.Where(r => !r.Destroyed).OrderBy(r => r.Id).Select(r => (Ref: r.Ref.ToString(), r.Name))
-            .Concat(world.Monsters.Values.Where(m => m.Alive).OrderByDescending(m => m.Notoriety).ThenBy(m => m.Id).Select(m => (Ref: m.Ref.ToString(), m.Name)))
+            .Concat(world.Monsters.Values.Where(m => m.Alive && m.Revealed).OrderByDescending(m => m.Notoriety).ThenBy(m => m.Id).Select(m => (Ref: m.Ref.ToString(), m.Name)))
             .Concat(fighters).DistinctBy(w => w.Ref)
             .Select(w => (w.Ref, w.Name, Key: KeyFor(world, w.Ref))).Where(w => w.Key is not null).ToList();
         var had = await MakeAsync(wanted.Select(w => (w.Key!, w.Name, (Func<Task<ImageRequest?>>)(() => Task.FromResult(Ask(world, w.Ref, style))))).ToList(),

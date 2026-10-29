@@ -243,7 +243,8 @@ public static class Viewer
     public static string Beast(string monsterId, string year = "")
     {
         var id = long.Parse(monsterId, CultureInfo.InvariantCulture);
-        if (!World.Monsters.TryGetValue(id, out var m)) return "null";
+        // Unseen, the audience knows nothing of it (the owner, 2026-10-29).
+        if (!World.Monsters.TryGetValue(id, out var m) || !m.Revealed) return "null";
         var until = Until(year);
         var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
         var reference = m.Ref;
@@ -253,9 +254,13 @@ public static class Viewer
         var deeds = Log.All.Where(e => e.Actors.Values.Contains(reference) && By(until, e.Date.Day) && e.Date.Year >= FirstYear).OrderByDescending(e => e.Id).Take(12)
             .Select(e => new { @event = $"event#{e.Id}", year = e.Date.Year, text = narrator.Sentence(e) });
         var lore = Log.TryGet(m.RoseEventId, out var rose) ? rose.Payload.GetValueOrDefault("lore") : null;
+        // Unseen until someone faces it and lives (the owner, 2026-10-29): no name, no kind, no legend, no picture.
+        var seen = Log.TryGet(m.RevealedEventId, out var witnessed) && By(until, witnessed.Date.Day);
+        if (!seen) return "null";
+        var witness = seen && World.Characters.TryGetValue(m.RevealedById, out var w) ? new { @ref = w.Ref.ToString(), name = w.Name } : null;
         return JsonSerializer.Serialize(new
         {
-            @ref = reference.ToString(), name = m.Name, breed = m.Breed, legendary = m.Legendary, might = (int)Math.Round(m.Might),
+            @ref = reference.ToString(), name = m.Name, breed = m.Breed, witness, legendary = m.Legendary, might = (int)Math.Round(m.Might),
             notoriety = (int)Math.Round(m.Notoriety), state = m.State == MonsterState.Slain && !slain ? "roaming" : m.State.ToString().ToLowerInvariant(),
             place = World.Regions.GetValueOrDefault(m.RegionId)?.Name,
             lore, risen = m.RoseEventId, slayer = slain && World.Characters.TryGetValue(m.SlayerId, out var slayer) ? new { @ref = slayer.Ref.ToString(), name = slayer.Name } : null,
@@ -333,7 +338,7 @@ public static class Viewer
         var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
         var nameOf = FantasyWorld.Sim.Query.Names.Of(World);
         var none = new HashSet<EntityRef>();
-        var rows = Log.All.Where(e => e.Date.Year == y)
+        var rows = Log.All.Where(e => e.Date.Year == y && !Bestiary.Hidden(World, e))
             .Select(e => (Event: e, Score: FantasyWorld.Sim.Chronicle.Importance.Score(e, World, none)))
             .Where(x => x.Score >= 25).OrderByDescending(x => x.Score).ThenBy(x => x.Event.Id).Take(MaxHappenings)
             .OrderBy(x => x.Event.Id)

@@ -72,4 +72,21 @@ public class BeginningsTests(PrehistoricWorld fixture) : IClassFixture<Prehistor
         Assert.NotEmpty(fought);
         Assert.All(fought, f => Assert.True(f.Date.Day - log.Get(f.Causes[0].EventId).Date.Day >= 360 || log.Get(f.Causes[0].EventId).Type == "DuelBegun"));
     }
+
+    [Fact]
+    public void ABeast_IsUnknownToTheAudience_UntilSomeoneFacesItAndLives()
+    {
+        var world = fixture.World;
+        var unseen = world.Monsters.Values.First(m => !m.Revealed);
+        Assert.Equal("something", FantasyWorld.Sim.Query.Names.Of(world)(unseen.Ref));
+        // Its own doings are kept from the audience; no marker on the map.
+        Assert.All(fixture.Sim.Log.All.Where(e => e.Type == "MonsterRose" && e.Actors.Values.Contains(unseen.Ref)), e => Assert.True(Bestiary.Hidden(world, e)));
+        Assert.DoesNotContain(FantasyWorld.Sim.Views.MapScreen.Build(world, fixture.Sim.Log).Monsters ?? [], m => m.Ref == unseen.Ref);
+        // Each seen beast was seen by someone who lived through facing it.
+        var seen = fixture.Sim.Log.All.Where(e => e.Type == "BeastSeen").ToList();
+        Assert.NotEmpty(seen);
+        Assert.All(seen, e => Assert.True(world.Monsters[e.Actors["monster"].Id].Revealed));
+        Assert.All(seen, e => Assert.DoesNotContain(fixture.Sim.Log.All, d => d.Type == "CharacterDied" && d.Actors.GetValueOrDefault("deceased") == e.Actors["witness"]
+                                                                            && d.Causes.Any(c => c.EventId == e.Causes[0].EventId)));
+    }
 }

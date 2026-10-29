@@ -180,7 +180,10 @@ public sealed record MapScreen(
                         && !(m.State == MonsterState.Slain && log.TryGet(m.SlainEventId, out var slain) && slain.Date <= date))
             .Select(m => (Beast: m, At: MapPoint.Of(world, world.Regions[m.RegionId].Ref)))
             .Where(x => x.At is not null)
-            .Select(x => new MapMonster(x.Beast.Ref, x.Beast.Name, x.Beast.Breed, (int)Math.Round(x.Beast.Might), x.Beast.Legendary,
+            // A beast none had yet lived to describe is not on the map at all (the owner, 2026-10-29).
+            .Where(x => x.Beast.Revealed && log.TryGet(x.Beast.RevealedEventId, out var seen) && seen.Date <= date)
+            .Select(x => new MapMonster(x.Beast.Ref, x.Beast.Name, x.Beast.Breed,
+                (int)Math.Round(x.Beast.Might), x.Beast.Legendary,
                 x.Beast.State == MonsterState.Slumbering, x.At!, x.Beast.RoseEventId, x.Beast.State == MonsterState.Lairing))
             .ToList();
 

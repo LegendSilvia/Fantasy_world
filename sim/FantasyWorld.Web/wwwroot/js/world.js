@@ -489,10 +489,11 @@ function fightCard(f, pics) {
 
 /** A beast's card (the owner, 2026-10-29): its portrait, what it is, its legend, its lair and its deeds. */
 function beastCard(b, pics) {
-    if (!b) return `<p class="muted">The beast is gone from the chronicle.</p>`;
+    if (!b) return `<p class="muted">No one has lived to tell of it.</p>`;
     const state = b.state === "slain" ? `Slain${b.slayer ? ` by ${ref(b.slayer.ref, b.slayer.name)}` : ""}` : b.state === "slumbering" ? "Asleep in its lair" : "Abroad and hungry";
     return `<div class="kicker">${b.legendary ? "A legend · " : ""}${esc(b.breed)}</div><h2>${esc(b.name)}</h2>`
         + `<div class="beast-portrait ${b.state === "slain" ? "slain" : ""}${unseen(pics, b.ref)}"><img src="${esc(portrait(pics, b.ref))}" alt=""></div>`
+        + (b.witness ? `<p class="muted">First seen, and survived, by ${ref(b.witness.ref, b.witness.name)}</p>` : "")
         + `<p class="muted">${state}${b.place ? ` · ${esc(b.place)}` : ""} · might ${b.might} · dread ${b.notoriety}</p>`
         + (b.lore ? `<p>${esc(b.lore)}</p>` : "")
         + (b.deeds.length ? `<h3>Its deeds</h3><ul>${b.deeds.map(d => `<li><span class="muted">Year ${d.year}</span> · ${linked(d.text)} · ${ref(d.event, "why")}</li>`).join("")}</ul>` : "");

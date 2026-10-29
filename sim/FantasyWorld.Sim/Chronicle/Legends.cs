@@ -22,11 +22,13 @@ public static class Legends
     /// </summary>
     public static string? Beasts(World world)
     {
-        var living = world.Monsters.Values.Where(m => m.Alive).ToList();
+        // Only beasts someone has lived to describe (the owner, 2026-10-29).
+        var living = world.Monsters.Values.Where(m => m.Alive && m.Revealed).ToList();
         if (living.Count < BeastAge) return null;
         var feared = living.OrderByDescending(m => m.Notoriety).ThenByDescending(m => m.Might).ThenBy(m => m.Id).First();
         var where = world.Regions.GetValueOrDefault(feared.RegionId)?.Name;
-        return $"This is an age of beasts: {English.Count(living.Count, "beast")} prey on the lands, and the most feared of them is {English.InProse(feared.Name)}"
+        var name = English.InProse(feared.Name);
+        return $"This is an age of beasts: {English.Count(living.Count, "beast")} prey on the lands, and the most feared of them is {name}"
                + (where is null ? "." : $", in {where}.");
     }
 

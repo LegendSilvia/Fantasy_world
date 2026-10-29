@@ -24,7 +24,7 @@ public sealed record ChronicleScreen(int FromYear, int ToYear, int Total, int Pa
         var from = fromYear ?? Math.Max(1, to - 9);
         var narrator = new TemplateNarrator(world);
         var nameOf = Names.Of(world);
-        var events = log.All.Where(e => e.Date.Year >= from && e.Date.Year <= to && e.Importance >= minImportance
+        var events = log.All.Where(e => e.Date.Year >= from && e.Date.Year <= to && e.Importance >= minImportance && !Bestiary.Hidden(world, e)
                                         && (only is null || Categories.Of(e) == only)).Reverse().ToList();
         var pages = Math.Max(1, (events.Count + PageSize - 1) / PageSize);
         page = Math.Clamp(page, 1, pages);
