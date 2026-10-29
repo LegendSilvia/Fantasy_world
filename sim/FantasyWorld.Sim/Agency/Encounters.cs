@@ -94,7 +94,7 @@ public static class Encounters
         var age = c.Age(world.Date);
         if (age < 18) strength -= 4;
         if (age >= 55) strength -= (age - 50) / 5;
-        return Math.Max(1, strength) * (Systems.PrayerSystem.Favoured(world, c.Ref) ? Systems.PrayerSystem.FavourStrength : 1);
+        return Math.Max(1, strength) * (Systems.PrayerSystem.Favoured(world, c.Ref) ? Systems.PrayerSystem.FavourStrength : 1) * Arms.Edge(c);
     }
 
     /// <summary>

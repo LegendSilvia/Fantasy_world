@@ -36,6 +36,7 @@ public static class DefaultSystems
         new RelationsSystem(),
         new DeedsSystem(decider, arbiter, inventor),
         new TransformSystem(inventor),
+        new CompanionSystem(inventor),
         new ArtifactSystem(),
         new PromotionSystem(),
         new StructureSystem(inventor),

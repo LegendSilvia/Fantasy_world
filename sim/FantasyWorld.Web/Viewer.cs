@@ -112,13 +112,16 @@ public static class Viewer
             bearers = World.Characters.Values.Where(c => c.Class == Classes.Awaken(k.Base, k.Name))
                 .OrderByDescending(c => c.IsActive).ThenBy(c => c.Id).Select(c => new { @ref = c.Ref.ToString(), name = c.Name, living = c.IsActive }),
         });
+        // The beasts at the side of the living (the owner, 2026-10-29).
+        var companions = World.Characters.Values.Where(c => c.IsActive && c.Companion is { Kind: Companion.Beast }).OrderBy(c => c.Companion!.Day).ThenBy(c => c.Id)
+            .Select(c => new { name = c.Companion!.Name, what = c.Companion.What, lore = c.Companion.Lore, of = new { @ref = c.Ref.ToString(), name = c.Name } });
         var shadow = World.Sagas.Values.OrderByDescending(s => s.Id).Select(s => new
         {
             demon = Who(s.DemonLordId), active = s.Active, outcome = s.Outcome, hero = s.HeroId != 0 ? Who(s.HeroId) : null,
         }).FirstOrDefault();
         return JsonSerializer.Serialize(new
         {
-            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, races, gods, realms, labyrinths, relics, shadow, callings,
+            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, races, gods, realms, labyrinths, relics, shadow, callings, companions,
         }, Json);
     }
 
@@ -184,6 +187,10 @@ public static class Viewer
             talents = Talents.Of(c).Select(t => new { name = t.Name, shows = t.Shows }),
             abilities = Abilities.Of(World, c).Select(a => new { name = a.Name, text = a.Text, @event = a.EventId != 0 ? $"event#{a.EventId}" : null }),
             known = _reputation.Of(c.Id),
+            weapon = Arms.Weapon(World, c) is var w ? new { name = w.Name, what = w.What, lore = w.Lore, @ref = w.ArtifactId != 0 ? $"artifact#{w.ArtifactId}" : null } : null,
+            companion = c.Companion is { } m
+                ? new { name = m.Name, kind = m.Kind, what = m.What, lore = m.Lore, @ref = m.CharacterId != 0 ? $"char#{m.CharacterId}" : null, @event = m.EventId != 0 ? $"event#{m.EventId}" : null }
+                : null,
             calling = World.Callings.FirstOrDefault(k => Classes.Awaken(k.Base, k.Name) == c.Class) is { } k
                 ? new { name = k.Name, origin = k.Origin, does = k.Does, condition = k.Condition } : null,
         }, Json);

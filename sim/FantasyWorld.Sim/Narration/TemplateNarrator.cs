@@ -93,6 +93,8 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["BattleTurned"] = "The battle between {attacker} and {defender} at {@place} raged on.",
         ["BattleBrokenOff"] = "The battle between {attacker} and {defender} at {@place} was broken off.",
         ["CharacterTransformed"] = "What befell {who} changed them: they came away with {=text}.",
+        ["CompanionJoined"] = "{who} and {companion} swore to stand by each other, come what may.",
+        ["CompanionLost"] = "{who} lost {companion}, their sworn companion, and grieved.",
         ["SecretRevealed"] = "{delver} reached the bottom of {structure} and walked away with its glory, and with a secret of the world, {=title}: {=text}",
         ["ArmyMoved"] = "{army} marched from {from} into {@place}.",
         ["HostAttackedAtSea"] = "{monster} fell on the ships of {army} at sea off {@place}; {=lost} were lost to the deep.",
@@ -278,6 +280,8 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
     {
         ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
+        // A beast come to a character's side (the owner, 2026-10-29).
+        ("CompanionJoined", e => e.Payload.GetValueOrDefault("kind") == "beast", "{=name}, {=what}, came to {who}'s side and would not leave it."),
         // A character changed by what befell them (the owner, 2026-10-29), by what the change was.
         ("CharacterTransformed", e => e.Payload.GetValueOrDefault("how") == "mid-fight",
             "In the thick of the fight, a power that had slept within {who} broke out, and they fought on as a {=title}: {=text}."),

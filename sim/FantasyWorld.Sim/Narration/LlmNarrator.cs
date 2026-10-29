@@ -59,7 +59,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         var reputation = Reputation.Of(story.World, story.Log);
         string Fighters(FaceOff f) => f.Kind != FaceOff.Duel ? "" : string.Concat(new[] { f.A, f.B }.Select(side =>
             side.Ref.Split('#') is [_, var idText] && long.TryParse(idText, out var cid) && story.World.Characters.TryGetValue(cid, out var c)
-                ? $"\n{side.Name}: fights {Talents.Brief(c)}; abilities {Abilities.Brief(story.World, c)}" + (reputation.Line(c.Id) is { } known ? $"; {known}" : "")
+                ? $"\n{side.Name}: fights {Talents.Brief(c)}; abilities {Abilities.Brief(story.World, c)}; {Arms.Brief(story.World, c)}" + (reputation.Line(c.Id) is { } known ? $"; {known}" : "")
                 : ""));
         string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures() + Fighters(f), 2000)})" : "")
                                             + (p.Moves is { Count: > 0 } m ? $"\n(The war's marches:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "")

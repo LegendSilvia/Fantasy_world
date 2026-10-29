@@ -106,6 +106,9 @@ public sealed class Character
     /// <summary>The abilities won through what befell them (<see cref="Model.Abilities"/>); the signature one is not stored.</summary>
     public List<Ability> Abilities { get; init; } = new();
 
+    /// <summary>Their companion, beast or sworn (<see cref="Model.Companion"/>); null for none.</summary>
+    public Companion? Companion { get; set; }
+
     /// <summary>
     /// The deed whose awakening sleeps within them, untold, until it wakes (on its day, or in a fight; the owner,
     /// 2026-10-29); 0 for none.

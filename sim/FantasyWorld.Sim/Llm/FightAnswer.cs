@@ -50,7 +50,8 @@ public static class FightAnswer
         + $"{MinChapters} to {MaxChapters} chapters, each on a day of the fight (day 1 is the first; the last chapter falls on its last day), "
         + "with at least one turning point. Tell it as the fighters' deeds (the owner, 2026-10-29): in each chapter, what one did, how "
         + "the other answered, and what came of it, each blow shaped by how that fighter fights (a strong one's stroke breaks a shield, "
-        + "a precise one's finds the gap in the mail, a swift one is never where the blow lands); let them use the abilities the "
+        + "a precise one's finds the gap in the mail, a swift one is never where the blow lands), with the weapons they wield and the "
+        + "companions at their side; let them use the abilities the "
         + "brief gives them, and let the turn come as a twist "
         + "the brief makes possible (an ability, an old wound, a relic, a grudge, a desperate gamble). "
         + "Name only those the brief names, and write no numbers in the chapters.";

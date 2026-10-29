@@ -474,6 +474,8 @@ function lore(l) {
         + part("The gods", gods && `<ul class="people">${gods}</ul>`)
         + part("The realms", realms && `<ul class="people">${realms}</ul>`)
         + part("Powers awakened", callings)
+        + part("Beasts at their side", list(l.companions ?? [], k => `<li><b>${esc(k.name)}</b>, ${esc(k.what)}, with ${ref(k.of.ref, k.of.name)}${k.lore ? `<br><span class="muted">${esc(k.lore)}</span>` : ""}</li>`)
+            && `<ul class="people">${list(l.companions ?? [], k => `<li><b>${esc(k.name)}</b>, ${esc(k.what)}, with ${ref(k.of.ref, k.of.name)}${k.lore ? `<br><span class="muted">${esc(k.lore)}</span>` : ""}</li>`)}</ul>`)
         + part("The shadow", shadow)
         + part("The labyrinths", mazes && `<ul class="people">${mazes}</ul>`)
         + part("Relics of renown", relics && `<ul class="people">${relics}</ul>`);
@@ -507,6 +509,11 @@ function character(c, f) {
             + `<p><b>Power:</b> ${esc(f.calling.does)}. <b>Condition:</b> ${esc(f.calling.condition)}.</p></div>` : "")
         + `<div class="tags">${(c.traits ?? []).map(t => `<span>${esc(t)}</span>`).join("")}</div>`
         + `<p class="muted">${esc(c.ambition ?? "")}${c.location ? ` · ${place(c.location)}` : ""}${c.faith ? ` · ${mention(c.faith)}` : ""}</p>`
+        + (f?.weapon ? `<p><b>Wields</b> ${f.weapon.name ? (f.weapon.ref ? ref(f.weapon.ref, f.weapon.name) : esc(f.weapon.name)) + ", " : ""}${esc(f.weapon.what)}`
+            + (f.weapon.lore ? `<br><span class="muted">${esc(f.weapon.lore)}</span>` : "") + `</p>` : "")
+        + (f?.companion ? `<p><b>${f.companion.kind === "beast" ? "At their side" : "Sworn companion"}</b> `
+            + `${f.companion.ref ? ref(f.companion.ref, f.companion.name) : esc(f.companion.name)}${f.companion.kind === "beast" ? `, ${esc(f.companion.what)}` : ""}`
+            + (f.companion.lore ? `<br><span class="muted">${esc(f.companion.lore)}</span>` : "") + `</p>` : "")
         + (f ? `<h3>In a fight</h3><p class="muted">${f.talents.map(t => `<b>${esc(t.name)}</b>: ${esc(t.shows)}`).join(" · ") || "No gift above the common."}</p>`
             + `<ul>${f.abilities.map(a => `<li><b>${esc(a.name)}</b> <span class="muted">${esc(a.text)}</span>${a.event ? ` · ${ref(a.event, "how")}` : ""}</li>`).join("")}</ul>` : "")
         + list("Ties", c.ties, t => `${esc(t.relation)}: ${ref(t.ref, t.name)}${t.qualifier ? ` <span class="muted">${esc(t.qualifier)}</span>` : ""}`)

@@ -75,6 +75,34 @@ public class TransformTests
     }
 
     [Fact]
+    public void Companions_ComeToCharacters_BeastsWithTheirLore_SwornOnesBothWays()
+    {
+        var world = Aged.World;
+        var joined = Aged.Log.All.Where(e => e.Type == "CompanionJoined").ToList();
+        Assert.Contains(joined, e => e.Payload["kind"] == Companion.Beast);
+        Assert.Contains(joined, e => e.Payload["kind"] == Companion.Sworn);
+        var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(world);
+        Assert.All(joined, e => Assert.DoesNotContain("{", narrator.Sentence(e)));
+        foreach (var c in world.Characters.Values.Where(c => c.IsActive && c.Companion is not null))
+            if (c.Companion!.Kind == Companion.Beast) Assert.True(c.Companion.Name.Length > 0 && c.Companion.Lore.Length > 0);
+            else if (world.Characters.TryGetValue(c.Companion.CharacterId, out var friend) && friend.IsActive)
+                Assert.Equal(c.Id, friend.Companion?.CharacterId);
+        var withBeast = world.Characters.Values.First(c => c.IsActive && c.Companion is { Kind: Companion.Beast });
+        Assert.Contains("at their side", Arms.Brief(world, withBeast));
+    }
+
+    [Fact]
+    public void AFighterWields_TheirFamousWeaponRelic_ElseTheirCallingsOwn()
+    {
+        var world = Aged.World;
+        var holder = world.Characters.Values.FirstOrDefault(c => c.IsActive && world.Artifacts.Values.Any(a => a.Place == ArtifactPlace.Held && a.HolderId == c.Id && a.Type == ArtifactType.Weapon));
+        if (holder is not null) Assert.True(Arms.Weapon(world, holder).ArtifactId != 0);
+        var plain = world.Characters.Values.First(c => c.IsActive && c.Class.Length > 0 && !world.Artifacts.Values.Any(a => a.HolderId == c.Id && a.Type == ArtifactType.Weapon && a.Place == ArtifactPlace.Held));
+        Assert.Equal(0, Arms.Weapon(world, plain).ArtifactId);
+        Assert.StartsWith("wields ", Arms.Brief(world, plain));
+    }
+
+    [Fact]
     public void AnAwakenedClass_StandsWhereItsBaseStood_AndFightsATenthStronger()
     {
         var k = Classes.Awaken(Classes.Mage, "Stormcaller");

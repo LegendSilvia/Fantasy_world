@@ -34,6 +34,7 @@ public static class Briefs
             // Their calling and what they can do in a fight (the owner, 2026-10-29), so the fight is told as their deeds.
             $"Class: {PromptText.Data(Classes.Title(Classes.Of(world, c)))}; abilities: {PromptText.Data(Abilities.Brief(world, c), 600)}",
             $"Fights: {Talents.Brief(c)}",
+            $"Arms: {PromptText.Data(Arms.Brief(world, c), 700)}",
         };
         if (Chronicle.Reputation.Of(world, story.Log).Line(c.Id) is { } known) lines.Add($"Renowned: {PromptText.Data(known, 300)}");
         if (c.Wounds.Count > 0) lines.Add($"Wounds: {string.Join(", ", c.Wounds.Select(w => PromptText.Data(w)))}");

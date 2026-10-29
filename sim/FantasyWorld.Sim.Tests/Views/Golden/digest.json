@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 221 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 229 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -14,7 +14,7 @@
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "eventId": 198
+      "eventId": 203
     },
     {
       "number": 3,
@@ -24,7 +24,7 @@
         "x": 0.2578125,
         "y": 0.7890625
       },
-      "eventId": 146
+      "eventId": 152
     },
     {
       "number": 4,
@@ -44,7 +44,7 @@
         "x": 0.8828125,
         "y": 0.4296875
       },
-      "eventId": 34
+      "eventId": 35
     }
   ],
   "headline": {
@@ -96,34 +96,24 @@
         }
       ]
     },
-    "eventId": 198,
+    "eventId": 203,
     "canExplain": true
   },
   "items": [
     {
       "number": 2,
-      "category": "structures",
+      "category": "faithAndMagic",
       "text": {
-        "text": "Nanian of Gathnendis cleared the Deeps of Taramdale, and walked away with the Reliquary of Miall.",
+        "text": "Nanian of Gathnendis was not the same after it: something woke in them, and they rose a Shadowdancer: steps from one shadow into the next as if through a door.",
         "links": [
           {
             "start": 0,
             "length": 20,
             "entity": "char#39"
-          },
-          {
-            "start": 29,
-            "length": 22,
-            "entity": "structure#1"
-          },
-          {
-            "start": 74,
-            "length": 22,
-            "entity": "artifact#6"
           }
         ]
       },
-      "eventId": 197
+      "eventId": 204
     },
     {
       "number": 3,
@@ -138,7 +128,7 @@
           }
         ]
       },
-      "eventId": 146
+      "eventId": 152
     },
     {
       "number": 4,
@@ -156,7 +146,7 @@
         "text": "The Age of Long Peace of Thonae began.",
         "links": []
       },
-      "eventId": 49
+      "eventId": 50
     },
     {
       "number": 6,
@@ -181,32 +171,32 @@
           }
         ]
       },
-      "eventId": 145
+      "eventId": 151
     },
     {
       "number": 7,
       "category": "characters",
       "text": {
-        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of the Kingdom of Thonae.",
+        "text": "Keth of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 24,
             "length": 15,
             "entity": "char#17"
           },
           {
-            "start": 62,
+            "start": 32,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 60,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 34
+      "eventId": 35
     },
     {
       "number": 8,
@@ -221,7 +211,7 @@
           }
         ]
       },
-      "eventId": 51
+      "eventId": 52
     }
   ]
 }

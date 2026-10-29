@@ -42,6 +42,8 @@ public static class Categories
         ["DuelDeclared"] = "A challenge",
         ["SecretRevealed"] = "A secret of the world",
         ["CharacterTransformed"] = "A changed soul",
+        ["CompanionJoined"] = "A companion",
+        ["CompanionLost"] = "A companion lost",
         ["DuelCalledOff"] = "Duel called off",
         ["DuelBegun"] = "A duel begins",
         ["DuelTurned"] = "The duel goes on",

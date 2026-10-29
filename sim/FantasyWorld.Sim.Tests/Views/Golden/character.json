@@ -23,7 +23,32 @@
     {
       "year": 2,
       "text": {
-        "text": "Fath of Cunvei knighted Keth of Bandbia in the service of the Kingdom of Thonae.",
+        "text": "Keth of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#17"
+          },
+          {
+            "start": 32,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 60,
+            "length": 17,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 35,
+      "highlight": false
+    },
+    {
+      "year": 2,
+      "text": {
+        "text": "Fath of Cunvei knighted End of Gil in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
@@ -32,42 +57,17 @@
           },
           {
             "start": 24,
-            "length": 15,
-            "entity": "char#17"
-          },
-          {
-            "start": 62,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 34,
-      "highlight": false
-    },
-    {
-      "year": 2,
-      "text": {
-        "text": "End of Gil was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
-        "links": [
-          {
-            "start": 0,
             "length": 10,
             "entity": "char#15"
           },
           {
-            "start": 27,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 55,
+            "start": 57,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 35,
+      "eventId": 36,
       "highlight": false
     },
     {
@@ -87,7 +87,7 @@
           }
         ]
       },
-      "eventId": 206,
+      "eventId": 214,
       "highlight": false
     },
     {
@@ -112,7 +112,7 @@
           }
         ]
       },
-      "eventId": 221,
+      "eventId": 229,
       "highlight": true
     }
   ],
