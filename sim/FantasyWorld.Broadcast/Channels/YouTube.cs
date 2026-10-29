@@ -212,12 +212,12 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                         _log.WriteLine($"youtube-short: the vertical film of {day} was not filmed in full; no short today.");
                         return;
                     }
-                    mp4 = await video.JoinAsync(tall, audio, length, ct).ConfigureAwait(false);
+                    mp4 = await video.JoinAsync(tall, audio, length, await Speech.Subtitles.LoadAsync(store, day, ct).ConfigureAwait(false), true, ct).ConfigureAwait(false);
                     _log.WriteLine($"youtube-short: the short of {day} was joined from {tall.Count} tall stretches ({length:0} s).");
                 }
                 else if (settings.Diorama && await DioramaFilm.ChunksAsync(store, day, chapters, ct).ConfigureAwait(false) is { } filmed)
                 {
-                    mp4 = await video.JoinAsync(filmed, audio, ct).ConfigureAwait(false);
+                    mp4 = await video.JoinAsync(filmed, audio, null, await Speech.Subtitles.LoadAsync(store, day, ct).ConfigureAwait(false), false, ct).ConfigureAwait(false);
                     _log.WriteLine($"youtube: the diorama film of {day} was joined from {filmed.Count} filmed stretches.");
                 }
                 else

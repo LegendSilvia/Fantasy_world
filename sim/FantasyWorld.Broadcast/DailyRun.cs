@@ -244,8 +244,10 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 ledger.Characters[month] = spent + episode.Script.Length;
                 await root.PutAsync(SpeechLedger.Key, ledger.ToBytes(), "application/json", ct).ConfigureAwait(false);
                 var parts = episode.Parts;
-                var (audio, sectionBytes) = await Voiceover.SpeakSectionsAsync(speech, parts.Select(p => p.Text).ToList(), voice, dictionaries, ct)
+                var (audio, sectionBytes, cues) = await Voiceover.SpeakTimedAsync(speech, parts.Select(p => p.Text).ToList(), voice, dictionaries, ct)
                     .ConfigureAwait(false);
+                // The subtitles, timed by the voice itself (the owner, 2026-10-29), burned into the video when it is joined.
+                if (cues.Count > 0) await Subtitles.SaveAsync(store, day, cues, ct).ConfigureAwait(false);
                 // The chapters first: a narration stored without them would be adopted as it is by a later run.
                 await Chapters.SaveAsync(store, day, Chapters.Timed(parts.Select(p => p.Title).ToList(), sectionBytes, Voiceover.Kbps(voice.OutputFormat)), ct)
                     .ConfigureAwait(false);

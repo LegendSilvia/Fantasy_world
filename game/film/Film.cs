@@ -369,7 +369,7 @@ public partial class Film : Node
         row.SetAnchorsPreset(Control.LayoutPreset.Center);
         (row.GrowHorizontal, row.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
         var (imageA, imageB) = (Likeness(f.A, "ImageA"), Likeness(f.B, "ImageB"));
-        var shown = imageA is not null || imageB is not null;
+        var shown = imageA is not null && imageB is not null;
         _slideA = shown ? Sliding("SlideA", imageA ?? Spacer("ImageA")) : null;
         _slideB = shown ? Sliding("SlideB", imageB ?? Spacer("ImageB")) : null;
         Control? a = _slideA, b = _slideB;
@@ -552,15 +552,18 @@ public partial class Film : Node
     /// </summary>
     private Control? Likeness(FaceOffSide side, string name)
     {
-        if (_imagesDir is null || side.Image is not { Length: > 0 } key) return null;
-        if (Load(key) is not { } image) return null;
-        var rect = new TextureRect
-        {
-            Name = name, Texture = ImageTexture.CreateFromImage(image), CustomMinimumSize = new Vector2(ImageWidth, ImageHeight),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            Material = side.Fate == Fates.Slain ? new ShaderMaterial { Shader = new Shader { Code = GreyShader } } : null,
-        };
+        var image = _imagesDir is not null && side.Image is { Length: > 0 } key ? Load(key) : null;
+        // No painting (none made yet, the image budget spent, or not fetched): a framed stand-in in the side's colours, so
+        // the card keeps its two flanks (the owner, 2026-10-29: "fix layout").
+        Control rect = image is not null
+            ? new TextureRect
+            {
+                Name = name, Texture = ImageTexture.CreateFromImage(image), CustomMinimumSize = new Vector2(ImageWidth, ImageHeight),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+                Material = side.Fate == Fates.Slain ? new ShaderMaterial { Shader = new Shader { Code = GreyShader } } : null,
+            }
+            : StandIn(side, name);
         Control shown = rect;
         if (side.Fate is { Length: > 0 } fate)
         {
@@ -573,6 +576,39 @@ public partial class Film : Node
         shown.Modulate = new Color(1, 1, 1, 0);
         _likenesses.Add(shown);
         return shown;
+    }
+
+    /// <summary>
+    /// A side without its painting: a dark panel framed in its colour, its class's emblem large (a realm's banner colour
+    /// alone for a war), its first letter beneath; greyed for the dead like a painting.
+    /// </summary>
+    private Control StandIn(FaceOffSide side, string name)
+    {
+        var colour = Ui.C(Client.WarLayout.Colour(side.Colour));
+        var panel = new PanelContainer
+        {
+            Name = name, CustomMinimumSize = new Vector2(ImageWidth, ImageHeight), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = colour.Darkened(0.72f), BorderColor = colour,
+            BorderWidthLeft = 6, BorderWidthRight = 6, BorderWidthTop = 6, BorderWidthBottom = 6,
+            CornerRadiusBottomLeft = 14, CornerRadiusBottomRight = 14, CornerRadiusTopLeft = 14, CornerRadiusTopRight = 14,
+        });
+        var column = Ui.Column("Column", 18);
+        column.Alignment = BoxContainer.AlignmentMode.Center;
+        if (side.Class is { Length: > 0 } k) column.AddChild(Emblem("Class", Classes.Base(k), ImageWidth * 0.55f));
+        var initial = Ui.Line(side.Name.Length > 0 ? side.Name[..1].ToUpperInvariant() : "?", "Initial", null, 150);
+        initial.AddThemeColorOverride("font_color", colour.Lightened(0.35f));
+        initial.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(initial);
+        panel.AddChild(column);
+        if (side.Fate == Fates.Slain)
+        {
+            panel.SelfModulate = new Color(0.55f, 0.55f, 0.55f);
+            column.Modulate = new Color(0.5f, 0.5f, 0.5f);
+        }
+        return panel;
     }
 
     /// <summary>A picture drained of colour and darkened a little, for the dead.</summary>
@@ -635,7 +671,8 @@ public partial class Film : Node
             box.AddChild(line);
             var said = side.Class is { Length: > 0 } calling ? side.Notes.Prepend(Classes.Title(calling)) : side.Notes;
             // Wrapped in the Short, where the bigger type would not fit on one line.
-            var notes = _vertical ? Ui.Body(string.Join(" · ", said), "Notes", Palette.Muted, Px(13)) : Ui.Line(string.Join(" · ", said), "Notes", Palette.Muted, 13);
+            // Wrapped, so a long line of notes never runs under the VS between the names.
+            var notes = Ui.Body(string.Join(" · ", said), "Notes", Palette.Muted, _vertical ? Px(13) : 13);
             notes.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
             box.AddChild(notes);
             return box;
@@ -672,6 +709,8 @@ public partial class Film : Node
         for (var i = 0; i < f.A.Stats.Count && i < f.B.Stats.Count; i++)
         {
             var (a, b) = (f.A.Stats[i], f.B.Stats[i]);
+            // A figure neither side has (no relics on either) says nothing: left out.
+            if (a.Value == 0 && b.Value == 0) continue;
             var row = Ui.Row($"Stat{i}", 10);
             row.AddChild(Figure(a.Value, true));
             row.AddChild(Bar(a.Value / Math.Max(1, a.Max), Of(f.A), true));

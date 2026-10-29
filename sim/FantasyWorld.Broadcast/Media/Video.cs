@@ -17,6 +17,10 @@ public interface IVideoMaker
     Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, CancellationToken ct = default) =>
         JoinAsync(chunks, narrationMp3, ct);
 
+    /// <summary>The film joined with <paramref name="subtitles"/> (SRT, timed to the narration) burned in; a maker that cannot, joins without.</summary>
+    Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, string? subtitles, bool tall, CancellationToken ct = default) =>
+        JoinAsync(chunks, narrationMp3, seconds, ct);
+
     /// <summary>
     /// The video's thumbnail (the owner, 2026-10-29): its frame at <paramref name="seconds"/> as a 1280×720 JPEG, with
     /// <paramref name="caption"/> across its foot; null from a maker that cannot.
@@ -129,20 +133,36 @@ public sealed class FfmpegVideo : IVideoMaker
     /// The arguments to join the stretches (listed in <paramref name="list"/> for ffmpeg's concat demuxer; all encoded
     /// alike, so the video is copied, not encoded again) with the narration, cut to the narration's length.
     /// </summary>
-    public static IReadOnlyList<string> JoinArguments(string list, string audio, string output, double? seconds = null) =>
+    public static IReadOnlyList<string> JoinArguments(string list, string audio, string output, double? seconds = null, string? subtitles = null,
+        bool tall = false) =>
     [
         "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
         "-f", "concat", "-safe", "0", "-i", list,
         "-i", audio,
         "-map", "0:v:0", "-map", "1:a:0",
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
+        // With subtitles the picture is drawn on, so encoded again; without, copied as filmed.
+        .. subtitles is null ? new[] { "-c:v", "copy" }
+            : new[] { "-vf", $"subtitles={subtitles}:force_style='{SubtitleStyle(tall)}'", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p" },
+        "-c:a", "aac", "-b:a", "160k",
         .. seconds is { } cut ? new[] { "-t", cut.ToString("0.###", CultureInfo.InvariantCulture) } : Array.Empty<string>(),
         "-shortest", "-movflags", "+faststart", output,
     ];
 
+    /// <summary>
+    /// How the subtitles look: white bold text with a dark outline, low in the frame (higher on the tall film, above the
+    /// Shorts player's own buttons). Sizes are in libass's units of a 288-high frame, scaled to the video.
+    /// </summary>
+    public static string SubtitleStyle(bool tall) => tall
+        ? "FontName=DejaVu Sans,Bold=1,FontSize=9,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,Alignment=2,MarginV=48"
+        : "FontName=DejaVu Sans,Bold=1,FontSize=13,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1.2,Shadow=0,Alignment=2,MarginV=14";
+
     public Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default) => JoinAsync(chunks, narrationMp3, null, ct);
 
-    public async Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, CancellationToken ct = default) =>
+    public Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, CancellationToken ct = default) =>
+        JoinAsync(chunks, narrationMp3, seconds, null, false, ct);
+
+    public async Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, string? subtitles, bool tall,
+        CancellationToken ct = default) =>
         await RunAsync(async dir =>
         {
             var lines = new List<string>();
@@ -155,7 +175,14 @@ public sealed class FfmpegVideo : IVideoMaker
             var (list, audio, output) = (Path.Combine(dir, "chunks.txt"), Path.Combine(dir, "narration.mp3"), Path.Combine(dir, "episode.mp4"));
             await File.WriteAllLinesAsync(list, lines, ct).ConfigureAwait(false);
             await File.WriteAllBytesAsync(audio, narrationMp3, ct).ConfigureAwait(false);
-            return (JoinArguments(list, audio, output, seconds), output);
+            string? srt = null;
+            if (subtitles is { Length: > 0 })
+            {
+                // A plain name in the scratch folder: the filter's own syntax would trip on a path's colons or quotes.
+                srt = "subtitles.srt";
+                await File.WriteAllTextAsync(Path.Combine(dir, srt), subtitles, ct).ConfigureAwait(false);
+            }
+            return (JoinArguments(list, audio, output, seconds, srt, tall), output);
         }, ct).ConfigureAwait(false);
 
     public const int ThumbnailWidth = 1280, ThumbnailHeight = 720;
@@ -206,7 +233,8 @@ public sealed class FfmpegVideo : IVideoMaker
         try
         {
             var (arguments, output) = await prepare(work.FullName).ConfigureAwait(false);
-            var start = new ProcessStartInfo(_ffmpeg) { RedirectStandardError = true, UseShellExecute = false };
+            // Run in the scratch folder, so files named plainly there (the subtitles) are found.
+            var start = new ProcessStartInfo(_ffmpeg) { RedirectStandardError = true, UseShellExecute = false, WorkingDirectory = work.FullName };
             foreach (var argument in arguments) start.ArgumentList.Add(argument);
             Process process;
             try
