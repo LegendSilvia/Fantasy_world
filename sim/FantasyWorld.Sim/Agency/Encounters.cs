@@ -101,11 +101,12 @@ public static class Encounters
     /// A duel. <paramref name="surged"/> is a fighter whose hidden awakening breaks out mid-fight (the owner, 2026-10-29): they
     /// already fight in their new calling, and should they still lose a fight to the death, they far more often escape it.
     /// </summary>
-    public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath, long surged = 0)
+    public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath, long surged = 0, double edge = 1)
     {
-        // A calling that counters the other's fights 15% stronger (the owner, 2026-10-28).
+        // A calling that counters the other's fights 15% stronger (the owner, 2026-10-28); one who strikes from ambush or by
+        // a planned attack has the edge of surprise (DeedsSystem.Edge).
         var (ka, kd) = (Classes.Of(world, attacker), Classes.Of(world, defender));
-        var a = Strength(world, attacker) * Classes.Edge(ka, kd);
+        var a = Strength(world, attacker) * Classes.Edge(ka, kd) * edge;
         var d = Strength(world, defender) * Classes.Edge(kd, ka);
         var p = a / (a + d);
         var outcomes = toTheDeath

@@ -16,7 +16,12 @@ public class CliLlmTests
         var properties = JsonDocument.Parse(request.Schema).RootElement.GetProperty("properties");
         string First(string field) => properties.GetProperty(field).GetProperty("enum")[0].GetString()!;
         if (properties.TryGetProperty("choice", out _)) return $"{{\"choice\":\"{First("choice")}\",\"reasoning\":\"It seemed right.\",\"flavor\":\"\"}}";
+        // A whole duel (a clash's, the owner, 2026-10-29) is decided in a day, its one chapter told.
+        if (properties.TryGetProperty("outcome", out _) && properties.TryGetProperty("days", out _))
+            return $"{{\"outcome\":\"{First("outcome")}\",\"days\":1,\"chapters\":[{{\"day\":1,\"text\":\"Steel rang.\"}},{{\"day\":1,\"text\":\"One fell back.\"}}]}}";
         if (properties.TryGetProperty("outcome", out _)) return $"{{\"outcome\":\"{First("outcome")}\",\"turning_point\":\"\",\"account\":\"So it went.\"}}";
+        if (properties.TryGetProperty("does", out _))
+            return "{\"name\":\"Stormborn\",\"origin\":\"The storm took them.\",\"does\":\"strikes like lightning\",\"condition\":\"only under an open sky\"}";
         if (properties.TryGetProperty("name", out _)) return "{\"name\":\"The Named Thing\",\"lore\":\"Remembered in song.\"}";
         if (properties.TryGetProperty("incidents", out _))
             return "{\"incidents\":[{\"candidate\":0,\"cause\":0,\"cause_text\":\"An old wrong.\",\"culprit\":\"\",\"hidden\":false,\"title\":\"The First Beginning\",\"lore\":\"So it began.\"}]}";

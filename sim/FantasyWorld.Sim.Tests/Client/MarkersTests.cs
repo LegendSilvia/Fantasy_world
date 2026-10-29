@@ -10,7 +10,7 @@ namespace FantasyWorld.Sim.Tests.Client;
 
 public class MarkersTests
 {
-    private static readonly Simulator Aged = Prehistory.Run(WorldGenerator.Generate(new WorldGenOptions(3, WorldSize.Tiny), DateTimeOffset.UnixEpoch), 40);
+    private static readonly Simulator Aged = Prehistory.Run(WorldGenerator.Generate(new WorldGenOptions(6, WorldSize.Tiny), DateTimeOffset.UnixEpoch), 40);
 
     [Fact]
     public void EverySettlementAndStructure_StandsOnTheBlock_SizedByTier()

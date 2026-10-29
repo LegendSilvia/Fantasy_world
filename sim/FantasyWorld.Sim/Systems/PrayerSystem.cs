@@ -182,7 +182,7 @@ public sealed class PrayerSystem : ISimSystem
 
     /// <summary>The face-offs the players may still bless: duels and wars declared and not yet fought, and not blessed.</summary>
     public static IReadOnlyList<WorldEvent> Blessable(World world, EventLog log) =>
-        log.All.Where(e => e.Type is "DuelDeclared" or "WarDeclared" && world.Date.Day - e.Date.Day <= FavourDays && Blessable(world, log, e)).ToList();
+        log.All.Where(e => e.Type is "DuelDeclared" or "ClashBegun" or "WarDeclared" && world.Date.Day - e.Date.Day <= FavourDays && Blessable(world, log, e)).ToList();
 
     private static bool Blessable(World world, EventLog log, WorldEvent declared)
     {
@@ -190,7 +190,7 @@ public sealed class PrayerSystem : ISimSystem
         {
             if (!declared.Actors.TryGetValue("war", out var w) || !world.Wars.TryGetValue(w.Id, out var war) || war.Ended || !war.Mustering(world.Date)) return false;
         }
-        else if (declared.Type == "DuelDeclared")
+        else if (declared.Type is "DuelDeclared" or "ClashBegun")
         {
             if (log.Since(declared.Id).Any(e => e.Type is "DuelBegun" or "DuelFought" or "DuelCalledOff" && e.Causes.Any(c => c.EventId == declared.Id))) return false;
         }
@@ -208,7 +208,7 @@ public sealed class PrayerSystem : ISimSystem
         if (!ctx.Log.TryGet(declaredEventId, out var declared) || !Blessable(world, ctx.Log, declared)) return null;
         var key = (declared.Type, firstSide) switch
         {
-            ("DuelDeclared", true) => "challenger", ("DuelDeclared", false) => "defender",
+            ("DuelDeclared" or "ClashBegun", true) => "challenger", ("DuelDeclared" or "ClashBegun", false) => "defender",
             ("WarDeclared", true) => "attacker", ("WarDeclared", false) => "defender",
             _ => null,
         };

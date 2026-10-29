@@ -40,6 +40,7 @@ public static class Categories
         ["SuccessionOccurred"] = "Succession",
         ["DuelFought"] = "Duel",
         ["DuelDeclared"] = "A challenge",
+        ["ClashBegun"] = "A clash",
         ["SecretRevealed"] = "A secret of the world",
         ["CharacterTransformed"] = "A changed soul",
         ["CompanionJoined"] = "A companion",

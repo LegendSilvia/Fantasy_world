@@ -97,7 +97,7 @@ public static class FaceOffs
     /// <summary>At most this many face-offs an episode, the weightiest first.</summary>
     public const int PerEpisode = 2;
 
-    public static readonly IReadOnlySet<string> Declarations = new HashSet<string>(StringComparer.Ordinal) { "DuelDeclared", "WarDeclared" };
+    public static readonly IReadOnlySet<string> Declarations = new HashSet<string>(StringComparer.Ordinal) { "DuelDeclared", "ClashBegun", "WarDeclared" };
 
     /// <summary>The face-off of a declaration, if both sides are still known to the world.</summary>
     public static FaceOff? For(World world, WorldEvent ev)
@@ -105,7 +105,7 @@ public static class FaceOffs
         var odds = ev.Payload.TryGetValue("odds", out var o) && int.TryParse(o, NumberStyles.Integer, CultureInfo.InvariantCulture, out var p) ? p : 50;
         switch (ev.Type)
         {
-            case "DuelDeclared" when ev.Actors.TryGetValue("challenger", out var a) && ev.Actors.TryGetValue("defender", out var b)
+            case "DuelDeclared" or "ClashBegun" when ev.Actors.TryGetValue("challenger", out var a) && ev.Actors.TryGetValue("defender", out var b)
                                      && world.Characters.TryGetValue(a.Id, out var challenger) && world.Characters.TryGetValue(b.Id, out var defender):
                 return new FaceOff(FaceOff.Duel, ev.Id, ev.Payload.GetValueOrDefault("stakes") ?? "first blood",
                     Fighter(world, challenger, "crimson"), Fighter(world, defender, "azure"), odds);

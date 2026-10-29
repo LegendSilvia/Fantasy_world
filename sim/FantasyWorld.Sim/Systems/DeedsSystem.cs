@@ -41,7 +41,7 @@ public sealed class DeedsSystem : ISimSystem
     public const string DuelKind = "duel";
 
     /// <summary>At most this many challenges wait to be fought across the world before a new one to first blood is made.</summary>
-    public const int MaxOpenChallenges = 7;
+    public const int MaxOpenChallenges = 4;
 
     /// <summary>Of those, how many may be between two ordinary people; the rest are kept for the story's own (<see cref="Prominence"/>).</summary>
     public const int OrdinaryChallenges = 2;
@@ -530,6 +530,48 @@ public sealed class DeedsSystem : ISimSystem
         });
     }
 
+    /// <summary>The ways a fight starts without a challenge (the owner, 2026-10-29): enemies meeting, an ambush, a planned attack.</summary>
+    public const string Encounter = "encounter", Ambush = "ambush", Attack = "attack";
+
+    /// <summary>The surprise an attacker has: an ambush a third stronger, a planned attack a sixth; a chance meeting none.</summary>
+    public static double Edge(string? how) => how switch { Ambush => 1.3, Attack => 1.15, _ => 1 };
+
+    /// <summary>
+    /// A clash with no challenge and no day set (the owner, 2026-10-29): enemies who meet and fight at once, an ambush, or an
+    /// attack planned in secret. It is told as under way now, and its end, decided like a duel's, comes the next year.
+    /// </summary>
+    public static WorldEvent Clash(SimContext ctx, Character attacker, Character defender, bool toTheDeath, string how, long cause)
+    {
+        var odds = Encounters.DuelBetween(ctx.World, attacker, defender, toTheDeath, edge: Edge(how)).AttackerOdds;
+        var stakes = toTheDeath ? "to the death" : "first blood";
+        var verb = how switch
+        {
+            Ambush => "sprang an ambush on",
+            Attack => "struck without warning at the home of",
+            _ => "came upon their enemy",
+        };
+        var place = how == Encounter ? ctx.World.Settlements[attacker.SettlementId].Ref : ctx.World.Settlements[defender.SettlementId].Ref;
+        var clash = ctx.Emit(new EventDraft("ClashBegun",
+            Actors: new Dictionary<string, EntityRef> { ["challenger"] = attacker.Ref, ["defender"] = defender.Ref },
+            Place: place,
+            Payload: new Dictionary<string, string> { ["stakes"] = stakes, ["odds"] = Percent(odds), ["how"] = how, ["verb"] = verb },
+            Causes: cause != 0 ? new[] { new Cause(cause, CauseKind.Motive, 0.9) } : null,
+            Importance: Math.Max(Fates.Importance(attacker, toTheDeath ? 30 : 18), Fates.Importance(defender, toTheDeath ? 30 : 18)),
+            Tags: new[] { "Characters", "Deeds" }));
+        ctx.Queue.Schedule(ctx.Date.AddDays(DuelDelayDays), DuelKind, new Dictionary<string, string>
+        {
+            ["challenger"] = attacker.Id.ToString(CultureInfo.InvariantCulture),
+            ["defender"] = defender.Id.ToString(CultureInfo.InvariantCulture),
+            ["stakes"] = stakes,
+            ["declared"] = clash.Id.ToString(CultureInfo.InvariantCulture),
+            ["how"] = how,
+        });
+        return clash;
+    }
+
+    /// <summary>Whether a character has a duel or clash pending.</summary>
+    public static bool Engaged(EventQueue queue, long characterId) => Challenged(queue, characterId);
+
     /// <summary>The challenger's chance as a whole percentage, as it is shown ("62").</summary>
     public static string Percent(double odds) => Math.Round(odds * 100).ToString(CultureInfo.InvariantCulture);
 
@@ -559,6 +601,7 @@ public sealed class DeedsSystem : ISimSystem
             return;
         }
         var toTheDeath = action.Data["stakes"] == "to the death";
+        var how = action.Data.GetValueOrDefault("how");
         switch (action.Kind)
         {
             case DuelTurnKind:
@@ -576,13 +619,19 @@ public sealed class DeedsSystem : ISimSystem
             case DuelEndKind:
             {
                 // The outcome Claude chose, among the same outcomes as on the first day (the stakes fix them).
-                var encounter = Encounters.DuelBetween(world, challenger, defender, toTheDeath);
+                var encounter = Encounters.DuelBetween(world, challenger, defender, toTheDeath, edge: Edge(how));
                 var outcome = encounter.Outcomes.First(o => o.Key == action.Data["outcome"]) with { Account = action.Data.GetValueOrDefault("account") };
-                Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, begun, int.Parse(action.Data["days"], CultureInfo.InvariantCulture));
+                Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, begun, int.Parse(action.Data["days"], CultureInfo.InvariantCulture), how);
                 return;
             }
             default:
-                Duel(ctx, challenger, defender, toTheDeath, declared);
+                // A clash's fighters are armed as a challenge's were when it was declared.
+                if (how is not null)
+                {
+                    Equip(ctx, challenger);
+                    Equip(ctx, defender);
+                }
+                Duel(ctx, challenger, defender, toTheDeath, declared, how);
                 return;
         }
     }
@@ -590,7 +639,7 @@ public sealed class DeedsSystem : ISimSystem
     /// <summary>The chance a hidden awakening breaks out in a fight (the owner, 2026-10-29: turning the table mid-fight).</summary>
     public const double MidFightWake = 0.4;
 
-    private void Duel(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared)
+    private void Duel(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared, string? how = null)
     {
         // A hidden awakening may break out in the fight: the fighter fights on in their new calling.
         var surged = new[] { challenger, defender }.FirstOrDefault(c => c.Dormant != 0 && ctx.Log.TryGet(c.Dormant, out _) && ctx.Rng.Chance(MidFightWake));
@@ -616,10 +665,10 @@ public sealed class DeedsSystem : ISimSystem
             else if (c.Has(Traits.Calm) && avenging && Hash.Percent(c.Id, 22, declared) < TurnChance)
                 Turn(ctx, c, foe, Traits.Calm, Traits.Wrathful, "lost their calm at the sight of the one they had sworn to destroy", declared);
         }
-        var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath, surged?.Id ?? 0), ctx.Rng);
+        var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath, surged?.Id ?? 0, Edge(how)), ctx.Rng);
         if (outcome.Days <= 1)
         {
-            Surge(Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, 0, 1).Id);
+            Surge(Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, 0, 1, how).Id);
             return;
         }
         // A long duel: begun today with the first day's chapters, told on each later chapter's day, ended on its last.
@@ -631,7 +680,7 @@ public sealed class DeedsSystem : ISimSystem
             begun = ctx.Emit(new EventDraft("DuelBegun",
                 Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
                 Place: ctx.World.Settlements[defender.SettlementId].Ref,
-                Payload: new Dictionary<string, string> { ["stakes"] = stakes, ["days"] = days.ToString(CultureInfo.InvariantCulture) },
+                Payload: How(new Dictionary<string, string> { ["stakes"] = stakes, ["days"] = days.ToString(CultureInfo.InvariantCulture) }, how),
                 Causes: new[] { new Cause(declared, CauseKind.Trigger, 1.0) },
                 Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 25 : 12), Fates.Importance(defender, toTheDeath ? 25 : 12)),
                 Tags: new[] { "Characters", "Deeds" }));
@@ -646,24 +695,31 @@ public sealed class DeedsSystem : ISimSystem
             ["day"] = day.ToString(CultureInfo.InvariantCulture),
             ["days"] = days.ToString(CultureInfo.InvariantCulture),
         };
+        Dictionary<string, string> DataOf(int day) => how is null ? Data(day) : new Dictionary<string, string>(Data(day)) { ["how"] = how };
         foreach (var day in chapters.Select(c => c.Day).Where(d => d > 1 && d < days).Distinct())
         {
-            var data = Data(day);
+            var data = DataOf(day);
             data["account"] = FightChapter.On(chapters, day)!;
             ctx.Queue.Schedule(ctx.Date.AddDays(day - 1), DuelTurnKind, data);
         }
-        var end = Data(days);
+        var end = DataOf(days);
         end["outcome"] = outcome.Key;
         if (FightChapter.On(chapters, days) is { } last) end["account"] = last;
         ctx.Queue.Schedule(ctx.Date.AddDays(days - 1), DuelEndKind, end);
     }
 
+    private static Dictionary<string, string> How(Dictionary<string, string> payload, string? how)
+    {
+        if (how is not null) payload["how"] = how;
+        return payload;
+    }
+
     /// <summary>The duel's end: its outcome applied, on the day it was fought or the last day of a long one.</summary>
     private static WorldEvent Conclude(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared,
-        EncounterOutcome outcome, long begun, int days)
+        EncounterOutcome outcome, long begun, int days, string? how = null)
     {
         var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
-        var payload = new Dictionary<string, string> { ["stakes"] = toTheDeath ? "to the death" : "first blood", ["outcome"] = outcome.Key };
+        var payload = How(new Dictionary<string, string> { ["stakes"] = toTheDeath ? "to the death" : "first blood", ["outcome"] = outcome.Key }, how);
         if (days > 1) payload["days"] = days.ToString(CultureInfo.InvariantCulture);
         using var account = ctx.Annotate("account", outcome.Account);
         var duel = ctx.Emit(new EventDraft("DuelFought",

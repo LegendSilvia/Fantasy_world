@@ -54,4 +54,22 @@ public class BeginningsTests(PrehistoricWorld fixture) : IClassFixture<Prehistor
         });
         Assert.Equal(changed.Count, changed.Select(e => e.Actors["who"].Id).Distinct().Count()); // each once
     }
+
+    [Fact]
+    public void EnemiesClash_WithNoDaySet_ToldAsUnderWay_AndDecidedTheNextYear()
+    {
+        var log = fixture.Sim.Log;
+        var clashes = log.All.Where(e => e.Type == "ClashBegun").ToList();
+        Assert.NotEmpty(clashes);
+        Assert.All(clashes, c => Assert.False(c.Payload.ContainsKey("day")));
+        Assert.All(clashes, c => Assert.Contains(c.Payload["how"], new[] { "encounter", "ambush", "attack" }));
+        // Each ends a year later as a fight (or is called off when one side is gone), and keeps how it began.
+        var query = new HistoryQuery(log);
+        var settled = clashes.Where(c => c.Date.Year < fixture.World.Date.Year - 1).ToList();
+        // (A call-off is a minor event the chronicle may have condensed since.)
+        Assert.True(settled.Count(c => query.Consequences(c.Id).Any(e => e.Type is "DuelFought" or "DuelBegun" or "DuelCalledOff")) >= settled.Count * 9 / 10);
+        var fought = log.All.Where(e => e.Type == "DuelFought" && e.Payload.ContainsKey("how")).ToList();
+        Assert.NotEmpty(fought);
+        Assert.All(fought, f => Assert.True(f.Date.Day - log.Get(f.Causes[0].EventId).Date.Day >= 360 || log.Get(f.Causes[0].EventId).Type == "DuelBegun"));
+    }
 }

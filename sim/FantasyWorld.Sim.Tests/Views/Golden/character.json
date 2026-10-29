@@ -1,18 +1,17 @@
 {
-  "ref": "char#3",
-  "name": "Lond of Cunvei",
+  "ref": "char#1",
+  "name": "Fath of Cunvei",
   "house": "house#1",
   "kicker": "Character · House Cunvei",
-  "line": "Lord of Drerithby · Meim · age 36 · born before recorded history",
+  "line": "Lord of Drerithby · Meim · age 66 · born before recorded history",
   "traits": [
-    "ambitious",
-    "honest",
-    "renowned",
-    "spiteful",
-    "trusting",
-    "wrathful"
+    "calm",
+    "devout",
+    "gracious",
+    "lazy",
+    "trusting"
   ],
-  "ambition": "Ambition: renown",
+  "ambition": "Ambition: mastery of magic",
   "location": {
     "ref": "settlement#3",
     "label": "Now at Drerithby",
@@ -23,34 +22,124 @@
   },
   "timeline": [
     {
-      "year": 3,
+      "year": 2,
       "text": {
-        "text": "Lond of Cunvei found the Arcane crystal Hauberk in the depths of Gisreach.",
+        "text": "Fath of Cunvei knighted Ornstiall of Vorn in the service of the Duchy of Thonae.",
         "links": [
           {
             "start": 0,
             "length": 14,
-            "entity": "char#3"
+            "entity": "char#1"
           },
           {
-            "start": 21,
-            "length": 26,
-            "entity": "artifact#2"
+            "start": 24,
+            "length": 17,
+            "entity": "char#10"
           },
           {
-            "start": 65,
-            "length": 8,
-            "entity": "region#7"
+            "start": 64,
+            "length": 15,
+            "entity": "realm#1"
           }
         ]
       },
-      "eventId": 78,
+      "eventId": 42,
       "highlight": false
     },
     {
-      "year": 4,
+      "year": 2,
       "text": {
-        "text": "Lond of Cunvei succeeded Fath of Cunvei at Drerithby.",
+        "text": "Ciath of Viallciath was knighted by Fath of Cunvei to serve the Duchy of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 19,
+            "entity": "char#13"
+          },
+          {
+            "start": 36,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 64,
+            "length": 15,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 43,
+      "highlight": false
+    },
+    {
+      "year": 10,
+      "text": {
+        "text": "Mathvond of Cunvei was knighted by Fath of Cunvei to serve the Duchy of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 18,
+            "entity": "char#4"
+          },
+          {
+            "start": 35,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 63,
+            "length": 15,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 279,
+      "highlight": false
+    },
+    {
+      "year": 16,
+      "text": {
+        "text": "Fath of Cunvei and Lond of Cunvei became rivals over the clash of a calm nature with a wrathful one.",
+        "links": [
+          {
+            "start": 0,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 19,
+            "length": 14,
+            "entity": "char#3"
+          }
+        ]
+      },
+      "eventId": 362,
+      "highlight": false
+    },
+    {
+      "year": 18,
+      "text": {
+        "text": "Mathvond of Cunvei and Fath of Cunvei became rivals over the clash of a wrathful nature with a calm one.",
+        "links": [
+          {
+            "start": 0,
+            "length": 18,
+            "entity": "char#4"
+          },
+          {
+            "start": 23,
+            "length": 14,
+            "entity": "char#1"
+          }
+        ]
+      },
+      "eventId": 386,
+      "highlight": false
+    },
+    {
+      "year": 19,
+      "text": {
+        "text": "Lond of Cunvei, child of Fath of Cunvei, was taken away in the Taking of Lond, by ill fortune alone.",
         "links": [
           {
             "start": 0,
@@ -61,472 +150,39 @@
             "start": 25,
             "length": 14,
             "entity": "char#1"
-          },
-          {
-            "start": 43,
-            "length": 9,
-            "entity": "settlement#3"
-          }
-        ]
-      },
-      "eventId": 104,
-      "highlight": false
-    },
-    {
-      "year": 4,
-      "text": {
-        "text": "The Reliquary of Droll passed to Lond of Cunvei.",
-        "links": [
-          {
-            "start": 0,
-            "length": 22,
-            "entity": "artifact#1"
-          },
-          {
-            "start": 33,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 105,
-      "highlight": false
-    },
-    {
-      "year": 5,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 143,
-      "highlight": false
-    },
-    {
-      "year": 6,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 154,
-      "highlight": false
-    },
-    {
-      "year": 7,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 168,
-      "highlight": false
-    },
-    {
-      "year": 8,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 179,
-      "highlight": false
-    },
-    {
-      "year": 8,
-      "text": {
-        "text": "Lond of Cunvei and Farnfand of Cunvei grew close.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          },
-          {
-            "start": 19,
-            "length": 18,
-            "entity": "char#2"
-          }
-        ]
-      },
-      "eventId": 217,
-      "highlight": false
-    },
-    {
-      "year": 9,
-      "text": {
-        "text": "Ciscoun answered the prayer of Lond of Cunvei for vengeance.",
-        "links": [
-          {
-            "start": 31,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 233,
-      "highlight": false
-    },
-    {
-      "year": 9,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 235,
-      "highlight": false
-    },
-    {
-      "year": 9,
-      "text": {
-        "text": "Bruth of Liarning was knighted by Lond of Cunvei to serve the Kingdom of Thonae.",
-        "links": [
-          {
-            "start": 0,
-            "length": 17,
-            "entity": "char#29"
-          },
-          {
-            "start": 34,
-            "length": 14,
-            "entity": "char#3"
-          },
-          {
-            "start": 62,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 239,
-      "highlight": false
-    },
-    {
-      "year": 10,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 255,
-      "highlight": false
-    },
-    {
-      "year": 10,
-      "text": {
-        "text": "The Arcane crystal Hauberk was stolen from Lond of Cunvei in the Theft of The Arcane crystal Hauberk, by ill fortune alone.",
-        "links": [
-          {
-            "start": 0,
-            "length": 26,
-            "entity": "artifact#2"
-          },
-          {
-            "start": 43,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 257,
-      "highlight": false
-    },
-    {
-      "year": 11,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 303,
-      "highlight": false
-    },
-    {
-      "year": 12,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 347,
-      "highlight": false
-    },
-    {
-      "year": 12,
-      "text": {
-        "text": "The Reliquary of Droll was stolen from Lond of Cunvei in the Theft of The Reliquary of Droll, by ill fortune alone.",
-        "links": [
-          {
-            "start": 0,
-            "length": 22,
-            "entity": "artifact#1"
-          },
-          {
-            "start": 39,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 348,
-      "highlight": false
-    },
-    {
-      "year": 13,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
           }
         ]
       },
       "eventId": 390,
       "highlight": false
-    },
-    {
-      "year": 14,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 426,
-      "highlight": false
-    },
-    {
-      "year": 15,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 437,
-      "highlight": false
-    },
-    {
-      "year": 16,
-      "text": {
-        "text": "Ciscoun answered the prayer of Lond of Cunvei for vengeance.",
-        "links": [
-          {
-            "start": 31,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 487,
-      "highlight": false
-    },
-    {
-      "year": 16,
-      "text": {
-        "text": "Lond of Cunvei prayed to Ciscoun for vengeance.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 489,
-      "highlight": false
-    },
-    {
-      "year": 17,
-      "text": {
-        "text": "Lond of Cunvei knighted Marncall of Liarning in the service of the Kingdom of Thonae.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          },
-          {
-            "start": 24,
-            "length": 20,
-            "entity": "char#31"
-          },
-          {
-            "start": 67,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 514,
-      "highlight": false
-    },
-    {
-      "year": 18,
-      "text": {
-        "text": "Oldmane, a grey wolf of the grassland, came to Lond of Cunvei's side and would not leave it.",
-        "links": [
-          {
-            "start": 47,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 522,
-      "highlight": false
-    },
-    {
-      "year": 18,
-      "text": {
-        "text": "Hebiand of Kiangratheth was knighted by Lond of Cunvei to serve the Kingdom of Thonae.",
-        "links": [
-          {
-            "start": 0,
-            "length": 23,
-            "entity": "char#34"
-          },
-          {
-            "start": 40,
-            "length": 14,
-            "entity": "char#3"
-          },
-          {
-            "start": 68,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 523,
-      "highlight": false
-    },
-    {
-      "year": 19,
-      "text": {
-        "text": "Lond of Cunvei found the Reliquary of Droll in the depths of Thonae.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          },
-          {
-            "start": 21,
-            "length": 22,
-            "entity": "artifact#1"
-          },
-          {
-            "start": 61,
-            "length": 6,
-            "entity": "region#3"
-          }
-        ]
-      },
-      "eventId": 531,
-      "highlight": false
-    },
-    {
-      "year": 20,
-      "text": {
-        "text": "Lond of Cunvei had won what they sought, a great treasure, and set their heart on renown.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "eventId": 538,
-      "highlight": false
     }
   ],
-  "folded": 10,
+  "folded": 0,
   "earlier": 0,
   "ties": [
     {
       "ref": "char#2",
       "name": "Farnfand of Cunvei",
-      "relation": "Father",
+      "relation": "Spouse",
       "qualifier": "",
-      "tone": "neutral",
-      "bond": 27
+      "tone": "warm",
+      "bond": 35
     },
     {
-      "ref": "char#1",
-      "name": "Fath of Cunvei",
-      "relation": "Mother",
-      "qualifier": "died Year 4",
+      "ref": "char#3",
+      "name": "Lond of Cunvei",
+      "relation": "Child",
+      "qualifier": "",
       "tone": "neutral",
-      "bond": 15
+      "bond": 3
     },
     {
       "ref": "char#4",
-      "name": "Miandmein of Cunvei",
-      "relation": "Sibling",
-      "qualifier": "",
-      "tone": "warm",
-      "bond": 40
-    },
-    {
-      "ref": "char#36",
-      "name": "Stiall of Cunvei",
-      "relation": "Sibling",
+      "name": "Mathvond of Cunvei",
+      "relation": "Child",
       "qualifier": "",
       "tone": "neutral",
-      "bond": 15
+      "bond": -3
     }
   ],
   "followed": false,
@@ -535,7 +191,7 @@
     "name": "The Way of Ciscoun"
   },
   "saint": false,
-  "class": "warrior",
+  "class": "mage",
   "ambitionTarget": null,
   "formerNames": null
 }

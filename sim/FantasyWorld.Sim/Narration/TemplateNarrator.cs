@@ -118,6 +118,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["DelveFailed"] = "{delver} sought {artifact} in {@place} and failed.",
         ["DuelFought"] = "{challenger} fought {defender} {=stakes} at {@place}.",
         ["DuelDeclared"] = "{challenger} challenged {defender} to a duel ({=stakes}), to be fought at {@place} in a year and a day.",
+        ["ClashBegun"] = "At {@place}, {challenger} {=verb} {defender}, and they fight {=stakes}; the clash goes on, its end yet to come.",
         ["DuelCalledOff"] = "The duel between {challenger} and {defender} was called off.",
         ["DuelBegun"] = "{challenger} and {defender} began their duel {=stakes} at {@place}, and it was not settled in a day.",
         ["DuelTurned"] = "The duel between {challenger} and {defender} at {@place} went on.",
@@ -264,6 +265,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     private static readonly IReadOnlyDictionary<string, string> Titles = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["WarDeclared"] = "{war} begins",
+        ["ClashBegun"] = "{challenger} and {defender} clash",
         ["PeaceSigned"] = "{war} ends",
         ["BattleFought"] = "Battle at {@place}",
         ["RealmFell"] = "{realm} falls",
