@@ -40,6 +40,13 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 {
     public const string TokenUrl = "https://oauth2.googleapis.com/token";
     public const string UploadUrl = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status";
+    public const string ThumbnailUrl = "https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=";
+
+    /// <summary>The episode's thumbnail, made beside its video.</summary>
+    public static string ThumbnailKey(string date) => $"episodes/{date}/thumbnail.jpg";
+
+    /// <summary>YouTube's limit on all of a video's tags together (counted with the commas between them).</summary>
+    public const int MaxTagChars = 480;
 
     /// <summary>YouTube's limits: the title in characters, the description in UTF-8 bytes.</summary>
     public const int MaxTitle = 100, MaxDescriptionBytes = 5000;
@@ -92,7 +99,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                 ["snippet"] = new JsonObject
                 {
                     ["title"] = shortTitle, ["description"] = ClipBytes(Plain(lines), MaxDescriptionBytes), ["categoryId"] = settings.CategoryId,
-                    ["tags"] = new JsonArray("shorts", "fantasy", "chronicle", "worldbuilding", Plain(episode.WorldName)),
+                    ["tags"] = Tags(episode, shortForm: true),
                 },
                 ["status"] = new JsonObject { ["privacyStatus"] = settings.Privacy, ["selfDeclaredMadeForKids"] = false },
             };
@@ -109,10 +116,59 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                 ["title"] = ClipChars(Plain(title), MaxTitle),
                 ["description"] = ClipBytes(Plain(description), MaxDescriptionBytes),
                 ["categoryId"] = settings.CategoryId,
-                ["tags"] = new JsonArray("fantasy", "chronicle", "worldbuilding", Plain(episode.WorldName)),
+                ["tags"] = Tags(episode),
             },
             ["status"] = new JsonObject { ["privacyStatus"] = settings.Privacy, ["selfDeclaredMadeForKids"] = false },
         };
+    }
+
+    /// <summary>
+    /// The video's tags (the owner, 2026-10-29): what it is, the world, and the episode's own names (those who face off in
+    /// it, people and realms), within YouTube's limit.
+    /// </summary>
+    public static JsonArray Tags(Episode episode, bool shortForm = false)
+    {
+        static string Plain(string text) => text.Replace('<', ' ').Replace('>', ' ').Replace(',', ' ').Trim();
+        var tags = new List<string>();
+        if (shortForm) tags.Add("shorts");
+        tags.AddRange(["fantasy", "epic fantasy", "fantasy world", "chronicle", "worldbuilding", "storytelling", Plain(episode.WorldName)]);
+        foreach (var f in episode.Parts.Select(p => p.FaceOff).OfType<FaceOff>())
+            tags.AddRange([Plain(f.A.Name), Plain(f.B.Name)]);
+        var kept = new JsonArray();
+        var length = 0;
+        foreach (var tag in tags.Where(t => t.Length is > 0 and <= 100).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var cost = tag.Length + (tag.Contains(' ') ? 2 : 0) + (kept.Count > 0 ? 1 : 0); // a tag with spaces is quoted
+            if (length + cost > MaxTagChars) break;
+            kept.Add(tag);
+            length += cost;
+        }
+        return kept;
+    }
+
+    /// <summary>The thumbnail's caption: the year and the headline, wrapped to two lines of at most 36 characters.</summary>
+    public static string Caption(Episode episode)
+    {
+        var text = episode.Headline is { } h ? $"Year {episode.ToYear}: {h.Text}" : $"{episode.WorldName}, Year {episode.ToYear}";
+        var lines = new List<string> { "" };
+        foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (lines[^1].Length > 0 && lines[^1].Length + 1 + word.Length > 36)
+            {
+                if (lines.Count == 2) { lines[^1] = lines[^1].TrimEnd('.', ',', ':', ';') + "…"; break; }
+                lines.Add("");
+            }
+            lines[^1] = lines[^1].Length == 0 ? word : $"{lines[^1]} {word}";
+        }
+        return string.Join("\n", lines);
+    }
+
+    /// <summary>When the headline's picture is on screen: a few seconds into its chapter, else a third of the way in.</summary>
+    public static double ThumbnailSecond(Episode episode, Speech.Timeline? timeline)
+    {
+        var headline = episode.Parts.FirstOrDefault(p => p.Kind == EpisodeSection.Headline);
+        var chapter = headline is null ? null : timeline?.Chapters.FirstOrDefault(c => c.Title == headline.Title);
+        return chapter is not null ? chapter.Start + 4 : timeline is { Length: > 0 } t ? t.Length / 3.0 : 5;
     }
 
     public async Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default)
@@ -176,6 +232,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                 throw new ChannelException($"the video could not be made ({e.Message}).");
             }
             await store.PutAsync(MyVideoKey(day), mp4, "video/mp4", ct).ConfigureAwait(false);
+            if (!vertical) await MakeThumbnailAsync(store, episode, mp4, ct).ConfigureAwait(false);
             if (account is null)
             {
                 _log.WriteLine($"youtube: the video of {day} was made and stored ({mp4.Length / 1024:N0} KB); dry runs do not upload.");
@@ -288,9 +345,45 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
         }
         await SaveAsync(store, day, new UploadState(UploadState.Done, null, state.Length, id, privacy), ct).ConfigureAwait(false);
         _log.WriteLine($"youtube: uploaded the episode of {day}{(id is null ? "" : $" (https://youtu.be/{id})")}.");
+        if (!vertical && id is not null) await SetThumbnailAsync(store, day, id, ct).ConfigureAwait(false);
         if (privacy is not null && privacy != settings.Privacy)
             _log.WriteLine($"warning: YouTube made the video {privacy}, not {settings.Privacy}: uploads stay private until the Google app passes "
                            + "YouTube's API audit (see docs/broadcast-setup.md).");
+    }
+
+    private async Task MakeThumbnailAsync(IObjectStore store, Episode episode, byte[] mp4, CancellationToken ct)
+    {
+        try
+        {
+            var timeline = await Speech.Chapters.LoadAsync(store, episode.Date, ct).ConfigureAwait(false);
+            if (await video.ThumbnailAsync(mp4, ThumbnailSecond(episode, timeline), Caption(episode), ct).ConfigureAwait(false) is { } jpeg)
+                await store.PutAsync(ThumbnailKey(episode.Date), jpeg, "image/jpeg", ct).ConfigureAwait(false);
+        }
+        catch (VideoException e)
+        {
+            _log.WriteLine($"warning: the thumbnail of {episode.Date} could not be made ({e.Message}); YouTube picks one.");
+        }
+    }
+
+    /// <summary>
+    /// Sets the stored thumbnail on the uploaded video, once; a refusal is a warning, never a failed broadcast (YouTube takes
+    /// custom thumbnails only from a verified channel).
+    /// </summary>
+    private async Task SetThumbnailAsync(IObjectStore store, string day, string videoId, CancellationToken ct)
+    {
+        if (await store.GetAsync(ThumbnailKey(day), ct).ConfigureAwait(false) is not { } jpeg) return;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, ThumbnailUrl + Uri.EscapeDataString(videoId)) { Content = new ByteArrayContent(jpeg) };
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await TokenAsync(ct).ConfigureAwait(false));
+            using var response = await SendAsync(request, "set the thumbnail", ct).ConfigureAwait(false);
+            _log.WriteLine($"youtube: set the thumbnail of {day}.");
+        }
+        catch (ChannelException e)
+        {
+            _log.WriteLine($"warning: {e.Message} Custom thumbnails need a verified channel (youtube.com/verify); YouTube picks one meanwhile.");
+        }
     }
 
     /// <summary>The day's video link, once it is up and anyone may watch it (public or unlisted); null otherwise.</summary>

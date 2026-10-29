@@ -44,9 +44,17 @@ public class YouTubeTests : IDisposable
         return response;
     };
 
-    internal sealed class FakeVideo(bool fails = false) : IVideoMaker
+    internal sealed class FakeVideo(bool fails = false, byte[]? thumbnail = null) : IVideoMaker
     {
         public int Made { get; private set; }
+
+        public List<(double Seconds, string Caption)> Thumbnails { get; } = [];
+
+        public Task<byte[]?> ThumbnailAsync(byte[] mp4, double seconds, string caption, CancellationToken ct = default)
+        {
+            Thumbnails.Add((seconds, caption));
+            return Task.FromResult(thumbnail);
+        }
 
         public Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, CancellationToken ct = default) =>
             Task.FromResult(chunks.SelectMany(c => c).Concat(narrationMp3).ToArray());
@@ -102,6 +110,46 @@ public class YouTubeTests : IDisposable
 
         await Channel(google).PublishAsync(Sample(), [1], [2]); // a rerun: already uploaded
         Assert.Equal(3, google.Seen.Count);
+    }
+
+    [Fact]
+    public async Task TheThumbnail_IsTheHeadlinesFrame_CaptionedAndSet_AndARefusalIsOnlyAWarning()
+    {
+        var timeline = new FantasyWorld.Broadcast.Speech.Timeline(60, [new("Opening", 0), new("The War of <Ash> begins", 20), new("Until tomorrow", 50)]);
+        await FantasyWorld.Broadcast.Speech.Chapters.SaveAsync(_store, "2026-10-27", timeline);
+        var episode = Sample() with { Sections = [new EpisodeSection(EpisodeSection.Headline, "The War of <Ash> begins", "...")] };
+        var video = new FakeVideo(thumbnail: [0xFF, 0xD8, 0xFF]);
+        var google = new FakeGoogle(Session, Created, _ => new HttpResponseMessage(HttpStatusCode.OK));
+        await Channel(google, video: video).PublishAsync(episode, [1], [2]);
+        var (seconds, caption) = Assert.Single(video.Thumbnails);
+        Assert.Equal(24, seconds); // a few seconds into the headline, its picture on screen
+        Assert.Equal("Year 12: The War of <Ash> begins", caption);
+        var set = google.Seen.Single(s => s.Request.RequestUri!.ToString().StartsWith(YouTube.ThumbnailUrl, StringComparison.Ordinal));
+        Assert.Equal(YouTube.ThumbnailUrl + "vid1", set.Request.RequestUri!.ToString());
+        Assert.Equal(new byte[] { 0xFF, 0xD8, 0xFF }, set.Body);
+        Assert.Contains("set the thumbnail", _log.ToString());
+
+        // A channel YouTube has not verified may not set thumbnails: the episode is still up, with a warning.
+        await _store.DeleteAsync(YouTube.StateKey("2026-10-27"));
+        await Channel(new FakeGoogle(Session, Created, Status(HttpStatusCode.Forbidden)), video: video).PublishAsync(episode, [1], [2]);
+        Assert.Equal(UploadState.Done, (await State())!.State);
+        Assert.Contains("verified channel", _log.ToString());
+    }
+
+    [Fact]
+    public void Tags_NameTheWorldAndThoseWhoFaceOff_WithinYouTubesLimit_AndCaptionsWrapToTwoLines()
+    {
+        var tags = YouTube.Tags(Sample()).Select(t => (string)t!).ToList();
+        Assert.Contains("fantasy", tags);
+        Assert.Contains("Aerenmoor", tags);
+        Assert.True(string.Join(",", tags).Length <= YouTube.MaxTagChars);
+        Assert.Equal("shorts", (string)YouTube.Tags(Sample(), shortForm: true)[0]!);
+
+        var longer = Sample() with { Headline = new EpisodeStory(1, 12, "War", "The Kingdom of Nandlarmoor declared war on the Kingdom of Thussis over a disputed border") };
+        var lines = YouTube.Caption(longer).Split('\n');
+        Assert.Equal(2, lines.Length);
+        Assert.All(lines, l => Assert.True(l.Length <= 37, l));
+        Assert.EndsWith("…", lines[1]);
     }
 
     [Fact]

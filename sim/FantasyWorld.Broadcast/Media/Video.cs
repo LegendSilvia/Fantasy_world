@@ -16,6 +16,12 @@ public interface IVideoMaker
     /// joins the whole.</summary>
     Task<byte[]> JoinAsync(IReadOnlyList<byte[]> chunks, byte[] narrationMp3, double? seconds, CancellationToken ct = default) =>
         JoinAsync(chunks, narrationMp3, ct);
+
+    /// <summary>
+    /// The video's thumbnail (the owner, 2026-10-29): its frame at <paramref name="seconds"/> as a 1280×720 JPEG, with
+    /// <paramref name="caption"/> across its foot; null from a maker that cannot.
+    /// </summary>
+    Task<byte[]?> ThumbnailAsync(byte[] mp4, double seconds, string caption, CancellationToken ct = default) => Task.FromResult<byte[]?>(null);
 }
 
 public sealed class VideoException(string message) : Exception(message);
@@ -151,6 +157,47 @@ public sealed class FfmpegVideo : IVideoMaker
             await File.WriteAllBytesAsync(audio, narrationMp3, ct).ConfigureAwait(false);
             return (JoinArguments(list, audio, output, seconds), output);
         }, ct).ConfigureAwait(false);
+
+    public const int ThumbnailWidth = 1280, ThumbnailHeight = 720;
+
+    /// <summary>The bold font the caption is drawn in, where the runner has it; without it, the frame alone.</summary>
+    public static readonly string[] CaptionFonts =
+        ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"];
+
+    /// <summary>
+    /// The arguments for the thumbnail: one frame at <paramref name="seconds"/>, fitted into 1280×720, and the caption (read
+    /// from <paramref name="captionFile"/>, so nothing in it needs escaping) on a dark band at its foot when a font is given.
+    /// </summary>
+    public static IReadOnlyList<string> ThumbnailArguments(string video, double seconds, string output, string? captionFile, string? font)
+    {
+        var fit = $"scale={ThumbnailWidth}:{ThumbnailHeight}:force_original_aspect_ratio=decrease,"
+                  + $"pad={ThumbnailWidth}:{ThumbnailHeight}:(ow-iw)/2:(oh-ih)/2";
+        var caption = captionFile is null || font is null ? ""
+            : $",drawbox=x=0:y=ih-170:w=iw:h=170:color=black@0.6:t=fill,drawtext=fontfile={font}:textfile={captionFile}"
+              + ":fontcolor=white:fontsize=52:line_spacing=8:x=(w-text_w)/2:y=h-140";
+        return ["-y", "-ss", seconds.ToString("0.###", CultureInfo.InvariantCulture), "-i", video, "-frames:v", "1",
+            "-vf", fit + caption, "-q:v", "3", output];
+    }
+
+    public async Task<byte[]?> ThumbnailAsync(byte[] mp4, double seconds, string caption, CancellationToken ct = default)
+    {
+        async Task<byte[]> Make(bool withCaption) => await RunAsync(async dir =>
+        {
+            var (video, text, output) = (Path.Combine(dir, "video.mp4"), Path.Combine(dir, "caption.txt"), Path.Combine(dir, "thumbnail.jpg"));
+            await File.WriteAllBytesAsync(video, mp4, ct).ConfigureAwait(false);
+            await File.WriteAllTextAsync(text, caption, ct).ConfigureAwait(false);
+            var font = withCaption ? CaptionFonts.FirstOrDefault(File.Exists) : null;
+            return (ThumbnailArguments(video, seconds, output, withCaption ? text : null, font), output);
+        }, ct).ConfigureAwait(false);
+        try
+        {
+            return await Make(withCaption: true).ConfigureAwait(false);
+        }
+        catch (VideoException)
+        {
+            return await Make(withCaption: false).ConfigureAwait(false); // an ffmpeg without drawtext: the frame alone
+        }
+    }
 
     /// <summary>Runs ffmpeg in a scratch folder the <paramref name="prepare"/> step fills, and returns the file it made.</summary>
     private async Task<byte[]> RunAsync(Func<string, Task<(IReadOnlyList<string> Arguments, string Output)>> prepare, CancellationToken ct)

@@ -62,6 +62,11 @@ Each morning's map and narration can also go to YouTube as a video. It needs thr
 YouTube keeps videos uploaded through a Google app that has not passed its API audit **private**, whatever `privacy`
 says (the run log warns when that happens); request the audit (the YouTube API Services form) to publish them.
 
+Each video gets a thumbnail (the frame where the headline's picture is on screen, with the year and headline across its
+foot, stored as `episodes/<date>/thumbnail.jpg`) and tags (fantasy, the world's name, and the people and realms who
+face off in it). YouTube takes custom thumbnails only from a **verified channel**: verify it once by phone at
+youtube.com/verify. Until then the run log warns and YouTube picks a frame itself; the video still goes up.
+
 One video a run, of the day's episode (or yesterday's, if it was missed): turning YouTube on never uploads a backlog.
 An upload is recorded before it starts and finished, never begun again, on a later run if it was cut short, so a video
 never goes up twice. Dry runs make and store the video (`staging/episodes/<date>/episode.mp4`) but do not upload it, unless
