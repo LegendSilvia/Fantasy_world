@@ -138,7 +138,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/sample"
           ls "$RUNNER_TEMP/frames" | wc -l
           # As the face-off's scene comes in, once it has; the battle's still; the moves on the map; then the result's card.
-          for n in 000002 000006 000010 000016 000022 000029 000040 000100 000118 000140 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
+          for n in 000002 000006 000010 000016 000022 000029 000040 000074 000086 000100 000118 000140 000164; do cp "$RUNNER_TEMP/frames/frame$n.png" "$RUNNER_TEMP/sample/"; done
       - name: Film the sample tall (the vertical short)
         timeout-minutes: 20
         run: |

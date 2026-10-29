@@ -463,7 +463,7 @@ public partial class Film : Node
 
     /// <summary>
     /// How long the map shows where a fight is before its still comes up (the owner, 2026-10-29: let the viewer see where
-    /// on the map it happens first); at most a quarter of a short section.
+    /// on the map it happens first); at most half the still's time in a short section.
     /// </summary>
     public const double StillDelaySeconds = 3.0;
 
@@ -750,7 +750,7 @@ public partial class Film : Node
     {
         var start = shots[index].Start;
         var until = StillUntil(shots, index) ?? SectionEnd(shots, index);
-        return start + Math.Min(StillDelaySeconds, (until - start) / 4);
+        return start + Math.Min(StillDelaySeconds, (until - start) / 2);
     }
 
     /// <summary>
