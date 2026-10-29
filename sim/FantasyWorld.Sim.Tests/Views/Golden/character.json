@@ -43,7 +43,7 @@
           }
         ]
       },
-      "eventId": 39,
+      "eventId": 41,
       "highlight": false
     },
     {
@@ -68,13 +68,13 @@
           }
         ]
       },
-      "eventId": 40,
+      "eventId": 42,
       "highlight": false
     },
     {
       "year": 16,
       "text": {
-        "text": "Fath of Cunvei and Lond of Cunvei became rivals over the clash of a calm nature with a wrathful one.",
+        "text": "Fath of Cunvei and Lond of Cunvei fell out over the clash of a calm nature with a wrathful one.",
         "links": [
           {
             "start": 0,
@@ -88,38 +88,38 @@
           }
         ]
       },
-      "eventId": 268,
+      "eventId": 275,
       "highlight": false
     },
     {
       "year": 18,
       "text": {
-        "text": "Hebiand of Kiangratheth was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
+        "text": "Fath of Cunvei knighted Hebiand of Kiangratheth in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 23,
-            "entity": "char#34"
-          },
-          {
-            "start": 40,
             "length": 14,
             "entity": "char#1"
           },
           {
-            "start": 68,
+            "start": 24,
+            "length": 23,
+            "entity": "char#34"
+          },
+          {
+            "start": 70,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 279,
+      "eventId": 286,
       "highlight": false
     },
     {
       "year": 18,
       "text": {
-        "text": "Mathvond of Cunvei and Fath of Cunvei became rivals over the clash of a wrathful nature with a calm one.",
+        "text": "Mathvond of Cunvei and Fath of Cunvei fell out over the clash of a wrathful nature with a calm one.",
         "links": [
           {
             "start": 0,
@@ -133,8 +133,38 @@
           }
         ]
       },
-      "eventId": 286,
+      "eventId": 293,
       "highlight": false
+    },
+    {
+      "year": 21,
+      "text": {
+        "text": "Lond of Cunvei and Mathvond of Cunvei met in secret at Drerithby, bound by their hatred of Fath of Cunvei: the Meeting at Drerithby.",
+        "links": [
+          {
+            "start": 0,
+            "length": 14,
+            "entity": "char#3"
+          },
+          {
+            "start": 19,
+            "length": 18,
+            "entity": "char#4"
+          },
+          {
+            "start": 55,
+            "length": 9,
+            "entity": "settlement#3"
+          },
+          {
+            "start": 91,
+            "length": 14,
+            "entity": "char#1"
+          }
+        ]
+      },
+      "eventId": 310,
+      "highlight": true
     }
   ],
   "folded": 0,

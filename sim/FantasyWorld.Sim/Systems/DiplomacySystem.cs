@@ -340,7 +340,7 @@ public sealed class DiplomacySystem : ISimSystem
     };
 
     /// <summary>The enemy's region nearest our territory: an enemy region adjacent to ours, lowest id.</summary>
-    private static long Border(World world, Realm ours, Realm theirs) =>
+    public static long Border(World world, Realm ours, Realm theirs) =>
         Realms.Territory(world, theirs).Where(r => Touches(world, r, ours)).Select(r => r.Id).DefaultIfEmpty(world.Settlements[theirs.CapitalId].RegionId).Min();
 
     private static bool Touches(World world, Region region, Realm realm) =>

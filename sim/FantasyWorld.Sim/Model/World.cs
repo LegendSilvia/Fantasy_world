@@ -81,6 +81,9 @@ public sealed class World
     /// <summary>The tales its songs tell, and those they have forgotten (<see cref="Tale"/>), oldest first.</summary>
     public List<Tale> Tales { get; set; } = new();
 
+    /// <summary>The beginnings of history (<see cref="Incident"/>): plots to carry out and culprits yet to be unmasked.</summary>
+    public List<Incident> Incidents { get; set; } = new();
+
     /// <summary>The gods' favour (sub-project 13 N5): "char#12" or "realm#3" → the last day it lasts.</summary>
     public SortedDictionary<string, long> Favour { get; init; } = new(StringComparer.Ordinal);
 

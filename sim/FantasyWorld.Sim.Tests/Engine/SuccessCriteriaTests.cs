@@ -63,10 +63,11 @@ public class SuccessCriteriaTests(PrehistoricWorld fixture) : IClassFixture<Preh
     public void Criterion3_MythsTraceBackToTheirCauses()
     {
         // Sub-project 3 §10: raids lead back to the beast's rising, holy wars to what stirred the faithful.
+        // A beast spilled from a labyrinth (the owner, 2026-10-29) leads back to its opening.
         var query = new HistoryQuery(fixture.Sim.Log);
         var raids = fixture.Sim.Log.All.Where(e => e.Type == "MonsterRaid").ToList();
         Assert.NotEmpty(raids);
-        Assert.All(raids, r => Assert.Contains(query.RootCauses(r.Id), root => root.Type is "MonsterRose" or "LeySurge" or "DangerRose"));
+        Assert.All(raids, r => Assert.Contains(query.RootCauses(r.Id), root => root.Type is "MonsterRose" or "LeySurge" or "DangerRose" or "LabyrinthOpened"));
         // Holy wars are checked on a longer history in MythHealthTests (a century may have none).
         Assert.All(fixture.Sim.Log.All.Where(e => e.Type == "HolyWarProclaimed"), h => Assert.NotEmpty(h.Causes));
     }

@@ -29,7 +29,7 @@ public static class Stocks
     /// <summary>Timber and stone a rising work uses each year.</summary>
     public const double BuildingCost = 50;
 
-    private const string ShortPrefix = "short:";
+    public const string ShortPrefix = "short:";
 
     /// <summary>What the realm's domain yields of a kind in a year.</summary>
     public static double Output(World world, Realm realm, string kind) =>

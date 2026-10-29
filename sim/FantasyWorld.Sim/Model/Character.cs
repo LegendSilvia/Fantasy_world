@@ -62,7 +62,7 @@ public sealed class Character
     public const int ElderAge = 60;
 
     public long Id { get; init; }
-    public string Name { get; init; } = "";
+    public string Name { get; set; } = "";
     public long HouseId { get; set; }
     public Sex Sex { get; init; }
     public long BirthDay { get; init; }
@@ -93,6 +93,9 @@ public sealed class Character
 
     public Role Role { get; set; }
     public List<Memory> Memories { get; init; } = new();
+
+    /// <summary>The names they went by before they changed who they were (the owner, 2026-10-29), oldest first.</summary>
+    public List<string> FormerNames { get; init; } = new();
 
     /// <summary>Lasting injuries, e.g. "sword arm".</summary>
     public List<string> Wounds { get; init; } = new();

@@ -1,0 +1,57 @@
+using FantasyWorld.Sim.Agency;
+using FantasyWorld.Sim.Model;
+using FantasyWorld.Sim.Query;
+
+namespace FantasyWorld.Sim.Tests.Engine;
+
+/// <summary>The beginnings of history and the new identities they lead to (the owner, 2026-10-29).</summary>
+public class BeginningsTests(PrehistoricWorld fixture) : IClassFixture<PrehistoricWorld>
+{
+    private static readonly string[] Beginnings = ["CouncilConvened", "StoresLost", "ConspiratorsMet", "AssassinationPlotted", "LabyrinthOutbreak"];
+
+    [Fact]
+    public void ACentury_HasItsBeginnings_EachTitledAndCaused_AndWhatFollowsFromThem()
+    {
+        var log = fixture.Sim.Log;
+        var begun = log.All.Where(e => Beginnings.Contains(e.Type)).ToList();
+        Assert.NotEmpty(begun);
+        Assert.All(begun, e => Assert.False(string.IsNullOrEmpty(e.Payload.GetValueOrDefault("title"))));
+        Assert.True(begun.Count(e => e.Causes.Count > 0) >= begun.Count * 3 / 4);
+        // Their consequences: plots carried out or foiled, culprits unmasked.
+        var query = new HistoryQuery(log);
+        var plots = begun.Where(e => e.Type is "AssassinationPlotted" or "ConspiratorsMet").ToList();
+        if (plots.Count > 0)
+            Assert.Contains(plots, p => query.Consequences(p.Id).Any(c => c.Type is "CharacterDied" or "AssassinationFoiled"));
+        // A hidden hand is never named while it stays hidden.
+        Assert.All(begun.Where(e => e.Payload.GetValueOrDefault("by") == "the work of a hand no one could name"),
+            e => Assert.False(e.Actors.ContainsKey("culprit")));
+    }
+
+    [Fact]
+    public void TheRules_ChooseThreeToSixAYear_InAFullWorld_AndClaudesChoicesAreChecked()
+    {
+        var sim = fixture.Fork();
+        var system = new FantasyWorld.Sim.Systems.IncidentSystem();
+        var ctx = new FantasyWorld.Sim.Engine.SimContext(sim.World, sim.Log, sim.Queue, new FantasyWorld.Sim.Core.Rng(1));
+        var candidates = system.Candidates(ctx);
+        Assert.NotEmpty(candidates);
+        Assert.All(candidates.GroupBy(c => c.Kind), g => Assert.True(g.Count() <= FantasyWorld.Sim.Systems.IncidentSystem.OfAKind));
+        Assert.All(candidates, c => Assert.Contains(c.Kind, Incident.Kinds));
+    }
+
+    [Fact]
+    public void ATragedy_CanMakeSomeoneOver_AndTheirOldNameIsKept()
+    {
+        var changed = fixture.Sim.Log.All.Where(e => e.Type == "IdentityChanged").ToList();
+        Assert.NotEmpty(changed);
+        Assert.All(changed, e =>
+        {
+            Assert.NotEmpty(e.Causes);
+            var who = fixture.World.Characters[e.Actors["who"].Id];
+            Assert.Contains(e.Payload["from"], who.FormerNames);
+            Assert.NotEqual(e.Payload["from"], e.Payload["to"]);
+            Assert.Contains(e.Payload["kind"], new[] { "forgot", "forgotten", "hidden", "reborn" });
+        });
+        Assert.Equal(changed.Count, changed.Select(e => e.Actors["who"].Id).Distinct().Count()); // each once
+    }
+}

@@ -24,6 +24,9 @@ public static class CasusBelli
 
     /// <summary>A demon lord's hunger for the living lands (sub-project 13).</summary>
     public const string DarkConquest = "dark conquest";
+
+    /// <summary>A council that saw a neighbour weakened and chose to strike while it could (the owner, 2026-10-29).</summary>
+    public const string Opportunity = "opportunity";
 }
 
 public sealed class War

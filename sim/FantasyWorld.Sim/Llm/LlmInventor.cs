@@ -123,6 +123,85 @@ public sealed class LlmInventor(StoryContext story) : IInventor
         return json is null ? null : Read(json);
     }
 
+    /// <summary>
+    /// The year's beginnings (the owner, 2026-10-29: "let Claude cook this up"): from what the world allows, Claude chooses
+    /// which happen, what caused each (any event of the history, or a cause never told before), who was behind it (one of
+    /// those who could be, or no one) and whether their hand stays hidden, and tells each. Journaled under the year.
+    /// </summary>
+    public IReadOnlyList<IncidentChoice>? PlanIncidents(IncidentBrief brief)
+    {
+        var day = story.World.Date.Day;
+        var key = $"incidents|{brief.Year}";
+        if (!story.Gateway.MayAnswer(ModelTier.Invent, key)) return null;
+        var candidates = string.Join("\n", brief.Candidates.Select(c =>
+            $"[{c.Index}] {c.Kind}: {PromptText.Data(c.Situation, 300)}"
+            + (c.Suspects.Count > 0 ? $" Could be behind it: {string.Join("; ", c.Suspects.Select(s => $"{s.Ref} ({PromptText.Data(s.Who, 120)})"))}." : " No one could be behind it but chance.")
+            + (c.SuggestedCause != 0 ? $" The rules see its cause in event {c.SuggestedCause}." : "")));
+        var history = string.Join("\n", brief.History.Select(h => $"{h.Id}: {PromptText.Data(h.Told, 240)}"));
+        var prompt = PromptText.Section("brief", $"Year {brief.Year}.\nWhat could begin this year:\n{candidates}\n\nThe world's recent history:\n{history}")
+            + $"\n\nChoose {brief.Count} of these beginnings to happen this year, the ones that make the richest story, each the root of what "
+            + "will follow (a council deciding, stores lost, a secret meeting, a plot against a life, a labyrinth's outbreak). For each give: "
+            + "candidate, its number; cause, the number of the history event that set it off (any you like, near or far), or 0 with cause_text, "
+            + "one sentence naming a cause never told before; culprit, the reference of the one behind it (only from those listed for it), or "
+            + "an empty string for no one; hidden, whether their hand stays secret for now (it may be found out in a later year); title, a "
+            + "name for it as the chronicle would give (at most 60 characters); lore, two or three sentences telling what happened, as the "
+            + "chronicle would record it (if the culprit is hidden, do not name them). Use only the names the brief gives.";
+        var schema = JsonSerializer.Serialize(new
+        {
+            type = "object",
+            properties = new
+            {
+                incidents = new
+                {
+                    type = "array",
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            candidate = new { type = "integer" }, cause = new { type = "integer" }, cause_text = new { type = "string" },
+                            culprit = new { type = "string" }, hidden = new { type = "boolean" }, title = new { type = "string" }, lore = new { type = "string" },
+                        },
+                        required = new[] { "candidate", "cause", "cause_text", "culprit", "hidden", "title", "lore" },
+                        additionalProperties = false,
+                    },
+                },
+            },
+            required = new[] { "incidents" },
+            additionalProperties = false,
+        });
+        IReadOnlyList<IncidentChoice>? Read(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (!doc.RootElement.TryGetProperty("incidents", out var list) || list.ValueKind != JsonValueKind.Array) return null;
+                var choices = new List<IncidentChoice>();
+                foreach (var item in list.EnumerateArray())
+                {
+                    string Text(string f, int max) => item.TryGetProperty(f, out var v) && v.ValueKind == JsonValueKind.String
+                        ? PromptText.Data(v.GetString()!.Replace("\"", "", StringComparison.Ordinal), max) : "";
+                    if (!item.TryGetProperty("candidate", out var c) || !c.TryGetInt32(out var candidate)
+                        || !item.TryGetProperty("cause", out var k) || !k.TryGetInt64(out var cause)) return null;
+                    var hidden = item.TryGetProperty("hidden", out var h) && h.ValueKind == JsonValueKind.True;
+                    var title = Text("title", MaxName + 1);
+                    if (title.Length is 0 or > MaxName) return null;
+                    var lore = Text("lore", 700);
+                    choices.Add(new IncidentChoice(candidate, cause, Text("cause_text", 300) is { Length: > 0 } t && cause == 0 ? t : null,
+                        Text("culprit", 40), hidden, title, lore.Length > 0 ? lore : null));
+                }
+                return choices.Count > 0 ? choices : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+        var request = new LlmRequest(ModelTier.Invent, key, story.Bible, prompt, schema, MaxTokens: 3000);
+        var json = story.Gateway.Ask(request, day, answer => Read(answer) is not null);
+        return json is null ? null : Read(json);
+    }
+
     private static Invention? Parse(string json)
     {
         try

@@ -194,11 +194,11 @@
         "y": 0.1953125
       },
       "holder": "realm#1",
-      "marker": "realm",
+      "marker": "recentEvent",
       "card": {
         "kicker": "Drerithby · Town",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 2,637 · 0 events this year"
+        "line": "Pop. 2,637 · 1 event this year"
       },
       "marks": [
         "temple"
@@ -639,7 +639,7 @@
   "armies": [],
   "battles": [
     {
-      "eventId": 297,
+      "eventId": 304,
       "year": 20,
       "position": {
         "x": 0.2578125,
@@ -732,7 +732,7 @@
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "roseEventId": 253,
+      "roseEventId": 260,
       "guarding": true
     }
   ],

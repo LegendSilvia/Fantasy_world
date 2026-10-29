@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 302 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 310 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -14,7 +14,7 @@
         "x": 0.8828125,
         "y": 0.4296875
       },
-      "eventId": 38
+      "eventId": 40
     },
     {
       "number": 6,
@@ -24,7 +24,7 @@
         "x": 0.6953125,
         "y": 0.4609375
       },
-      "eventId": 121
+      "eventId": 126
     },
     {
       "number": 8,
@@ -34,7 +34,7 @@
         "x": 0.3515625,
         "y": 0.1953125
       },
-      "eventId": 160
+      "eventId": 165
     }
   ],
   "headline": {
@@ -71,7 +71,7 @@
         }
       ]
     },
-    "eventId": 38,
+    "eventId": 40,
     "canExplain": true
   },
   "items": [
@@ -79,7 +79,7 @@
       "number": 2,
       "category": "war",
       "text": {
-        "text": "The Kingdom of Thonae declared war on the County of Veirwold for its freedom, and so began the Veirwold Rebellion.",
+        "text": "The Kingdom of Thonae went to war against the County of Veirwold for its freedom: the Veirwold Rebellion.",
         "links": [
           {
             "start": 4,
@@ -87,24 +87,24 @@
             "entity": "realm#1"
           },
           {
-            "start": 42,
+            "start": 46,
             "length": 18,
             "entity": "realm#3"
           },
           {
-            "start": 91,
+            "start": 82,
             "length": 22,
             "entity": "war#2"
           }
         ]
       },
-      "eventId": 162
+      "eventId": 167
     },
     {
       "number": 3,
       "category": "war",
       "text": {
-        "text": "The Veirwold Rebellion ended; the Kingdom of Thonae prevailed over the County of Veirwold: vassalage restored.",
+        "text": "The Veirwold Rebellion ended in victory for the Kingdom of Thonae over the County of Veirwold: vassalage restored.",
         "links": [
           {
             "start": 0,
@@ -112,24 +112,24 @@
             "entity": "war#1"
           },
           {
-            "start": 34,
+            "start": 48,
             "length": 17,
             "entity": "realm#1"
           },
           {
-            "start": 71,
+            "start": 75,
             "length": 18,
             "entity": "realm#3"
           }
         ]
       },
-      "eventId": 127
+      "eventId": 132
     },
     {
       "number": 4,
       "category": "war",
       "text": {
-        "text": "The Veirwold Rebellion ended; the Kingdom of Thonae prevailed over the County of Veirwold: vassalage restored.",
+        "text": "The Veirwold Rebellion ended in victory for the Kingdom of Thonae over the County of Veirwold: vassalage restored.",
         "links": [
           {
             "start": 0,
@@ -137,18 +137,18 @@
             "entity": "war#2"
           },
           {
-            "start": 34,
+            "start": 48,
             "length": 17,
             "entity": "realm#1"
           },
           {
-            "start": 71,
+            "start": 75,
             "length": 18,
             "entity": "realm#3"
           }
         ]
       },
-      "eventId": 199
+      "eventId": 204
     },
     {
       "number": 5,
@@ -174,7 +174,7 @@
       "number": 6,
       "category": "war",
       "text": {
-        "text": "Steillmuth of Viallciath fought with distinction at Veirwold.",
+        "text": "Steillmuth of Viallciath won glory in the battle at Veirwold.",
         "links": [
           {
             "start": 0,
@@ -188,13 +188,13 @@
           }
         ]
       },
-      "eventId": 121
+      "eventId": 126
     },
     {
       "number": 7,
       "category": "war",
       "text": {
-        "text": "Veindbron of Breindard won glory in the battle at Veirwold.",
+        "text": "Veindbron of Breindard fought with distinction at Veirwold.",
         "links": [
           {
             "start": 0,
@@ -208,7 +208,7 @@
           }
         ]
       },
-      "eventId": 198
+      "eventId": 203
     },
     {
       "number": 8,
@@ -223,7 +223,7 @@
           }
         ]
       },
-      "eventId": 160
+      "eventId": 165
     }
   ]
 }

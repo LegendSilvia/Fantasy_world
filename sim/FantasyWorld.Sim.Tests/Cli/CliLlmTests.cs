@@ -18,6 +18,8 @@ public class CliLlmTests
         if (properties.TryGetProperty("choice", out _)) return $"{{\"choice\":\"{First("choice")}\",\"reasoning\":\"It seemed right.\",\"flavor\":\"\"}}";
         if (properties.TryGetProperty("outcome", out _)) return $"{{\"outcome\":\"{First("outcome")}\",\"turning_point\":\"\",\"account\":\"So it went.\"}}";
         if (properties.TryGetProperty("name", out _)) return "{\"name\":\"The Named Thing\",\"lore\":\"Remembered in song.\"}";
+        if (properties.TryGetProperty("incidents", out _))
+            return "{\"incidents\":[{\"candidate\":0,\"cause\":0,\"cause_text\":\"An old wrong.\",\"culprit\":\"\",\"hidden\":false,\"title\":\"The First Beginning\",\"lore\":\"So it began.\"}]}";
         return "{\"text\":\"Once, long ago, it happened.\"}";
     });
 
