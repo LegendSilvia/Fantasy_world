@@ -177,13 +177,13 @@ public partial class Diorama : Node3D
         War.Show(map, _geography);
         Realms.Show(map, _geography);
         Roads = RouteLayout.Roads(map, _geography);
-        // Open roads are close-dotted in road brown; severed ones broken and reddened.
+        // Open roads are close-dotted in road brown; severed ones broken and reddened. Bare dashes, no pale halo.
         var roads = new ArrayMesh();
         foreach (var (open, dash, gap, colour) in new[] { (true, 0.006f, 0.005f, BlockMesh.Hex(0x7a5a35)), (false, 0.004f, 0.012f, BlockMesh.Hex(0xa8483a)) })
         {
             var lines = Roads.Where(r => r.Open == open).Select(r => r.Line).ToList();
             if (lines.Count == 0) continue;
-            var part = DashedRibbons(lines, colour, dash, gap, width: 0.0009f, halo: 0.0017f);
+            var part = DashedRibbons(lines, colour, dash, gap, width: 0.0009f, halo: 0);
             for (var s = 0; s < part.GetSurfaceCount(); s++)
             {
                 roads.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, part.SurfaceGetArrays(s));

@@ -462,8 +462,14 @@ public partial class Film : Node
     private double _stillStart;
 
     /// <summary>
+    /// How long the map shows where a fight is before its still comes up (the owner, 2026-10-29: let the viewer see where
+    /// on the map it happens first); at most a quarter of a short section.
+    /// </summary>
+    public const double StillDelaySeconds = 3.0;
+
+    /// <summary>
     /// A fight's still image (the owner, 2026-10-27) while its section is told: the map blurred behind, the picture framed
-    /// at the middle with the section's title under it, fading in over the first second and then held, unmoving (for the
+    /// at the middle with the section's title under it, fading in over a second once the map has shown where (StillFrom) and then held, unmoving (for the
     /// first half only when the section also tells moves). Hidden for any other section, or when the image was not fetched.
     /// </summary>
     private void ShowStill(IReadOnlyList<FilmShot> shots, double t)
@@ -472,7 +478,7 @@ public partial class Film : Node
         while (index > 0 && shots[index].Start > t) index--;
         var shot = shots[index];
         var until = StillUntil(shots, index) ?? 0;
-        if (shot.Still is not { Length: > 0 } key || _imagesDir is null || t >= until)
+        if (shot.Still is not { Length: > 0 } key || _imagesDir is null || t >= until || t < StillFrom(shots, index))
         {
             if (_stillStage is not null) _stillStage.Visible = false;
             return;
@@ -506,7 +512,7 @@ public partial class Film : Node
             _stillStage.AddChild(_stillFrame);
             _hud.AddChild(_stillStage);
             _stillKey = key;
-            _stillStart = shot.Start;
+            _stillStart = StillFrom(shots, index);
         }
         _stillStage.Visible = true;
         // In over the first second; out over the last half second before the map comes back for the moves.
@@ -738,6 +744,14 @@ public partial class Film : Node
 
     private static double SectionEnd(IReadOnlyList<FilmShot> shots, int index) =>
         index + 1 < shots.Count ? shots[index + 1].Start : shots[index].Start + LastSectionSeconds;
+
+    /// <summary>When a section's still comes up: a few seconds in, once the camera has settled on the place.</summary>
+    public static double StillFrom(IReadOnlyList<FilmShot> shots, int index)
+    {
+        var start = shots[index].Start;
+        var until = StillUntil(shots, index) ?? SectionEnd(shots, index);
+        return start + Math.Min(StillDelaySeconds, (until - start) / 4);
+    }
 
     /// <summary>
     /// When a section's still gives way to the map: at its end, or halfway when the section also tells a war's moves (the
