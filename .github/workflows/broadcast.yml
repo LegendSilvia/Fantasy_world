@@ -53,6 +53,11 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Build
         run: dotnet build sim/FantasyWorld.Broadcast --configuration Release
+      - name: Install ffmpeg (a fight's still is painted from its fighters' portraits, laid side by side)
+        # Bounded and tried twice (see the script); without it the stills are painted from words alone.
+        timeout-minutes: 6
+        continue-on-error: true
+        run: command -v ffmpeg || .github/scripts/apt-install.sh ffmpeg
       - name: Build and narrate the episode, and plan its film
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}

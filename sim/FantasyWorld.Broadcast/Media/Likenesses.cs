@@ -10,8 +10,12 @@ using FantasyWorld.Sim.Query;
 
 namespace FantasyWorld.Broadcast.Media;
 
-/// <summary>What an image is asked for: the subject only (the scenario frames it), the scenario, the style, the seed and, if not the scenario's, the size.</summary>
-public sealed record ImageRequest(string Prompt, string Scenario, string Style, bool Transparent, long Seed, int? Width = null, int? Height = null);
+/// <summary>
+/// What an image is asked for: the subject only (the scenario frames it), the scenario, the style, the seed and, if not the
+/// scenario's, the size; and a reference picture the prompt calls "image 0" (a fight's fighters as already painted).
+/// </summary>
+public sealed record ImageRequest(string Prompt, string Scenario, string Style, bool Transparent, long Seed, int? Width = null, int? Height = null,
+    byte[]? Reference = null);
 
 /// <summary>An image as made: its bytes and type, and whether its background really was taken away.</summary>
 public sealed record MadeImage(byte[] Bytes, string Mime, bool Transparent, string? Warning);
@@ -64,6 +68,7 @@ public sealed class FluxImages(HttpClient http, string baseUrl, string accessKey
         };
         if (request.Width is { } width) body["width"] = width;
         if (request.Height is { } height) body["height"] = height;
+        if (request.Reference is { Length: > 0 } reference) body["ref"] = Convert.ToBase64String(reference);
         using var message = Request(body);
         using var response = await http.SendAsync(message, ct).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
@@ -160,16 +165,18 @@ public static class Likenesses
     /// left out, and the reason logged.
     /// </summary>
     public static async Task<Episode> AttachAsync(Episode episode, World world, IObjectStore store, IImageMaker? maker, string style,
-        string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct = default)
+        string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct = default, EventLog? events = null,
+        Func<IReadOnlyList<byte[]>, CancellationToken, Task<byte[]?>>? sheet = null)
     {
         var sides = episode.Parts.Where(p => p.FaceOff is not null).SelectMany(p => new[] { p.FaceOff!.A, p.FaceOff.B }).DistinctBy(s => s.Ref).ToList();
         var fights = episode.Parts.Where(p => p.Scene is { Length: > 0 } && p.EventId != 0).ToList();
         if (sides.Count == 0 && fights.Count == 0) return episode;
-        // Every image wanted: each face-off side's (kept for good, reused), then each fight's still (made for its day).
+        // Every image wanted: each face-off side's (kept for good, reused), then each fight's still (made for its day), its
+        // fighters drawn as their portraits show them; the portraits come first, so a still finds them made.
         var keys = sides.ToDictionary(side => side.Ref, side => KeyFor(world, side.Ref));
-        var wanted = sides.Select(side => (Key: keys[side.Ref], Label: side.Name, Ask: (Func<ImageRequest?>)(() => Ask(world, side.Ref, style))))
+        var wanted = sides.Select(side => (Key: keys[side.Ref], Label: side.Name, Ask: (Func<Task<ImageRequest?>>)(() => Task.FromResult(Ask(world, side.Ref, style)))))
             .Concat(fights.Select(f => (Key: (string?)StillKey(world, f.EventId), Label: f.Title,
-                Ask: (Func<ImageRequest?>)(() => new ImageRequest(f.Scene!, "environment", style, false, f.EventId, StillWidth, StillHeight)))))
+                Ask: (Func<Task<ImageRequest?>>)(() => StillAsync(world, events, f, store, style, sheet, ct)))))
             .Where(w => w.Key is not null).ToList();
         var had = await MakeAsync(wanted.Select(w => (w.Key!, w.Label, w.Ask)).ToList(), store, maker, date, room, log, ct).ConfigureAwait(false);
 
@@ -182,6 +189,54 @@ public static class Likenesses
         }).ToList();
         return episode with { Sections = sections };
     }
+
+    /// <summary>The longest prompt the image API takes.</summary>
+    public const int MaxPrompt = 2048;
+
+    /// <summary>
+    /// A fight's still (the owner, 2026-10-29: the same look in every picture): the scene, with each fighter described as
+    /// their portrait describes them (a duellist's figure, a host's banner); and, when all their portraits are kept, those
+    /// portraits side by side as the reference, so the painter draws the very same faces and banners.
+    /// </summary>
+    public static async Task<ImageRequest?> StillAsync(World world, EventLog? events, EpisodeSection fight, IObjectStore store, string style,
+        Func<IReadOnlyList<byte[]>, CancellationToken, Task<byte[]?>>? sheet, CancellationToken ct = default)
+    {
+        var plain = new ImageRequest(fight.Scene!, "environment", style, false, fight.EventId, StillWidth, StillHeight);
+        if (events is null || !events.TryGet(fight.EventId, out var ev)) return plain;
+        var duel = ev.Type.StartsWith("Duel", StringComparison.Ordinal);
+        var fighters = (duel
+                ? new[] { "challenger", "defender" }.Select(role => ev.Actors.GetValueOrDefault(role)).OfType<EntityRef>().Where(r => r.Kind == Character.Kind)
+                : ev.Actors.Values.Where(r => r.Kind == Realm.Kind))
+            .Distinct().Take(2).Select(r => r.ToString()).ToList();
+        var looks = fighters.Select(r => Ask(world, r, "")?.Prompt).OfType<string>().ToList();
+        if (fighters.Count < 2 || looks.Count < 2) return plain;
+        var said = duel
+            ? $"; the first duellist: {Trim(looks[0])}; the second: {Trim(looks[1])}"
+            : $"; one host under {Colours(world, fighters[0])}, the other under {Colours(world, fighters[1])}";
+        byte[]? reference = null;
+        if (sheet is not null)
+        {
+            var portraits = new List<byte[]>();
+            foreach (var key in fighters.Select(r => KeyFor(world, r)))
+                if (key is not null && await store.GetAsync(key, ct).ConfigureAwait(false) is { Length: > 0 } bytes) portraits.Add(bytes);
+            if (portraits.Count == 2) reference = await sheet(portraits, ct).ConfigureAwait(false);
+        }
+        if (reference is not null)
+            said += duel
+                ? "; draw the two duellists exactly as the two figures in image 0, the first as the one on its left, the second as the one on its right, same faces, hair, armour and colours"
+                : "; the hosts carry the two banners shown in image 0, the left one's host and the right one's host, same colours and emblems";
+        var prompt = fight.Scene!.TrimEnd(' ', '.', ',') + said;
+        if (prompt.Length > MaxPrompt) prompt = prompt[..MaxPrompt];
+        return plain with { Prompt = prompt, Reference = reference };
+
+        static string Trim(string look) => look.Replace(", medieval fantasy duellist", "", StringComparison.Ordinal);
+    }
+
+    private static string Colours(World world, string reference) =>
+        reference.Split('#') is [_, var id] && long.TryParse(id, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
+                                            && world.Realms.TryGetValue(n, out var realm)
+            ? $"banners of {realm.Colors[0]} and {realm.Colors.ElementAtOrDefault(1) ?? "white"}"
+            : "grey banners";
 
     /// <summary>
     /// The website's images (the owner, 2026-10-29): every standing realm's banner, every living beast, and the duellists of the
@@ -199,7 +254,7 @@ public static class Likenesses
             .Concat(world.Monsters.Values.Where(m => m.Alive).OrderByDescending(m => m.Notoriety).ThenBy(m => m.Id).Select(m => (Ref: m.Ref.ToString(), m.Name)))
             .Concat(fighters).DistinctBy(w => w.Ref)
             .Select(w => (w.Ref, w.Name, Key: KeyFor(world, w.Ref))).Where(w => w.Key is not null).ToList();
-        var had = await MakeAsync(wanted.Select(w => (w.Key!, w.Name, (Func<ImageRequest?>)(() => Ask(world, w.Ref, style)))).ToList(),
+        var had = await MakeAsync(wanted.Select(w => (w.Key!, w.Name, (Func<Task<ImageRequest?>>)(() => Task.FromResult(Ask(world, w.Ref, style))))).ToList(),
             store, maker, date, room, log2, ct, maxNew).ConfigureAwait(false);
         return wanted.Where(w => had.Contains(w.Key!)).ToDictionary(w => w.Ref, w => w.Key!, StringComparer.Ordinal);
     }
@@ -208,7 +263,7 @@ public static class Likenesses
     /// The images wanted, each made unless kept already (under the image API's rules: a timeout tried once more, a 429 stops
     /// the day's asking, nothing made near the bucket's limit) and marked used today; the keys of those that could be had.
     /// </summary>
-    private static async Task<HashSet<string>> MakeAsync(IReadOnlyList<(string Key, string Label, Func<ImageRequest?> Ask)> wanted, IObjectStore store,
+    private static async Task<HashSet<string>> MakeAsync(IReadOnlyList<(string Key, string Label, Func<Task<ImageRequest?>> Ask)> wanted, IObjectStore store,
         IImageMaker? maker, string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct, int maxNew = int.MaxValue)
     {
         var fresh = 0;
@@ -221,7 +276,7 @@ public static class Likenesses
         {
             if (!kept.Contains(key))
             {
-                if (spent || fresh >= maxNew || ask() is not { } request) continue;
+                if (spent || fresh >= maxNew || await ask().ConfigureAwait(false) is not { } request) continue;
                 if (!await room(ExpectedBytes).ConfigureAwait(false))
                 {
                     log.WriteLine($"Images: the bucket is near its limit, so no image of {label} is made.");

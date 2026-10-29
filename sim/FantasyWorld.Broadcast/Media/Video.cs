@@ -226,6 +226,52 @@ public sealed class FfmpegVideo : IVideoMaker
         }
     }
 
+    /// <summary>The reference sheet's side: under the image API's 512 pixels, so it is taken as is, never shrunk at a cost.</summary>
+    public const int SheetSize = 496;
+
+    /// <summary>
+    /// The arguments for a reference sheet (the owner, 2026-10-29): the pictures side by side, each fitted into its share of
+    /// a <see cref="SheetSize"/> square, on a plain light grey (a transparent portrait's empty ground reads as nothing).
+    /// </summary>
+    public static IReadOnlyList<string> SheetArguments(IReadOnlyList<string> images, string output)
+    {
+        var (n, cell) = (images.Count, SheetSize / Math.Max(1, images.Count));
+        var arguments = new List<string> { "-hide_banner", "-nostdin", "-loglevel", "error", "-y" };
+        foreach (var image in images) arguments.AddRange(["-i", image]);
+        arguments.AddRange(["-f", "lavfi", "-i", $"color=c=0xd8d8d8:s={SheetSize}x{SheetSize}"]);
+        var fit = string.Concat(Enumerable.Range(0, n).Select(i =>
+            $"[{i}]scale={cell}:{SheetSize}:force_original_aspect_ratio=decrease,format=rgba,pad={cell}:{SheetSize}:(ow-iw)/2:(oh-ih)/2:color=0x00000000[p{i}];"));
+        var row = n == 1 ? "[p0]" : string.Concat(Enumerable.Range(0, n).Select(i => $"[p{i}]")) + $"hstack=inputs={n}[row];";
+        var filter = fit + (n == 1 ? "" : row) + $"[{n}]{(n == 1 ? "[p0]" : "[row]")}overlay=(W-w)/2:(H-h)/2:format=auto,format=rgb24";
+        arguments.AddRange(["-filter_complex", filter, "-frames:v", "1", output]);
+        return arguments;
+    }
+
+    /// <summary>The pictures as one reference sheet (a PNG); null when ffmpeg cannot make it, so the still goes without.</summary>
+    public async Task<byte[]?> SheetAsync(IReadOnlyList<byte[]> images, CancellationToken ct = default)
+    {
+        if (images.Count == 0) return null;
+        try
+        {
+            return await RunAsync(async dir =>
+            {
+                var files = new List<string>();
+                for (var i = 0; i < images.Count; i++)
+                {
+                    var file = Path.Combine(dir, $"in{i.ToString(CultureInfo.InvariantCulture)}.png");
+                    await File.WriteAllBytesAsync(file, images[i], ct).ConfigureAwait(false);
+                    files.Add(file);
+                }
+                var output = Path.Combine(dir, "sheet.png");
+                return (SheetArguments(files, output), output);
+            }, ct).ConfigureAwait(false);
+        }
+        catch (VideoException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Runs ffmpeg in a scratch folder the <paramref name="prepare"/> step fills, and returns the file it made.</summary>
     private async Task<byte[]> RunAsync(Func<string, Task<(IReadOnlyList<string> Arguments, string Output)>> prepare, CancellationToken ct)
     {

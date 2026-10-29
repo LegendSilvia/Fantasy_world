@@ -53,6 +53,28 @@ public class VideoTests
     }
 
     [Fact]
+    public async Task TheReferenceSheet_LaysThePortraitsSideBySide_UnderTheApisLimit()
+    {
+        Assert.Null(await new FfmpegVideo("no-such-ffmpeg-here").SheetAsync([[1]])); // without ffmpeg, the still goes without
+        var args = FfmpegVideo.SheetArguments(["a.png", "b.png"], "sheet.png");
+        Assert.Contains("hstack=inputs=2", args.Single(a => a.Contains("overlay", StringComparison.Ordinal)));
+        if (!Has("ffmpeg")) return;
+
+        // Two tall transparent figures, as the portraits are.
+        var (a, b) = (Path.GetTempFileName() + ".png", Path.GetTempFileName() + ".png");
+        foreach (var (file, colour) in new[] { (a, "red"), (b, "blue") })
+            using (var make = Process.Start("ffmpeg", $"-hide_banner -loglevel error -y -f lavfi -i color=c={colour}@0.5:s=832x1216,format=rgba -frames:v 1 {file}"))
+                make.WaitForExit();
+        var sheet = await new FfmpegVideo().SheetAsync([await File.ReadAllBytesAsync(a), await File.ReadAllBytesAsync(b)]);
+        File.Delete(a);
+        File.Delete(b);
+        Assert.NotNull(sheet);
+        Assert.Equal("PNG", System.Text.Encoding.ASCII.GetString(sheet!, 1, 3));
+        int Read(int at) => (sheet[at] << 24) | (sheet[at + 1] << 16) | (sheet[at + 2] << 8) | sheet[at + 3];
+        Assert.Equal((FfmpegVideo.SheetSize, FfmpegVideo.SheetSize), (Read(16), Read(20)));
+    }
+
+    [Fact]
     public async Task ThePanFilm_FollowsTheShots_At1080p()
     {
         if (!Has("ffmpeg") || !Has("ffprobe")) return;

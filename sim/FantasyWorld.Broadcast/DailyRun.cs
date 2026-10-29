@@ -534,12 +534,14 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         try
         {
             using var saved = WorldStore.Open(snapshot);
-            var world = saved.Load().World;
+            var (world, events, _) = saved.Load();
             if (!Paints(world, "the episode")) return episode;
             var limit = StorageBudget.Bytes(config.Storage.MaxGigabytes);
+            // A fight's still is painted from its fighters' portraits, laid side by side by ffmpeg (without it, from words alone).
+            var sheets = new FfmpegVideo();
             return await Likenesses.AttachAsync(episode, world, store, images, config.Images.Style, date,
-                async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log, ct)
-                .ConfigureAwait(false);
+                async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log, ct,
+                events, sheets.SheetAsync).ConfigureAwait(false);
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException && !ct.IsCancellationRequested)
         {

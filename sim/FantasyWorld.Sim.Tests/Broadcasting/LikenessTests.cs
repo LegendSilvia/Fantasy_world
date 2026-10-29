@@ -91,6 +91,11 @@ public class LikenessTests
         Assert.Equal("SECRET", request.Headers.GetValues("x-access-key").Single());
         var sent = JsonNode.Parse(body!)!;
         Assert.Equal(("character", 7L, true), ((string?)sent["scenario"], (long)sent["seed"]!, (bool)sent["transparent"]!));
+        Assert.Null(sent["ref"]);
+        var withRef = new StorageTests.FakeHttp((HttpStatusCode.OK, $"{{\"image\":\"{image}\"}}"));
+        await new FluxImages(new HttpClient(withRef), "https://flux.example", "SECRET")
+            .MakeAsync(new ImageRequest("a duel", "environment", "hand-painted", false, 8, Reference: [1, 2, 3]));
+        Assert.Equal(Convert.ToBase64String([1, 2, 3]), (string?)JsonNode.Parse(withRef.Seen.Single().Body!)!["ref"]);
 
         var busy = new StorageTests.FakeHttp((HttpStatusCode.TooManyRequests, "{\"error\":\"budget\"}"));
         var spent = await Assert.ThrowsAsync<ImageBudgetSpentException>(() =>
@@ -190,6 +195,41 @@ public class LikenessTests
         Assert.Equal((fight.Scene, false, fight.EventId, 1280, 720), (still.Prompt, still.Transparent, still.Seed, still.Width!.Value, still.Height!.Value));
         Assert.Equal(Likenesses.StillKey(world, fight.EventId), told.Parts.Single(p => p.EventId == fight.EventId).Still);
         Assert.NotNull(await store.GetAsync(Likenesses.StillKey(world, fight.EventId)));
+    }
+
+    [Fact]
+    public async Task AFightsStill_DrawsTheFighters_AsTheirPortraitsShowThem()
+    {
+        var (world, log, strong, sly) = ADuelFought();
+        var episode = Episode.Build(world, log, 0, "2026-10-27");
+        var fight = Assert.Single(episode.Parts, p => p.Scene is not null);
+        using var dir = new TempDir();
+        var store = new LocalObjectStore(dir.Path);
+        var maker = new FakeMaker(Png);
+        var laid = new List<IReadOnlyList<byte[]>>();
+        byte[] sheet = [9, 9, 9];
+        await Likenesses.AttachAsync(episode, world, store, maker, "hand-painted", "2026-10-27", _ => Task.FromResult(true), new StringWriter(),
+            events: log, sheet: (images, _) => { laid.Add(images); return Task.FromResult<byte[]?>(sheet); });
+
+        // The portraits are made first, then laid side by side as the still's reference; the words name each one's look.
+        var still = maker.Asked.Single(r => r.Scenario == "environment");
+        Assert.StartsWith(fight.Scene!.TrimEnd('.'), still.Prompt);
+        Assert.Contains($"the first duellist: {Likenesses.Ask(world, strong.Ref.ToString(), "")!.Prompt.Replace(", medieval fantasy duellist", "")}", still.Prompt);
+        Assert.Contains("the second: ", still.Prompt);
+        Assert.Contains("image 0", still.Prompt);
+        Assert.DoesNotContain(strong.Name, still.Prompt);
+        Assert.DoesNotContain(sly.Name, still.Prompt);
+        Assert.True(still.Prompt.Length <= Likenesses.MaxPrompt);
+        Assert.Equal(sheet, still.Reference);
+        Assert.Equal(2, Assert.Single(laid).Count);
+        Assert.Null(maker.Asked.First(r => r.Scenario == "character").Reference);
+
+        // Without the portraits kept, the words alone.
+        using var empty = new TempDir();
+        var alone = await Likenesses.StillAsync(world, log, fight, new LocalObjectStore(empty.Path), "hand-painted", (_, _) => Task.FromResult<byte[]?>(sheet));
+        Assert.Null(alone!.Reference);
+        Assert.Contains("the first duellist: ", alone.Prompt);
+        Assert.DoesNotContain("image 0", alone.Prompt);
     }
 
     [Fact]
