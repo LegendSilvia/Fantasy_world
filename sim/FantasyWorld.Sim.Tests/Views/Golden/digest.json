@@ -62,27 +62,32 @@
     "category": "faithAndMagic",
     "kicker": "A secret of the world",
     "title": {
-      "text": "At the bottom of the Deeps of Taramdale, Giaskia of Gendtialing uncovered a secret of the world, the Broken Covenant of the Deeps of Taramdale: the peoples of the world were once one, the carvings show, until a covenant broken in the first age set them against each other",
+      "text": "Giaskia of Gendtialing reached the bottom of the Deeps of Taramdale and walked away with the Reliquary of Miall, and with a secret of the world, the Broken Covenant of the Deeps of Taramdale: the peoples of the world were once one, the carvings show, until a covenant broken in the first age set them against each other",
       "links": [
         {
-          "start": 17,
-          "length": 22,
-          "entity": "structure#1"
-        },
-        {
-          "start": 41,
+          "start": 0,
           "length": 22,
           "entity": "char#38"
         },
         {
-          "start": 133,
+          "start": 45,
+          "length": 22,
+          "entity": "structure#1"
+        },
+        {
+          "start": 89,
+          "length": 22,
+          "entity": "artifact#6"
+        },
+        {
+          "start": 181,
           "length": 9,
           "entity": "region#2"
         }
       ]
     },
     "body": {
-      "text": "Earlier that year, Giaskia of Gendtialing cleared the Deeps of Taramdale.",
+      "text": "Earlier that year, Giaskia of Gendtialing cleared the Deeps of Taramdale, and walked away with the Reliquary of Miall.",
       "links": [
         {
           "start": 19,
@@ -93,6 +98,11 @@
           "start": 50,
           "length": 22,
           "entity": "structure#1"
+        },
+        {
+          "start": 95,
+          "length": 22,
+          "entity": "artifact#6"
         }
       ]
     },
@@ -104,7 +114,7 @@
       "number": 2,
       "category": "structures",
       "text": {
-        "text": "Giaskia of Gendtialing cleared the Deeps of Taramdale.",
+        "text": "Giaskia of Gendtialing cleared the Deeps of Taramdale, and walked away with the Reliquary of Miall.",
         "links": [
           {
             "start": 0,
@@ -115,6 +125,11 @@
             "start": 31,
             "length": 22,
             "entity": "structure#1"
+          },
+          {
+            "start": 76,
+            "length": 22,
+            "entity": "artifact#6"
           }
         ]
       },

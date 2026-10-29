@@ -77,7 +77,64 @@ public static class Viewer
             place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
             by = World.Characters.TryGetValue(s.RevealerId, out var c) ? new { @ref = c.Ref.ToString(), name = c.Name } : null,
         });
-        return JsonSerializer.Serialize(new { name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets }, Json);
+        // Everything else the chronicle knows (the owner, 2026-10-29): its peoples, gods, realms, labyrinths, relics and the shadow.
+        object? Who(long id) => World.Characters.TryGetValue(id, out var c) ? new { @ref = c.Ref.ToString(), name = c.Name } : null;
+        var races = World.Races.Values.OrderBy(r => r.Id).Select(r => new
+        {
+            name = r.Name, looks = r.Looks, nature = r.Nature, temper = r.Temper,
+            foes = r.Foes.Select(id => World.Races.GetValueOrDefault(id)?.Name).OfType<string>(),
+            friends = r.Friends.Select(id => World.Races.GetValueOrDefault(id)?.Name).OfType<string>(),
+        });
+        var gods = World.Faiths.Values.OrderBy(f => f.Id).Select(f => new { deity = f.Deity, faith = f.Name, tenets = f.Tenets });
+        var realms = Realms.Independent(World).Select(r => (Realm: r, Lands: World.Regions.Values.Count(g => g.OwnerRealmId == r.Id)))
+            .Where(r => r.Lands > 0).OrderByDescending(r => r.Lands).ThenBy(r => r.Realm.Id).Select(r => new
+            {
+                @ref = r.Realm.Ref.ToString(), title = Statecraft.Title(r.Realm), lands = r.Lands,
+                ruler = Realms.RulerOf(World, r.Realm) is { } ruler ? Who(ruler.Id) : null,
+                festival = r.Realm.Festival is { } f ? new { name = f.Name, rite = f.Rite } : null,
+            });
+        var labyrinths = World.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth || s.ClearedEventId != 0).OrderBy(s => s.ClearedEventId == 0).ThenBy(s => s.Name)
+            .Select(s => new
+            {
+                name = s.Name, place = World.Regions.GetValueOrDefault(s.RegionId)?.Name, levels = s.Levels, depth = s.Depth,
+                cleared = s.ClearedEventId != 0 && Log.TryGet(s.ClearedEventId, out var c)
+                    ? new { year = c.Date.Year, by = c.Actors.TryGetValue("delver", out var d) ? Who(d.Id) : null, @event = $"event#{c.Id}" } : null,
+            });
+        var relics = World.Artifacts.Values.Where(a => a.Place != ArtifactPlace.Destroyed).OrderByDescending(a => a.Fame).ThenBy(a => a.Id).Take(15).Select(a => new
+        {
+            @ref = a.Ref.ToString(), name = a.Name, lore = a.Lore, where = a.Place.ToString().ToLowerInvariant(),
+            holder = a.Place == ArtifactPlace.Held ? Who(a.HolderId) : null,
+        });
+        var shadow = World.Sagas.Values.OrderByDescending(s => s.Id).Select(s => new
+        {
+            demon = Who(s.DemonLordId), active = s.Active, outcome = s.Outcome, hero = s.HeroId != 0 ? Who(s.HeroId) : null,
+        }).FirstOrDefault();
+        return JsonSerializer.Serialize(new
+        {
+            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, races, gods, realms, labyrinths, relics, shadow,
+        }, Json);
+    }
+
+    /// <summary>
+    /// The people of the world (the owner, 2026-10-29): the living notables, most renowned first, each with their class, role,
+    /// age, realm and home, for the website's list; a click opens their page.
+    /// </summary>
+    [JSInvokable]
+    public static string People()
+    {
+        var people = World.Characters.Values.Where(c => c.IsActive && c.Stage(World.Date) != LifeStage.Child)
+            .OrderByDescending(c => c.Renown).ThenBy(c => c.Id).Take(400)
+            .Select(c =>
+            {
+                var home = World.Settlements.GetValueOrDefault(c.SettlementId);
+                var realm = home is not null && World.Regions.TryGetValue(home.RegionId, out var region) ? World.Realms.GetValueOrDefault(region.OwnerRealmId) : null;
+                return new
+                {
+                    @ref = c.Ref.ToString(), name = c.Name, @class = c.Class, role = c.Role.ToString().ToLowerInvariant(), age = c.Age(World.Date),
+                    renown = (int)Math.Round(c.Renown), realm = realm?.Name, home = home?.Name,
+                };
+            });
+        return JsonSerializer.Serialize(new { people }, Json);
     }
 
     [JSInvokable]

@@ -26,6 +26,9 @@ public sealed record EpisodeSection(string Kind, string Title, string Text, long
     /// <summary>Legend: the world's legend told in full (the owner, 2026-10-29), in the first episode that has it.</summary>
     public const string Legend = "legend";
 
+    /// <summary>Primer: who holds the world, its wars and why, its names to know (<see cref="Chronicle.Primer"/>), after the legend.</summary>
+    public const string Primer = "primer";
+
     public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
 
     /// <summary>
@@ -87,7 +90,9 @@ public sealed record Episode(
         var events = log.Since(sinceEventId).Where(e => !first || e.Date.Day > world.Date.Day - WorldDate.DaysPerYear).ToList();
         var fromYear = log.TryGet(sinceEventId, out var last) ? last.Date.Year : events.Count > 0 ? events[0].Date.Year : world.Date.Year;
         var toYear = world.Date.Year;
-        var ranked = events.Where(e => !EpisodeSection.PrayerEvents.Contains(e.Type)).Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
+        // A clearing that revealed a secret is told by the secret's story, which says who cleared it and what they took.
+        var told = events.Where(e => e.Type == "SecretRevealed").SelectMany(e => e.Causes.Select(c => c.EventId)).ToHashSet();
+        var ranked = events.Where(e => !EpisodeSection.PrayerEvents.Contains(e.Type) && !(e.Type == "LabyrinthCleared" && told.Contains(e.Id))).Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
             .OrderByDescending(x => x.Score).ThenBy(x => x.Event.Id).Select(x => x.Event).ToList();
         // News that shapes the world leads (a war, a fall, a legend), however famous the people in smaller stories are.
         // The engine's own weight decides among them, so a realm's fall outranks a famous lord's death.
@@ -129,6 +134,8 @@ public sealed record Episode(
         var legend = Legends.Told(world, sinceEventId, out var fullLegend);
         if (legend is not null && !fullLegend) coldOpen = $"{coldOpen} {legend}";
         var legendSection = legend is not null && fullLegend ? new EpisodeSection(EpisodeSection.Legend, $"The legend of {name}", legend) : null;
+        // Who is who and why they fight, where the legend is told in full (or in a world's first episode).
+        var primerSection = (fullLegend || sinceEventId == 0) && Primer.Of(world, log) is { } primer ? new EpisodeSection(EpisodeSection.Primer, "The world today", primer) : null;
         var signOff = SignOffFor(chronicler, name);
 
         // The template script: drop the least important stories, then the chronicler's view, until it fits the budget.
@@ -136,8 +143,12 @@ public sealed record Episode(
         var dated = toYear - fromYear > 1 || chosen.Select(e => e.Date.Year).Distinct().Count() > 1;
         var lines = chosen.ToDictionary(e => e.Id, e => dated ? $"In Year {e.Date.Year}, {narrator.Clause(e)}" : narrator.Sentence(e));
         var titles = chosen.Append(top).Where(e => e is not null).ToDictionary(e => e!.Id, e => Title(narrator, e!));
+        // Why each challenge was made (the owner, 2026-10-29: who they are and why they fight): its weightiest cause.
+        string Motive(long declaredId) => log.TryGet(declaredId, out var d)
+            && d.Causes.OrderByDescending(c => c.Weight).ThenByDescending(c => c.EventId).Select(c => log.TryGet(c.EventId, out var e) ? e : null)
+                .FirstOrDefault(e => e is not null) is { } cause ? $" It comes of this: {narrator.Sentence(cause)}" : "";
         var challenges = faceOffs.Select(f => new EpisodeSection(EpisodeSection.Challenge, $"{f.A.Name} vs {f.B.Name}",
-            FaceOffs.Tell(f, log.TryGet(f.EventId, out var declared) ? narrator.PlaceOf(declared) ?? "the appointed place" : "the appointed place"),
+            FaceOffs.Tell(f, log.TryGet(f.EventId, out var declared) ? narrator.PlaceOf(declared) ?? "the appointed place" : "the appointed place") + Motive(f.EventId),
             f.EventId, f)).ToList();
         // Each war's moves in the episode go with the first section that tells the war: each host's march is told in brief, its moves shown as arrows.
         var campaigns = new Dictionary<long, IReadOnlyList<CampaignMove>>();
@@ -170,7 +181,7 @@ public sealed record Episode(
             return s with { Text = Fights.Tell(fresh) is { Length: > 0 } told ? $"{s.Text}\n\n{told}" : s.Text, Beats = beats };
         }
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
-            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection));
+            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection, primerSection));
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
@@ -231,10 +242,11 @@ public sealed record Episode(
 
     private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
         IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff,
-        EpisodeSection? legend = null)
+        EpisodeSection? legend = null, EpisodeSection? primer = null)
     {
         var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
         if (legend is not null) sections.Add(legend);
+        if (primer is not null) sections.Add(primer);
         if (headline is not null)
             sections.Add(new(EpisodeSection.Headline, headline.Text, body.Length > 0 ? $"{headline.Text}.\n\n{body}" : $"{headline.Text}.", headline.EventId));
         // The challenges follow the headline: what is coming, before the news of what was.

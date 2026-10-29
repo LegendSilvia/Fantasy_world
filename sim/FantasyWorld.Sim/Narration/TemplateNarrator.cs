@@ -66,7 +66,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["RestorationBegun"] = "{builder} began to restore {structure}.",
         ["LabyrinthDelved"] = "{delver} reached level {=level} of {structure}.",
         ["LabyrinthDelveFailed"] = "{delver} was driven back from level {=level} of {structure}.",
-        ["LabyrinthCleared"] = "{delver} cleared {structure}.",
+        ["LabyrinthCleared"] = "{delver} cleared {structure}, and walked away with nothing but its glory.",
         ["RegionConverted"] = "The people of {@place} turned from {old} to {faith}.",
         ["RealmConverted"] = "{realm} took up {faith}.",
         ["HolySiteLost"] = "{faith} lost its holy land of {@place} to {realm}.",
@@ -92,7 +92,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["BattleJoined"] = "At {@place}, {attacker} and {defender} joined a battle of {war} that was not decided in a day.",
         ["BattleTurned"] = "The battle between {attacker} and {defender} at {@place} raged on.",
         ["BattleBrokenOff"] = "The battle between {attacker} and {defender} at {@place} was broken off.",
-        ["SecretRevealed"] = "At the bottom of {structure}, {delver} uncovered a secret of the world, {=title}: {=text}",
+        ["SecretRevealed"] = "{delver} reached the bottom of {structure} and walked away with its glory, and with a secret of the world, {=title}: {=text}",
         ["ArmyMoved"] = "{army} marched from {from} into {@place}.",
         ["HostAttackedAtSea"] = "{monster} fell on the ships of {army} at sea off {@place}; {=lost} were lost to the deep.",
         ["EraBegan"] = "{=era} began.",
@@ -277,6 +277,10 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
     {
         ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
+        // Who cleared a labyrinth, and what they walked away with (the owner, 2026-10-29).
+        ("LabyrinthCleared", e => e.Actors.ContainsKey("artifact"), "{delver} cleared {structure}, and walked away with {artifact}."),
+        ("SecretRevealed", e => e.Actors.ContainsKey("artifact"),
+            "{delver} reached the bottom of {structure} and walked away with {artifact}, and with a secret of the world, {=title}: {=text}"),
         ("ArmyMoved", e => e.Payload.GetValueOrDefault("into") == "enemy" && e.Importance > 20, "{army} crossed out of {from} into the enemy's land at {@place}."),
         ("WildMagic", e => e.Payload.GetValueOrDefault("dead") is null or "0", "Wild magic broke loose at {@place}: {=a:kind}."),
         ("WorksCollapsed", e => e.Payload.GetValueOrDefault("dead") == "0", "{structure} collapsed while it was being built."),

@@ -311,6 +311,7 @@ async function render(kind, key, year) {
     }
     if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
     if (kind === "lore") return lore(JSON.parse(await call("Lore")));
+    if (kind === "people") return people(JSON.parse(await call("People")));
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
     if (kind === "character") return character(screen);
@@ -374,15 +375,55 @@ function gods(open, counts) {
 
 $("gods").addEventListener("click", () => setHash({ panel: "gods/today" }));
 $("lore").addEventListener("click", () => setHash({ panel: "lore/world" }));
+$("people").addEventListener("click", () => setHash({ panel: "people/all" }));
 
-/** The world's legend and the secrets uncovered so far (the owner, 2026-10-29), newest first. */
+/** The world's notable people, most renowned first, with a filter by name, class, realm or home (the owner, 2026-10-29). */
+function people(p) {
+    const row = c => `<li data-find="${esc([c.name, c.class, c.role, c.realm, c.home].filter(Boolean).join(" ").toLowerCase())}">`
+        + `${emblem(c.class)}${ref(c.ref, c.name)} <span class="muted">· ${esc([c.class, c.role].filter(Boolean).join(", "))}, ${c.age}`
+        + `${c.realm ? ` · ${esc(c.realm)}` : ""}${c.home ? ` · ${esc(c.home)}` : ""} · renown ${c.renown}</span></li>`;
+    return `<div class="kicker">The people of the world</div><h2>Who is who</h2>`
+        + `<input id="people-find" class="find" type="search" placeholder="Find by name, class, realm or home">`
+        + `<ul class="people">${p.people.map(row).join("")}</ul>`;
+}
+
+$("panel-body").addEventListener("input", e => {
+    if (e.target.id !== "people-find") return;
+    const q = e.target.value.trim().toLowerCase();
+    for (const li of $("panel-body").querySelectorAll("ul.people li")) li.hidden = q.length > 0 && !li.dataset.find.includes(q);
+});
+
+/**
+ * Everything the chronicle knows (the owner, 2026-10-29): the legend, the secrets uncovered (newest first), the peoples, the
+ * gods, the realms, the labyrinths (cleared, by whom), the famous relics and the shadow.
+ */
 function lore(l) {
+    const list = (xs, f) => xs.length ? xs.map(f).join("") : "";
     const legend = l.legend ? l.legend.split(/\n+/).map(p => `<p>${esc(p)}</p>`).join("") : `<p class="muted">Its people tell no legend yet.</p>`;
-    const secrets = l.secrets.map(s => `<div class="prayer"><p><b>${esc(s.title)}</b> <span class="muted">· Year ${s.year}${s.place ? ` · ${esc(s.place)}` : ""}</span></p>`
-        + `<p>${esc(s.text)}</p>${s.by ? `<p class="muted">Uncovered by ${ref(s.by.ref, s.by.name)} · <a href="#" data-ref="${esc(s.event)}">how</a></p>` : ""}</div>`).join("");
-    return `<div class="kicker">The legend of</div><h2>${esc(l.name)}</h2>${legend}`
-        + `<h3>Secrets of the world</h3>`
-        + (secrets || `<p class="muted">No secret has come to light. They say the labyrinths keep them.</p>`);
+    const secrets = list(l.secrets, s => `<div class="prayer"><p><b>${esc(s.title)}</b> <span class="muted">· Year ${s.year}${s.place ? ` · ${esc(s.place)}` : ""}</span></p>`
+        + `<p>${esc(s.text)}</p>${s.by ? `<p class="muted">Uncovered by ${ref(s.by.ref, s.by.name)} · ${ref(s.event, "how")}</p>` : ""}</div>`);
+    const races = list(l.races, r => `<div class="prayer"><p><b>The ${esc(r.name)}</b> <span class="muted">· ${esc(r.temper)}</span></p><p>${esc(r.looks.charAt(0).toUpperCase() + r.looks.slice(1))}. ${esc(r.nature)}</p>`
+        + (r.foes.length || r.friends.length ? `<p class="muted">${r.foes.length ? `Old foes of the ${r.foes.map(esc).join(", ")}. ` : ""}${r.friends.length ? `Friends of the ${r.friends.map(esc).join(", ")}.` : ""}</p>` : "") + `</div>`);
+    const gods = list(l.gods, g => `<li><b>${esc(g.deity)}</b>, worshipped by the ${esc(g.faith)} <span class="muted">· ${g.tenets.map(esc).join(", ")}</span></li>`);
+    const realms = list(l.realms, r => `<li>${ref(r.ref, r.title)} <span class="muted">· ${r.lands} land${r.lands === 1 ? "" : "s"}</span>`
+        + `${r.ruler ? ` · ruled by ${ref(r.ruler.ref, r.ruler.name)}` : ""}${r.festival ? `<br><span class="muted">Keeps ${esc(r.festival.name)}: ${esc(r.festival.rite)}</span>` : ""}</li>`);
+    const mazes = list(l.labyrinths, m => `<li><b>${esc(m.name)}</b>${m.place ? ` <span class="muted">· ${esc(m.place)}</span>` : ""} · `
+        + (m.cleared ? `cleared in Year ${m.cleared.year}${m.cleared.by ? ` by ${ref(m.cleared.by.ref, m.cleared.by.name)}` : ""} · ${ref(m.cleared.event, "how")}`
+                     : `<span class="muted">unconquered; explored to level ${m.depth} of ${m.levels}</span>`) + `</li>`);
+    const relics = list(l.relics, a => `<li>${ref(a.ref, a.name)} <span class="muted">· ${a.holder ? `held by ${esc(a.holder.name)}` : esc(a.where)}</span>${a.lore ? `<br><span class="muted">${esc(a.lore)}</span>` : ""}</li>`);
+    const shadow = l.shadow ? `<p>${l.shadow.demon ? ref(l.shadow.demon.ref, l.shadow.demon.name) : "The demon lord"} `
+        + (l.shadow.active ? `has risen, and the world waits for a hero.` : `was ${esc(l.shadow.outcome || "ended")}${l.shadow.hero ? ` by ${ref(l.shadow.hero.ref, l.shadow.hero.name)}` : ""}.`) + `</p>`
+        : `<p class="muted">The demon lord has not yet risen.</p>`;
+    const part = (title, body) => body ? `<h3>${title}</h3>${body}` : "";
+    return `<div class="kicker">The chronicle so far</div><h2>${esc(l.name)}</h2>`
+        + part("The legend", legend)
+        + `<h3>Secrets of the world</h3>` + (secrets || `<p class="muted">No secret has come to light. They say the labyrinths keep them.</p>`)
+        + part("The peoples", races)
+        + part("The gods", gods && `<ul class="people">${gods}</ul>`)
+        + part("The realms", realms && `<ul class="people">${realms}</ul>`)
+        + part("The shadow", shadow)
+        + part("The labyrinths", mazes && `<ul class="people">${mazes}</ul>`)
+        + part("Relics of renown", relics && `<ul class="people">${relics}</ul>`);
 }
 
 $("panel-body").addEventListener("click", async e => {
