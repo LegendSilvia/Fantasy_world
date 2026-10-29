@@ -72,6 +72,9 @@ public sealed class World
     /// <summary>The world's legend, once written (<see cref="WorldLegend"/>); null for a world made before it.</summary>
     public WorldLegend? Legend { get; set; }
 
+    /// <summary>The awakened callings the world has seen, as its lore records them (<see cref="Calling"/>), first awakened first.</summary>
+    public List<Calling> Callings { get; init; } = new();
+
     /// <summary>The world's secrets uncovered so far, in the order they came to light (<see cref="Secret"/>).</summary>
     public List<Secret> Secrets { get; init; } = new();
 

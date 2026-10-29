@@ -463,6 +463,9 @@ function lore(l) {
     const shadow = l.shadow ? `<p>${l.shadow.demon ? ref(l.shadow.demon.ref, l.shadow.demon.name) : "The demon lord"} `
         + (l.shadow.active ? `has risen, and the world waits for a hero.` : `was ${esc(l.shadow.outcome || "ended")}${l.shadow.hero ? ` by ${ref(l.shadow.hero.ref, l.shadow.hero.name)}` : ""}.`) + `</p>`
         : `<p class="muted">The demon lord has not yet risen.</p>`;
+    const callings = list(l.callings ?? [], k => `<div class="prayer"><p><b>${esc(k.name)}</b> <span class="muted">· awakened from the ${esc(k.base)}</span></p>`
+        + `<p>${esc(k.origin)}</p><p><b>Power:</b> ${esc(k.does)}. <b>Condition:</b> ${esc(k.condition)}.</p>`
+        + (k.bearers.length ? `<p class="muted">Borne by ${k.bearers.map(b => ref(b.ref, b.name) + (b.living ? "" : " (fallen)")).join(", ")}${k.event ? ` · ${ref(k.event, "the first awakening")}` : ""}</p>` : "") + `</div>`);
     const part = (title, body) => body ? `<h3>${title}</h3>${body}` : "";
     return `<div class="kicker">The chronicle so far</div><h2>${esc(l.name)}</h2>`
         + part("The legend", legend)
@@ -470,6 +473,7 @@ function lore(l) {
         + part("The peoples", races)
         + part("The gods", gods && `<ul class="people">${gods}</ul>`)
         + part("The realms", realms && `<ul class="people">${realms}</ul>`)
+        + part("Powers awakened", callings)
         + part("The shadow", shadow)
         + part("The labyrinths", mazes && `<ul class="people">${mazes}</ul>`)
         + part("Relics of renown", relics && `<ul class="people">${relics}</ul>`);
@@ -499,6 +503,8 @@ function character(c, f) {
     return `<div class="kicker">${esc(c.kicker)}${f ? ` · ${esc(f.title)}${f.awakened ? " (awakened)" : ""}` : ""}</div>`
         + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2><p>${esc(c.line)}</p>`
         + (f?.known?.length ? `<p class="known">Known as ${f.known.map(esc).join(", ")}</p>` : "")
+        + (f?.calling ? `<div class="prayer"><p><b>Awakened: ${esc(f.calling.name)}</b></p><p>${esc(f.calling.origin)}</p>`
+            + `<p><b>Power:</b> ${esc(f.calling.does)}. <b>Condition:</b> ${esc(f.calling.condition)}.</p></div>` : "")
         + `<div class="tags">${(c.traits ?? []).map(t => `<span>${esc(t)}</span>`).join("")}</div>`
         + `<p class="muted">${esc(c.ambition ?? "")}${c.location ? ` · ${place(c.location)}` : ""}${c.faith ? ` · ${mention(c.faith)}` : ""}</p>`
         + (f ? `<h3>In a fight</h3><p class="muted">${f.talents.map(t => `<b>${esc(t.name)}</b>: ${esc(t.shows)}`).join(" · ") || "No gift above the common."}</p>`

@@ -105,13 +105,20 @@ public static class Viewer
             @ref = a.Ref.ToString(), name = a.Name, lore = a.Lore, where = a.Place.ToString().ToLowerInvariant(),
             holder = a.Place == ArtifactPlace.Held ? Who(a.HolderId) : null,
         });
+        // The powers awakened in the world (the owner, 2026-10-29): where each comes from, what it does, its condition, who bears it.
+        var callings = World.Callings.Select(k => new
+        {
+            name = k.Name, @base = k.Base, origin = k.Origin, does = k.Does, condition = k.Condition, @event = k.EventId != 0 ? $"event#{k.EventId}" : null,
+            bearers = World.Characters.Values.Where(c => c.Class == Classes.Awaken(k.Base, k.Name))
+                .OrderByDescending(c => c.IsActive).ThenBy(c => c.Id).Select(c => new { @ref = c.Ref.ToString(), name = c.Name, living = c.IsActive }),
+        });
         var shadow = World.Sagas.Values.OrderByDescending(s => s.Id).Select(s => new
         {
             demon = Who(s.DemonLordId), active = s.Active, outcome = s.Outcome, hero = s.HeroId != 0 ? Who(s.HeroId) : null,
         }).FirstOrDefault();
         return JsonSerializer.Serialize(new
         {
-            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, races, gods, realms, labyrinths, relics, shadow,
+            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, races, gods, realms, labyrinths, relics, shadow, callings,
         }, Json);
     }
 
@@ -177,6 +184,8 @@ public static class Viewer
             talents = Talents.Of(c).Select(t => new { name = t.Name, shows = t.Shows }),
             abilities = Abilities.Of(World, c).Select(a => new { name = a.Name, text = a.Text, @event = a.EventId != 0 ? $"event#{a.EventId}" : null }),
             known = _reputation.Of(c.Id),
+            calling = World.Callings.FirstOrDefault(k => Classes.Awaken(k.Base, k.Name) == c.Class) is { } k
+                ? new { name = k.Name, origin = k.Origin, does = k.Does, condition = k.Condition } : null,
         }, Json);
     }
 

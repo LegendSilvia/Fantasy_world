@@ -484,12 +484,28 @@ public sealed class DeedsSystem : ISimSystem
         }
     }
 
+    /// <summary>The chance a hidden awakening breaks out in a fight (the owner, 2026-10-29: turning the table mid-fight).</summary>
+    public const double MidFightWake = 0.4;
+
     private void Duel(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared)
     {
-        var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath), ctx.Rng);
+        // A hidden awakening may break out in the fight: the fighter fights on in their new calling.
+        var surged = new[] { challenger, defender }.FirstOrDefault(c => c.Dormant != 0 && ctx.Log.TryGet(c.Dormant, out _) && ctx.Rng.Chance(MidFightWake));
+        Calling? surge = null;
+        var was = surged?.Class ?? "";
+        if (surged is not null)
+        {
+            surge = Awakenings.Invent(ctx.World, surged, ctx.Log.Get(surged.Dormant), _inventor, Awakenings.MidFight, ctx.Date.Day);
+            Awakenings.Take(ctx.World, surged, surge);
+        }
+        void Surge(long cause)
+        {
+            if (surged is not null) Awakenings.Announce(ctx, surged, surge!, was, cause, Awakenings.MidFight, ctx.World.Settlements[defender.SettlementId].Ref);
+        }
+        var outcome = _arbiter.Resolve(Encounters.DuelBetween(ctx.World, challenger, defender, toTheDeath, surged?.Id ?? 0), ctx.Rng);
         if (outcome.Days <= 1)
         {
-            Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, 0, 1);
+            Surge(Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, 0, 1).Id);
             return;
         }
         // A long duel: begun today with the first day's chapters, told on each later chapter's day, ended on its last.
@@ -505,6 +521,7 @@ public sealed class DeedsSystem : ISimSystem
                 Causes: new[] { new Cause(declared, CauseKind.Trigger, 1.0) },
                 Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 25 : 12), Fates.Importance(defender, toTheDeath ? 25 : 12)),
                 Tags: new[] { "Characters", "Deeds" }));
+        Surge(begun.Id);
         Dictionary<string, string> Data(int day) => new()
         {
             ["challenger"] = challenger.Id.ToString(CultureInfo.InvariantCulture),
@@ -528,7 +545,7 @@ public sealed class DeedsSystem : ISimSystem
     }
 
     /// <summary>The duel's end: its outcome applied, on the day it was fought or the last day of a long one.</summary>
-    private static void Conclude(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared,
+    private static WorldEvent Conclude(SimContext ctx, Character challenger, Character defender, bool toTheDeath, long declared,
         EncounterOutcome outcome, long begun, int days)
     {
         var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();
@@ -557,6 +574,7 @@ public sealed class DeedsSystem : ISimSystem
             challenger.Ambition = CharacterFactory.ChooseAmbition(challenger, ctx.Rng);
         Suffer(ctx, challenger, outcome.AttackerFate, "a duel", duel, outcome.AttackerFate == Fate.Dead ? defender : null);
         Suffer(ctx, defender, outcome.DefenderFate, "a duel", duel, outcome.DefenderFate == Fate.Dead ? challenger : null);
+        return duel;
     }
 
     private static void Suffer(SimContext ctx, Character c, Fate fate, string cause, WorldEvent deed,

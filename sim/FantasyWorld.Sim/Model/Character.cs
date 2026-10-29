@@ -106,6 +106,12 @@ public sealed class Character
     /// <summary>The abilities won through what befell them (<see cref="Model.Abilities"/>); the signature one is not stored.</summary>
     public List<Ability> Abilities { get; init; } = new();
 
+    /// <summary>
+    /// The deed whose awakening sleeps within them, untold, until it wakes (on its day, or in a fight; the owner,
+    /// 2026-10-29); 0 for none.
+    /// </summary>
+    public long Dormant { get; set; }
+
     /// <summary>The last day what befell them changed them (<see cref="Systems.TransformSystem"/>); 0 for never.</summary>
     public long ChangedDay { get; set; }
 

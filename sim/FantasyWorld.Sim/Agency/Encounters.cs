@@ -38,8 +38,11 @@ public sealed record Encounter(
     double AttackerStrength,
     double DefenderStrength,
     bool ToTheDeath,
-    IReadOnlyList<EncounterOutcome> Outcomes)
+    IReadOnlyList<EncounterOutcome> Outcomes,
+    long Surged = 0)
 {
+    // Surged: the fighter whose hidden awakening broke out in this fight (the owner, 2026-10-29), 0 for none.
+
     /// <summary>Outcomes below this base probability are implausible; the LLM arbiter (Plan 5) may not choose them.</summary>
     public const double PlausibilityFloor = 0.05;
 
@@ -94,7 +97,11 @@ public static class Encounters
         return Math.Max(1, strength) * (Systems.PrayerSystem.Favoured(world, c.Ref) ? Systems.PrayerSystem.FavourStrength : 1);
     }
 
-    public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath)
+    /// <summary>
+    /// A duel. <paramref name="surged"/> is a fighter whose hidden awakening breaks out mid-fight (the owner, 2026-10-29): they
+    /// already fight in their new calling, and should they still lose a fight to the death, they far more often escape it.
+    /// </summary>
+    public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath, long surged = 0)
     {
         // A calling that counters the other's fights 15% stronger (the owner, 2026-10-28).
         var (ka, kd) = (Classes.Of(world, attacker), Classes.Of(world, defender));
@@ -106,14 +113,14 @@ public static class Encounters
             {
                 // Even sworn to the death, a duel often ends short of it (the owner, 2026-10-28): the beaten may escape with
                 // a wound (and come back stronger for revenge), or both stagger away wounded.
-                new("attacker_kills", p * 0.97 * 0.45, true, Fate.Unharmed, Fate.Dead),
+                new("attacker_kills", p * 0.97 * Kill(defender), true, Fate.Unharmed, Fate.Dead),
                 new("attacker_maims", p * 0.97 * 0.2, true, Fate.Unharmed, Fate.Maimed),
                 new("attacker_wounds", p * 0.97 * 0.15, true, Fate.Wounded, Fate.Wounded),
-                new("attacker_escaped", p * 0.97 * 0.2, true, Fate.Unharmed, Fate.Wounded),
-                new("defender_kills", (1 - p) * 0.97 * 0.45, false, Fate.Dead, Fate.Unharmed),
+                new("attacker_escaped", p * 0.97 * Escape(defender), true, Fate.Unharmed, Fate.Wounded),
+                new("defender_kills", (1 - p) * 0.97 * Kill(attacker), false, Fate.Dead, Fate.Unharmed),
                 new("defender_maims", (1 - p) * 0.97 * 0.2, false, Fate.Maimed, Fate.Unharmed),
                 new("defender_wounds", (1 - p) * 0.97 * 0.15, false, Fate.Wounded, Fate.Wounded),
-                new("defender_escaped", (1 - p) * 0.97 * 0.2, false, Fate.Wounded, Fate.Unharmed),
+                new("defender_escaped", (1 - p) * 0.97 * Escape(attacker), false, Fate.Wounded, Fate.Unharmed),
                 new("both_die", 0.03, false, Fate.Dead, Fate.Dead),
             }
             : new List<EncounterOutcome>
@@ -123,7 +130,10 @@ public static class Encounters
                 new("defender_first_blood", (1 - p) * 0.8, false, Fate.Wounded, Fate.Unharmed),
                 new("defender_yields_win", (1 - p) * 0.2, false, Fate.Unharmed, Fate.Unharmed),
             };
-        return new Encounter(Duel, attacker.Id, defender.Id, a, d, toTheDeath, outcomes);
+        return new Encounter(Duel, attacker.Id, defender.Id, a, d, toTheDeath, outcomes, surged);
+        // The loser's death and escape: a fighter surging with a new power slips death far more often.
+        double Kill(Character loser) => loser.Id == surged ? 0.15 : 0.45;
+        double Escape(Character loser) => loser.Id == surged ? 0.5 : 0.2;
     }
 
     /// <summary>Hunting the monsters of a region: the wilds' strength is danger / 4.</summary>

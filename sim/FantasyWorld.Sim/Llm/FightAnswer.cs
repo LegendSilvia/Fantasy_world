@@ -45,7 +45,8 @@ public static class FightAnswer
             : "");
 
     public static string Instructions(int maxDays) =>
-        $"Decide how long it lasts: a single day, or longer, up to {maxDays} days, as the two sides would make it. Tell its course in "
+        (maxDays == 1 ? "It is over within a single day (days 1). Tell its course in "
+            : $"Decide how long it lasts: a single day, or longer, up to {maxDays} days, as the two sides would make it. Tell its course in ")
         + $"{MinChapters} to {MaxChapters} chapters, each on a day of the fight (day 1 is the first; the last chapter falls on its last day), "
         + "with at least one turning point. Tell it as the fighters' deeds (the owner, 2026-10-29): in each chapter, what one did, how "
         + "the other answered, and what came of it, each blow shaped by how that fighter fights (a strong one's stroke breaks a shield, "

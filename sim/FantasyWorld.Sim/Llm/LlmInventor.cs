@@ -79,6 +79,50 @@ public sealed class LlmInventor(StoryContext story) : IInventor
         return json is not null && Read(json) is { } legend ? legend : fallback;
     }
 
+    /// <summary>
+    /// An awakened calling (the owner, 2026-10-29): its name, where its power comes from, what it does in a fight, and its
+    /// condition (what it costs, or when it fails); journaled under the subject. Null without an answer.
+    /// </summary>
+    public CallingInvention? InventCalling(CallingBrief brief)
+    {
+        var day = story.World.Date.Day;
+        var key = $"invent|calling|{brief.Subject}|{day}";
+        if (!story.Gateway.MayAnswer(ModelTier.Invent, key)) return null;
+        var prompt = PromptText.Section("brief", $"Date: {story.World.Date}\n{PromptText.Data(brief.Facts, 900)}"
+                + (brief.Known.Count > 0 ? $"\nCallings already awakened in the world, not to be repeated: {string.Join(", ", brief.Known.Select(k => PromptText.Data(k)))}" : ""))
+            + $"\n\nThey awaken into a new calling grown from the {brief.Base}'s. Name it (one or two words, at most 30 characters, no quotation "
+            + "marks), and record it as the world's lore would: origin, where the power comes from (one or two sentences, from what befell "
+            + "them and the world as the brief tells it); does, what it lets them do in a fight (one sentence); condition, what it costs them "
+            + "or when it fails them (one sentence).";
+        var schema = JsonSerializer.Serialize(new
+        {
+            type = "object",
+            properties = new { name = new { type = "string" }, origin = new { type = "string" }, does = new { type = "string" }, condition = new { type = "string" } },
+            required = new[] { "name", "origin", "does", "condition" },
+            additionalProperties = false,
+        });
+        CallingInvention? Read(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                string? Field(string f, int max) => root.TryGetProperty(f, out var v) && v.ValueKind == JsonValueKind.String
+                    && PromptText.Data(v.GetString()!.Replace("\"", "", StringComparison.Ordinal), max + 1) is { Length: > 0 } t && t.Length <= max ? t : null;
+                return Field("name", 30) is { } name && !name.Contains(':') && Field("origin", 400) is { } origin && Field("does", 300) is { } does
+                       && Field("condition", 300) is { } condition
+                    ? new CallingInvention(name, origin, does, condition) : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+        var request = new LlmRequest(ModelTier.Invent, key, story.Bible, prompt, schema, MaxTokens: 1024);
+        var json = story.Gateway.Ask(request, day, answer => Read(answer) is not null);
+        return json is null ? null : Read(json);
+    }
+
     private static Invention? Parse(string json)
     {
         try

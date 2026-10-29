@@ -20,6 +20,25 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
     public const int QuietYears = 5;
     public const string Awakening = "awakening", Vengeance = "vengeance", Desire = "desire", Art = "art";
 
+    /// <summary>
+    /// An awakening may lie hidden (the owner, 2026-10-29: "like a demon hiding inside, not revealing itself"): a third of them
+    /// sleep for one to five years after the deed that planted them, untold, then wake as news of their own.
+    /// </summary>
+    public const double DormantChance = 0.35;
+    public const string DormantKind = "dormant awakening";
+
+    public IEnumerable<string> HandledKinds => [DormantKind];
+
+    public void OnScheduled(SimContext ctx, ScheduledAction action)
+    {
+        var world = ctx.World;
+        if (!long.TryParse(action.Data.GetValueOrDefault("who"), out var who) || !world.Characters.TryGetValue(who, out var c) || !c.IsActive
+            || Classes.IsAwakened(c.Class) || SagaSystem.IsDemonLord(world, c)) return;
+        // A hidden awakening that already broke out in a fight has nothing left to wake.
+        if (!long.TryParse(action.Data.GetValueOrDefault("deed"), out var deedId) || c.Dormant != deedId || !ctx.Log.TryGet(deedId, out var deed)) return;
+        Change(ctx, c, deed, 0, woken: true);
+    }
+
     private readonly IInventor _inventor = inventor ?? new RulesInventor();
 
     public string Name => "Transform";
@@ -74,7 +93,7 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
         }
     }
 
-    private void Change(SimContext ctx, Character c, WorldEvent deed, long foeId)
+    private void Change(SimContext ctx, Character c, WorldEvent deed, long foeId, bool woken = false)
     {
         var world = ctx.World;
         var foe = foeId != 0 && world.Characters.TryGetValue(foeId, out var f) && f.IsActive ? f : null;
@@ -87,26 +106,31 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
             (Vengeance, foe is not null && c.Ambition != Ambitions.Vengeance && !c.Has(Traits.Craven) ? 40 + (c.Has(Traits.Wrathful) ? 30 : 0) : 0),
         };
         if (Classes.IsAwakened(c.Class)) options[0] = (Awakening, 0);
-        var kind = Pick(ctx.Rng, options);
+        var kind = woken ? Awakening : Pick(ctx.Rng, options);
+        // Some awakenings sleep: planted now, told only when they wake.
+        if (kind == Awakening && !woken && ctx.Rng.Chance(DormantChance))
+        {
+            ctx.Queue.Schedule(ctx.Date.AddDays(ctx.Rng.NextInt(WorldDate.DaysPerYear, 5 * WorldDate.DaysPerYear + 1)), DormantKind,
+                new Dictionary<string, string> { ["who"] = c.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ["deed"] = deed.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+            c.ChangedDay = ctx.Date.Day;
+            c.Dormant = deed.Id;
+            return;
+        }
+        var slept = woken ? Math.Max(1, (ctx.Date.Day - deed.Date.Day) / WorldDate.DaysPerYear) : 0;
         var calling = Classes.Of(world, c);
         string title = "", text = "", from = "", to = "";
-        var facts = $"{c.Name}, a {Classes.Title(calling)}, traits {string.Join(", ", c.Traits)}; changed by what befell them: {Spaced(deed.Type)}.";
+        var facts = $"{c.Name}, a {Classes.Title(calling)}, traits {string.Join(", ", c.Traits)}; changed by what befell them: {Spaced(deed.Type)}"
+                    + (woken ? $", in Year {deed.Date.Year}; it lay hidden within them for years, unrevealed, and only now wakes." : ".");
         switch (kind)
         {
             case Awakening:
             {
-                var fallback = Awakened.TryGetValue(Classes.Base(calling), out var aw) ? aw : (Name: "Awakened", Text: "a power that was always in them woke at last");
-                var named = _inventor.Invent(new InventionBrief("awakened class", $"{c.Ref}|awakening|{ctx.Date.Day}",
-                    facts + $" They awaken into a new calling grown from the {Classes.Title(Classes.Base(calling))}'s: name it in one or two words, and tell what they can now do."
-                    + (Awakenings(world) is { Count: > 0 } known ? $" Callings already awakened in the world, not to be repeated: {string.Join(", ", known)}." : ""),
-                    fallback.Name));
-                title = Clean(named.Name, 30) is { Length: > 0 } n && !n.Contains(':') ? n : fallback.Name;
-                text = named.Lore is { Length: > 0 } lore ? Clean(lore, 300) : fallback.Text;
-                (from, to) = (c.Class, Classes.Awaken(calling, title));
-                c.Class = to;
-                c.Abilities.Add(new Ability(title, text));
-                Raise(c, Classes.Base(calling), 2);
-                break;
+                var awakened = Awakenings.Invent(world, c, deed, _inventor, woken ? Awakenings.Slept : Awakenings.Now, ctx.Date.Day);
+                var was = c.Class;
+                Awakenings.Take(world, c, awakened);
+                Awakenings.Announce(ctx, c, awakened, was, deed.Id, woken ? Awakenings.Slept : Awakenings.Now, deed.Place, slept);
+                return;
             }
             case Art:
             {
@@ -142,12 +166,8 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
         ctx.Emit(new EventDraft("CharacterTransformed", Actors: actors, Place: deed.Place,
             Payload: new Dictionary<string, string> { ["kind"] = kind, ["title"] = title, ["text"] = text, ["from"] = from, ["to"] = to },
             Causes: new[] { new Cause(deed.Id, CauseKind.Trigger, 1.0) },
-            Importance: Fates.Importance(c, kind == Awakening ? 55 : 40), Tags: new[] { "Characters", "Deeds" }));
+            Importance: Fates.Importance(c, 40), Tags: new[] { "Characters", "Deeds" }));
     }
-
-    /// <summary>The awakened callings the world has seen.</summary>
-    private static IReadOnlyList<string> Awakenings(World world) =>
-        world.Characters.Values.Where(c => Classes.IsAwakened(c.Class)).Select(c => Classes.Title(c.Class)).Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
 
     private static string Pick(Rng rng, IReadOnlyList<(string Kind, double Weight)> options)
     {
@@ -180,17 +200,6 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
     }
 
     private static string Spaced(string type) => string.Concat(type.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + char.ToLowerInvariant(ch) : ch.ToString().ToLowerInvariant()));
-
-    /// <summary>The engine's own awakened callings, offline.</summary>
-    private static readonly Dictionary<string, (string Name, string Text)> Awakened = new(StringComparer.Ordinal)
-    {
-        [Classes.Warrior] = ("Bloodsworn", "the more they bleed, the harder they strike"),
-        [Classes.Rogue] = ("Shadowdancer", "they move between one shadow and the next as if through a door"),
-        [Classes.Mage] = ("Stormcaller", "the sky answers them, and lightning falls where they point"),
-        [Classes.Paladin] = ("Dawnwarden", "light pours from them that the dark cannot abide"),
-        [Classes.Warlock] = ("Voidbinder", "they hold a thing from beyond the world on a chain of will"),
-        [Classes.Ranger] = ("Wildheart", "the beasts of the land rise to fight at their side"),
-    };
 
     /// <summary>The engine's own fighting arts, offline.</summary>
     private static readonly Dictionary<string, (string Name, string Text)> Arts = new(StringComparer.Ordinal)

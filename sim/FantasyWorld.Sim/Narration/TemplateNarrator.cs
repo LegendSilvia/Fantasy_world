@@ -279,6 +279,10 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     {
         ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
         // A character changed by what befell them (the owner, 2026-10-29), by what the change was.
+        ("CharacterTransformed", e => e.Payload.GetValueOrDefault("how") == "mid-fight",
+            "In the thick of the fight, a power that had slept within {who} broke out, and they fought on as a {=title}: {=text}."),
+        ("CharacterTransformed", e => e.Payload.ContainsKey("slept"),
+            "What had slept within {who} since that day woke at last, unannounced, and they rose a {=title}: {=text}."),
         ("CharacterTransformed", e => e.Payload.GetValueOrDefault("kind") == "awakening",
             "{who} was not the same after it: something woke in them, and they rose a {=title}: {=text}."),
         ("CharacterTransformed", e => e.Payload.GetValueOrDefault("kind") == "art",

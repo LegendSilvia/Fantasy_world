@@ -29,6 +29,52 @@ public class TransformTests
     }
 
     [Fact]
+    public void SomeAwakenings_SleepForYears_ThenWake_AsNewsOfTheirOwn_CausedByTheOldDeed()
+    {
+        var woken = Aged.Log.All.Where(e => e.Type == "CharacterTransformed" && e.Payload.ContainsKey("slept")).ToList();
+        Assert.NotEmpty(woken);
+        Assert.All(woken, e =>
+        {
+            Assert.Equal("awakening", e.Payload["kind"]);
+            var deed = Aged.Log.Get(Assert.Single(e.Causes).EventId);
+            Assert.InRange(e.Date.Day - deed.Date.Day, 360, 5 * 360 + 31);
+            Assert.StartsWith("What had slept within", new FantasyWorld.Sim.Narration.TemplateNarrator(Aged.World).Sentence(e));
+        });
+    }
+
+    [Fact]
+    public void EveryAwakenedPower_IsInTheLore_WithItsOrigin_WhatItDoes_AndItsCondition()
+    {
+        var world = Aged.World;
+        Assert.NotEmpty(world.Callings);
+        Assert.All(world.Callings, k =>
+        {
+            Assert.True(k.Origin.Length > 0 && k.Does.Length > 0 && k.Condition.Length > 0);
+            Assert.Contains(k.Base, Classes.All);
+            Assert.Equal("CharacterTransformed", Aged.Log.Get(k.EventId).Type);
+        });
+        Assert.Equal(world.Callings.Count, world.Callings.Select(k => k.Name).Distinct().Count());
+        Assert.All(world.Characters.Values.Where(c => Classes.IsAwakened(c.Class)),
+            c => Assert.Contains(world.Callings, k => Classes.Awaken(k.Base, k.Name) == c.Class));
+    }
+
+    [Fact]
+    public void APowerBreakingOutMidFight_TurnsTheOdds_AndALoserMoreOftenEscapes()
+    {
+        var world = FantasyWorld.Sim.Tests.Support.TestPeople.World();
+        var a = FantasyWorld.Sim.Tests.Support.TestPeople.Add(world, 1, 30);
+        var d = FantasyWorld.Sim.Tests.Support.TestPeople.Add(world, 1, 30);
+        a.Class = d.Class = Classes.Warrior;
+        var plain = FantasyWorld.Sim.Agency.Encounters.DuelBetween(world, a, d, toTheDeath: true);
+        var surged = FantasyWorld.Sim.Agency.Encounters.DuelBetween(world, a, d, toTheDeath: true, surged: d.Id);
+        Assert.Equal(d.Id, surged.Surged);
+        double Share(FantasyWorld.Sim.Agency.Encounter e, string key) => e.Outcomes.Single(o => o.Key == key).Probability;
+        Assert.True(Share(surged, "attacker_escaped") > Share(plain, "attacker_escaped"));
+        Assert.True(Share(surged, "attacker_kills") < Share(plain, "attacker_kills"));
+        Assert.Equal(1, surged.Outcomes.Sum(o => o.Probability), 6);
+    }
+
+    [Fact]
     public void AnAwakenedClass_StandsWhereItsBaseStood_AndFightsATenthStronger()
     {
         var k = Classes.Awaken(Classes.Mage, "Stormcaller");
