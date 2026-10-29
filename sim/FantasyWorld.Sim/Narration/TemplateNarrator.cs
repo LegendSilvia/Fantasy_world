@@ -311,6 +311,9 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     /// <summary>Where the event happened, in prose ("Kesburg", "the Mire of Aul"), if it has a place.</summary>
     public string? PlaceOf(WorldEvent ev) => ev.Place is { } place ? Prose(place) : null;
 
+    /// <summary>An entity's name as it reads in a sentence ("the Kingdom of Vale", "Kesburg"), if it has one.</summary>
+    public string? NameOf(EntityRef entity) => Prose(entity);
+
     private string? Prose(EntityRef entity) => _nameOf(entity) is not { } name ? null
         : entity.Kind == Realm.Kind ? "the " + name : English.InProse(name);
 

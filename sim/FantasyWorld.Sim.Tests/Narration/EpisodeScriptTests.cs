@@ -66,7 +66,7 @@ public class EpisodeScriptTests
         Assert.Equal(2, provider.Requests.Count); // one retry, then the template
         Assert.All(journal.All, c => Assert.Contains("!rejected", c.Hash));
 
-        var (longer, _, _) = Narrate(t => t.Parts.Select(p => string.Concat(Enumerable.Repeat(p.Text + " ", Episode.DefaultMaxCharacters / t.Script.Length + 1))).ToList());
+        var (longer, _, _) = Narrate(t => t.Parts.Select(p => string.Concat(Enumerable.Repeat(p.Text + " ", Episode.DefaultMaxCharacters / t.Script.Length + 2))).ToList());
         Assert.Equal(Episode.TemplateWriter, longer.Writer);
         var (shorter, _, _) = Narrate(t => t.Parts.Select(_ => "So it was.").ToList());
         Assert.Equal(Episode.TemplateWriter, shorter.Writer);

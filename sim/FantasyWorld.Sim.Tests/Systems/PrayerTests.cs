@@ -103,14 +103,13 @@ public class PrayerTests
     }
 
     [Fact]
-    public void TheEpisode_TellsThePrayers_AndCallsOnThePlayers_NotAmongItsStories()
+    public void TheEpisode_NeverTellsThePrayers()
     {
         var (ctx, ruler) = Wounded();
         new PrayerSystem().OnYearlyTick(ctx);
+        Assert.Contains(ctx.Log.All, e => e.Type == "PrayerOffered");
         var episode = FantasyWorld.Sim.Chronicle.Episode.Build(ctx.World, ctx.Log, 0, "2026-10-28");
-        var section = Assert.Single(episode.Parts, p => p.Kind == FantasyWorld.Sim.Chronicle.EpisodeSection.Prayers);
-        Assert.Contains("New prayers rise to the gods.", section.Text);
-        Assert.Contains("You are their gods", section.Text);
+        Assert.DoesNotContain(episode.Script, "prayer", StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(episode.Stories, s => ctx.Log.Get(s.EventId).Type == "PrayerOffered");
     }
 }

@@ -18,8 +18,7 @@ namespace FantasyWorld.Game.Film;
 /// its days as fought.
 /// </summary>
 public sealed record FilmShot(double Start, double X, double Y, double Zoom, string Title = "", FaceOff? FaceOff = null,
-    IReadOnlyList<CampaignMove>? Moves = null, string? Still = null, IReadOnlyList<FightBeat>? Beats = null,
-    IReadOnlyList<string>? Lines = null);
+    IReadOnlyList<CampaignMove>? Moves = null, string? Still = null, IReadOnlyList<FightBeat>? Beats = null);
 
 /// <summary>
 /// The episode film on the diorama (sub-project 7 F2). Renders one stretch of an episode's timed shot list from the day's
@@ -111,7 +110,7 @@ public partial class Film : Node
     /// the log, and the face-off's images stand above its card.
     /// </summary>
     private bool _vertical;
-    private Label? _caption, _captionLine;
+    private Label? _caption;
     private int _logged;
 
     /// <summary>A section lasts until the next begins; the last one, about this long.</summary>
@@ -190,14 +189,11 @@ public partial class Film : Node
             var captions = Ui.Card("Captions", 960);
             var column = Ui.Column("Lines", 8);
             _caption = Ui.Line("", "Title", Palette.Ink, 40);
-            _captionLine = Ui.Line("", "Line", Palette.Body, 26);
-            foreach (var label in new[] { _caption, _captionLine })
-            {
-                label.HorizontalAlignment = HorizontalAlignment.Center;
-                label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-                label.CustomMinimumSize = new Vector2(900, 0);
-                column.AddChild(label);
-            }
+            // The section's title alone: no subtitles (the owner, 2026-10-29), which could not keep time with the voice.
+            _caption.HorizontalAlignment = HorizontalAlignment.Center;
+            _caption.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            _caption.CustomMinimumSize = new Vector2(900, 0);
+            column.AddChild(_caption);
             captions.AddChild(column);
             (captions.AnchorLeft, captions.AnchorRight, captions.AnchorTop, captions.AnchorBottom) = (0.5f, 0.5f, 0.72f, 0.72f);
             (captions.GrowHorizontal, captions.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Both);
@@ -550,7 +546,10 @@ public partial class Film : Node
 
     private static Control Spacer(string name) => new() { Name = name, CustomMinimumSize = new Vector2(ImageWidth, ImageHeight) };
 
-    /// <summary>A side's image, if it was fetched: the figure or banner standing in its box, fading in with the card.</summary>
+    /// <summary>
+    /// A side's image, if it was fetched: the figure or banner standing in its box, fading in with the card. Once the fight
+    /// is fought, its fate is stamped across the image's foot (the owner, 2026-10-29), and a slain duellist is greyed.
+    /// </summary>
     private Control? Likeness(FaceOffSide side, string name)
     {
         if (_imagesDir is null || side.Image is not { Length: > 0 } key) return null;
@@ -559,10 +558,56 @@ public partial class Film : Node
         {
             Name = name, Texture = ImageTexture.CreateFromImage(image), CustomMinimumSize = new Vector2(ImageWidth, ImageHeight),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, Modulate = new Color(1, 1, 1, 0),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            Material = side.Fate == Fates.Slain ? new ShaderMaterial { Shader = new Shader { Code = GreyShader } } : null,
         };
-        _likenesses.Add(rect);
-        return rect;
+        Control shown = rect;
+        if (side.Fate is { Length: > 0 } fate)
+        {
+            shown = new Control { Name = name, CustomMinimumSize = rect.CustomMinimumSize, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+            rect.Name = "Picture";
+            rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            shown.AddChild(rect);
+            shown.AddChild(Stamp(fate));
+        }
+        shown.Modulate = new Color(1, 1, 1, 0);
+        _likenesses.Add(shown);
+        return shown;
+    }
+
+    /// <summary>A picture drained of colour and darkened a little, for the dead.</summary>
+    private const string GreyShader = """
+        shader_type canvas_item;
+        void fragment() {
+            vec4 c = texture(TEXTURE, UV);
+            float grey = dot(c.rgb, vec3(0.299, 0.587, 0.114)) * 0.85;
+            COLOR = vec4(vec3(grey), c.a);
+        }
+        """;
+
+    /// <summary>A side's fate as a stamp, tilted across the foot of its image: gold for the victor, red for the fallen.</summary>
+    private Control Stamp(string fate)
+    {
+        var colour = fate is Fates.Victor or Fates.Victorious ? new Color("b8860b")
+            : fate is Fates.Slain or Fates.Defeated ? new Color("9b1c1c") : new Color("5b4a36");
+        var stamp = new PanelContainer { Name = "Stamp" };
+        stamp.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(1, 0.98f, 0.94f, 0.88f), BorderColor = colour,
+            BorderWidthLeft = 5, BorderWidthRight = 5, BorderWidthTop = 5, BorderWidthBottom = 5,
+            CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6, CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6,
+            ContentMarginLeft = 22, ContentMarginRight = 22, ContentMarginTop = 6, ContentMarginBottom = 6,
+        });
+        var label = Ui.Line(fate.ToUpperInvariant(), "Fate", null, 44);
+        label.AddThemeColorOverride("font_color", colour);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        stamp.AddChild(label);
+        stamp.SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
+        (stamp.GrowHorizontal, stamp.GrowVertical) = (Control.GrowDirection.Both, Control.GrowDirection.Begin);
+        stamp.OffsetBottom = -ImageHeight * 0.1f;
+        stamp.Rotation = Mathf.DegToRad(-10);
+        stamp.Resized += () => stamp.PivotOffset = stamp.Size / 2;
+        return stamp;
     }
 
     private PanelContainer FaceOffCard(FaceOff f)
@@ -599,7 +644,8 @@ public partial class Film : Node
         // Between them, the VS emblem over the moment: the challenge, the clash under way, or the verdict.
         var middle = Ui.Column("Middle", 4);
         middle.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-        middle.AddChild(Versus("Versus", _vertical ? 120 : 84));
+        // In the Short the VS already stands between the two images above the card: the card does without its own.
+        if (!(_vertical && (f.A.Image is { Length: > 0 } || f.B.Image is { Length: > 0 }))) middle.AddChild(Versus("Versus", _vertical ? 120 : 84));
         var moment = f.Stage switch { FaceOff.Fought => "The verdict", FaceOff.UnderWay => "The clash rages", _ => "The challenge" };
         var kicker = Kicker(f.Kind == FaceOff.Duel || f.Stage != FaceOff.Challenge ? $"{moment} · {f.Stakes}" : "War is declared");
         kicker.HorizontalAlignment = HorizontalAlignment.Center;
@@ -669,7 +715,7 @@ public partial class Film : Node
 
     private Label Figure(double value, bool right, string unit = "")
     {
-        var label = Ui.Line($"{Math.Round(value).ToString(CultureInfo.InvariantCulture)}{unit}", "Figure", Palette.Ink, Px(15));
+        var label = Ui.Line($"{FaceOffStat.Compact(value)}{unit}", "Figure", Palette.Ink, Px(15));
         label.CustomMinimumSize = new Vector2(Px(52), 0);
         label.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         return label;
@@ -685,18 +731,6 @@ public partial class Film : Node
         track.AddChild(bar);
         _bars.Add((bar, Reach * (float)Math.Clamp(share, 0, 1)));
         return track;
-    }
-
-    /// <summary>
-    /// The Short's subtitle: the sentence of the section being told at <paramref name="t"/>, its sentences spread evenly
-    /// over the section (the owner, 2026-10-28: a section with nothing on screen but the map still says what is happening).
-    /// </summary>
-    private static string Subtitle(IReadOnlyList<FilmShot> shots, int index, double t)
-    {
-        if (shots[index].Lines is not { Count: > 0 } lines) return "";
-        var (from, end) = (shots[index].Start, SectionEnd(shots, index));
-        var k = (int)Math.Floor((t - from) / Math.Max(0.001, end - from) * lines.Count);
-        return lines[Math.Clamp(k, 0, lines.Count - 1)];
     }
 
     private static int IndexOf(IReadOnlyList<FilmShot> shots, FilmShot shot)
@@ -800,14 +834,11 @@ public partial class Film : Node
             _log.AddChild(move ? Ui.Body($"· {text}", $"Line{_logged}", Palette.Muted, 12) : Ui.Body(text, $"Line{_logged}", Palette.Body, 14));
         }
         _logCard.Visible = _logged > 0 && !_vertical;
-        if (_caption is null || _captionLine is null) return;
-        // The vertical film's captions: the section told now, and its latest move or day if it has one.
+        if (_caption is null) return;
+        // The vertical film's caption: the title of the section told now.
         var shot = ShotAt(shots, t);
         var index = IndexOf(shots, shot);
         _caption.Text = shot.Title;
-        var latest = _logged > 0 && _lines[_logged - 1] is { Move: true } line && line.At >= shot.Start ? line.Text : Subtitle(shots, index, t);
-        _captionLine.Text = latest;
-        _captionLine.Visible = latest.Length > 0;
         // Shown while the map is: after the section's still, before its face-off card comes up.
         var (shown, hidden) = (StillUntil(shots, index) ?? shot.Start, shot.FaceOff is null ? double.MaxValue : CardFrom(shots, index));
         _caption.GetParent().GetParent<Control>().Visible = shot.Title.Length > 0 && t >= shown && t < hidden;

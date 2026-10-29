@@ -8,15 +8,45 @@ using FantasyWorld.Sim.Systems;
 namespace FantasyWorld.Sim.Chronicle;
 
 /// <summary>One figure of a side in a face-off: its name, its value and the bar's full length (both sides share it).</summary>
-public sealed record FaceOffStat(string Name, double Value, double Max);
+public sealed record FaceOffStat(string Name, double Value, double Max)
+{
+    /// <summary>
+    /// A figure as the card shows it, short enough to read at a glance (the owner, 2026-10-29): 62, 2.9K, 19.1K, 249K, 3.69M.
+    /// </summary>
+    public static string Compact(double value)
+    {
+        var v = Math.Abs(value);
+        var sign = value < 0 ? "-" : "";
+        string Scaled(double x, string unit) => (x < 10 ? x.ToString("0.##", CultureInfo.InvariantCulture)
+            : x < 100 ? x.ToString("0.#", CultureInfo.InvariantCulture) : Math.Round(x).ToString(CultureInfo.InvariantCulture)) + unit;
+        return sign + (v < 1_000 ? Math.Round(v).ToString(CultureInfo.InvariantCulture)
+            : v < 999_500 ? Scaled(v / 1_000, "K")
+            : v < 999_500_000 ? Scaled(v / 1_000_000, "M") : Scaled(v / 1_000_000_000, "B"));
+    }
+}
 
 /// <summary>
 /// A side of a face-off: who, their heraldic colour, their figures and a few words about them (traits, age, ruler), and
 /// their image once the broadcast has one (a duellist's portrait or a realm's banner: its key in the broadcast's store), and
-/// a duellist's class (<see cref="Classes"/>; the card shows its emblem, and which side's counters the other's).
+/// a duellist's class (<see cref="Classes"/>; the card shows its emblem, and which side's counters the other's), and once
+/// the fight is fought, how the side came out of it (<see cref="Fates"/>: stamped over its image, a slain duellist's greyed).
 /// </summary>
 public sealed record FaceOffSide(string Ref, string Name, string Colour, IReadOnlyList<FaceOffStat> Stats, IReadOnlyList<string> Notes,
-    string? Image = null, string? Class = null);
+    string? Image = null, string? Class = null, string? Fate = null);
+
+/// <summary>How a side came out of a fought fight, as the film stamps it over the side's image (the owner, 2026-10-29).</summary>
+public static class Fates
+{
+    public const string Victor = "Victor", Victorious = "Victorious", Defeated = "Defeated", Slain = "Slain", Maimed = "Maimed",
+        Wounded = "Wounded", Escaped = "Escaped", Yielded = "Yielded";
+
+    /// <summary>The loser's fate in a duel by its outcome ("attacker_kills", "defender_escaped", …).</summary>
+    public static string OfLoser(string outcome) =>
+        outcome.EndsWith("kills", StringComparison.Ordinal) || outcome == "both_die" ? Slain
+        : outcome.EndsWith("maims", StringComparison.Ordinal) ? Maimed
+        : outcome.EndsWith("wounds", StringComparison.Ordinal) ? Wounded
+        : outcome.EndsWith("escaped", StringComparison.Ordinal) ? Escaped : Yielded;
+}
 
 /// <summary>
 /// A face-off (sub-project 8 §7, "the challenge"): a duel or a war declared this episode, both sides side by side with their
@@ -39,7 +69,24 @@ public sealed record FaceOff(string Kind, long EventId, string Stakes, FaceOffSi
                                                     + (s.Notes.Count > 0 ? $"; {string.Join(", ", s.Notes)}" : "")))
         + (Stage == Fought
             ? $"\nResult: {Result}"
-            : $"\nChance of winning: {A.Name} {OddsA} in a hundred, {B.Name} {100 - OddsA} in a hundred." + (Result is null ? "" : $"\nSo far: {Result}"));
+            : $"\nThe odds: {Odds()}." + (Result is null ? "" : $"\nSo far: {Result}"));
+
+    /// <summary>
+    /// The odds in words, never as a number (the owner, 2026-10-29: the narrator speaks of no percentage; the card shows it):
+    /// "Aldren of Vale is heavily favoured", "they are evenly matched".
+    /// </summary>
+    public string Odds()
+    {
+        var (name, odds) = OddsA >= 50 ? (A.Name, OddsA) : (B.Name, 100 - OddsA);
+        return odds switch
+        {
+            < 53 => "they are evenly matched",
+            < 60 => $"{name} has a slight edge",
+            < 72 => $"{name} is favoured",
+            < 85 => $"{name} is clearly favoured",
+            _ => $"{name} is heavily favoured",
+        };
+    }
 
     private static string Number(double value) => Math.Round(value).ToString(CultureInfo.InvariantCulture);
 }
@@ -103,12 +150,16 @@ public static class FaceOffs
                 var outcome = ev.Payload.GetValueOrDefault("outcome") ?? "";
                 var challengerWon = outcome.StartsWith("attacker", StringComparison.Ordinal);
                 var (winner, loser) = challengerWon ? (sa.Name, sb.Name) : (sb.Name, sa.Name);
-                var how = outcome.EndsWith("kills", StringComparison.Ordinal) ? $"{loser} was slain"
+                var both = outcome == "both_die";
+                var how = both ? "both were slain"
+                    : outcome.EndsWith("kills", StringComparison.Ordinal) ? $"{loser} was slain"
                     : outcome.EndsWith("maims", StringComparison.Ordinal) ? $"{loser} was maimed"
                     : outcome.EndsWith("wounds", StringComparison.Ordinal) ? "both were wounded"
                     : outcome.EndsWith("escaped", StringComparison.Ordinal) ? $"{loser} was wounded but escaped" : $"{loser} yielded";
+                var (won, lost) = (both ? Fates.Slain : Fates.Victor, Fates.OfLoser(outcome));
+                (sa, sb) = challengerWon ? (sa with { Fate = won }, sb with { Fate = lost }) : (sa with { Fate = lost }, sb with { Fate = won });
                 return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, challengerWon ? 100 : 0, FaceOff.Fought,
-                    $"{winner} won{(days is null ? "" : $" after {days} days")}; {how}.");
+                    both ? $"Neither won{(days is null ? "" : $" after {days} days")}; {how}." : $"{winner} won{(days is null ? "" : $" after {days} days")}; {how}.");
             }
             case "BattleJoined" or "BattleTurned" when ev.Actors.TryGetValue("attacker", out var a) && ev.Actors.TryGetValue("defender", out var b)
                                                        && world.Realms.TryGetValue(a.Id, out var attacker) && world.Realms.TryGetValue(b.Id, out var defender):
@@ -128,7 +179,7 @@ public static class FaceOffs
                 var f = Scaled(new FaceOff(FaceOff.War, ev.Id, place is null ? "battle" : $"the battle at {place}",
                     Host(world, victor, sv, Math.Max(sv, sq)), Host(world, vanquished, sq, Math.Max(sv, sq)), 100, FaceOff.Fought,
                     $"{victor.Name} won{(days is null ? "" : $" after {days} days")}; {Number(lv)} of theirs and {Number(lq)} of {vanquished.Name}'s fell."));
-                return f with { A = WithLosses(f.A, lv), B = WithLosses(f.B, lq) };
+                return f with { A = WithLosses(f.A, lv) with { Fate = Fates.Victorious }, B = WithLosses(f.B, lq) with { Fate = Fates.Defeated } };
             }
             default:
                 return null;
@@ -231,7 +282,6 @@ public static class FaceOffs
             return leads.Count switch { 0 => "", 1 => leads[0], _ => $"{leads[0]} and {leads[1]}" };
         }
         var (a, b) = (Better(f.A, f.B), Better(f.B, f.A));
-        var favoured = f.OddsA >= 50 ? (f.A.Name, f.OddsA) : (f.B.Name, 100 - f.OddsA);
         var opening = f.Kind == FaceOff.Duel
             ? $"The gauntlet is thrown: {f.A.Name} against {f.B.Name}, {f.Stakes}, at {place}, a year and a day from the challenge."
             : $"War is declared: {f.A.Name} against {f.B.Name} in {f.Stakes}; the hosts muster for a year before they meet.";
@@ -242,6 +292,6 @@ public static class FaceOffs
             (0, > 0) => $"{f.B.Name} has the better of it in {b}.",
             _ => $"{f.A.Name} is the stronger in {a}; {f.B.Name} in {b}.",
         };
-        return $"{opening} {strengths} The odds favour {favoured.Item1}, {favoured.Item2} in a hundred.";
+        return $"{opening} {strengths} By the odds, {f.Odds()}.";
     }
 }

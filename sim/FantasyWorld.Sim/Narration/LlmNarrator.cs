@@ -31,8 +31,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         var task = $"Write the script of today's spoken episode of the chronicle, to be read aloud, as exactly {parts.Count} sections, one for "
                    + "each numbered section of the brief and in its order: the opening line, the headline told in full, each face-off as a "
                    + "commentator before a bout (both sides' strengths and weaknesses from the figures given, where each could win or lose it, "
-                   + "and whom the odds favour, without deciding it), each other story "
-                   + "briefly (where a section lists a war's moves, follow the campaign through them in order, as the brief gives them; "
+                   + "and whom the odds favour, in words only: never a percentage, a chance or odds as a number; without deciding it), each other story "
+                   + "briefly (where a section lists a war's marches, say each in a few words, how long and from where to where, naming no place between; "
                    + "where it gives a fight's days, tell the fight blow by blow through them, day by day, to its end), "
                    + "then (where the brief has a section asking what to make of it all) your own view of the year as its chronicler: "
                    + "what it meant, who rose and who fell, what to watch for, ending in a conclusion of your own; judge and wonder freely, "
@@ -52,7 +52,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         // A face-off's figures go with its section, for the commentary; they are facts the narration may use.
         // A war's moves go with its section likewise, in the order they were made.
         string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures(), 1200)})" : "")
-                                            + (p.Moves is { Count: > 0 } m ? $"\n(The war's moves:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "")
+                                            + (p.Moves is { Count: > 0 } m ? $"\n(The war's marches:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "")
                                             + (p.Beats is { Count: > 1 } b ? $"\n(The fight, day by day:\n{PromptText.Data(Fights.Brief(b), 2400)})" : "");
         // A scene to paint is marked with the template's picture of it, for the chronicler's own (the episode's stills).
         string Paint(EpisodeSection p) => p.Scene is { } scene ? $"\n(A scene to paint; as the facts show it: {PromptText.Data(scene, Stills.MaxCharacters)})" : "";

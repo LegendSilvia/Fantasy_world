@@ -125,10 +125,12 @@ public class CampaignMoveTests
         var first = moves[0];
         var from = log.All.Single(e => e.Id == first.EventId).Actors["from"];
         Assert.Equal(FantasyWorld.Sim.Views.MapPoint.Of(world, from), first.From);
-        // A few are read aloud, never the section's own event a second time.
-        if (moves.Any(m => m.EventId != told.EventId)) Assert.Contains("On the march: ", told.Text);
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(episode.Script, System.Text.RegularExpressions.Regex.Escape(
-            new FantasyWorld.Sim.Narration.TemplateNarrator(world).Sentence(log.All.Single(e => e.Id == moves[^1].EventId)))));
+        // Each host's march is told once, in brief: how long, from where to where, no town between (the owner, 2026-10-29).
+        var marches = moves.Where(m => m.Line.Length > 0).ToList();
+        Assert.NotEmpty(marches);
+        Assert.Equal(moves[^1].EventId, marches[^1].EventId);
+        Assert.All(marches, m => Assert.Matches(@" marched (for (a|an|\w+) months?|in \w+ days|in a matter of days), (from .+ (to|into) .+|out from .+ and back again)\.$", m.Line));
+        Assert.All(marches, m => Assert.Contains(m.Line, told.Text));
 
         // The chronicler is given every move with its section.
         var fake = new FantasyWorld.Sim.Llm.FakeLlmProvider(_ => System.Text.Json.JsonSerializer.Serialize(new { sections = episode.Parts.Select(p => p.Text) }));
@@ -136,8 +138,8 @@ public class CampaignMoveTests
             new FantasyWorld.Sim.Llm.LlmGateway(fake, new FantasyWorld.Sim.Llm.LlmSettings { Provider = "fake" }, new FantasyWorld.Sim.Llm.LlmJournal()));
         var written = new FantasyWorld.Sim.Narration.LlmNarrator(story).EpisodeScript(episode, 20_000);
         var prompt = fake.Requests.Single().Prompt;
-        Assert.Contains("The war's moves:", prompt);
-        Assert.All(moves, m => Assert.Contains(m.Line, prompt));
+        Assert.Contains("The war's marches:", prompt);
+        Assert.All(marches, m => Assert.Contains(m.Line, prompt));
         Assert.Equal(moves, written.Parts.Single(p => p.Moves is { Count: > 0 }).Moves);
     }
 }

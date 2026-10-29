@@ -50,12 +50,13 @@ public class FaceOffTests
         // Told plainly when no chronicler answers: who is stronger at what, and the odds.
         Assert.StartsWith($"The gauntlet is thrown: {f.A.Name} against {f.B.Name}, to the death, at ", section.Text);
         Assert.True(section.Text.Contains($"{f.A.Name} is the stronger in might and valour; {f.B.Name} in cunning"), section.Text);
-        Assert.EndsWith($"The odds favour {f.A.Name}, 71 in a hundred.", section.Text);
+        Assert.EndsWith($"By the odds, {f.A.Name} is favoured.", section.Text);
         // Not told again among the stories, and the episode keeps it through a round trip.
         Assert.DoesNotContain(episode.Stories, s => s.EventId == declared.Id);
         var back = Episode.FromJson(episode.ToJson()).Parts.Single(p => p.Kind == EpisodeSection.Challenge).FaceOff;
         Assert.Equal(System.Text.Json.JsonSerializer.Serialize(f), System.Text.Json.JsonSerializer.Serialize(back));
-        Assert.Contains("Chance of winning:", f.Figures());
+        Assert.Contains("The odds: ", f.Figures());
+        Assert.DoesNotMatch(@"\d+ in a hundred|\d+ ?%", f.Figures());
         Assert.Contains("might 17", f.Figures());
     }
 
@@ -82,7 +83,7 @@ public class FaceOffTests
         Assert.Equal((40d, 0d, 40d), (f.A.Stats.Single(s => s.Name == "Steel").Value, f.B.Stats.Single(s => s.Name == "Steel").Value, f.B.Stats.Single(s => s.Name == "Steel").Max));
         Assert.Equal((0d, 12d), (f.A.Stats.Single(s => s.Name == "Steeds").Value, f.B.Stats.Single(s => s.Name == "Steeds").Value));
         Assert.Contains("short of ore", f.B.Notes);
-        Assert.EndsWith($"The odds favour {f.B.Name}, 65 in a hundred.", FaceOffs.Tell(f, "nowhere"));
+        Assert.EndsWith($"By the odds, {f.B.Name} is favoured.", FaceOffs.Tell(f, "nowhere"));
         Assert.Equal(declared.Id, Episode.Build(world, log, 0, "2026-10-27").Parts.Single(p => p.Kind == EpisodeSection.Challenge).EventId);
     }
 
@@ -96,7 +97,7 @@ public class FaceOffTests
         {
             // A commentator's answer that cites a figure only the face-off gives (prowess 17), never said in the template.
             var sections = episode.Parts.Select(p => p.Kind == EpisodeSection.Challenge
-                ? $"A prowess of 17 against 8: {f.A.Name} hits harder, but {f.B.Name} schemes better. The odds favour {f.A.Name}, 71 in a hundred. " + p.Text
+                ? $"A prowess of 17 against 8: {f.A.Name} hits harder, but {f.B.Name} schemes better. {f.A.Name} is clearly favoured. " + p.Text
                 : p.Text);
             return System.Text.Json.JsonSerializer.Serialize(new { sections });
         });
@@ -155,7 +156,7 @@ public class FaceOffTests
         Assert.Equal((FaceOff.Fought, 0), (result.Stage, result.OddsA));
         Assert.Equal($"{result.B.Name} won after 3 days; {result.A.Name} was slain.", result.Result);
         Assert.Contains($"Result: {result.B.Name} won", result.Figures());
-        Assert.DoesNotContain("Chance of winning", result.Figures());
+        Assert.DoesNotContain("The odds:", result.Figures());
 
         // In the episode, the fight's section carries the card of how it ended.
         var episode = Episode.Build(world, log, declared.Id, "2026-10-28");

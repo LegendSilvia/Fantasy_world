@@ -39,6 +39,9 @@ public sealed class DeedsSystem : ISimSystem
 
     public const string DuelKind = "duel";
 
+    /// <summary>At most this many challenges wait to be fought across the world before a new one to first blood is made.</summary>
+    public const int MaxOpenChallenges = 3;
+
     /// <summary>A beat of a duel that lasts more than a day, told on its day (sub-project 8 §5).</summary>
     public const string DuelTurnKind = "duel-turn";
 
@@ -137,8 +140,11 @@ public sealed class DeedsSystem : ISimSystem
         var rival = (neighbours ?? world.PeopleOf(home))
             .Where(o => o.Id != c.Id && o.IsActive && o.Stage(ctx.Date) != LifeStage.Child && Relations.Opinion(c, o) <= Relations.RivalAt)
             .OrderBy(o => Relations.Opinion(c, o)).ThenBy(o => o.Id).FirstOrDefault();
-        if (free && rival is not null && !Challenged(ctx.Queue, rival.Id) && (c.Has(Traits.Wrathful) || c.Has(Traits.Brave)))
-            options.Add(new($"duel:{rival.Id}", 25 * bold, $"challenge {rival.Name} to first blood"));
+        // A challenge to first blood is rare news (the owner, 2026-10-29: a few showdowns a year, not a page of them): only
+        // while fewer than MaxOpenChallenges duels are pending in the whole world. A vengeance is never held back.
+        if (free && rival is not null && !Challenged(ctx.Queue, rival.Id) && (c.Has(Traits.Wrathful) || c.Has(Traits.Brave))
+            && PendingDuels(ctx.Queue).Count(a => a.Kind == DuelKind) < MaxOpenChallenges)
+            options.Add(new($"duel:{rival.Id}", 10 * bold, $"challenge {rival.Name} to first blood"));
         return options;
     }
 
