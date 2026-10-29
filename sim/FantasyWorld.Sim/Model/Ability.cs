@@ -57,7 +57,9 @@ public static class Abilities
     }
 
     /// <summary>Everything a character can do: their signature, then what they have won since, newest last.</summary>
-    public static IReadOnlyList<Ability> Of(World world, Character c) => [Signature(world, c), .. c.Abilities];
+    /// <summary>Each ability once, by name (a world made before arts were kept unique may hold one twice).</summary>
+    public static IReadOnlyList<Ability> Of(World world, Character c) =>
+        new[] { Signature(world, c) }.Concat(c.Abilities).DistinctBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
     /// <summary>The abilities as a brief reads them, for the arbiter and the chronicler.</summary>
     public static string Brief(World world, Character c) => string.Join("; ", Of(world, c).Select(a => $"{a.Name} ({a.Text})"));

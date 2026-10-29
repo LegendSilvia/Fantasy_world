@@ -134,11 +134,16 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
             }
             case Art:
             {
-                var fallback = Arts.TryGetValue(Classes.Base(calling), out var art) ? art : (Name: "The Last Stand", Text: "a way of fighting no one else knows");
+                var known = c.Abilities.Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var fallback = (Arts.TryGetValue(Classes.Base(calling), out var arts) ? arts : [])
+                    .Append((Name: "The Last Stand", Text: "a way of fighting no one else knows")).FirstOrDefault(a => !known.Contains(a.Name));
+                if (fallback.Name is null) { Raise(c, Classes.Base(calling), 1); return; } // every art of their calling already theirs
                 var named = _inventor.Invent(new InventionBrief("fighting art", $"{c.Ref}|art|{ctx.Date.Day}",
                     facts + " From it they make an art of fighting all their own: name it, and tell what it does in a fight.", fallback.Name));
                 title = Clean(named.Name, 40) is { Length: > 0 } n ? n : fallback.Name;
                 text = named.Lore is { Length: > 0 } lore ? Clean(lore, 300) : fallback.Text;
+                // An art they already have is not learned twice (an inventor may name an old one again).
+                if (known.Contains(title)) { Raise(c, Classes.Base(calling), 1); return; }
                 c.Abilities.Add(new Ability(title, text));
                 Raise(c, Classes.Base(calling), 1);
                 break;
@@ -202,14 +207,21 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
     private static string Spaced(string type) => string.Concat(type.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + char.ToLowerInvariant(ch) : ch.ToString().ToLowerInvariant()));
 
     /// <summary>The engine's own fighting arts, offline.</summary>
-    private static readonly Dictionary<string, (string Name, string Text)> Arts = new(StringComparer.Ordinal)
+    // Several arts per calling, so one who masters a second (offline, with no inventor) never learns the same one twice.
+    private static readonly Dictionary<string, (string Name, string Text)[]> Arts = new(StringComparer.Ordinal)
     {
-        [Classes.Warrior] = ("The Broken Guard", "a stroke that comes when the foe believes them beaten"),
-        [Classes.Rogue] = ("The Second Knife", "a hidden blade drawn as the first is parried"),
-        [Classes.Mage] = ("The Mirrored Spell", "turns a foe's own strength back on them"),
-        [Classes.Paladin] = ("The Kneeling Oath", "rises from the ground renewed by a whispered vow"),
-        [Classes.Warlock] = ("The Borrowed Breath", "steals the foe's next breath and fights on with it"),
-        [Classes.Ranger] = ("The Long Shot", "a shot loosed from where no archer could have stood"),
+        [Classes.Warrior] = [("The Broken Guard", "a stroke that comes when the foe believes them beaten"), ("The Iron Wall", "a guard no blow has broken, held until the foe tires"),
+            ("The Red Harvest", "a sweeping cut that clears all before it"), ("The Last Charge", "a rush that gathers every ounce of strength into one blow")],
+        [Classes.Rogue] = [("The Second Knife", "a hidden blade drawn as the first is parried"), ("The Vanishing Step", "is never where the blow lands"),
+            ("The Whispered Cut", "a wound the foe does not feel until it is too late"), ("The False Opening", "offers a gap in the guard that is a trap")],
+        [Classes.Mage] = [("The Mirrored Spell", "turns a foe's own strength back on them"), ("The Silent Word", "a spell cast without a sound or a gesture"),
+            ("The Burning Sigil", "a mark that flares when the foe draws near"), ("The Unmaking", "unravels another's spell as it is woven")],
+        [Classes.Paladin] = [("The Kneeling Oath", "rises from the ground renewed by a whispered vow"), ("The Shining Ward", "a light that turns aside the darkest blow"),
+            ("The Judgement", "a strike that falls hardest on the guilty"), ("The Shield of Faith", "stands unmoved while the faithful behind them hold")],
+        [Classes.Warlock] = [("The Borrowed Breath", "steals the foe's next breath and fights on with it"), ("The Bargain", "trades a wound of their own for a worse one given"),
+            ("The Creeping Dark", "a shadow that slows every step the foe takes"), ("The Bound Name", "speaks the foe's name and holds them fast")],
+        [Classes.Ranger] = [("The Long Shot", "a shot loosed from where no archer could have stood"), ("The Hunter's Patience", "waits, unseen, for the one moment that matters"),
+            ("The Twin Arrows", "two shafts loosed as one"), ("The Wild Call", "summons the beasts of the land to their side")],
     };
 
     private static readonly Dictionary<string, string> Desires = new(StringComparer.Ordinal)

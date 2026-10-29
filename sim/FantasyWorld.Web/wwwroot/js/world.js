@@ -330,11 +330,17 @@ async function play() {
 }
 
 let shownYear = null;
+const trail = [];
 async function route() {
     const { year, panel } = parse();
     const wanted = year ?? world.year;
     if (wanted !== shownYear) { shownYear = wanted; await showYear(wanted); }
-    if (!panel) { $("panel").hidden = true; return; }
+    if (!panel) { $("panel").hidden = true; trail.length = 0; $("back").hidden = true; return; }
+    // The panels opened one after another (the owner, 2026-10-29: a back button), the last one shown on top.
+    if (trail[trail.length - 1] !== panel) {
+        if (trail[trail.length - 2] === panel) trail.pop(); else trail.push(panel);
+    }
+    $("back").hidden = trail.length < 2;
     const [kind, key] = panel.split("/");
     try {
         $("panel-body").innerHTML = await render(kind, key, wanted);
@@ -654,6 +660,7 @@ async function boot() {
         $("roads").addEventListener("change", () => dynamic.children.filter(c => c.userData.layer === "roads").forEach(c => { c.visible = $("roads").checked; }));
         window.addEventListener("hashchange", route);
         $("close").addEventListener("click", () => setHash({ panel: null }));
+        $("back").addEventListener("click", () => { if (trail.length >= 2) setHash({ panel: trail[trail.length - 2] }); });
         await route();
         $("loading").classList.add("done");
         document.body.dataset.ready = "true";

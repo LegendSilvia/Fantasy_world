@@ -200,3 +200,9 @@ p.known { font-style: italic; }
 .find-row { display: flex; gap: 8px; align-items: center; }
 .find-row .find { flex: 1; }
 .find-row select.find { flex: 0 0 auto; width: auto; }
+
+/* Back to the last panel (the owner, 2026-10-29), at the panel's top left, opposite the close. */
+#back { position: absolute; top: 10px; left: 14px; border: 0; background: none; cursor: pointer; font: 600 13px system-ui, sans-serif;
+  color: var(--muted, #6b645a); padding: 4px 6px; border-radius: 6px; }
+#back:hover { color: var(--ink, #1a1a18); background: rgba(0,0,0,.05); }
+#panel:has(#back:not([hidden])) #panel-body { padding-top: 22px; }
