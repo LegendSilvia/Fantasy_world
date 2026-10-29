@@ -80,11 +80,11 @@ public sealed class CompanionSystem(IInventor? inventor = null) : ISimSystem
 
     private void Tame(SimContext ctx, Character c, string what, string breed, WorldEvent? cause)
     {
-        var fallback = Names[(int)((ulong)c.Id % (ulong)Names.Length)];
+        var fallback = BeastName(c.Id, ctx.Date.Day);
         var named = _inventor.Invent(new InventionBrief("beast companion", $"{c.Ref}|companion|{ctx.Date.Day}",
             $"{what}, which has come to follow {c.Name}, a {Classes.Title(Classes.Of(ctx.World, c))}" + (cause is null ? ", tamed in the wilds." : ", after they slew its parent."),
             fallback));
-        var lore = named.Lore ?? (cause is null ? $"It came out of the wilds one winter and would not leave {c.Name}'s side." : $"It followed {c.Name} home from its parent's lair, and would not be driven off.");
+        var lore = named.Lore ?? (cause is null ? Met(c.Name, c.Id + ctx.Date.Day) : $"It followed {c.Name} home from its parent's lair, and would not be driven off.");
         var ev = ctx.Emit(new EventDraft("CompanionJoined", Actors: new Dictionary<string, EntityRef> { ["who"] = c.Ref },
             Place: ctx.World.Settlements.GetValueOrDefault(c.SettlementId)?.Ref,
             Payload: new Dictionary<string, string> { ["kind"] = Companion.Beast, ["name"] = named.Name, ["what"] = what, ["breed"] = breed },
@@ -103,5 +103,24 @@ public sealed class CompanionSystem(IInventor? inventor = null) : ISimSystem
         _ => ["war-hound", "grey wolf", "hunting falcon"],
     };
 
-    private static readonly string[] Names = ["Ashfang", "Greymane", "Thorn", "Ember", "Hollow", "Saltclaw", "Nightwing", "Brindle", "Stormtail", "Sorrow"];
+    // Without an inventor (the offline prehistory) a beast is named from two halves and its meeting told one of several
+    // ways, so a world's companions are not all one Ashfang that came out of the wilds one winter (the owner, 2026-10-29).
+    private static readonly string[] Firsts = ["Ash", "Grey", "Thorn", "Ember", "Salt", "Night", "Storm", "Iron", "Frost", "Red", "Moon", "Swift", "Old", "Black", "Gold"];
+    private static readonly string[] Lasts = ["fang", "mane", "claw", "wing", "tail", "eye", "heart", "song", "bane", "coat"];
+
+    public static string BeastName(long characterId, long day)
+    {
+        var n = (ulong)(characterId * 7919 + day);
+        return Firsts[(int)(n % (ulong)Firsts.Length)] + Lasts[(int)(n / (ulong)Firsts.Length % (ulong)Lasts.Length)];
+    }
+
+    public static string Met(string who, long seed) => ((ulong)seed % 6) switch
+    {
+        0 => $"It came out of the wilds one winter and would not leave {who}'s side.",
+        1 => $"{who} found it caught in a trapper's snare and cut it free; it has followed ever since.",
+        2 => $"It was the runt of a litter left to die, and {who} raised it by hand.",
+        3 => $"It fought {who} for a kill, lost, and stayed.",
+        4 => $"It came to {who}'s fire on a night of storm and was still there at dawn.",
+        _ => $"{who} won it in a wager from a hunter who could not hold it.",
+    };
 }

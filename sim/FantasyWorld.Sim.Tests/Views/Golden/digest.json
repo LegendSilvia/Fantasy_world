@@ -2,121 +2,76 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 238 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 231 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
     {
       "number": 1,
-      "place": "region#2",
-      "label": "Taramdale",
-      "position": {
-        "x": 0.4921875,
-        "y": 0.4296875
-      },
-      "eventId": 204
-    },
-    {
-      "number": 3,
       "place": "settlement#24",
       "label": "Niar",
       "position": {
         "x": 0.2578125,
         "y": 0.7890625
       },
-      "eventId": 235
+      "eventId": 228
+    },
+    {
+      "number": 5,
+      "place": "region#2",
+      "label": "Taramdale",
+      "position": {
+        "x": 0.4921875,
+        "y": 0.4296875
+      },
+      "eventId": 194
     }
   ],
   "headline": {
     "number": 1,
-    "category": "faithAndMagic",
-    "kicker": "A secret of the world",
+    "category": "characters",
+    "kicker": "A changed soul",
     "title": {
-      "text": "Giaskia of Gendtialing reached the bottom of the Deeps of Taramdale and walked away with the Reliquary of Miall, and with a secret of the world, the Broken Covenant of the Deeps of Taramdale: the peoples of the world were once one, the carvings show, until a covenant broken in the first age set them against each other",
+      "text": "Stiath of Vallbrorneth rose from it a changed soul, sworn to destroy Coth of Rialling",
       "links": [
         {
           "start": 0,
           "length": 22,
-          "entity": "char#38"
+          "entity": "char#24"
         },
         {
-          "start": 45,
-          "length": 22,
-          "entity": "structure#1"
-        },
-        {
-          "start": 89,
-          "length": 22,
-          "entity": "artifact#6"
-        },
-        {
-          "start": 181,
-          "length": 9,
-          "entity": "region#2"
+          "start": 69,
+          "length": 16,
+          "entity": "char#11"
         }
       ]
     },
     "body": {
-      "text": "Earlier that year, Giaskia of Gendtialing cleared the Deeps of Taramdale, and walked away with the Reliquary of Miall.",
+      "text": "Earlier that year, at Niar, Coth of Rialling met Stiath of Vallbrorneth to first blood.",
       "links": [
         {
-          "start": 19,
-          "length": 22,
-          "entity": "char#38"
+          "start": 22,
+          "length": 4,
+          "entity": "settlement#24"
         },
         {
-          "start": 50,
-          "length": 22,
-          "entity": "structure#1"
+          "start": 28,
+          "length": 16,
+          "entity": "char#11"
         },
         {
-          "start": 95,
+          "start": 49,
           "length": 22,
-          "entity": "artifact#6"
+          "entity": "char#24"
         }
       ]
     },
-    "eventId": 204,
+    "eventId": 228,
     "canExplain": true
   },
   "items": [
     {
       "number": 2,
-      "category": "faithAndMagic",
-      "text": {
-        "text": "Giaskia of Gendtialing was not the same after it: something woke in them, and they rose a Stormcaller: lightning falls where they point.",
-        "links": [
-          {
-            "start": 0,
-            "length": 22,
-            "entity": "char#38"
-          }
-        ]
-      },
-      "eventId": 205
-    },
-    {
-      "number": 3,
-      "category": "characters",
-      "text": {
-        "text": "Stiath of Vallbrorneth rose from it a changed soul, sworn to destroy Coth of Rialling.",
-        "links": [
-          {
-            "start": 0,
-            "length": 22,
-            "entity": "char#24"
-          },
-          {
-            "start": 69,
-            "length": 16,
-            "entity": "char#11"
-          }
-        ]
-      },
-      "eventId": 235
-    },
-    {
-      "number": 4,
       "category": "characters",
       "text": {
         "text": "Stiath of Vallbrorneth came back from it with a new hunger: a longing to master the powers they glimpsed.",
@@ -131,7 +86,32 @@
       "eventId": 152
     },
     {
-      "number": 5,
+      "number": 3,
+      "category": "characters",
+      "text": {
+        "text": "Coth of Rialling fought Stiath of Vallbrorneth to the death at Niar.",
+        "links": [
+          {
+            "start": 0,
+            "length": 16,
+            "entity": "char#11"
+          },
+          {
+            "start": 24,
+            "length": 22,
+            "entity": "char#24"
+          },
+          {
+            "start": 63,
+            "length": 4,
+            "entity": "settlement#24"
+          }
+        ]
+      },
+      "eventId": 200
+    },
+    {
+      "number": 4,
       "category": "characters",
       "text": {
         "text": "Coth of Rialling challenged Stiath of Vallbrorneth to a duel (to the death), to be fought at Niar in a year and a day.",
@@ -156,7 +136,7 @@
       "eventId": 192
     },
     {
-      "number": 6,
+      "number": 5,
       "category": "characters",
       "text": {
         "text": "Gral of Bandbia found the Gold Chalice in the depths of Taramdale.",
@@ -181,7 +161,7 @@
       "eventId": 194
     },
     {
-      "number": 7,
+      "number": 6,
       "category": "characters",
       "text": {
         "text": "At Niar, Stiath of Vallbrorneth met Coth of Rialling to first blood.",
@@ -204,6 +184,26 @@
         ]
       },
       "eventId": 151
+    },
+    {
+      "number": 7,
+      "category": "characters",
+      "text": {
+        "text": "Giaskia of Gendtialing slew the monsters of Taramdale.",
+        "links": [
+          {
+            "start": 0,
+            "length": 22,
+            "entity": "char#38"
+          },
+          {
+            "start": 44,
+            "length": 9,
+            "entity": "region#2"
+          }
+        ]
+      },
+      "eventId": 198
     }
   ]
 }

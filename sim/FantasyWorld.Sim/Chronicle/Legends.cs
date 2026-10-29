@@ -60,7 +60,7 @@ public static class Legends
     }
 
     /// <summary>The engine's own secrets, in turn by the world's seed, named for where they were found.</summary>
-    public static (string Title, string Text) RulesSecret(World world, string where)
+    public static (string Title, string Text)? RulesSecret(World world, string where)
     {
         string[] titles = ["The Sealed Tablets", "The Drowned Hymn", "The Ninth Name", "The Broken Covenant", "The First Fire", "The Sleeping Choir"];
         string[] texts =
@@ -72,8 +72,13 @@ public static class Legends
             "Deep below burns a fire older than the gods, and every labyrinth was dug to keep it from waking.",
             "Below, in ranks, stand the gods' first servants, asleep; the walls say they will wake when the last labyrinth falls silent.",
         ];
-        var i = (int)((world.Seed + (ulong)world.Secrets.Count) % (ulong)titles.Length);
-        return ($"{titles[i]} of {English.InProse(where)}", texts[i]);
+        // A truth already told is never told again (the owner, 2026-10-29: "many duplicates in the lore").
+        var told = world.Secrets.Select(s => s.Text).ToHashSet(StringComparer.Ordinal);
+        var start = (int)((world.Seed + (ulong)world.Secrets.Count) % (ulong)titles.Length);
+        var left = Enumerable.Range(0, titles.Length).Select(k => (start + k) % titles.Length).Where(k => !told.Contains(texts[k])).ToList();
+        // All told: none is made up twice (an inventor may still write a new one).
+        if (left.Count == 0) return null;
+        return ($"{titles[left[0]]} of {English.InProse(where)}", texts[left[0]]);
     }
 
     /// <summary>The legend the episode tells: in full until an episode that told it so has aired, else its summary.</summary>

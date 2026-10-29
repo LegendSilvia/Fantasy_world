@@ -22,8 +22,10 @@ public class LabyrinthTests
     }
 
     /// <summary>A three-level labyrinth in region 2, its guardian, and a relic lost on its deepest level.</summary>
-    private static (Structure Maze, Monster Guardian, Artifact Relic) Stage(World world, EventLog log, Character hero)
+    private static (Structure Maze, Monster Guardian, Artifact Relic) Stage(World world, EventLog log, Character hero, bool aired = true)
     {
+        // A labyrinth's bottom is reached only once the chronicle has aired (its secret waits for the audience).
+        if (aired) world.LastBroadcastDate = "2026-10-29";
         var opened = log.Append(world.Date, new EventDraft("LabyrinthOpened", Place: world.Regions[2].Ref));
         var maze = new Structure
         {
@@ -67,6 +69,22 @@ public class LabyrinthTests
         Assert.Equal((MonsterState.Lairing, maze.Id, wild.Id), (guardian.State, guardian.LairStructureId, guardian.RegionId));
         Assert.DoesNotContain(sim.Log.All, e => e.Type == "MonsterRaid" && e.Actors["monster"] == guardian.Ref);
         Assert.True(wild.Danger >= guardian.Might / 2);
+    }
+
+    [Fact]
+    public void BeforeTheChronicleAirs_NoDelverReachesTheBottom()
+    {
+        var world = TestPeople.World();
+        var log = new EventLog();
+        var hero = Delver(world);
+        Stage(world, log, hero, aired: false);
+        var sim = new Simulator(world, log, new EventQueue(),
+            new ISimSystem[] { new DeedsSystem(new WantDecider("maze"), new FixedArbiter("success")) }, checkInvariants: true);
+        sim.AdvanceDays(360 * 8);
+
+        Assert.Equal(new[] { "1", "2" }, sim.Log.All.Where(e => e.Type == "LabyrinthDelved").Select(e => e.Payload["level"]));
+        Assert.DoesNotContain(sim.Log.All, e => e.Type is "LabyrinthCleared" or "SecretRevealed");
+        Assert.Empty(world.Secrets);
     }
 
     [Fact]

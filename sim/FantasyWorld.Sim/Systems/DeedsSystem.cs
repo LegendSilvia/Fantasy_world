@@ -107,7 +107,11 @@ public sealed class DeedsSystem : ISimSystem
             options.Add(new($"hunt:{lair.Id}", (c.Ambition == Ambitions.Renown ? 40 : 5) * bold, $"hunt the monsters of {lair.Name}"));
 
         // A labyrinth is delved level by level; the relics lost in its land lie on its deepest level.
-        var maze = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0 && nearby.Any(r => r.Id == s.RegionId))
+        // The bottom of a labyrinth, and the secret of the world it keeps, waits for the audience (the owner, 2026-10-29:
+        // secrets only from the year the chronicle first airs): before then no delve goes past the level above it.
+        var aired = world.LastBroadcastDate is not null;
+        var maze = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0 && nearby.Any(r => r.Id == s.RegionId)
+                                                      && (aired || s.Depth + 1 < Math.Max(s.Levels, 3)))
             .OrderBy(s => s.Id).FirstOrDefault();
         if (maze is not null)
             options.Add(new($"maze:{maze.Id}", (c.Ambition == Ambitions.Artifact ? 40 : c.Ambition == Ambitions.Renown ? 25 : 2) * bold,
@@ -369,10 +373,13 @@ public sealed class DeedsSystem : ISimSystem
     private void Reveal(SimContext ctx, Character delver, Structure maze, Region region, long clearedEventId, EntityRef? spoils)
     {
         var world = ctx.World;
-        var (title, text) = Legends.RulesSecret(world, maze.Name);
+        var rules = Legends.RulesSecret(world, maze.Name);
         var invention = _inventor.Invent(new InventionBrief("secret of the world", $"{maze.Ref}|secret",
-            Legends.SecretFacts(world, $"{maze.Name} in {region.Name}", delver.Name), title));
+            Legends.SecretFacts(world, $"{maze.Name} in {region.Name}", delver.Name), rules?.Title ?? $"The Secret of {Narration.English.InProse(maze.Name)}"));
+        string title, text;
         if (invention.Lore is { Length: > 0 } lore) (title, text) = (invention.Name, lore.Length <= Legends.MaxSecret ? lore : lore[..Legends.MaxSecret]);
+        else if (rules is { } told) (title, text) = told;
+        else return; // nothing new to reveal: the labyrinth is cleared, its secret kept
         var who = new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["structure"] = maze.Ref };
         if (spoils is { } relic) who["artifact"] = relic;
         var revealed = ctx.Emit(new EventDraft("SecretRevealed", Actors: who, Place: region.Ref,

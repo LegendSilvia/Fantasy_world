@@ -513,6 +513,20 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         if (code != 0) throw new InvalidOperationException($"fw {args[0]} failed (exit code {code}).");
     }
 
+    /// <summary>
+    /// No image is painted before this year of the world (the owner, 2026-10-29: images only from the start of year 100,
+    /// where the chronicle begins); the offline history before it is never painted.
+    /// </summary>
+    public const int FirstImageYear = 100;
+
+    /// <summary>Whether the world has reached the year its images begin; logged when it has not.</summary>
+    private bool Paints(FantasyWorld.Sim.Model.World world, string what)
+    {
+        if (world.Date.Year >= FirstImageYear) return true;
+        log.WriteLine($"Images: none for {what} before Year {FirstImageYear} (the world is in Year {world.Date.Year}).");
+        return false;
+    }
+
     /// <summary>The face-offs' portraits and banners and the fights' stills (<see cref="Likenesses"/>); a failure only leaves them out.</summary>
     private async Task<Episode> FaceOffImagesAsync(PrefixedStore store, string snapshot, Episode episode, string date, CancellationToken ct)
     {
@@ -521,6 +535,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         {
             using var saved = WorldStore.Open(snapshot);
             var world = saved.Load().World;
+            if (!Paints(world, "the episode")) return episode;
             var limit = StorageBudget.Bytes(config.Storage.MaxGigabytes);
             return await Likenesses.AttachAsync(episode, world, store, images, config.Images.Style, date,
                 async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log, ct)
@@ -570,8 +585,11 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         }
     }
 
-    /// <summary>At most this many new images a day for the website, so a new world fills in over a few days.</summary>
-    public const int NewWebImagesPerDay = 12;
+    /// <summary>
+    /// New images painted for the website alone: none (the owner, 2026-10-29: paint only what appears in the videos). The
+    /// site shows the pictures the episodes' face-offs and stills already have.
+    /// </summary>
+    public const int NewWebImagesPerDay = 0;
 
     /// <summary>
     /// The website's images (the owner, 2026-10-29): the realms' banners for the flags, the beasts for their badges and cards,
@@ -585,6 +603,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         {
             using var saved = WorldStore.Open(snapshot);
             var (world, events, _) = saved.Load();
+            if (!Paints(world, "the website")) return;
             var limit = StorageBudget.Bytes(config.Storage.MaxGigabytes);
             var pictures = await Likenesses.ForWebAsync(world, events, store, images, config.Images.Style, date,
                 async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log,

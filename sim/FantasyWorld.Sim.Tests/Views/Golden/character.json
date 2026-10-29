@@ -73,7 +73,7 @@
     {
       "year": 19,
       "text": {
-        "text": "Fath of Cunvei and Broth of Cunvei fell out over the clash of a calm nature with a wrathful one.",
+        "text": "Fath of Cunvei and Broth of Cunvei became rivals over the clash of a calm nature with a wrathful one.",
         "links": [
           {
             "start": 0,
@@ -87,32 +87,32 @@
           }
         ]
       },
-      "eventId": 219,
+      "eventId": 212,
       "highlight": false
     },
     {
       "year": 21,
       "text": {
-        "text": "Fath of Cunvei knighted Tas of Bandbia in the service of the Kingdom of Thonae.",
+        "text": "Tas of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
             "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 24,
-            "length": 14,
             "entity": "char#29"
           },
           {
-            "start": 61,
+            "start": 31,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 59,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 238,
+      "eventId": 231,
       "highlight": true
     }
   ],

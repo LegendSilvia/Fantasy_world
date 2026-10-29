@@ -9,8 +9,13 @@ namespace FantasyWorld.Sim.Tests.Chronicle;
 /// <summary>The world's legend and its secrets (the owner, 2026-10-29).</summary>
 public class LoreTests
 {
-    private static Simulator Aged(int years, WorldSize size = WorldSize.Tiny, ulong seed = 3) =>
-        Prehistory.Run(WorldGenerator.Generate(new WorldGenOptions(seed, size), DateTimeOffset.UnixEpoch), years);
+    private static Simulator Aged(int years, WorldSize size = WorldSize.Tiny, ulong seed = 3, bool aired = false)
+    {
+        var world = WorldGenerator.Generate(new WorldGenOptions(seed, size), DateTimeOffset.UnixEpoch);
+        // On the air from the start: labyrinths may be cleared to the bottom, and their secrets told.
+        if (aired) world.LastBroadcastDate = "2026-10-29";
+        return Prehistory.Run(world, years);
+    }
 
     [Fact]
     public void TheLegend_IsToldInFull_InTheFirstEpisode_AndInBrief_AfterIt()
@@ -42,11 +47,13 @@ public class LoreTests
     [Fact]
     public void ALabyrinthCleared_RevealsASecretOfTheWorld_ToldAsNews_AndKept()
     {
-        var sim = Aged(120, WorldSize.Medium, 11);
+        var sim = Aged(120, WorldSize.Medium, 11, aired: true);
         var cleared = sim.Log.All.Where(e => e.Type == "LabyrinthCleared").ToList();
         Assert.NotEmpty(cleared);
         var revealed = sim.Log.All.Where(e => e.Type == "SecretRevealed").ToList();
-        Assert.Equal(cleared.Count, revealed.Count);
+        // Without an inventor, each of the rules' secrets is told once at most: never the same truth twice.
+        Assert.Equal(Math.Min(cleared.Count, 6), revealed.Count);
+        Assert.Equal(revealed.Count, sim.World.Secrets.Select(s => s.Text).Distinct().Count());
         Assert.All(revealed, r => Assert.Contains(r.Causes, c => cleared.Any(e => e.Id == c.EventId)));
         Assert.Equal(revealed.Select(r => r.Id), sim.World.Secrets.Select(s => s.EventId));
         Assert.Equal(sim.World.Secrets.Count, sim.World.Secrets.Select(s => s.Title).Distinct().Count());

@@ -1,6 +1,6 @@
 {
   "worldName": "Dromothholt",
-  "summary": "Two realms, 24 settlements, no open labyrinths.",
+  "summary": "Two realms, 24 settlements, one open labyrinth.",
   "year": 21,
   "firstYear": 1,
   "historical": true,
@@ -570,13 +570,13 @@
     {
       "ref": "structure#1",
       "name": "The Deeps of Taramdale",
-      "kind": "Ruin",
-      "state": "Ruined",
+      "kind": "Labyrinth",
+      "state": "Standing",
       "position": {
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "detail": "cleared"
+      "detail": "level 2 of 3"
     }
   ],
   "borders": [
@@ -639,7 +639,7 @@
   "armies": [],
   "battles": [
     {
-      "eventId": 234,
+      "eventId": 227,
       "year": 20,
       "position": {
         "x": 0.2578125,
@@ -720,7 +720,22 @@
       ]
     }
   ],
-  "monsters": [],
+  "monsters": [
+    {
+      "ref": "monster#1",
+      "name": "The Lich of the Deeps of Taramdale",
+      "breed": "lich",
+      "might": 61,
+      "legendary": false,
+      "slumbering": false,
+      "position": {
+        "x": 0.4921875,
+        "y": 0.4296875
+      },
+      "roseEventId": 173,
+      "guarding": true
+    }
+  ],
   "realms": [
     {
       "ref": "realm#1",

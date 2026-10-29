@@ -1,25 +1,25 @@
 {
   "outcome": {
-    "eventId": 234,
+    "eventId": 227,
     "year": 20,
     "category": "characters",
     "title": {
-      "text": "Coth of Rialling fought Stiath of Vallbrorneth to first blood at Niar.",
+      "text": "At Niar, Coth of Rialling met Stiath of Vallbrorneth to first blood.",
       "links": [
         {
-          "start": 0,
+          "start": 3,
+          "length": 4,
+          "entity": "settlement#24"
+        },
+        {
+          "start": 9,
           "length": 16,
           "entity": "char#11"
         },
         {
-          "start": 24,
+          "start": 30,
           "length": 22,
           "entity": "char#24"
-        },
-        {
-          "start": 65,
-          "length": 4,
-          "entity": "settlement#24"
         }
       ]
     },
@@ -58,11 +58,11 @@
         "hasMore": false
       },
       {
-        "eventId": 223,
+        "eventId": 216,
         "year": 19,
         "category": "characters",
         "title": {
-          "text": "Coth of Rialling called Stiath of Vallbrorneth out (to first blood); they will meet at Niar in a year and a day.",
+          "text": "Coth of Rialling challenged Stiath of Vallbrorneth to a duel (to first blood), to be fought at Niar in a year and a day.",
           "links": [
             {
               "start": 0,
@@ -70,12 +70,12 @@
               "entity": "char#11"
             },
             {
-              "start": 24,
+              "start": 28,
               "length": 22,
               "entity": "char#24"
             },
             {
-              "start": 87,
+              "start": 95,
               "length": 4,
               "entity": "settlement#24"
             }
@@ -142,20 +142,20 @@
   ],
   "edges": [
     {
-      "from": 223,
-      "to": 234,
+      "from": 216,
+      "to": 227,
       "kind": "trigger",
       "label": "because, and"
     },
     {
       "from": 96,
-      "to": 234,
+      "to": 227,
       "kind": "motive",
       "label": "because, and"
     },
     {
       "from": 96,
-      "to": 223,
+      "to": 216,
       "kind": "motive",
       "label": "because"
     },
@@ -200,7 +200,7 @@
   ],
   "consequences": [
     {
-      "eventId": 235,
+      "eventId": 228,
       "year": 20,
       "category": "characters",
       "title": {
@@ -224,7 +224,7 @@
     }
   ],
   "story": {
-    "text": "In Year 1, Coth of Rialling and Stiath of Vallbrorneth fell out over the clash of a content nature with an ambitious one. In Year 5, Stiath of Vallbrorneth called Coth of Rialling out (to first blood); they will meet at Niar in a year and a day. In Year 6, Stiath of Vallbrorneth fought Coth of Rialling to first blood at Niar. In Year 19, Coth of Rialling called Stiath of Vallbrorneth out (to first blood); they will meet at Niar in a year and a day. And so, in Year 20, Coth of Rialling fought Stiath of Vallbrorneth to first blood at Niar.",
+    "text": "In Year 1, Coth of Rialling and Stiath of Vallbrorneth fell out over the clash of a content nature with an ambitious one. In Year 5, Stiath of Vallbrorneth called Coth of Rialling out (to first blood); they will meet at Niar in a year and a day. In Year 6, Stiath of Vallbrorneth fought Coth of Rialling to first blood at Niar. In Year 19, Coth of Rialling challenged Stiath of Vallbrorneth to a duel (to first blood), to be fought at Niar in a year and a day. And so, in Year 20, at Niar, Coth of Rialling met Stiath of Vallbrorneth to first blood.",
     "links": [
       {
         "start": 11,

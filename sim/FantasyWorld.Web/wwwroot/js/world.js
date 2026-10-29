@@ -327,7 +327,7 @@ async function render(kind, key, year) {
     }
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
-    if (kind === "character") return character(screen, JSON.parse(await call("Fighter", key)));
+    if (kind === "character") return character({ ...screen, id: key }, JSON.parse(await call("Fighter", key)), await pictures);
     if (kind === "why") return why(screen);
     if (kind === "artifact") return `<div class="kicker">Artifact</div><h2>${esc(screen.name ?? screen.title ?? "")}</h2><p>${esc(screen.lore ?? "")}</p>`;
     throw new Error(kind);
@@ -391,14 +391,31 @@ $("lore").addEventListener("click", () => setHash({ panel: "lore/world" }));
 $("people").addEventListener("click", () => setHash({ panel: "people/all" }));
 
 /** A fight as a face-off card (the owner, 2026-10-29): both sides' portraits, classes, fates and figures, then the odds or the verdict. */
+/**
+ * The shadow figure with a "?" (the owner, 2026-10-29): a character or beast stays unseen until a video paints them; only
+ * what the videos show is painted, so everyone else wears this.
+ */
+const UNSEEN = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280"><defs><radialGradient id="g" cx="50%" cy="38%" r="70%">`
+    + `<stop offset="0" stop-color="#4a4640"/><stop offset="1" stop-color="#1c1a17"/></radialGradient></defs>`
+    + `<rect width="200" height="280" rx="14" fill="url(#g)"/>`
+    + `<circle cx="100" cy="96" r="40" fill="#0d0c0b"/><path d="M28 280 C32 196 64 156 100 156 C136 156 168 196 172 280 Z" fill="#0d0c0b"/>`
+    + `<text x="100" y="124" text-anchor="middle" font-family="Georgia,serif" font-size="96" font-weight="700" fill="#c9b98f">?</text></svg>`);
+
+/** A character's or beast's portrait: its painting once a video has shown it, else the shadow figure. */
+const portrait = (pics, r) => pics[r] || UNSEEN;
+const unseen = (pics, r) => pics[r] ? "" : " unseen";
+
 function fightCard(f, pics) {
     const moment = f.stage === "fought" ? "The verdict" : f.stage === "under way" ? "The clash rages" : "The challenge";
     const side = (x, right) => `<div class="fo-side ${right ? "right" : ""}">`
-        + (pics[x.ref] ? `<div class="fo-portrait ${x.fate === "Slain" ? "slain" : ""}"><img src="${esc(pics[x.ref])}" alt="">`
+        // A duellist always has a portrait (the shadow figure until painted); a realm only its painted banner.
+        + (pics[x.ref] || x.ref.startsWith("char#")
+            ? `<div class="fo-portrait ${x.fate === "Slain" ? "slain" : ""}${unseen(pics, x.ref)}"><img src="${esc(portrait(pics, x.ref))}" alt="">`
             + (x.fate ? `<span class="fo-stamp ${/Victor/.test(x.fate) ? "win" : /Slain|Defeated/.test(x.fate) ? "loss" : ""}">${esc(x.fate)}</span>` : "") + `</div>` : "")
         + `<div class="fo-name"><i style="background:${css(x.colour)}"></i>${emblem(x.class)}${x.ref.startsWith("char#") || x.ref.startsWith("realm#") ? ref(x.ref, x.name) : esc(x.name)}</div>`
         + `<div class="muted">${esc([x.class && x.class[0].toUpperCase() + x.class.slice(1), ...x.notes].filter(Boolean).join(" · "))}</div>`
-        + (!pics[x.ref] && x.fate ? `<div class="fo-stamp-inline">${esc(x.fate)}</div>` : "") + `</div>`;
+        + (!pics[x.ref] && !x.ref.startsWith("char#") && x.fate ? `<div class="fo-stamp-inline">${esc(x.fate)}</div>` : "") + `</div>`;
     const rows = f.a.stats.map((x, i) => {
         const y = f.b.stats[i];
         if (!y) return "";
@@ -420,7 +437,7 @@ function beastCard(b, pics) {
     if (!b) return `<p class="muted">The beast is gone from the chronicle.</p>`;
     const state = b.state === "slain" ? `Slain${b.slayer ? ` by ${ref(b.slayer.ref, b.slayer.name)}` : ""}` : b.state === "slumbering" ? "Asleep in its lair" : "Abroad and hungry";
     return `<div class="kicker">${b.legendary ? "A legend · " : ""}${esc(b.breed)}</div><h2>${esc(b.name)}</h2>`
-        + (pics[b.ref] ? `<div class="beast-portrait ${b.state === "slain" ? "slain" : ""}"><img src="${esc(pics[b.ref])}" alt=""></div>` : "")
+        + `<div class="beast-portrait ${b.state === "slain" ? "slain" : ""}${unseen(pics, b.ref)}"><img src="${esc(portrait(pics, b.ref))}" alt=""></div>`
         + `<p class="muted">${state}${b.place ? ` · ${esc(b.place)}` : ""} · might ${b.might} · dread ${b.notoriety}</p>`
         + (b.lore ? `<p>${esc(b.lore)}</p>` : "")
         + (b.deeds.length ? `<h3>Its deeds</h3><ul>${b.deeds.map(d => `<li><span class="muted">Year ${d.year}</span> · ${linked(d.text)} · ${ref(d.event, "why")}</li>`).join("")}</ul>` : "");
@@ -501,9 +518,12 @@ $("panel-body").addEventListener("click", async e => {
 /** A character class's painted emblem (sub-project 13), with its name as the tooltip; nothing for none. */
 const emblem = k => k ? `<img class="emblem" src="img/emblems/${esc(k.split(":")[0])}.png" alt="" title="${esc(k.includes(":") ? k.split(":")[1] : k[0].toUpperCase() + k.slice(1))}">` : "";
 
-function character(c, f) {
+function character(c, f, pics = {}) {
+    const me = `char#${c.id ?? ""}`;
     return `<div class="kicker">${esc(c.kicker)}${f ? ` · ${esc(f.title)}${f.awakened ? " (awakened)" : ""}` : ""}</div>`
-        + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2><p>${esc(c.line)}</p>`
+        + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2>`
+        + `<div class="beast-portrait char-portrait${c.alive === false ? " slain" : ""}${unseen(pics, me)}"><img src="${esc(portrait(pics, me))}" alt=""></div>`
+        + `<p>${esc(c.line)}</p>`
         + (f?.known?.length ? `<p class="known">Known as ${f.known.map(esc).join(", ")}</p>` : "")
         + (f?.calling ? `<div class="prayer"><p><b>Awakened: ${esc(f.calling.name)}</b></p><p>${esc(f.calling.origin)}</p>`
             + `<p><b>Power:</b> ${esc(f.calling.does)}. <b>Condition:</b> ${esc(f.calling.condition)}.</p></div>` : "")

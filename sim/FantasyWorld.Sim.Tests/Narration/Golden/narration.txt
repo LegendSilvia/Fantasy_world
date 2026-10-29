@@ -8,7 +8,7 @@ In Year 2, Keirn of Grirnen found the Bone Circlet in the depths of Wan.
 In Year 3, Griardrall of Dram challenged Sam of Mardareth to a duel (to first blood), to be fought at Kiancross in a year and a day.
 In Year 4, Griardrall of Dram fought Sam of Mardareth to first blood at Kiancross.
 In Year 4, at Thaell, Griardrall of Dram and Fome of Dram welcomed Dombria of Dram, lady of the Duchy of Taengriarnwold.
-In Year 5, Greymane, a war-hound of the grassland, came to Griardrall of Dram's side and would not leave it.
+In Year 5, Saltwing, a war-hound of the grassland, came to Griardrall of Dram's side and would not leave it.
 In Year 5, the Bone Circlet passed to Draern of Grirnen.
 In Year 6, Griardrall of Dram challenged Sam of Mardareth to a duel (to the death), to be fought at Kiancross in a year and a day.
 In Year 7, at Kesburg, Aen of Liangriarn and Fiakon of Liangriarn welcomed Keilirn of Liangriarn, lady of the Duchy of Bem.
@@ -59,7 +59,7 @@ In Year 17, Reim of Liangriarn was caught trying to steal the Reliquary of Brusr
 In Year 17, the ley lines of Miarnreach surged.
 In Year 17, Brim of Sind and Braldro of Sind became rivals over the clash of a calm nature with a wrathful one.
 In Year 17, an earthquake shook Taengriarnwold.
-In Year 18, Stormtail, a hunting falcon of the grassland, came to Brim of Sind's side and would not leave it.
+In Year 18, Oldfang, a hunting falcon of the grassland, came to Brim of Sind's side and would not leave it.
 In Year 18, from it Hilhia of Liangriarn made an art of fighting all their own, the Broken Guard: a stroke that comes when the foe believes them beaten.
 In Year 19, the rivers of Miarnreach burst their banks.
 In Year 19, Holl of Ein called Driand of Dram out (to first blood); they will meet at Thaell in a year and a day.
@@ -79,6 +79,6 @@ In Year 22, Riall of Dreimreiard cleared Miarnreach of monsters.
 In Year 24, Brim of Sind hunted the monsters of Endgaendholt and was killed.
 In Year 24, Brim of Sind was killed by monsters, aged 55.
 
-In Year 57, the Kingdom of Taengriarnwold declared war on the Duchy of Bem for want of food, and so began the Bem War. It came about because in Year 56, food ran short in Gildale. That came about because in Year 47, the soil of Gildale was worked out. And also because in Year 49, Heimrol of Laeraellen succeeded Fiammal of Sind at Thaell. That came about because in Year 49, Fiammal of Sind died of an illness at the age of 39.
+In Year 60, the Kingdom of Bem went to war against the Duchy of Taengriarnwold for revenge: the War of Bem's Vengeance. This happened because in Year 57, the Duchy of Taengriarnwold declared war on the Kingdom of Bem for want of food, and so began the Bem War. Before that, in Year 56, food ran short in Gildale. Before that, in Year 47, the soil of Gildale was worked out. And also because in Year 41, Fiammal of Sind succeeded Miail of Sind at Thaell. That came about because in Year 41, Miail of Sind was killed by monsters at the age of 27. Before that, in Year 41, Miail of Sind hunted the monsters of Endgaendholt and was killed. And also because in Year 58, Ramraemdale passed from the Duchy of Taengriarnwold to the Kingdom of Bem. Before that, in Year 58, the Bem War ended; the Kingdom of Bem prevailed over the Duchy of Taengriarnwold: three regions ceded and reparations. Earlier still, in Year 58, the siege of Thaell ended: it fell. That came about because in Year 58, the Host of Bem besieged Thaell. And also because in Year 55, Milil of Drolmirn succeeded Aernaell of Laeoeth at Kesburg. Before that, in Year 55, Aernaell of Laeoeth died of old age at the age of 61.
 
-In Year 47, the soil of Gildale was worked out. In Year 49, Fiammal of Sind died of an illness at the age of 39. That same year, Heimrol of Laeraellen succeeded Fiammal of Sind at Thaell. In Year 56, food ran short in Gildale. And so, in Year 57, the Kingdom of Taengriarnwold declared war on the Duchy of Bem for want of food, and so began the Bem War.
+In Year 41, Miail of Sind hunted the monsters of Endgaendholt and was killed. That same year, Miail of Sind was killed by monsters at the age of 27. That same year, Fiammal of Sind succeeded Miail of Sind at Thaell. In Year 47, the soil of Gildale was worked out. In Year 55, Aernaell of Laeoeth died of old age at the age of 61. That same year, Milil of Drolmirn succeeded Aernaell of Laeoeth at Kesburg. In Year 56, food ran short in Gildale. In Year 57, the Duchy of Taengriarnwold declared war on the Kingdom of Bem for want of food, and so began the Bem War. In Year 58, the Host of Bem besieged Thaell. That same year, the siege of Thaell ended: it fell. That same year, the Bem War ended; the Kingdom of Bem prevailed over the Duchy of Taengriarnwold: three regions ceded and reparations. That same year, Ramraemdale passed from the Duchy of Taengriarnwold to the Kingdom of Bem. And so, in Year 60, the Kingdom of Bem went to war against the Duchy of Taengriarnwold for revenge: the War of Bem's Vengeance.

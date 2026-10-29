@@ -19,6 +19,9 @@ namespace FantasyWorld.Web;
 /// </summary>
 public static class Viewer
 {
+    /// <summary>At most this many companions in the lore: the story's own, not every beast.</summary>
+    public const int MaxCompanions = 8;
+
     private static World? _world;
     private static EventLog? _log;
 
@@ -112,8 +115,13 @@ public static class Viewer
             bearers = World.Characters.Values.Where(c => c.Class == Classes.Awaken(k.Base, k.Name))
                 .OrderByDescending(c => c.IsActive).ThenBy(c => c.Id).Select(c => new { @ref = c.Ref.ToString(), name = c.Name, living = c.IsActive }),
         });
-        // The beasts at the side of the living (the owner, 2026-10-29).
-        var companions = World.Characters.Values.Where(c => c.IsActive && c.Companion is { Kind: Companion.Beast }).OrderBy(c => c.Companion!.Day).ThenBy(c => c.Id)
+        // The beasts of the story (the owner, 2026-10-29: the lore is no register of every pet): those at the side of the
+        // story's own (FantasyWorld.Sim.Systems.Prominence) or born of a beast their keeper slew, most notable first. Every
+        // companion still shows on its keeper's own page.
+        var companions = World.Characters.Values
+            .Where(c => c.IsActive && c.Companion is { Kind: Companion.Beast } m && (m.What.StartsWith("the young of ", StringComparison.Ordinal)
+                                                                                     || FantasyWorld.Sim.Systems.Prominence.IsNotable(World, c)))
+            .OrderByDescending(c => FantasyWorld.Sim.Systems.Prominence.Of(World, c)).ThenBy(c => c.Id).Take(MaxCompanions)
             .Select(c => new { name = c.Companion!.Name, what = c.Companion.What, lore = c.Companion.Lore, of = new { @ref = c.Ref.ToString(), name = c.Name } });
         var shadow = World.Sagas.Values.OrderByDescending(s => s.Id).Select(s => new
         {
