@@ -32,6 +32,8 @@ public static class BroadcastApp
             return await CheckImagesAsync(Option(args, "--config") ?? "broadcast.json", env, handler, output, ct).ConfigureAwait(false);
         if (args is ["get" or "put", var first, var second, ..] && args.Skip(3).All(a => a is "--local" || a == Option(args, "--local")))
             return await CopyAsync(args[0] == "get", first, second, Option(args, "--local"), env, handler, output, ct).ConfigureAwait(false);
+        if (args is ["report", ..])
+            return await ReportAsync(args, env, handler, output, clock, ct).ConfigureAwait(false);
         if (args is not ["run", ..] || args.Skip(1).Any(a => a.StartsWith("--", StringComparison.Ordinal)
                                                              && a is not ("--dry-run" or "--upload-unlisted" or "--create" or "--config" or "--local" or "--prepare" or "--repaint"))
                                      || args.Contains("--upload-unlisted") && !args.Contains("--dry-run"))
@@ -82,6 +84,27 @@ public static class BroadcastApp
             settings => Llm.LlmProviders.Create(settings, env, ScriptTimeout), Speech.ElevenLabs.FromEnvironment(http, env),
             Media.FluxImages.FromEnvironment(http, config.Images.BaseUrl, env),
             config.Site.Url is { } site ? token => Tally(http, site, output, token) : null).RunAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The day's report (the owner, 2026-10-29), read back from the bucket: Markdown for the workflow's summary, each
+    /// shortfall also a warning on the run's page. Exits 0; it only reports.
+    /// </summary>
+    private static async Task<int> ReportAsync(string[] args, Func<string, string?> env, HttpMessageHandler? handler, TextWriter output,
+        Func<DateTimeOffset> clock, CancellationToken ct)
+    {
+        var config = BroadcastConfig.Load(Option(args, "--config") ?? "broadcast.json");
+        using var http = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
+        IObjectStore? store = Option(args, "--local") is { } dir ? new LocalObjectStore(dir) : R2ObjectStore.FromEnvironment(http, env);
+        if (store is null)
+        {
+            output.WriteLine("error: R2 is not configured.");
+            return DailyRun.Failed;
+        }
+        var report = await RunReport.BuildAsync(config, store, args.Contains("--dry-run"), Option(args, "--date") ?? config.DateAt(clock()), ct).ConfigureAwait(false);
+        output.Write(report.Markdown);
+        foreach (var problem in report.Problems) Console.Error.WriteLine($"::warning title=Broadcast::{problem}");
+        return 0;
     }
 
     /// <summary>

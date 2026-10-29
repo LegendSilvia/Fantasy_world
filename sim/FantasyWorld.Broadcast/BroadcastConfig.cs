@@ -56,8 +56,14 @@ public sealed record BroadcastYouTube
 {
     public bool Upload { get; init; } = true;
 
-    /// <summary>public, unlisted or private.</summary>
-    public string Privacy { get; init; } = "public";
+    /// <summary>public, unlisted or private; public only with <see cref="GoPublic"/> (the owner, 2026-10-29: unlisted until launch).</summary>
+    public string Privacy { get; init; } = "unlisted";
+
+    /// <summary>
+    /// The owner's word that the world is ready to be seen (the owner, 2026-10-29): without it no video goes up public,
+    /// whatever the privacy says, and the broadcast refuses to start.
+    /// </summary>
+    public bool GoPublic { get; init; }
 
     /// <summary>24 is Entertainment.</summary>
     public string CategoryId { get; init; } = "24";
@@ -197,6 +203,8 @@ public sealed record BroadcastConfig
         if (Images.Make && !Uri.TryCreate(Images.BaseUrl, UriKind.Absolute, out _)) throw new FormatException("images.baseUrl must be an address.");
         if (YouTube.Privacy is not ("public" or "unlisted" or "private"))
             throw new FormatException($"youTube.privacy must be public, unlisted or private (got \"{YouTube.Privacy}\").");
+        if (YouTube.Privacy == "public" && !YouTube.GoPublic)
+            throw new FormatException("youTube.privacy is public but youTube.goPublic is not set: videos stay unlisted until the owner says the world is ready.");
         if (PublicBaseUrl is { } url && !(Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps))
             throw new FormatException($"publicBaseUrl must be an https address (got \"{url}\").");
         if (Site.Url is { } site && !(Uri.TryCreate(site, UriKind.Absolute, out var siteUri) && siteUri.Scheme == Uri.UriSchemeHttps))

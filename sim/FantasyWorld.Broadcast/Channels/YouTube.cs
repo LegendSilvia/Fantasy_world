@@ -171,6 +171,10 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
         return chapter is not null ? chapter.Start + 4 : timeline is { Length: > 0 } t ? t.Length / 3.0 : 5;
     }
 
+    /// <summary>Whether the day's film was planned (its shot list stored), so the video should wait for it rather than pan.</summary>
+    private static async Task<bool> FilmPlannedAsync(IObjectStore store, string day, CancellationToken ct) =>
+        await store.GetAsync(DioramaFilm.ShotsKey(day), ct).ConfigureAwait(false) is not null;
+
     public async Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default)
     {
         var store = _store ?? throw new InvalidOperationException("The YouTube channel was not attached to the broadcast's store.");
@@ -209,7 +213,10 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                     var length = chapters is null ? DioramaFilm.MaxShortSeconds : DioramaFilm.ShortLength(chapters);
                     if (chapters is null || await DioramaFilm.ChunksAsync(store, day, chapters, ct, tall: true, until: length).ConfigureAwait(false) is not { } tall)
                     {
-                        _log.WriteLine($"youtube-short: the vertical film of {day} was not filmed in full; no short today.");
+                        // A Short is never posted without its film (the owner, 2026-10-29): it waits for the film to be finished.
+                        if (await FilmPlannedAsync(store, day, ct).ConfigureAwait(false))
+                            throw new ChannelWaitingException($"the vertical film of {day} is not filmed in full yet; the short waits for it.");
+                        _log.WriteLine($"youtube-short: the vertical film of {day} was not filmed; no short today.");
                         return;
                     }
                     mp4 = await video.JoinAsync(tall, audio, length, await Speech.Subtitles.LoadAsync(store, day, ct).ConfigureAwait(false), true, ct).ConfigureAwait(false);
@@ -222,7 +229,10 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                 }
                 else
                 {
-                    if (settings.Diorama) _log.WriteLine($"youtube: the diorama film of {day} was not filmed in full; the camera pans over the map instead.");
+                    // A planned film not filmed in full holds the video back (the owner, 2026-10-29), rather than panning over the map.
+                    if (settings.Diorama && await FilmPlannedAsync(store, day, ct).ConfigureAwait(false))
+                        throw new ChannelWaitingException($"the diorama film of {day} is not filmed in full yet; the video waits for it.");
+                    if (settings.Diorama) _log.WriteLine($"youtube: no diorama film was planned for {day}; the camera pans over the map instead.");
                     var shots = Shots.Timed(await Shots.LoadAsync(store, day, ct).ConfigureAwait(false), chapters);
                     mp4 = await video.MakeAsync(map, audio, shots, ct).ConfigureAwait(false);
                 }
@@ -239,6 +249,9 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                 return;
             }
 
+            // The last check before a byte leaves (the owner, 2026-10-29): never public without the owner's word.
+            if (settings.Privacy == "public" && !settings.GoPublic)
+                throw new ChannelException("refused to upload publicly: youTube.goPublic is not set.");
             _uploads++;
             var token = await TokenAsync(ct).ConfigureAwait(false);
             var timeline = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);

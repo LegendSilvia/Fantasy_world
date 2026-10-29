@@ -577,7 +577,7 @@ public class DailyRunTests : IDisposable
         var tried = BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(DryRun: true, UploadUnlisted: true), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!;
         Assert.True(tried.Uploads);
         Assert.Equal("unlisted", tried.Privacy);
-        Assert.Equal("public", BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Privacy);
+        Assert.Equal("unlisted", BroadcastApp.YouTubeChannel(BroadcastConfig.Parse("{}"), new RunOptions(), env.GetValueOrDefault, new HttpClient(), TextWriter.Null)!.Privacy);
         Assert.Equal(DailyRun.Failed, await BroadcastApp.RunAsync(["run", "--upload-unlisted", "--local", _dir.Path], TextWriter.Null, () => Morning, env.GetValueOrDefault));
         var quiet = new StringWriter();
         // Without the secrets the live video is still made and stored, never uploaded.

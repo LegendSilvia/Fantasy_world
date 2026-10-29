@@ -106,7 +106,7 @@ public class YouTubeTests : IDisposable
         Assert.Equal((HttpMethod.Put, 8), (google.Seen[2].Request.Method, google.Seen[2].Body!.Length));
         Assert.Equal(new UploadState(UploadState.Done, null, 8, "vid1", "private"), await State());
         Assert.NotNull(await _store.GetAsync(YouTube.VideoKey("2026-10-27")));
-        Assert.Contains("YouTube made the video private, not public", _log.ToString());
+        Assert.Contains("YouTube made the video private, not unlisted", _log.ToString());
 
         await Channel(google).PublishAsync(Sample(), [1], [2]); // a rerun: already uploaded
         Assert.Equal(3, google.Seen.Count);
@@ -159,13 +159,18 @@ public class YouTubeTests : IDisposable
         await FantasyWorld.Broadcast.Speech.Chapters.SaveAsync(_store, "2026-10-27", timeline);
         var plan = DioramaFilm.Chunks(timeline);
         Assert.Equal(3, plan.Count);
-        // One stretch missing: the camera pans over the map instead.
+        // No film planned for the day: the camera pans over the map.
         await _store.PutAsync(DioramaFilm.ChunkKey("2026-10-27", 0), [7], "video/mp4");
         await _store.PutAsync(DioramaFilm.ChunkKey("2026-10-27", 1), [8], "video/mp4");
         var video = new FakeVideo();
         await Channel(new FakeGoogle(Session, Created), video: video).PublishAsync(Sample(), [1], [2]);
         Assert.Equal(1, video.Made);
-        Assert.Contains("not filmed in full", _log.ToString());
+        Assert.Contains("no diorama film was planned", _log.ToString());
+
+        // A film planned but a stretch missing: the video waits for it, rather than pan (the owner, 2026-10-29).
+        await _store.DeleteAsync(YouTube.StateKey("2026-10-27"));
+        await _store.PutAsync(DioramaFilm.ShotsKey("2026-10-27"), Encoding.UTF8.GetBytes("[]"), "application/json");
+        await Assert.ThrowsAsync<ChannelWaitingException>(() => Channel(new FakeGoogle(Session, Created), video: new FakeVideo()).PublishAsync(Sample(), [1], [2]));
 
         // Every stretch there: the film is joined from them, with the narration.
         await _store.DeleteAsync(YouTube.StateKey("2026-10-27"));

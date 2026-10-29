@@ -161,10 +161,22 @@ jobs:
             size=1920x1080; extra=()
           fi
           echo "Filming stretch $CHUNK ($SHAPE, $size): $from–$to s."
-          timeout 1400 xvfb-run -a -s "-screen 0 ${size}x24" "$GODOT" --path game \
-            --rendering-driver vulkan --rendering-method forward_plus --resolution "$size" --fixed-fps 24 \
-            res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$RUNNER_TEMP/shots.json" \
-            --images "$RUNNER_TEMP/images" --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames" "${extra[@]}"
+          # Judged by the frames written, not Godot's exit code (it once crashed on its way out after a whole stretch was
+          # filmed, and the stretch was lost); a stretch short of frames is filmed once more.
+          want=$(python3 -c "import math; print(max(1, math.ceil(($to - $from) * 24) - 1))")
+          for attempt in 1 2; do
+            rm -rf "$RUNNER_TEMP/frames"
+            timeout 1400 xvfb-run -a -s "-screen 0 ${size}x24" "$GODOT" --path game \
+              --rendering-driver vulkan --rendering-method forward_plus --resolution "$size" --fixed-fps 24 \
+              res://film/Film.tscn -- --world "$RUNNER_TEMP/world.fw.db" --shots "$RUNNER_TEMP/shots.json" \
+              --images "$RUNNER_TEMP/images" --from "$from" --to "$to" --fps 24 --frames "$RUNNER_TEMP/frames" "${extra[@]}" \
+              || echo "Godot exited with $? (attempt $attempt)."
+            got=$(ls "$RUNNER_TEMP/frames" 2>/dev/null | wc -l)
+            echo "Attempt $attempt: $got of $want frames."
+            if [ "$got" -ge "$want" ]; then exit 0; fi
+          done
+          echo "error: stretch $CHUNK ($SHAPE) was not filmed in full after two attempts."
+          exit 1
       - name: Encode and store the stretch
         run: |
           if [ ! -d "$RUNNER_TEMP/frames" ]; then echo "Nothing filmed."; exit 0; fi
@@ -313,6 +325,25 @@ jobs:
           if [ "$DRY_RUN" = "true" ] && [ "$UPLOAD_UNLISTED" = "true" ]; then args+=(--upload-unlisted); fi
           if [ "$CREATE" = "true" ]; then args+=(--create); fi
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
+      - name: Report what the day came to
+        # The day read back from the bucket (the owner, 2026-10-29): what was made, uploaded and posted, and what fell
+        # short, in the run's summary; each shortfall is also a warning on the run's page.
+        if: always()
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          args=(report --config broadcast.json)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          date=$(jq -r .date <<< "$PLAN")
+          if [ -n "$date" ] && [ "$date" != "null" ]; then args+=(--date "$date"); fi
+          dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}" \
+            > "$RUNNER_TEMP/report.md" 2> "$RUNNER_TEMP/warnings.txt" || true
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/report.md"
+          grep '^::warning' "$RUNNER_TEMP/warnings.txt" || true
       - name: Fetch the day's video for the run's artifacts
         if: always() && env.PLAN != ''
         continue-on-error: true
