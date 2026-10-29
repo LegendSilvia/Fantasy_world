@@ -81,7 +81,7 @@ public sealed class DiplomacySystem : ISimSystem
         var territory = Realms.Territory(world, realm).Select(r => r.Id).ToHashSet();
         var levies = world.Settlements.Values.Where(s => !s.Abandoned && territory.Contains(s.RegionId)).Sum(s => s.Adults) * 0.05;
         var knights = world.ActiveCharacters.Count(c => c.Role == Role.Knight && territory.Contains(world.Settlements[c.SettlementId].RegionId));
-        return (levies + Math.Max(0, realm.Treasury) / 50 * 3 + knights * 20) * Stocks.Arms(realm)
+        return (levies + Math.Max(0, realm.Treasury) / 50 * 3 + knights * 20) * Stocks.Arms(world, realm)
                * (PrayerSystem.Favoured(world, realm.Ref) ? PrayerSystem.FavourStrength : 1);
     }
 
@@ -206,6 +206,11 @@ public sealed class DiplomacySystem : ISimSystem
             if (ruler is not null && ruler.Ambition == Ambitions.Renown
                 && Strength(world, realm) > Strength(world, enemy) * 1.2 && Fates.Accession(ctx.Log, ruler) is { } crowned)
                 options.Add(new(CasusBelli.Glory, enemy.Id, crowned.Id, Border(world, realm, enemy), 0, ruler.Has(Traits.Ambitious) ? 15 : 8));
+
+            // The world's own resources are coveted (the owner, 2026-10-29): a neighbour holding the land of one this realm lacks.
+            foreach (var wonder in world.Wonders.Where(w => !w.Hidden && w.FoundEventId != 0 && theirs.Any(r => r.Id == w.RegionId)
+                                                            && !Realms.Territory(world, realm).Any(r => r.Id == w.RegionId)))
+                options.Add(new(CasusBelli.ResourceNeed, enemy.Id, wonder.FoundEventId, wonder.RegionId, 0, wonder.Role == WorldResource.Seal ? 10 : 25));
 
             var hungry = Realms.Domain(world, realm).Select(r => r.Conditions.GetValueOrDefault(Conditions.Shortage)).FirstOrDefault(id => id != 0);
             var granary = theirs.Where(r => r.Fertility >= 60 && Touches(world, r, realm)).OrderByDescending(r => r.Fertility).ThenBy(r => r.Id).FirstOrDefault();

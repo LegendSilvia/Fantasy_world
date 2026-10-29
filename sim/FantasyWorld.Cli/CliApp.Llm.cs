@@ -46,6 +46,8 @@ public static partial class CliApp
         var (sim, gateway) = LoadLive(store, providers);
         var inventor = new LlmInventor(new StoryContext(sim.World, sim.Log, gateway));
         RaceGenerator.Invent(sim.World, inventor);
+        // The world's own resources, named and told by Claude (the owner, 2026-10-29).
+        Wonders.Invent(sim.World, inventor);
         // Every nation's festival, as Claude would have it (sub-project 13 N6).
         var rng = Rng.ForStream(sim.World.Seed, "invent/festivals", 0);
         foreach (var realm in Realms.Independent(sim.World).OrderBy(r => r.Id).ToList())
@@ -55,6 +57,7 @@ public static partial class CliApp
         var fresh = gateway.Journal.Pending.ToList();
         store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         foreach (var race in sim.World.Races.Values) output.WriteLine($"{race.Name}: {race.Looks}. {race.Nature}");
+        foreach (var w in sim.World.Wonders) output.WriteLine($"{w.Name} ({w.Role}{(w.Hidden ? ", hidden" : "")}): {w.What}");
         foreach (var realm in Realms.Independent(sim.World).Where(r => r.Festival is not null))
             output.WriteLine($"{Statecraft.Title(realm)}: {realm.Festival!.Name} (month {realm.Festival.Month}), {realm.Festival.Rite}.");
         PrintLlmSummary(output, gateway, fresh);

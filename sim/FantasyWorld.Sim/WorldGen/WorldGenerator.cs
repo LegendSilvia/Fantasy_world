@@ -66,6 +66,7 @@ public static class WorldGenerator
         PeopleGenerator.Populate(world, Stream("people"));
         RealmGenerator.Generate(world, Stream("realms"));
         world.Name = new NameGen(Stream("world-name")).Region();
+        Systems.Wonders.Generate(world);
         return world;
     }
 }

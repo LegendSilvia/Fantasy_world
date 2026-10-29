@@ -82,7 +82,7 @@ public sealed partial class MilitarySystem
     private static double Readiness(World world, Army army)
     {
         // Arms by the realm's stocks: short of ore it fights weaker, with horses stronger (sub-project 12).
-        var arms = world.Realms.TryGetValue(army.RealmId, out var realm) ? Stocks.Arms(realm) : 1;
+        var arms = world.Realms.TryGetValue(army.RealmId, out var realm) ? Stocks.Arms(world, realm) : 1;
         // The gods' favour, by prayer or a players' blessing (sub-project 13 N5).
         var favour = realm is not null && PrayerSystem.Favoured(world, realm.Ref) ? PrayerSystem.FavourStrength : 1;
         return (army.Morale / 100 + 0.2) * (0.5 + army.Supply / 200) * arms * favour;

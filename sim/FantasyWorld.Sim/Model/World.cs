@@ -84,6 +84,9 @@ public sealed class World
     /// <summary>The beginnings of history (<see cref="Incident"/>): plots to carry out and culprits yet to be unmasked.</summary>
     public List<Incident> Incidents { get; set; } = new();
 
+    /// <summary>The world's own resources (<see cref="WorldResource"/>), hidden until a secret of the world uncovers them.</summary>
+    public List<WorldResource> Wonders { get; set; } = new();
+
     /// <summary>The gods' favour (sub-project 13 N5): "char#12" or "realm#3" → the last day it lasts.</summary>
     public SortedDictionary<string, long> Favour { get; init; } = new(StringComparer.Ordinal);
 

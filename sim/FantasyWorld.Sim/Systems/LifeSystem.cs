@@ -41,6 +41,8 @@ public sealed class LifeSystem : ISimSystem
             // A demon lord does not age (sub-project 13).
             var risks = Risks(c, region, ctx.Date, SagaSystem.IsDemonLord(world, c) ? 100 : Peoples.SpanOf(world, c));
             var total = risks.Sum(r => r.PerYear);
+            // Where the world's own healing resource is held, sickness and age come gentler (the owner, 2026-10-29).
+            if (world.Wonders.Count > 0 && Realms.SovereignOf(world, region) is { } home && Wonders.Holds(world, home, WorldResource.Life)) total *= Wonders.LifeMortality;
             // At their people's limit, none lives another month (the owner, 2026-10-29).
             var spent = !SagaSystem.IsDemonLord(world, c) && Aged(c.Age(ctx.Date), Peoples.SpanOf(world, c)) >= Peoples.CommonLimit;
             if (spent)

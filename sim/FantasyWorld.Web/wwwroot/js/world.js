@@ -544,10 +544,15 @@ function lore(l) {
         + `<p>${esc(k.origin)}</p><p><b>Power:</b> ${esc(k.does)}. <b>Condition:</b> ${esc(k.condition)}.</p>`
         + (k.bearers.length ? `<p class="muted">Borne by ${k.bearers.map(b => ref(b.ref, b.name) + (b.living ? "" : " (fallen)")).join(", ")}${k.event ? ` · ${ref(k.event, "the first awakening")}` : ""}</p>` : "") + `</div>`);
     const part = (title, body) => body ? `<h3>${title}</h3>${body}` : "";
+    const wonders = list(l.wonders ?? [], w => w.name
+        ? `<div class="prayer"><p><b>${esc(w.name)}</b>${w.place ? ` <span class="muted">· ${esc(w.place)}</span>` : ""}</p><p>${esc(w.what)}</p>`
+          + `<p class="muted">${esc(w.power.charAt(0).toUpperCase() + w.power.slice(1))}.${w.by ? ` Found by ${ref(w.by.ref, w.by.name)}` : ""}${w.event ? ` · ${ref(w.event, "how")}` : ""}</p></div>`
+        : `<div class="prayer"><p><b>Not yet found</b></p><p class="muted">They say there is something in this world that is ${esc(w.power)}. A secret of the world will lead to it.</p></div>`);
     return `<div class="kicker">The chronicle so far</div><h2>${esc(l.name)}</h2>`
         + part("The legend", legend)
         + part("What the songs remember", tales)
         + `<h3>Secrets of the world</h3>` + (secrets || `<p class="muted">No secret has come to light. They say the labyrinths keep them.</p>`)
+        + part("The world's own treasures", wonders)
         + part("The peoples", races)
         + part("The gods", gods && `<ul class="people">${gods}</ul>`)
         + part("The realms", realms && `<ul class="people">${realms}</ul>`)

@@ -224,7 +224,11 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
         var world = ctx.World;
         var years = ctx.Date.Year - ctx.Log.Get(saga.RoseEventId).Date.Year;
         var beaten = Realms.Territory(world, dominion).Count() <= 1;
-        if (years < 15 && !beaten) return;
+        // A world with its own seal can be sealed only with it (the owner, 2026-10-29): hidden, no sage can; found, the
+        // sealing need not wait so long.
+        var seal = world.Wonders.FirstOrDefault(w => w.Role == WorldResource.Seal);
+        if (seal is { Hidden: true }) return;
+        if (years < (seal is null ? 15 : 5) && !beaten) return;
         var dark = Realms.Territory(world, dominion).Select(r => r.Id).ToHashSet();
         var sage = world.ActiveCharacters
             .Where(c => c.Role is Role.Mage or Role.Priest && c.Attributes.Lore >= 15 && !dark.Contains(world.Settlements[c.SettlementId].RegionId))
@@ -232,7 +236,8 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
         if (sage is null) return;
         var choice = _decider.Decide(new DecisionBrief(sage.Id, "seal the demon lord", new[]
         {
-            new DecisionOption("seal", 10 + years + (beaten ? 40 : 0) + (sage.Has(Traits.Brave) ? 15 : 0), $"give their life to seal {demon.Name} away"),
+            new DecisionOption("seal", 10 + years + (beaten ? 40 : 0) + (sage.Has(Traits.Brave) ? 15 : 0) + (seal is null ? 0 : 40),
+                seal is null ? $"give their life to seal {demon.Name} away" : $"give their life to seal {demon.Name} away with {seal.Name}"),
             new DecisionOption("wait", 60 + (sage.Has(Traits.Craven) ? 30 : 0), "wait, and hope the hero foretold prevails"),
         }), ctx.Rng);
         if (choice.Key != "seal") return;
@@ -240,7 +245,10 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
         using (ctx.Annotate("motive", choice.Reasoning))
             sealed_ = ctx.Emit(new EventDraft("DemonLordSealed",
                 Actors: new Dictionary<string, EntityRef> { ["sealer"] = sage.Ref, ["demon lord"] = demon.Ref },
-                Place: world.Settlements[dominion.CapitalId].Ref, Causes: new[] { new Cause(saga.RoseEventId, CauseKind.Enabler, 0.8) },
+                Place: world.Settlements[dominion.CapitalId].Ref,
+                Payload: seal is null ? null : new Dictionary<string, string> { ["with"] = seal.Name },
+                Causes: seal is null ? new[] { new Cause(saga.RoseEventId, CauseKind.Enabler, 0.8) }
+                    : new[] { new Cause(saga.RoseEventId, CauseKind.Enabler, 0.8), new Cause(seal.FoundEventId, CauseKind.Enabler, 0.9) },
                 Importance: 96, Tags: new[] { "Characters", "Magic" }));
         Fates.Die(ctx, sage, "the sealing", new[] { new Cause(sealed_.Id, CauseKind.Trigger, 1.0) });
         // The sealed lord leaves the story, not the world: it may be told of again.

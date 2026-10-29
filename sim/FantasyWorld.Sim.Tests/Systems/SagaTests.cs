@@ -84,6 +84,8 @@ public class SagaTests
         var sage = ctx.World.ActiveCharacters.First(c => c.Role is not Role.Lord);
         sage.Role = Role.Mage;
         sage.Attributes.Lore = 20;
+        // A world without its own seal (the owner, 2026-10-29: with one, it must be found first).
+        ctx.World.Wonders.Clear();
         Years(ctx, system, 40);
 
         // Each hero is beaten back (the arbiter says so), so after fifteen years the sage gives their life.
@@ -94,5 +96,26 @@ public class SagaTests
         Assert.Equal("the sealing", sealer.DeathCause);
         Assert.True(ctx.World.Characters[saga.DemonLordId].Faded);
         Assert.True(sealedEvent.Date.Year - ctx.Log.Get(saga.RoseEventId).Date.Year >= 15 || Realms.Territory(ctx.World, ctx.World.Realms[saga.RealmId]).Count() <= 1);
+    }
+
+    [Fact]
+    public void AWorldsOwnSeal_MustBeFound_BeforeAnySageCanSealTheDemonLord()
+    {
+        var (ctx, system, saga) = Risen(fight: "defender_kills", choice: "seal");
+        var sage = ctx.World.ActiveCharacters.First(c => c.Role is not Role.Lord);
+        sage.Role = Role.Mage;
+        sage.Attributes.Lore = 20;
+        ctx.World.Wonders.Clear();
+        ctx.World.Wonders.Add(new WorldResource("starsilver", "Starsilver", "a pale metal", WorldResource.Seal, ctx.World.Regions.Keys.First()));
+        Years(ctx, system, 40);
+        Assert.DoesNotContain(ctx.Log.All, e => e.Type == "DemonLordSealed");
+
+        // Found, it seals the demon lord, and the sealing cites its finding.
+        var found = ctx.Log.Append(ctx.World.Date, new EventDraft("WonderFound"));
+        ctx.World.Wonders[0] = ctx.World.Wonders[0] with { Hidden = false, FoundEventId = found.Id };
+        Years(ctx, system, 10);
+        var sealedEvent = ctx.Log.All.Single(e => e.Type == "DemonLordSealed");
+        Assert.Equal("Starsilver", sealedEvent.Payload["with"]);
+        Assert.Contains(sealedEvent.Causes, c => c.EventId == found.Id);
     }
 }

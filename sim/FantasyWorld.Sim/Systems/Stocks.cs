@@ -46,11 +46,13 @@ public static class Stocks
     public static void Fill(SimContext ctx, Realm realm)
     {
         var inField = ctx.World.Armies.Values.Any(a => !a.Disbanded && a.RealmId == realm.Id);
-        foreach (var kind in Kinds)
+        // The world's own resources, once found, are gathered like the rest (the owner, 2026-10-29); a wealth one fills the treasury.
+        foreach (var kind in Kinds.Concat(ctx.World.Wonders.Where(w => !w.Hidden).Select(w => w.Kind)))
         {
             var output = Output(ctx.World, realm, kind);
             if (output <= 0 && Stock(realm, kind) <= 0) continue;
             var (stock, cap) = (Stock(realm, kind), output * YearsKept);
+            if (ctx.World.Wonders.Any(w => w.Kind == kind && w.Role == WorldResource.Wealth)) realm.Treasury += output / 12 * Wonders.WealthGold;
             realm.Stocks[kind] = stock >= cap ? stock : Math.Round(Math.Min(cap, stock + output / 12), 3);
             // Over: a few months' yield in hand; or the want is gone (no host in the field wants arms; a treasury that can
             // buy two years' building wants no stone of its own).
@@ -111,8 +113,12 @@ public static class Stocks
             Causes: new[] { new Cause(began, CauseKind.Trigger, 1.0) }, Importance: Compactor.MinorBelow, Tags: new[] { "Economy" }));
     }
 
-    /// <summary>A host's arms by its realm's stocks: short of ore, three quarters of its strength; with horses in hand, a tenth more.</summary>
-    public static double Arms(Realm realm) => (Short(realm, ResourceKinds.Ore) ? 0.75 : 1) * (Mounted(realm) ? 1.1 : 1);
+    /// <summary>
+    /// A host's arms by its realm's stocks: short of ore, three quarters of its strength; with horses in hand, a tenth more;
+    /// with the world's own forge resource in its stores, a quarter more (the owner, 2026-10-29).
+    /// </summary>
+    public static double Arms(World world, Realm realm) =>
+        (Short(realm, ResourceKinds.Ore) ? 0.75 : 1) * (Mounted(realm) ? 1.1 : 1) * (Wonders.Holds(world, realm, WorldResource.Forge) ? Wonders.ForgeArms : 1);
 
     /// <summary>Horses in hand: the realm's hosts ride (they march faster and strike harder).</summary>
     public static bool Mounted(Realm realm) => Stock(realm, ResourceKinds.Horses) >= 1 && !Short(realm, ResourceKinds.Horses);

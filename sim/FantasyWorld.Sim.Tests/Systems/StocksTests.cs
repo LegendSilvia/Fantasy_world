@@ -58,12 +58,12 @@ public class StocksTests
     public void ShortOfOre_AHostFightsAtThreeQuarters_AndHorsesInHandAddATenth()
     {
         var (ctx, realm) = Realm();
-        Assert.Equal(1, Stocks.Arms(realm));
+        Assert.Equal(1, Stocks.Arms(ctx.World, realm));
         realm.Stocks[ResourceKinds.Horses] = 5;
         Assert.True(Stocks.Mounted(realm));
-        Assert.Equal(1.1, Stocks.Arms(realm), 6);
+        Assert.Equal(1.1, Stocks.Arms(ctx.World, realm), 6);
         Stocks.Use(ctx, realm, ResourceKinds.Ore, 1);
-        Assert.Equal(0.75 * 1.1, Stocks.Arms(realm), 6);
+        Assert.Equal(0.75 * 1.1, Stocks.Arms(ctx.World, realm), 6);
     }
 
     [Fact]

@@ -417,6 +417,8 @@ public sealed class DeedsSystem : ISimSystem
             Importance: Fates.Importance(delver, 70), Tags: new[] { "Characters", "Deeds", "Magic" }));
         world.Secrets.Add(new Secret(revealed.Id, title, text, ctx.Date.Day, region.Id, delver.Id));
         Glory(ctx, delver, 10);
+        // A secret uncovered may bring one of the world's own resources to light (the owner, 2026-10-29).
+        Wonders.Discover(ctx, delver, revealed.Id);
     }
 
     private static void Steal(SimContext ctx, Character thief, Artifact artifact)
