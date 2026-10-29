@@ -597,11 +597,24 @@ public partial class Film : Node
         });
         var column = Ui.Column("Column", 18);
         column.Alignment = BoxContainer.AlignmentMode.Center;
-        if (side.Class is { Length: > 0 } k) column.AddChild(Emblem("Class", Classes.Base(k), ImageWidth * 0.55f));
-        var initial = Ui.Line(side.Name.Length > 0 ? side.Name[..1].ToUpperInvariant() : "?", "Initial", null, 150);
-        initial.AddThemeColorOverride("font_color", colour.Lightened(0.35f));
-        initial.HorizontalAlignment = HorizontalAlignment.Center;
-        column.AddChild(initial);
+        if (side.Ref.StartsWith("char#", StringComparison.Ordinal))
+        {
+            // A character no painting shows yet: the shadow figure with a question mark, as the website shows them
+            // (the owner, 2026-10-29).
+            var figure = new TextureRect
+            {
+                Name = "Unseen", Texture = ImageTexture.CreateFromImage(Unseen()), CustomMinimumSize = new Vector2(ImageWidth - 12, ImageHeight - 12),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+            };
+            column.AddChild(figure);
+        }
+        else
+        {
+            var initial = Ui.Line(side.Name.Length > 0 ? side.Name[..1].ToUpperInvariant() : "?", "Initial", null, 150);
+            initial.AddThemeColorOverride("font_color", colour.Lightened(0.35f));
+            initial.HorizontalAlignment = HorizontalAlignment.Center;
+            column.AddChild(initial);
+        }
         panel.AddChild(column);
         if (side.Fate == Fates.Slain)
         {
@@ -609,6 +622,25 @@ public partial class Film : Node
             column.Modulate = new Color(0.5f, 0.5f, 0.5f);
         }
         return panel;
+    }
+
+    /// <summary>The shadow figure (the website's own, in world.js), drawn from its SVG.</summary>
+    private const string UnseenSvg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280"><defs><radialGradient id="g" cx="50%" cy="38%" r="70%">
+        <stop offset="0" stop-color="#4a4640"/><stop offset="1" stop-color="#1c1a17"/></radialGradient></defs>
+        <rect width="200" height="280" fill="url(#g)"/>
+        <circle cx="100" cy="96" r="40" fill="#0d0c0b"/><path d="M28 280 C32 196 64 156 100 156 C136 156 168 196 172 280 Z" fill="#0d0c0b"/>
+        <text x="100" y="124" text-anchor="middle" font-family="serif" font-size="96" font-weight="700" fill="#c9b98f">?</text></svg>
+        """;
+
+    private static Image? _unseen;
+
+    private static Image Unseen()
+    {
+        if (_unseen is not null) return _unseen;
+        var image = new Image();
+        image.LoadSvgFromString(UnseenSvg, 2f);
+        return _unseen = image;
     }
 
     /// <summary>A picture drained of colour and darkened a little, for the dead.</summary>

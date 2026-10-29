@@ -173,7 +173,8 @@ public partial class Diorama : Node3D
         foreach (var marker in _markers.Where(m => m.Shape != MarkerShape.Settlement)) StructureLayer.AddChild(MarkerNode(marker));
         Monsters = map.Monsters ?? Array.Empty<MapMonster>();
         foreach (var beast in Monsters) StructureLayer.AddChild(BeastNode(beast, _geography));
-        BorderLines.Mesh = DashedRibbons(FantasyWorld.Client.Markers.BorderLines(map, _geography), Palette.Ink);
+        // Borders thinner too (the owner, 2026-10-29: the thick dashed lines read as roads): half the width, a slimmer halo.
+        BorderLines.Mesh = DashedRibbons(FantasyWorld.Client.Markers.BorderLines(map, _geography), Palette.Ink, width: 0.0008f, halo: 0.0018f);
         War.Show(map, _geography);
         Realms.Show(map, _geography);
         Roads = RouteLayout.Roads(map, _geography);
