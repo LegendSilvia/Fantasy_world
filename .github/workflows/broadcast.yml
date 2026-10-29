@@ -75,30 +75,6 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ "$CREATE" = "true" ]; then args+=(--create); fi
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
-      - name: Fetch the day's video for the run's artifacts
-        if: always() && env.PLAN != ''
-        continue-on-error: true
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        run: |
-          prefix=$(jq -r .prefix <<< "$PLAN"); date=$(jq -r .date <<< "$PLAN")
-          fw() { dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "$@"; }
-          mkdir -p "$RUNNER_TEMP/video"
-          for name in episode.mp4 short.mp4 thumbnail.jpg script.txt; do
-            fw get "${prefix}episodes/$date/$name" "$RUNNER_TEMP/video/$date-$name" || echo "No $name for $date."
-          done
-      - name: Keep the day's video with the run (download it from the run's page)
-        if: always() && env.PLAN != ''
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: episode-video
-          path: ${{ runner.temp }}/video/
-          retention-days: 7
-          if-no-files-found: ignore
       - name: Hand the plan to the film jobs
         id: plan
         if: always()
