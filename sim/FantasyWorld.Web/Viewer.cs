@@ -130,6 +130,13 @@ public static class Viewer
         var thenYear = until is { } cut ? new WorldDate(cut).Year : World.Date.Year;
         var tales = World.Tales.Where(t => t.SungFrom <= thenYear && (!t.Forgotten || t.ForgottenIn > thenYear))
             .OrderByDescending(t => t.Year).Select(t => new { title = t.Title, text = t.Text, year = t.Year, @event = $"event#{t.EventId}", since = t.SungFrom });
+        // The towns' landmarks (the owner, 2026-10-29): what each is for, and what it was raised for.
+        var landmarks = World.Structures.Values.Where(s => s.Type == StructureKind.Landmark && s.State == StructureState.Standing && EventBy(until, s.CompletedEventId))
+            .OrderBy(s => s.Name).Select(s => new
+            {
+                name = s.Name, purpose = s.Purpose, town = World.Settlements.GetValueOrDefault(s.SettlementId)?.Name,
+                @for = s.ForEventId != 0 && EventBy(until, s.ForEventId) ? $"event#{s.ForEventId}" : null,
+            });
         // The world's own resources (the owner, 2026-10-29): found ones with their story and who found them; the hidden only as a rumour.
         var wonders = World.Wonders.Select(w => !w.Hidden && EventBy(until, w.FoundEventId)
             ? (object)new { name = w.Name, what = w.What, power = w.Power, place = World.Regions.GetValueOrDefault(w.RegionId)?.Name, by = Who(w.FinderId),
@@ -141,7 +148,7 @@ public static class Viewer
         }).FirstOrDefault();
         return JsonSerializer.Serialize(new
         {
-            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, tales, races, gods, realms, labyrinths, relics, shadow, callings, companions, wonders,
+            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, tales, races, gods, realms, labyrinths, relics, shadow, callings, companions, wonders, landmarks,
         }, Json);
     }
 

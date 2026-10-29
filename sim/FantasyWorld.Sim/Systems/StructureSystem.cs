@@ -32,6 +32,80 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
 
     private static readonly string[] Works = { "Spire", "Great Hall", "Bridge", "Temple", "Library", "Colossus", "Lighthouse", "Garden" };
 
+    /// <summary>What a town's landmark is for (the owner, 2026-10-29), and the works of each kind.</summary>
+    public const string Memorial = "memorial", Temple = "temple", Wonder = "wonder", Beauty = "beauty", Engine = "engine";
+
+    private static readonly Dictionary<string, string[]> WorksFor = new(StringComparer.Ordinal)
+    {
+        [Memorial] = ["Monument", "Hall of the Fallen", "Victory Arch", "Cenotaph", "Pillar of Names"],
+        [Temple] = ["Temple", "Cathedral", "Sanctuary", "Holy Spire", "Shrine of Pilgrims"],
+        [Wonder] = ["Colossus", "Great Lighthouse", "Grand Market", "Hanging Halls", "Great Library"],
+        [Beauty] = ["Gardens", "Fountain Court", "Moon Bridge", "Mirror Lake", "Painted Walk"],
+        [Engine] = ["Great Arcane Cannon", "Storm Ballista", "Thunder Trebuchet", "Sunlance Tower", "Dragonfire Bastion"],
+    };
+
+    /// <summary>A memorial steadies the realm; a temple stirs its faith; a wonder draws visitors' gold each year; beauty calms the town.</summary>
+    public const double MemorialStability = 5, TempleZeal = 10, WonderGold = 0.02, BeautyCalm = 15;
+
+    /// <summary>
+    /// A war engine (the owner, 2026-10-29: built purely for war, "a Great Arcane Cannon"): each standing one in a realm's
+    /// towns adds this much to its hosts' strength, up to <see cref="MostEngines"/>.
+    /// </summary>
+    public const double EngineMight = 0.15;
+
+    public const int MostEngines = 3;
+
+    /// <summary>How much harder a realm's hosts fight for the war engines standing in its towns.</summary>
+    public static double Engines(World world, Realm realm)
+    {
+        var count = world.Structures.Values.Count(s => s is { Type: StructureKind.Landmark, State: StructureState.Standing, Purpose: Engine }
+                                                       && world.Settlements.TryGetValue(s.SettlementId, out var town)
+                                                       && world.Regions[town.RegionId].OwnerRealmId == realm.Id);
+        return 1 + EngineMight * Math.Min(count, MostEngines);
+    }
+
+    /// <summary>
+    /// What a town's new landmark will be for, and the event it is raised for (the owner, 2026-10-29): a battle, siege or
+    /// sack nearby, or a fallen champion, is remembered with a memorial; a saint, a miracle or a holy war with a temple; a
+    /// rich market town builds a wonder to draw visitors; any other town builds for beauty.
+    /// </summary>
+    public static (string Purpose, long For) PurposeOf(SimContext ctx, Settlement seat)
+    {
+        var world = ctx.World;
+        var since = ctx.Date.Day - 15 * Core.WorldDate.DaysPerYear;
+        var near = new HashSet<long> { seat.RegionId };
+        if (world.Geography?.Graph is { } graph) near.UnionWith(graph.Neighbours(seat.RegionId));
+        bool Here(WorldEvent e) => e.Place is { } p && (p == seat.Ref || p.Kind == Region.Kind && near.Contains(p.Id)
+                                                          || p.Kind == Settlement.Kind && world.Settlements.TryGetValue(p.Id, out var s) && near.Contains(s.RegionId));
+        var recent = new List<WorldEvent>();
+        for (var i = ctx.Log.All.Count - 1; i >= 0 && ctx.Log.All[i].Date.Day >= since; i--)
+            if (Here(ctx.Log.All[i])) recent.Add(ctx.Log.All[i]);
+        // Every purpose the town has reason for, weighed: what it went through first, then its wealth, and beauty always.
+        var fits = new List<(string Purpose, long For, int Weight)> { (Beauty, 0, 2) };
+        // A realm at war, or with a rival, builds for war (the owner, 2026-10-29: purely for war, to add to its firepower).
+        if (Realms.SovereignOf(world, world.Regions[seat.RegionId]) is { } realm
+            && (DiplomacySystem.AtWar(world, realm) || realm.Treaties.Any(t => t.Kind == TreatyKind.Rivalry)))
+            fits.Add((Engine, world.Wars.Values.Where(w => !w.Ended && w.Involves(realm.Id)).Select(w => w.DeclaredEventId).FirstOrDefault(), 3));
+        if (recent.Where(e => e.Type is "SaintDeclared" or "GodsBlessed" or "HolyWarProclaimed" or "HolySiteRegained" or "ProphecySpoken")
+                .OrderByDescending(e => e.Importance).FirstOrDefault() is { } holy)
+            fits.Add((Temple, holy.Id, 4));
+        else if (world.Faiths.Values.Any(f => f.HolyRegionId == seat.RegionId)
+                 || Realms.SovereignOf(world, world.Regions[seat.RegionId]) is { } devout && world.Faiths.TryGetValue(devout.FaithId, out var faith) && faith.Zeal >= 50)
+            fits.Add((Temple, 0, 3));
+        if (recent.Where(e => e.Type is "BattleFought" or "SiegeEnded" or "SettlementSacked" or "DemonLordDriven" || e.Type == "CharacterDied" && e.Importance >= 50)
+                .OrderByDescending(e => e.Importance).FirstOrDefault() is { } remembered)
+            fits.Add((Memorial, remembered.Id, 4));
+        if (world.Routes.Values.Count(r => r.State == RouteState.Open && (r.FromId == seat.Id || r.ToId == seat.Id)) >= 2 || seat.Tier >= SettlementTier.City)
+            fits.Add((Wonder, 0, 3));
+        var roll = Core.Hash.Percent(seat.Id, 9501, ctx.Date.Year) * fits.Sum(f => f.Weight) / 100;
+        foreach (var (purpose, reason, weight) in fits)
+        {
+            if (roll < weight) return (purpose, reason);
+            roll -= weight;
+        }
+        return (Beauty, 0);
+    }
+
     private readonly IInventor _inventor = inventor ?? new RulesInventor();
 
     public string Name => "structures";
@@ -42,6 +116,9 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
 
     public void OnYearlyTick(SimContext ctx)
     {
+        // A standing wonder draws visitors, and their gold, every year (the owner, 2026-10-29).
+        foreach (var wonder in ctx.World.Structures.Values.Where(s => s is { Type: StructureKind.Landmark, State: StructureState.Standing, Purpose: Wonder }))
+            if (ctx.World.Settlements.TryGetValue(wonder.SettlementId, out var town) && !town.Abandoned) town.Wealth *= 1 + WonderGold;
         Ruin(ctx);
         Build(ctx);
         Commission(ctx);
@@ -71,23 +148,36 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
         {
             if (!world.Characters.TryGetValue(seat.LordId, out var lord) || !lord.IsActive || lord.Stage(ctx.Date) == LifeStage.Child) continue;
             if (!ctx.Rng.Chance(CommissionPerYear)) continue;
-            var fallback = $"The {Works[ctx.Rng.NextInt(0, Works.Length)]} of {seat.Name}";
+            _ = Works[ctx.Rng.NextInt(0, Works.Length)]; // the old draw, kept so the world's dice fall as before
+            var (purpose, remembered) = PurposeOf(ctx, seat);
+            var works = WorksFor[purpose];
+            var fallback = $"The {works[Core.Hash.Percent(seat.Id, 9500, ctx.Date.Year) % works.Length]} of {seat.Name}";
             var id = world.Ids.Take(Structure.Kind);
+            var why = remembered != 0 && ctx.Log.TryGet(remembered, out var ev) ? $" It is raised for this: {new Narration.TemplateNarrator(world).Sentence(ev)}" : "";
             var invention = _inventor.Invent(new InventionBrief("landmark", $"{Structure.Kind}#{id}",
-                $"A landmark commissioned by {lord.Name}, lord of {seat.Name}, in year {ctx.Date.Year}.", fallback));
+                $"A landmark commissioned by {lord.Name}, lord of {seat.Name}, in year {ctx.Date.Year}: "
+                + purpose switch
+                {
+                    Memorial => "a war memorial, so the fallen and what they fought for are never forgotten.",
+                    Temple => "a temple, a holy place for the faithful and for pilgrims.",
+                    Wonder => "a wonder of the world, built to draw visitors and traders from far away.",
+                    Engine => "a great engine of war (a siege engine, an arcane cannon, a war tower), built purely to make the realm's hosts mightier.",
+                    _ => "a thing built purely for beauty, for the pleasure of the town.",
+                } + why, fallback));
             seat.Wealth *= 0.8;
             var architect = Architect(world, seat, ctx.Date);
             var actors = new Dictionary<string, EntityRef> { ["builder"] = lord.Ref, ["structure"] = new(Structure.Kind, id) };
             if (architect is not null) actors["architect"] = architect.Ref;
             using var lore = ctx.Annotate("lore", invention.Lore);
             var begun = ctx.Emit(new EventDraft("LandmarkBegun", Actors: actors,
-                Place: seat.Ref, Payload: new Dictionary<string, string> { ["name"] = invention.Name },
+                Place: seat.Ref, Payload: new Dictionary<string, string> { ["name"] = invention.Name, ["purpose"] = purpose },
+                Causes: remembered != 0 ? new[] { new Cause(remembered, CauseKind.Motive, 0.8) } : null,
                 Importance: Fates.Importance(lord, 30), Tags: new[] { "Structures" }));
             world.Structures[id] = new Structure
             {
                 Id = id, Name = invention.Name, Type = StructureKind.Landmark, RegionId = seat.RegionId, SettlementId = seat.Id,
                 BuilderId = lord.Id, ArchitectId = architect?.Id ?? 0, StartedEventId = begun.Id, State = StructureState.Building,
-                Rushed = lord.Has(Traits.Ambitious) || lord.Has(Traits.Wrathful),
+                Rushed = lord.Has(Traits.Ambitious) || lord.Has(Traits.Wrathful), Purpose = purpose, ForEventId = remembered,
             };
         }
     }
@@ -208,7 +298,12 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
             work.CompletedEventId = done.Id;
             if (builder is { IsAlive: true }) builder.Renown = Math.Min(100, builder.Renown + 10);
             if (architect is { IsAlive: true }) architect.Renown = Math.Min(100, architect.Renown + 8);
-            if (Realms.SovereignOf(world, world.Regions[seat.RegionId]) is { } realm) realm.Stability = Math.Min(100, realm.Stability + 5);
+            if (Realms.SovereignOf(world, world.Regions[seat.RegionId]) is { } realm)
+            {
+                realm.Stability = Math.Min(100, realm.Stability + 5 + (work.Purpose == Memorial ? MemorialStability : 0));
+                if (work.Purpose == Temple && world.Faiths.TryGetValue(realm.FaithId, out var faith)) faith.Zeal = Math.Min(100, faith.Zeal + TempleZeal);
+            }
+            if (work.Purpose == Beauty) seat.Unrest = Math.Max(0, seat.Unrest - BeautyCalm);
         }
     }
 

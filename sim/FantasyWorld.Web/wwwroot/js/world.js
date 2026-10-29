@@ -546,6 +546,9 @@ function lore(l) {
         + `<p>${esc(k.origin)}</p><p><b>Power:</b> ${esc(k.does)}. <b>Condition:</b> ${esc(k.condition)}.</p>`
         + (k.bearers.length ? `<p class="muted">Borne by ${k.bearers.map(b => ref(b.ref, b.name) + (b.living ? "" : " (fallen)")).join(", ")}${k.event ? ` · ${ref(k.event, "the first awakening")}` : ""}</p>` : "") + `</div>`);
     const part = (title, body) => body ? `<h3>${title}</h3>${body}` : "";
+    const purposes = { memorial: "a war memorial", temple: "a temple", wonder: "a wonder that draws visitors", beauty: "built for beauty", engine: "an engine of war" };
+    const landmarks = list(l.landmarks ?? [], m => `<li><b>${esc(m.name)}</b>${m.town ? ` <span class="muted">· ${esc(m.town)}</span>` : ""}`
+        + `${m.purpose ? ` · ${esc(purposes[m.purpose] ?? m.purpose)}` : ""}${m.for ? ` · ${ref(m.for, "raised for")}` : ""}</li>`);
     const wonders = list(l.wonders ?? [], w => w.name
         ? `<div class="prayer"><p><b>${esc(w.name)}</b>${w.place ? ` <span class="muted">· ${esc(w.place)}</span>` : ""}</p><p>${esc(w.what)}</p>`
           + `<p class="muted">${esc(w.power.charAt(0).toUpperCase() + w.power.slice(1))}.${w.by ? ` Found by ${ref(w.by.ref, w.by.name)}` : ""}${w.event ? ` · ${ref(w.event, "how")}` : ""}</p></div>`
@@ -563,6 +566,7 @@ function lore(l) {
             && `<ul class="people">${list(l.companions ?? [], k => `<li><b>${esc(k.name)}</b>, ${esc(k.what)}, with ${ref(k.of.ref, k.of.name)}${k.lore ? `<br><span class="muted">${esc(k.lore)}</span>` : ""}</li>`)}</ul>`)
         + part("The shadow", shadow)
         + part("The labyrinths", mazes && `<ul class="people">${mazes}</ul>`)
+        + part("Landmarks of the towns", landmarks && `<ul class="people">${landmarks}</ul>`)
         + part("Relics of renown", relics && `<ul class="people">${relics}</ul>`);
 }
 

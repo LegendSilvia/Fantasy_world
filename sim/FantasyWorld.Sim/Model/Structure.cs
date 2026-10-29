@@ -45,6 +45,12 @@ public sealed class Structure
     public long DelayedByEventId { get; set; }
 
     public long StartedEventId { get; init; }
+
+    /// <summary>What a landmark is for (the owner, 2026-10-29): a war memorial, a temple, a wonder for visitors, or beauty; empty for other works.</summary>
+    public string Purpose { get; init; } = "";
+
+    /// <summary>The event a landmark was raised for (a battle remembered, a miracle, a saint), 0 for none.</summary>
+    public long ForEventId { get; init; }
     public long CompletedEventId { get; set; }
 
     /// <summary>0–100 while building.</summary>

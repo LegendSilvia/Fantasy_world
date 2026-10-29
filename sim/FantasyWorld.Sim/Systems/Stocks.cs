@@ -118,7 +118,8 @@ public static class Stocks
     /// with the world's own forge resource in its stores, a quarter more (the owner, 2026-10-29).
     /// </summary>
     public static double Arms(World world, Realm realm) =>
-        (Short(realm, ResourceKinds.Ore) ? 0.75 : 1) * (Mounted(realm) ? 1.1 : 1) * (Wonders.Holds(world, realm, WorldResource.Forge) ? Wonders.ForgeArms : 1);
+        (Short(realm, ResourceKinds.Ore) ? 0.75 : 1) * (Mounted(realm) ? 1.1 : 1) * (Wonders.Holds(world, realm, WorldResource.Forge) ? Wonders.ForgeArms : 1)
+        * StructureSystem.Engines(world, realm);
 
     /// <summary>Horses in hand: the realm's hosts ride (they march faster and strike harder).</summary>
     public static bool Mounted(Realm realm) => Stock(realm, ResourceKinds.Horses) >= 1 && !Short(realm, ResourceKinds.Horses);
