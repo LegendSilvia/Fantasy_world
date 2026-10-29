@@ -109,6 +109,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["FalselyAccused"] = "{accused} was falsely accused and driven out in {=title}, {=by}.",
         ["ResourceShortageBegan"] = "{realm} ran short of {=resource}.",
         ["WonderFound"] = "{finder} found {=name} in {@place}: {=what}. It is {=power}.",
+        ["SeaRouteOpened"] = "Ships began to sail between {from} and {to} across the sea, opening {route}.",
         ["ResourceShortageEnded"] = "{realm} had {=resource} enough again.",
         ["TraitTurned"] = "Facing {foe}, {who} {=how}: no longer {=from}, but {=to}.",
         ["FellIll"] = "At {@place}, {who}, aged {=age}, fell gravely ill, as the old of their people do.",

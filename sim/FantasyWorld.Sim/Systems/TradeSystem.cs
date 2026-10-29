@@ -21,6 +21,11 @@ public sealed class TradeSystem : ISimSystem
     public const double DangerLimit = 60;
     public const double FlowShare = 0.03;
 
+    /// <summary>Sea routes (the owner, 2026-10-29): the farthest a voyage may be, how many open a year, and how much more they carry.</summary>
+    public const double MaxVoyageDays = 90, SeaFlow = 1.5;
+
+    public const int MaxNewSeaPerYear = 2;
+
     public string Name => "trade";
 
     public void OnMonthlyTick(SimContext ctx)
@@ -52,11 +57,48 @@ public sealed class TradeSystem : ISimSystem
         foreach (var route in world.Routes.Values.Where(r => r.State == RouteState.Open))
         {
             var (from, to) = (world.Settlements[route.FromId], world.Settlements[route.ToId]);
-            route.Volume = FlowShare * Math.Min(from.Wealth, to.Wealth);
+            route.Volume = FlowShare * (route.BySea ? SeaFlow : 1) * Math.Min(from.Wealth, to.Wealth);
             from.Wealth += route.Volume;
             to.Wealth += route.Volume;
         }
         Open(ctx);
+        OpenSeaRoutes(ctx);
+    }
+
+    /// <summary>
+    /// Sea routes (the owner, 2026-10-29): each year a few pairs of port markets on different continents, at peace and
+    /// within a voyage's reach, open a route by ship across the sea lanes.
+    /// </summary>
+    private static void OpenSeaRoutes(SimContext ctx)
+    {
+        var world = ctx.World;
+        var graph = world.Geography?.Graph;
+        if (graph is null) return;
+        var ports = world.Settlements.Values.Where(s => IsMarket(s) && world.Regions[s.RegionId].Coastal).OrderBy(s => s.Id).ToList();
+        int Routes(long id) => world.Routes.Values.Count(r => r.State != RouteState.Closed && (r.FromId == id || r.ToId == id));
+        var linked = world.Routes.Values.Where(r => r.State != RouteState.Closed).Select(r => (r.FromId, r.ToId)).ToHashSet();
+        var opened = 0;
+        for (var i = 0; i < ports.Count && opened < MaxNewSeaPerYear; i++)
+            for (var j = i + 1; j < ports.Count && opened < MaxNewSeaPerYear; j++)
+            {
+                var (a, b) = (ports[i], ports[j]);
+                if (world.Regions[a.RegionId].ContinentId == world.Regions[b.RegionId].ContinentId || linked.Contains((a.Id, b.Id))
+                    || Routes(a.Id) > MaxPerMarket || Routes(b.Id) > MaxPerMarket) continue;
+                if (graph.ShortestPath(a.RegionId, b.RegionId) is not { } way || way.Days > MaxVoyageDays) continue;
+                if (AtWar(world, a, b) || way.Path.Any(r => world.Regions[r].OccupierRealmId != 0)) continue;
+                if (!ctx.Rng.Chance(OpenChance)) continue;
+                var id = world.Ids.Take(TradeRoute.Kind);
+                var opening = ctx.Emit(new EventDraft("SeaRouteOpened",
+                    Actors: new Dictionary<string, EntityRef> { ["route"] = new(TradeRoute.Kind, id), ["from"] = a.Ref, ["to"] = b.Ref },
+                    Place: a.Ref, Importance: 30, Tags: new[] { "Economy" }));
+                world.Routes[id] = new TradeRoute
+                {
+                    Id = id, Name = $"The {a.Name}–{b.Name} Sea Route", FromId = a.Id, ToId = b.Id,
+                    Regions = way.Path.ToList(), State = RouteState.Open, OpenedEventId = opening.Id, BySea = true,
+                };
+                linked.Add((a.Id, b.Id));
+                opened++;
+            }
     }
 
     /// <summary>A road a beast's raid cut stays shunned this long.</summary>
@@ -138,6 +180,9 @@ public sealed class TradeSystem : ISimSystem
             var war = world.Wars.Values.Where(w => !w.Ended).FirstOrDefault(w => Opposed(w, Realms.SovereignOf(world, from)?.Id, Realms.SovereignOf(world, to)?.Id));
             return ("war", null, war?.DeclaredEventId);
         }
+        // A sea beast on the way keeps ships in port (the owner, 2026-10-29).
+        if (route.BySea && world.Monsters.Values.FirstOrDefault(m => m.State == MonsterState.Roaming && m.AtSea && route.Regions.Contains(m.RegionId)) is { } beast)
+            return ("sea beast", world.Regions[beast.RegionId].Ref, beast.RoseEventId);
         foreach (var id in route.Regions)
         {
             var region = world.Regions[id];

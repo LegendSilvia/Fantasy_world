@@ -181,9 +181,14 @@ public partial class Diorama : Node3D
         // Open roads are close-dotted in road brown; severed ones broken and reddened. Bare dashes, no pale halo.
         var roads = new ArrayMesh();
         // Hair-thin (the owner, 2026-10-29: "trade routes still too thick"), dashes shortened to match.
-        foreach (var (open, dash, gap, colour) in new[] { (true, 0.004f, 0.004f, BlockMesh.Hex(0x7a5a35)), (false, 0.003f, 0.009f, BlockMesh.Hex(0xa8483a)) })
+        // Sea routes (the owner, 2026-10-29) in long blue dashes over the water.
+        foreach (var (open, sea, dash, gap, colour) in new[]
+                 {
+                     (true, false, 0.004f, 0.004f, BlockMesh.Hex(0x7a5a35)), (true, true, 0.008f, 0.005f, BlockMesh.Hex(0x2f5f8a)),
+                     (false, false, 0.003f, 0.009f, BlockMesh.Hex(0xa8483a)), (false, true, 0.003f, 0.009f, BlockMesh.Hex(0xa8483a)),
+                 })
         {
-            var lines = Roads.Where(r => r.Open == open).Select(r => r.Line).ToList();
+            var lines = Roads.Where(r => r.Open == open && r.Sea == sea).Select(r => r.Line).ToList();
             if (lines.Count == 0) continue;
             var part = DashedRibbons(lines, colour, dash, gap, width: 0.00045f, halo: 0);
             for (var s = 0; s < part.GetSurfaceCount(); s++)

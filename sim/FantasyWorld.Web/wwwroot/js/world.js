@@ -111,7 +111,9 @@ async function showYear(year) {
     const roads = new THREE.Group();
     roads.visible = $("roads").checked;
     roads.userData.layer = "roads";
-    lines(s.roads.filter(r => r.open).map(r => r.points), new THREE.LineDashedMaterial({ color: 0x7a5a35, dashSize: 0.006, gapSize: 0.005, transparent: true, opacity: 0.7 }), roads);
+    lines(s.roads.filter(r => r.open && !r.sea).map(r => r.points), new THREE.LineDashedMaterial({ color: 0x7a5a35, dashSize: 0.006, gapSize: 0.005, transparent: true, opacity: 0.7 }), roads);
+    // Sea routes (the owner, 2026-10-29): long blue dashes over the water.
+    lines(s.roads.filter(r => r.open && r.sea).map(r => r.points), new THREE.LineDashedMaterial({ color: 0x2f5f8a, dashSize: 0.012, gapSize: 0.008, transparent: true, opacity: 0.75 }), roads);
     lines(s.roads.filter(r => !r.open).map(r => r.points), new THREE.LineDashedMaterial({ color: 0xa8483a, dashSize: 0.004, gapSize: 0.012, transparent: true, opacity: 0.7 }), roads);
     dynamic.add(roads);
     for (const arrow of s.arrows)

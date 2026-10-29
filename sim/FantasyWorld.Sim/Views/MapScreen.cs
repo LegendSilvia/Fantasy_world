@@ -35,7 +35,9 @@ public sealed record MapArmy(
     int Soldiers, string Objective, bool Besieging, MapPoint Position, IReadOnlyList<MapPoint> Route);
 
 /// <summary>A trade road on the map: its markets, the way it runs (market, regions between, market) and its state.</summary>
-public sealed record MapRoute(EntityRef Ref, string Name, EntityRef From, EntityRef To, string State, int Volume, IReadOnlyList<MapPoint> Path);
+/// <summary>A trade route on the map; <c>Sea</c> marks each leg (Path[i] to Path[i+1]) sailed rather than walked.</summary>
+public sealed record MapRoute(EntityRef Ref, string Name, EntityRef From, EntityRef To, string State, int Volume, IReadOnlyList<MapPoint> Path,
+    IReadOnlyList<bool>? Sea = null);
 
 /// <summary>A beast in its lair: what it is, how mighty, whether it is a legend or asleep, and the event of its rising.</summary>
 public sealed record MapMonster(EntityRef Ref, string Name, string Breed, int Might, bool Legendary, bool Slumbering, MapPoint Position, long RoseEventId,
@@ -201,11 +203,25 @@ public sealed record MapScreen(
             if (state == RouteState.Closed) continue;
             var (from, to) = (world.Settlements[route.FromId], world.Settlements[route.ToId]);
             var path = new List<MapPoint>();
-            if (MapPoint.Of(world, from.Ref) is { } start) path.Add(start);
-            path.AddRange(route.Regions.Skip(1).SkipLast(1).Select(r => MapPoint.Of(world, world.Regions[r].Ref)).OfType<MapPoint>());
-            if (MapPoint.Of(world, to.Ref) is { } end) path.Add(end);
+            var regions = new List<long>();
+            if (MapPoint.Of(world, from.Ref) is { } start) (path, regions) = ([start], [route.Regions[0]]);
+            foreach (var r in route.Regions.Skip(1).SkipLast(1))
+                if (MapPoint.Of(world, world.Regions[r].Ref) is { } middle)
+                {
+                    path.Add(middle);
+                    regions.Add(r);
+                }
+            if (MapPoint.Of(world, to.Ref) is { } end)
+            {
+                path.Add(end);
+                regions.Add(route.Regions[^1]);
+            }
             if (path.Count < 2) continue;
-            routes.Add(new MapRoute(route.Ref, route.Name, from.Ref, to.Ref, state.ToString().ToLowerInvariant(), (int)Math.Round(today ? route.Volume : 0), path));
+            // Which legs cross the sea (the owner, 2026-10-29: sea routes drawn over the water).
+            var graph = world.Geography?.Graph;
+            var sea = Enumerable.Range(0, regions.Count - 1).Select(i => graph?.Between(regions[i], regions[i + 1])?.Kind == LinkKind.Sea).ToList();
+            routes.Add(new MapRoute(route.Ref, route.Name, from.Ref, to.Ref, state.ToString().ToLowerInvariant(), (int)Math.Round(today ? route.Volume : 0), path,
+                sea.Any(x => x) ? sea : null));
         }
         return routes;
     }

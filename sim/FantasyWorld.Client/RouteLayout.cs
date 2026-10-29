@@ -6,7 +6,7 @@ using FantasyWorld.Sim.Views;
 namespace FantasyWorld.Client;
 
 /// <summary>A trade road on the block: its line over the ground and whether it is open.</summary>
-public sealed record Road(EntityRef Ref, string Name, bool Open, IReadOnlyList<Vector3> Line);
+public sealed record Road(EntityRef Ref, string Name, bool Open, IReadOnlyList<Vector3> Line, bool Sea = false);
 
 /// <summary>
 /// Trade roads laid on the diorama (the map's *Trade routes* layer) as one network: every stretch of road between two
@@ -26,7 +26,7 @@ public static class RouteLayout
         // The network: each stretch between two consecutive places of any route, once, open if any route on it is open.
         static (long, long) Key(MapPoint p) => ((long)Math.Round(p.X * 100_000), (long)Math.Round(p.Y * 100_000));
         var at = new Dictionary<(long, long), MapPoint>();
-        var stretches = new Dictionary<((long, long) A, (long, long) B), (bool Open, MapRoute Route)>();
+        var stretches = new Dictionary<((long, long) A, (long, long) B), (bool Open, MapRoute Route, bool Sea)>();
         foreach (var route in map.Routes ?? Array.Empty<MapRoute>())
             for (var i = 0; i + 1 < route.Path.Count; i++)
             {
@@ -36,14 +36,16 @@ public static class RouteLayout
                 at[b] = route.Path[i + 1];
                 var key = a.CompareTo(b) < 0 ? (a, b) : (b, a);
                 var open = route.State == "open";
-                stretches[key] = stretches.TryGetValue(key, out var known) ? (known.Open || open, known.Route) : (open, route);
+                var sea = route.Sea is { } legs && i < legs.Count && legs[i];
+                stretches[key] = stretches.TryGetValue(key, out var known) ? (known.Open || open, known.Route, known.Sea || sea) : (open, route, sea);
             }
 
         // Stretches of one state are joined through places where exactly two of them meet; anywhere else a road ends.
-        var ends = new Dictionary<((long, long), bool), List<((long, long), (long, long))>>();
+        // Sea stretches join only sea stretches, so a voyage is drawn apart from the roads it meets in port.
+        var ends = new Dictionary<((long, long), bool, bool), List<((long, long), (long, long))>>();
         foreach (var (key, value) in stretches)
             foreach (var end in new[] { key.A, key.B })
-                (ends.TryGetValue((end, value.Open), out var list) ? list : ends[(end, value.Open)] = new()).Add(key);
+                (ends.TryGetValue((end, value.Open, value.Sea), out var list) ? list : ends[(end, value.Open, value.Sea)] = new()).Add(key);
         var used = new HashSet<((long, long), (long, long))>();
         var roads = new List<Road>();
         foreach (var (first, value) in stretches.OrderBy(s => s.Key.A).ThenBy(s => s.Key.B))
@@ -56,7 +58,7 @@ public static class RouteLayout
                 while (true)
                 {
                     var tip = forward ? chain.Last!.Value : chain.First!.Value;
-                    var meeting = ends[(tip, value.Open)];
+                    var meeting = ends[(tip, value.Open, value.Sea)];
                     if (meeting.Count != 2) return;
                     var free = meeting.Where(s => !used.Contains(s)).ToList();
                     if (free.Count == 0) return;
@@ -69,7 +71,7 @@ public static class RouteLayout
             }
             Grow(forward: true);
             Grow(forward: false);
-            roads.Add(new Road(value.Route.Ref, value.Route.Name, value.Open, Lay(grid, chain.Select(k => at[k]).ToList())));
+            roads.Add(new Road(value.Route.Ref, value.Route.Name, value.Open, Lay(grid, chain.Select(k => at[k]).ToList()), value.Sea));
         }
         return roads;
     }

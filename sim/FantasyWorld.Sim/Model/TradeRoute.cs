@@ -32,5 +32,8 @@ public sealed class TradeRoute
     public long OpenedEventId { get; init; }
     public long SeveredEventId { get; set; }
 
+    /// <summary>A sea route (the owner, 2026-10-29): ships between ports, across the sea lanes; it carries more than a road.</summary>
+    public bool BySea { get; init; }
+
     [JsonIgnore] public EntityRef Ref => new(Kind, Id);
 }

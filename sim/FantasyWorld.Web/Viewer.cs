@@ -387,7 +387,7 @@ public static class Viewer
             structures = markers.Where(m => m.Shape != MarkerShape.Settlement)
                 .Select(m => new { @ref = m.Ref.ToString(), name = m.Name, shape = m.Shape.ToString(), at = V(m.Position), size = m.Size, colour = V(m.Colour) }),
             borders = Markers.BorderLines(map, geography).Select(line => line.SelectMany(V).ToArray()),
-            roads = RouteLayout.Roads(map, geography).Select(r => new { open = r.Open, points = r.Line.SelectMany(V).ToArray() }),
+            roads = RouteLayout.Roads(map, geography).Select(r => new { open = r.Open, sea = r.Sea, points = r.Line.SelectMany(V).ToArray() }),
             realms = (map.Realms ?? []).Select(r => new
             {
                 @ref = r.Ref.ToString(), name = r.Name, rank = r.Rank, regions = r.Regions,
