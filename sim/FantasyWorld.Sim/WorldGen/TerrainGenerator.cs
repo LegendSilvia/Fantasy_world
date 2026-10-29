@@ -71,13 +71,20 @@ public static class TerrainGenerator
     /// ragged, with bays and peninsulas), capped in the open sea so the noise can raise islands there, and rising
     /// steeply near the block's edge.
     /// </summary>
+    /// <summary>How wide the sea between two continents is kept (in reaches, either side of the halfway line), and how deep.</summary>
+    public const double ContinentChannel = 0.6, ChannelDepth = 1.6;
+
     private static double ContinentFalloff(IReadOnlyList<(double X, double Y, double Reach)> continents, double dx, double dy,
         Noise2D noise, double u, double v)
     {
         var wx = dx + (noise.Fractal(u + 17.3, v + 5.1, 3) - 0.5) * 0.7;
         var wy = dy + (noise.Fractal(u + 41.7, v + 29.9, 3) - 0.5) * 0.7;
-        var near = continents.Min(c => ((wx - c.X) * (wx - c.X) + (wy - c.Y) * (wy - c.Y)) / (c.Reach * c.Reach));
-        return Math.Min(0.75, 0.3 * near) + 6 * Math.Pow(Math.Max(0, Math.Max(Math.Abs(dx), Math.Abs(dy)) - 0.75), 2);
+        var distances = continents.Select(c => Math.Sqrt((wx - c.X) * (wx - c.X) + (wy - c.Y) * (wy - c.Y)) / c.Reach).OrderBy(d => d).ToList();
+        var near = distances[0] * distances[0];
+        // Open sea between continents (the owner, 2026-10-29: some lay so close they read as one land): along the line
+        // halfway between two continents' hearts the land is pressed down, so a channel always parts them.
+        var channel = distances.Count > 1 ? Math.Max(0, ContinentChannel - (distances[1] - distances[0])) * ChannelDepth : 0;
+        return Math.Min(0.75, 0.3 * near) + channel + 6 * Math.Pow(Math.Max(0, Math.Max(Math.Abs(dx), Math.Abs(dy)) - 0.75), 2);
     }
 
     private static double[] RawElevation(TerrainGrid grid, Noise2D noise, IReadOnlyList<(double X, double Y, double Reach)>? continents = null)
