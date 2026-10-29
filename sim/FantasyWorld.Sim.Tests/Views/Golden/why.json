@@ -1,15 +1,25 @@
 {
   "outcome": {
-    "eventId": 309,
-    "year": 20,
+    "eventId": 519,
+    "year": 17,
     "category": "characters",
     "title": {
-      "text": "Hebiand of Kiangratheth was killed by monsters at the age of 19.",
+      "text": "At Niar, Liath of Lund met Brocan of Liarning to first blood.",
       "links": [
         {
-          "start": 0,
-          "length": 23,
-          "entity": "char#34"
+          "start": 3,
+          "length": 4,
+          "entity": "settlement#24"
+        },
+        {
+          "start": 9,
+          "length": 13,
+          "entity": "char#32"
+        },
+        {
+          "start": 27,
+          "length": 18,
+          "entity": "char#28"
         }
       ]
     },
@@ -20,71 +30,135 @@
   "layers": [
     [
       {
-        "eventId": 308,
-        "year": 20,
+        "eventId": 165,
+        "year": 6,
         "category": "characters",
         "title": {
-          "text": "Hebiand of Kiangratheth hunted the monsters of Gisreach and was killed.",
+          "text": "Brocan of Liarning and Liath of Lund fell out over the clash of a craven nature with a brave one.",
           "links": [
             {
               "start": 0,
-              "length": 23,
-              "entity": "char#34"
+              "length": 18,
+              "entity": "char#28"
             },
             {
-              "start": 47,
-              "length": 8,
-              "entity": "region#7"
+              "start": 23,
+              "length": 13,
+              "entity": "char#32"
             }
           ]
         },
         "note": null,
         "isRoot": true,
         "hasMore": false
+      },
+      {
+        "eventId": 509,
+        "year": 16,
+        "category": "characters",
+        "title": {
+          "text": "Liath of Lund called Brocan of Liarning out (to first blood); they will meet at Niar in a year and a day.",
+          "links": [
+            {
+              "start": 0,
+              "length": 13,
+              "entity": "char#32"
+            },
+            {
+              "start": 21,
+              "length": 18,
+              "entity": "char#28"
+            },
+            {
+              "start": 80,
+              "length": 4,
+              "entity": "settlement#24"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
       }
     ]
   ],
   "edges": [
     {
-      "from": 308,
-      "to": 309,
+      "from": 509,
+      "to": 519,
       "kind": "trigger",
+      "label": "because, and"
+    },
+    {
+      "from": 165,
+      "to": 519,
+      "kind": "motive",
+      "label": "because, and"
+    },
+    {
+      "from": 165,
+      "to": 509,
+      "kind": "motive",
       "label": "because"
     }
   ],
-  "summary": "Traced back within the year, through one root cause.",
+  "summary": "Traced back eleven years, through one root cause.",
   "people": [
     {
-      "ref": "char#34",
-      "name": "Hebiand of Kiangratheth"
+      "ref": "char#32",
+      "name": "Liath of Lund"
+    },
+    {
+      "ref": "char#28",
+      "name": "Brocan of Liarning"
     }
   ],
   "places": [
     {
-      "ref": "settlement#16",
-      "name": "Greindrondcross"
-    },
-    {
-      "ref": "region#7",
-      "name": "Gisreach"
+      "ref": "settlement#24",
+      "name": "Niar"
     }
   ],
   "systems": [
     "characters"
   ],
-  "consequences": [],
+  "consequences": [
+    {
+      "eventId": 520,
+      "year": 17,
+      "category": "characters",
+      "title": {
+        "text": "From it Brocan of Liarning made an art of fighting all their own, the Broken Guard: a stroke that comes when the foe believes them beaten.",
+        "links": [
+          {
+            "start": 8,
+            "length": 18,
+            "entity": "char#28"
+          }
+        ]
+      },
+      "note": null,
+      "isRoot": false,
+      "hasMore": false
+    }
+  ],
   "story": {
-    "text": "In Year 20, Hebiand of Kiangratheth hunted the monsters of Gisreach and was killed. And so Hebiand of Kiangratheth was killed by monsters at the age of 19.",
+    "text": "In Year 6, Brocan of Liarning and Liath of Lund fell out over the clash of a craven nature with a brave one. In Year 16, Liath of Lund called Brocan of Liarning out (to first blood); they will meet at Niar in a year and a day. And so, in Year 17, at Niar, Liath of Lund met Brocan of Liarning to first blood.",
     "links": [
       {
-        "start": 12,
-        "length": 23,
-        "entity": "char#34"
+        "start": 11,
+        "length": 18,
+        "entity": "char#28"
       },
       {
-        "start": 59,
-        "length": 8,
-        "entity": "region#7"
+        "start": 34,
+        "length": 13,
+        "entity": "char#32"
+      },
+      {
+        "start": 201,
+        "length": 4,
+        "entity": "settlement#24"
       }
     ]
   }

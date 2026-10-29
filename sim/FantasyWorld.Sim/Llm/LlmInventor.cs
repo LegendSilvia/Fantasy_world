@@ -140,7 +140,7 @@ public sealed class LlmInventor(StoryContext story) : IInventor
         var history = string.Join("\n", brief.History.Select(h => $"{h.Id}: {PromptText.Data(h.Told, 240)}"));
         var prompt = PromptText.Section("brief", $"Year {brief.Year}.\nWhat could begin this year:\n{candidates}\n\nThe world's recent history:\n{history}")
             + $"\n\nChoose {brief.Count} of these beginnings to happen this year, the ones that make the richest story, each the root of what "
-            + "will follow (a council deciding, stores lost, a secret meeting, a plot against a life, a labyrinth's outbreak). For each give: "
+            + "will follow (a council deciding, a theft, an abduction, a betrayal at a feast, forbidden love, a false accusation, a plot against a life, and the like). For each give: "
             + "candidate, its number; cause, the number of the history event that set it off (any you like, near or far), or 0 with cause_text, "
             + "one sentence naming a cause never told before; culprit, the reference of the one behind it (only from those listed for it), or "
             + "an empty string for no one; hidden, whether their hand stays secret for now (it may be found out in a later year); title, a "

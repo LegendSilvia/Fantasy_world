@@ -71,6 +71,12 @@ public sealed class IdentitySystem(IInventor? inventor = null) : ISimSystem
                 yield return (Id("plotter"), "shame", 20);
                 yield return (Id("target"), "terror", 5);
                 break;
+            case "FalselyAccused":
+                yield return (Id("accused"), "exile", 25);
+                break;
+            case "GuestRightBroken" when world.Characters.TryGetValue(Id("guest"), out var slain):
+                foreach (var kin in slain.Children.Append(slain.SpouseId)) yield return (kin, "grief", 10);
+                break;
             case "CulpritUnmasked":
                 yield return (Id("culprit"), "shame", 20);
                 break;
