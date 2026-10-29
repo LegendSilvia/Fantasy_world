@@ -606,6 +606,13 @@ public partial class Film : Node
                 Name = "Unseen", Texture = ImageTexture.CreateFromImage(Unseen()), CustomMinimumSize = new Vector2(ImageWidth - 12, ImageHeight - 12),
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
             };
+            // Godot's SVG renderer draws no text: the question mark is a label over the figure's head.
+            var mark = Ui.Line("?", "Mark", null, 200);
+            mark.AddThemeColorOverride("font_color", new Color("c9b98f"));
+            mark.HorizontalAlignment = HorizontalAlignment.Center;
+            mark.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+            mark.OffsetTop = (ImageHeight - 12) * 0.13f;
+            figure.AddChild(mark);
             column.AddChild(figure);
         }
         else
@@ -630,7 +637,7 @@ public partial class Film : Node
         <stop offset="0" stop-color="#4a4640"/><stop offset="1" stop-color="#1c1a17"/></radialGradient></defs>
         <rect width="200" height="280" fill="url(#g)"/>
         <circle cx="100" cy="96" r="40" fill="#0d0c0b"/><path d="M28 280 C32 196 64 156 100 156 C136 156 168 196 172 280 Z" fill="#0d0c0b"/>
-        <text x="100" y="124" text-anchor="middle" font-family="serif" font-size="96" font-weight="700" fill="#c9b98f">?</text></svg>
+        </svg>
         """;
 
     private static Image? _unseen;
