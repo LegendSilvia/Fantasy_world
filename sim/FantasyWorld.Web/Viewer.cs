@@ -72,9 +72,10 @@ public static class Viewer
     /// newest first, each with who uncovered it, where and when.
     /// </summary>
     [JSInvokable]
-    public static string Lore()
+    public static string Lore(string year = "")
     {
-        var secrets = World.Secrets.AsEnumerable().Reverse().Select(s => new
+        var until = Until(year);
+        var secrets = World.Secrets.AsEnumerable().Reverse().Where(s => By(until, s.Day)).Select(s => new
         {
             title = s.Title, text = s.Text, year = new WorldDate(s.Day).Year, @event = $"event#{s.EventId}",
             place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
@@ -100,7 +101,7 @@ public static class Viewer
             .Select(s => new
             {
                 name = s.Name, place = World.Regions.GetValueOrDefault(s.RegionId)?.Name, levels = s.Levels, depth = s.Depth,
-                cleared = s.ClearedEventId != 0 && Log.TryGet(s.ClearedEventId, out var c)
+                cleared = s.ClearedEventId != 0 && Log.TryGet(s.ClearedEventId, out var c) && By(until, c.Date.Day)
                     ? new { year = c.Date.Year, by = c.Actors.TryGetValue("delver", out var d) ? Who(d.Id) : null, @event = $"event#{c.Id}" } : null,
             });
         var relics = World.Artifacts.Values.Where(a => a.Place != ArtifactPlace.Destroyed).OrderByDescending(a => a.Fame).ThenBy(a => a.Id).Take(15).Select(a => new
@@ -109,7 +110,7 @@ public static class Viewer
             holder = a.Place == ArtifactPlace.Held ? Who(a.HolderId) : null,
         });
         // The powers awakened in the world (the owner, 2026-10-29): where each comes from, what it does, its condition, who bears it.
-        var callings = World.Callings.Select(k => new
+        var callings = World.Callings.Where(k => EventBy(until, k.EventId)).Select(k => new
         {
             name = k.Name, @base = k.Base, origin = k.Origin, does = k.Does, condition = k.Condition, @event = k.EventId != 0 ? $"event#{k.EventId}" : null,
             bearers = World.Characters.Values.Where(c => c.Class == Classes.Awaken(k.Base, k.Name))
@@ -119,7 +120,7 @@ public static class Viewer
         // story's own (FantasyWorld.Sim.Systems.Prominence) or born of a beast their keeper slew, most notable first. Every
         // companion still shows on its keeper's own page.
         var companions = World.Characters.Values
-            .Where(c => c.IsActive && c.Companion is { Kind: Companion.Beast } m && (m.What.StartsWith("the young of ", StringComparison.Ordinal)
+            .Where(c => c.IsActive && c.Companion is { Kind: Companion.Beast } m && By(until, m.Day) && (m.What.StartsWith("the young of ", StringComparison.Ordinal)
                                                                                      || FantasyWorld.Sim.Systems.Prominence.IsNotable(World, c)))
             .OrderByDescending(c => FantasyWorld.Sim.Systems.Prominence.Of(World, c)).ThenBy(c => c.Id).Take(MaxCompanions)
             .Select(c => new { name = c.Companion!.Name, what = c.Companion.What, lore = c.Companion.Lore, of = new { @ref = c.Ref.ToString(), name = c.Name } });
@@ -138,9 +139,13 @@ public static class Viewer
     /// age, realm and home, for the website's list; a click opens their page.
     /// </summary>
     [JSInvokable]
-    public static string People()
+    public static string People(string year = "")
     {
-        var people = World.Characters.Values.Where(c => c.IsActive && c.Stage(World.Date) != LifeStage.Child)
+        var until = Until(year);
+        var then = until is { } u ? new WorldDate(u) : World.Date;
+        // Those living then: born by then, not yet dead (or faded from the story, today).
+        var people = World.Characters.Values.Where(c => c.BirthDay <= then.Day && (until is null ? c.IsActive : c.Died is null || c.Died.Value.Day > then.Day)
+                                                        && new WorldDate(then.Day).Year - new WorldDate(c.BirthDay).Year >= 16)
             .OrderByDescending(c => c.Renown).ThenBy(c => c.Id).Take(400)
             .Select(c =>
             {
@@ -148,7 +153,7 @@ public static class Viewer
                 var realm = home is not null && World.Regions.TryGetValue(home.RegionId, out var region) ? World.Realms.GetValueOrDefault(region.OwnerRealmId) : null;
                 return new
                 {
-                    @ref = c.Ref.ToString(), name = c.Name, @class = Classes.Base(c.Class), title = c.Class.Length > 0 ? Classes.Title(c.Class) : "", role = c.Role.ToString().ToLowerInvariant(), age = c.Age(World.Date),
+                    @ref = c.Ref.ToString(), name = c.Name, @class = Classes.Base(c.Class), title = c.Class.Length > 0 ? Classes.Title(c.Class) : "", role = c.Role.ToString().ToLowerInvariant(), age = c.Age(then),
                     renown = (int)Math.Round(c.Renown), realm = realm?.Name, home = home?.Name,
                 };
             });
@@ -183,23 +188,27 @@ public static class Viewer
     /// name), talents, abilities (the signature one, then those won since), and their renown in the world.
     /// </summary>
     [JSInvokable]
-    public static string Fighter(string characterId)
+    public static string Fighter(string characterId, string year = "")
     {
         var id = long.Parse(characterId, CultureInfo.InvariantCulture);
         if (!World.Characters.TryGetValue(id, out var c)) return "null";
-        var calling = Classes.Of(World, c);
-        _reputation ??= FantasyWorld.Sim.Chronicle.Reputation.Of(World, Log);
+        var until = Until(year);
+        // An awakening not yet come shows the class they were born to.
+        var awoken = World.Callings.FirstOrDefault(k => Classes.Awaken(k.Base, k.Name) == c.Class);
+        var calling = awoken is not null && !EventBy(until, awoken.EventId) ? Classes.Base(Classes.Of(World, c)) : Classes.Of(World, c);
+        var reputation = until is null ? _reputation ??= FantasyWorld.Sim.Chronicle.Reputation.Of(World, Log)
+            : FantasyWorld.Sim.Chronicle.Reputation.Of(World, LogUntil(until));
         return JsonSerializer.Serialize(new
         {
             @class = Classes.Base(calling), title = Classes.Title(calling), awakened = Classes.IsAwakened(calling),
             talents = Talents.Of(c).Select(t => new { name = t.Name, shows = t.Shows }),
-            abilities = Abilities.Of(World, c).Select(a => new { name = a.Name, text = a.Text, @event = a.EventId != 0 ? $"event#{a.EventId}" : null }),
-            known = _reputation.Of(c.Id),
+            abilities = Abilities.Of(World, c).Where(a => EventBy(until, a.EventId)).Select(a => new { name = a.Name, text = a.Text, @event = a.EventId != 0 ? $"event#{a.EventId}" : null }),
+            known = reputation.Of(c.Id),
             weapon = Arms.Weapon(World, c) is var w ? new { name = w.Name, what = w.What, lore = w.Lore, @ref = w.ArtifactId != 0 ? $"artifact#{w.ArtifactId}" : null } : null,
-            companion = c.Companion is { } m
+            companion = c.Companion is { } m && By(until, m.Day)
                 ? new { name = m.Name, kind = m.Kind, what = m.What, lore = m.Lore, @ref = m.CharacterId != 0 ? $"char#{m.CharacterId}" : null, @event = m.EventId != 0 ? $"event#{m.EventId}" : null }
                 : null,
-            calling = World.Callings.FirstOrDefault(k => Classes.Awaken(k.Base, k.Name) == c.Class) is { } k
+            calling = awoken is { } k && EventBy(until, k.EventId)
                 ? new { name = k.Name, origin = k.Origin, does = k.Does, condition = k.Condition } : null,
         }, Json);
     }
@@ -208,20 +217,25 @@ public static class Viewer
 
     /// <summary>A beast's card (the owner, 2026-10-29): what it is, its legend, where it lairs, and its deeds, newest first.</summary>
     [JSInvokable]
-    public static string Beast(string monsterId)
+    public static string Beast(string monsterId, string year = "")
     {
         var id = long.Parse(monsterId, CultureInfo.InvariantCulture);
         if (!World.Monsters.TryGetValue(id, out var m)) return "null";
+        var until = Until(year);
         var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
         var reference = m.Ref;
-        var deeds = Log.All.Where(e => e.Actors.Values.Contains(reference)).OrderByDescending(e => e.Id).Take(12)
+        // Its end, if it came after the year shown, has not come yet.
+        var slain = World.Characters.ContainsKey(m.SlayerId) && Log.All.LastOrDefault(e => e.Type == "MonsterSlain" && e.Actors.Values.Contains(reference)) is { } end
+            ? By(until, end.Date.Day) : until is null;
+        var deeds = Log.All.Where(e => e.Actors.Values.Contains(reference) && By(until, e.Date.Day)).OrderByDescending(e => e.Id).Take(12)
             .Select(e => new { @event = $"event#{e.Id}", year = e.Date.Year, text = narrator.Sentence(e) });
         var lore = Log.TryGet(m.RoseEventId, out var rose) ? rose.Payload.GetValueOrDefault("lore") : null;
         return JsonSerializer.Serialize(new
         {
             @ref = reference.ToString(), name = m.Name, breed = m.Breed, legendary = m.Legendary, might = (int)Math.Round(m.Might),
-            notoriety = (int)Math.Round(m.Notoriety), state = m.State.ToString().ToLowerInvariant(), place = World.Regions.GetValueOrDefault(m.RegionId)?.Name,
-            lore, risen = m.RoseEventId, slayer = World.Characters.TryGetValue(m.SlayerId, out var slayer) ? new { @ref = slayer.Ref.ToString(), name = slayer.Name } : null,
+            notoriety = (int)Math.Round(m.Notoriety), state = m.State == MonsterState.Slain && !slain ? "roaming" : m.State.ToString().ToLowerInvariant(),
+            place = World.Regions.GetValueOrDefault(m.RegionId)?.Name,
+            lore, risen = m.RoseEventId, slayer = slain && World.Characters.TryGetValue(m.SlayerId, out var slayer) ? new { @ref = slayer.Ref.ToString(), name = slayer.Name } : null,
             deeds,
         }, Json);
     }
@@ -247,6 +261,58 @@ public static class Viewer
     private static MapScreen MapAt(string year) =>
         MapScreen.Build(World, Log, int.TryParse(year, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) && y >= 1 && y < World.Date.Year
             ? new WorldDate((long)y * WorldDate.DaysPerYear - 1) : null);
+
+    /// <summary>
+    /// The last day of a year the history slider shows, or null for today (empty, or this year or later): every panel shows
+    /// the world as it stood then (the owner, 2026-10-29: the year filters everything).
+    /// </summary>
+    private static long? Until(string? year) =>
+        int.TryParse(year, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) && y >= 1 && y < World.Date.Year
+            ? (long)y * WorldDate.DaysPerYear - 1 : null;
+
+    private static (long Day, EventLog Log)? _pastLog;
+
+    /// <summary>The chronicle as it stood at the end of that day: its events up to then (kept for the last day asked).</summary>
+    private static EventLog LogUntil(long? day)
+    {
+        if (day is not { } until) return Log;
+        if (_pastLog is { } kept && kept.Day == until) return kept.Log;
+        var log = new EventLog();
+        foreach (var e in Log.All)
+        {
+            if (e.Date.Day > until) break;
+            log.Restore(e);
+        }
+        _pastLog = (until, log);
+        return log;
+    }
+
+    private static bool By(long? until, long day) => until is not { } u || day <= u;
+
+    private static bool EventBy(long? until, long eventId) => until is null || eventId == 0 || Log.TryGet(eventId, out var e) && e.Date.Day <= until;
+
+    /// <summary>
+    /// What happened in a year, for the Play button (the owner, 2026-10-29): its most important events, in the order they
+    /// happened, each told with its links.
+    /// </summary>
+    [JSInvokable]
+    public static string Happenings(string year)
+    {
+        var y = int.Parse(year, NumberStyles.Integer, CultureInfo.InvariantCulture);
+        var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
+        var nameOf = FantasyWorld.Sim.Query.Names.Of(World);
+        var none = new HashSet<EntityRef>();
+        var rows = Log.All.Where(e => e.Date.Year == y)
+            .Select(e => (Event: e, Score: FantasyWorld.Sim.Chronicle.Importance.Score(e, World, none)))
+            .Where(x => x.Score >= 25).OrderByDescending(x => x.Score).ThenBy(x => x.Event.Id).Take(MaxHappenings)
+            .OrderBy(x => x.Event.Id)
+            .Select(x => new { eventId = x.Event.Id, season = x.Event.Date.Season.ToString(), text = LinkedText.Link(narrator.Sentence(x.Event), LinkedText.Mentions(x.Event), nameOf) })
+            .ToList();
+        return ViewJson.Serialize(new { year = y, rows });
+    }
+
+    /// <summary>At most this many of a year's events are played.</summary>
+    public const int MaxHappenings = 10;
 
     /// <summary>The terrain block's parts as packed meshes: <c>top</c>, <c>sides</c> or <c>water</c>.</summary>
     [JSInvokable]

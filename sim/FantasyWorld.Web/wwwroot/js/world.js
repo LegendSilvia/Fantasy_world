@@ -284,6 +284,49 @@ function parse() {
     return { year, panel: parts.length >= 2 ? `${parts[0]}/${parts[1]}` : null };
 }
 
+// ---------- Play: the chronicle year by year, up to today (the owner, 2026-10-29) ----------
+
+/** Seconds each of a year's events is held before the next comes in; a quiet year is passed in a moment. */
+const PLAY_EVENT_MS = 2200, PLAY_QUIET_MS = 1200;
+let playing = null;
+
+const pause = (run, ms) => new Promise(done => { const t = setTimeout(done, ms); run.wake = () => { clearTimeout(t); done(); }; });
+
+function stopPlaying() {
+    if (!playing) return;
+    playing.stop = true;
+    playing.wake?.();
+    playing = null;
+    $("play").textContent = "▶ Play";
+}
+
+/** From the year shown (from the first, if it shows today), each year's map and its events one by one, then the next. */
+async function play() {
+    const run = playing = { stop: false };
+    $("play").textContent = "❚❚ Pause";
+    let year = shownYear ?? world.year;
+    if (year >= world.year) year = world.firstYear;
+    const ticker = $("ticker");
+    ticker.hidden = false;
+    $("panel").hidden = true;
+    while (!run.stop && year <= world.year) {
+        shownYear = year;
+        await showYear(year);
+        history.replaceState(null, "", year === world.year ? "#" : `#year/${year}`);
+        const { rows } = JSON.parse(await call("Happenings", String(year)));
+        ticker.innerHTML = `<h3>Year ${year}</h3>` + (rows.length ? "" : `<p class="muted">A quiet year.</p>`);
+        for (const row of rows) {
+            if (run.stop) break;
+            ticker.insertAdjacentHTML("beforeend", `<p><span class="muted">${esc(row.season)}</span> · ${linked(row.text)} <a data-ref="event#${row.eventId}" title="Why?">why</a></p>`);
+            ticker.scrollTop = ticker.scrollHeight;
+            await pause(run, PLAY_EVENT_MS);
+        }
+        if (!rows.length) await pause(run, PLAY_QUIET_MS);
+        year++;
+    }
+    if (playing === run) stopPlaying();
+}
+
 let shownYear = null;
 async function route() {
     const { year, panel } = parse();
@@ -311,6 +354,8 @@ $("panel-body").addEventListener("click", e => {
 });
 
 async function render(kind, key, year) {
+    // Every panel shows the world as it stood in the year chosen (the owner, 2026-10-29); empty asks for today.
+    const Y = year === world.year ? "" : String(year);
     if (kind === "settlement") {
         const map = JSON.parse(await call("Screen", "map", year === world.year ? "" : String(year)));
         const s = map.settlements.find(x => x.ref === `settlement#${key}`);
@@ -318,16 +363,16 @@ async function render(kind, key, year) {
             + (s.holder ? `<p>Held by ${ref(s.holder, "its lord")}</p>` : "");
     }
     if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
-    if (kind === "lore") return lore(JSON.parse(await call("Lore")));
-    if (kind === "people") return people(JSON.parse(await call("People")));
-    if (kind === "beast") return beastCard(JSON.parse(await call("Beast", key)), await pictures);
+    if (kind === "lore") return lore(JSON.parse(await call("Lore", Y)));
+    if (kind === "people") return people(JSON.parse(await call("People", Y)));
+    if (kind === "beast") return beastCard(JSON.parse(await call("Beast", key, Y)), await pictures);
     if (kind === "fight") {
         const f = JSON.parse(await call("Fight", key));
         return (f ? fightCard(f, await pictures) : "") + why(JSON.parse(await call("Screen", "why", key)));
     }
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
-    if (kind === "character") return character({ ...screen, id: key }, JSON.parse(await call("Fighter", key)), await pictures);
+    if (kind === "character") return character({ ...screen, id: key, timeline: (screen.timeline ?? []).filter(row => row.year <= year) }, JSON.parse(await call("Fighter", key, Y)), await pictures);
     if (kind === "why") return why(screen);
     if (kind === "artifact") return `<div class="kicker">Artifact</div><h2>${esc(screen.name ?? screen.title ?? "")}</h2><p>${esc(screen.lore ?? "")}</p>`;
     throw new Error(kind);
@@ -585,7 +630,17 @@ async function boot() {
         say("Raising the land…");
         await buildStage();
         slider.addEventListener("input", () => { $("year-label").textContent = slider.value; });
-        slider.addEventListener("change", () => setHash({ year: +slider.value }));
+        slider.addEventListener("change", () => { stopPlaying(); setHash({ year: +slider.value }); });
+        $("play").addEventListener("click", () => playing ? stopPlaying() : play());
+        $("ticker").addEventListener("click", e => {
+            const link = e.target.closest("a[data-ref]");
+            if (!link) return;
+            e.preventDefault();
+            stopPlaying();
+            const [kind, number] = link.dataset.ref.split("#");
+            const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement" }[kind];
+            if (panel) setHash({ panel: `${panel}/${number}` });
+        });
         $("roads").addEventListener("change", () => dynamic.children.filter(c => c.userData.layer === "roads").forEach(c => { c.visible = $("roads").checked; }));
         window.addEventListener("hashchange", route);
         $("close").addEventListener("click", () => setHash({ panel: null }));
