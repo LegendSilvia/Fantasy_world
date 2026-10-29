@@ -29,7 +29,7 @@
   },
   "youTube": {
     "upload": true,
-    "privacy": "public",
+    "privacy": "unlisted",
     "categoryId": "24"
   },
   "keepAlive": true,
