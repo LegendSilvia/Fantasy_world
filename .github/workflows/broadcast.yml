@@ -206,6 +206,20 @@ jobs:
             dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "$prefix$world" "$RUNNER_TEMP/world.fw.db"
             dotnet run --configuration Release --project sim/FantasyWorld.Cli -- export-web "$RUNNER_TEMP/world.fw.db" "$bundle"
           fi
+          # The realms' banners on the map's flags (the owner, 2026-10-29): copied beside the viewer, listed in banners.json.
+          banners="$RUNNER_TEMP/site/wwwroot/banners"
+          mkdir -p "$banners" && echo '{}' > "$RUNNER_TEMP/site/wwwroot/banners.json"
+          if dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "${prefix}web/banners.json" "$RUNNER_TEMP/banners.json"; then
+            for ref in $(jq -r 'keys[]' "$RUNNER_TEMP/banners.json"); do
+              key=$(jq -r --arg r "$ref" '.[$r]' "$RUNNER_TEMP/banners.json"); file="${ref//#/-}.png"
+              if dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- get "$prefix$key" "$banners/$file"; then
+                jq --arg r "$ref" --arg f "banners/$file" '.[$r] = $f' "$RUNNER_TEMP/site/wwwroot/banners.json" > "$RUNNER_TEMP/b.json" \
+                  && mv "$RUNNER_TEMP/b.json" "$RUNNER_TEMP/site/wwwroot/banners.json"
+              fi
+            done
+          else
+            echo "No banners stored for the day: the flags stay plain."
+          fi
           # The prayers' Pages Functions (sub-project 13 N5) deploy from site/, with the viewer copied into it.
           rm -rf site/public && cp -r "$RUNNER_TEMP/site/wwwroot" site/public
           echo "project=$(jq -r '.site.project // "fantasy-world-chronicle"' broadcast.json)" >> "$GITHUB_OUTPUT"

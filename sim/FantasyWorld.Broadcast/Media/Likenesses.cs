@@ -171,6 +171,39 @@ public static class Likenesses
             .Concat(fights.Select(f => (Key: (string?)StillKey(world, f.EventId), Label: f.Title,
                 Ask: (Func<ImageRequest?>)(() => new ImageRequest(f.Scene!, "environment", style, false, f.EventId, StillWidth, StillHeight)))))
             .Where(w => w.Key is not null).ToList();
+        var had = await MakeAsync(wanted.Select(w => (w.Key!, w.Label, w.Ask)).ToList(), store, maker, date, room, log, ct).ConfigureAwait(false);
+
+        FaceOffSide With(FaceOffSide side) => keys.GetValueOrDefault(side.Ref) is { } key && had.Contains(key) ? side with { Image = key } : side;
+        var sections = episode.Parts.Select(p =>
+        {
+            if (p.FaceOff is { } f) p = p with { FaceOff = f with { A = With(f.A), B = With(f.B) } };
+            if (p.Scene is not null && had.Contains(StillKey(world, p.EventId))) p = p with { Still = StillKey(world, p.EventId) };
+            return p;
+        }).ToList();
+        return episode with { Sections = sections };
+    }
+
+    /// <summary>
+    /// Every standing realm's banner, made once and reused like a face-off's (the owner, 2026-10-29: the website's flags show
+    /// them): the realm's reference ("realm#3") and the banner's key, for those that could be had.
+    /// </summary>
+    public static async Task<IReadOnlyDictionary<string, string>> BannersAsync(World world, IObjectStore store, IImageMaker? maker, string style,
+        string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct = default)
+    {
+        var realms = world.Realms.Values.Where(r => !r.Destroyed).OrderBy(r => r.Id)
+            .Select(r => (Ref: r.Ref.ToString(), r.Name, Key: KeyFor(world, r.Ref.ToString()))).Where(r => r.Key is not null).ToList();
+        var had = await MakeAsync(realms.Select(r => (r.Key!, r.Name, (Func<ImageRequest?>)(() => Ask(world, r.Ref, style)))).ToList(),
+            store, maker, date, room, log, ct).ConfigureAwait(false);
+        return realms.Where(r => had.Contains(r.Key!)).ToDictionary(r => r.Ref, r => r.Key!, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// The images wanted, each made unless kept already (under the image API's rules: a timeout tried once more, a 429 stops
+    /// the day's asking, nothing made near the bucket's limit) and marked used today; the keys of those that could be had.
+    /// </summary>
+    private static async Task<HashSet<string>> MakeAsync(IReadOnlyList<(string Key, string Label, Func<ImageRequest?> Ask)> wanted, IObjectStore store,
+        IImageMaker? maker, string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct)
+    {
         var index = await IndexAsync(store, ct).ConfigureAwait(false);
         var kept = (await store.ListAsync(Prefix, ct).ConfigureAwait(false)).ToHashSet(StringComparer.Ordinal);
         var spent = maker is null;
@@ -178,7 +211,7 @@ public static class Likenesses
         var had = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (key, label, ask) in wanted)
         {
-            if (!kept.Contains(key!))
+            if (!kept.Contains(key))
             {
                 if (spent || ask() is not { } request) continue;
                 if (!await room(ExpectedBytes).ConfigureAwait(false))
@@ -198,9 +231,9 @@ public static class Likenesses
                         made = await maker!.MakeAsync(request, ct).ConfigureAwait(false);
                     }
                     if (made.Warning is { Length: > 0 } warning) log.WriteLine($"Images: {label}: {warning}");
-                    await store.PutAsync(key!, made.Bytes, made.Mime, ct).ConfigureAwait(false);
-                    index[key!] = new Likeness(made.Bytes.LongLength, date, request.Prompt);
-                    kept.Add(key!);
+                    await store.PutAsync(key, made.Bytes, made.Mime, ct).ConfigureAwait(false);
+                    index[key] = new Likeness(made.Bytes.LongLength, date, request.Prompt);
+                    kept.Add(key);
                     log.WriteLine($"Images: made {key} ({made.Bytes.LongLength / 1000} kB{(request.Transparent && !made.Transparent ? ", not transparent" : "")}).");
                 }
                 catch (ImageBudgetSpentException e)
@@ -216,19 +249,11 @@ public static class Likenesses
                     continue;
                 }
             }
-            index[key!] = index.TryGetValue(key!, out var known) ? known with { LastUsed = date } : new Likeness(0, date, "");
-            had.Add(key!);
+            index[key] = index.TryGetValue(key, out var known) ? known with { LastUsed = date } : new Likeness(0, date, "");
+            had.Add(key);
         }
         if (had.Count > 0) await SaveAsync(store, index, ct).ConfigureAwait(false);
-
-        FaceOffSide With(FaceOffSide side) => keys.GetValueOrDefault(side.Ref) is { } key && had.Contains(key) ? side with { Image = key } : side;
-        var sections = episode.Parts.Select(p =>
-        {
-            if (p.FaceOff is { } f) p = p with { FaceOff = f with { A = With(f.A), B = With(f.B) } };
-            if (p.Scene is not null && had.Contains(StillKey(world, p.EventId))) p = p with { Still = StillKey(world, p.EventId) };
-            return p;
-        }).ToList();
-        return episode with { Sections = sections };
+        return had;
     }
 
     /// <summary>Where a fight's still is kept, by its event.</summary>

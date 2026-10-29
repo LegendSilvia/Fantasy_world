@@ -159,7 +159,24 @@ function houses(data) {
     return group;
 }
 
-/** A realm's standard: a tall pole, a gold crown and a flag in its two colours (as the game's RealmLayer). */
+/** The realms' painted banners (realm reference to image), when the day's run had them; else the flags are plain. */
+const banners = fetch("banners.json").then(r => r.ok ? r.json() : {}).catch(() => ({}));
+const bannerTextures = new Map();
+
+/** A realm's painted banner as a texture, once loaded (null while loading or when there is none). */
+function bannerTexture(url) {
+    if (!bannerTextures.has(url)) {
+        const texture = new THREE.TextureLoader().load(url);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        bannerTextures.set(url, texture);
+    }
+    return bannerTextures.get(url);
+}
+
+/**
+ * A realm's standard: a tall pole, a gold crown and a flag in its two colours (as the game's RealmLayer); where the realm
+ * has a painted banner (the owner, 2026-10-29), that banner hangs from the pole instead.
+ */
 function standard(realm) {
     const group = new THREE.Group(), height = 0.12;
     group.position.set(...realm.at);
@@ -175,6 +192,16 @@ function standard(realm) {
     flag.add(field, band);
     group.add(pole, crown, flag);
     group.userData.flag = flag;
+    banners.then(list => {
+        if (!list[realm.ref]) return;
+        const painted = new THREE.Mesh(new THREE.PlaneGeometry(0.085, 0.125),
+            new THREE.MeshBasicMaterial({ map: bannerTexture(list[realm.ref]), transparent: true, alphaTest: 0.05, side: THREE.DoubleSide }));
+        painted.position.set(0.017, -0.045, 0);
+        flag.clear();
+        flag.add(painted);
+        // A painted banner stands a head taller than a plain flag, so its crest reads from afar.
+        group.scale.setScalar(1.5);
+    });
     return group;
 }
 

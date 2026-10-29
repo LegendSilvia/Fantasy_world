@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using FantasyWorld.Broadcast.Channels;
 using FantasyWorld.Broadcast.Storage;
 using FantasyWorld.Cli;
@@ -44,6 +45,9 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
 
     /// <summary>The world for the browser viewer (sub-project 11): the day's world, its history and geography, no LLM journal.</summary>
     public const string WebBundleKey = "web/world.json.gz";
+
+    /// <summary>The standing realms' banners for the website, as JSON: {"realm#3": "images/realm-3-1a2b3c4d.png"}.</summary>
+    public const string WebBannersKey = "web/banners.json";
 
     public static string ScriptKey(string date) => $"episodes/{date}/script.txt";
 
@@ -408,6 +412,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             {
                 log.WriteLine($"warning: the web bundle could not be stored ({e.Message}); the website keeps yesterday's world.");
             }
+            await WebBannersAsync(store, snapshot, date, ct).ConfigureAwait(false);
 
             manifest.Record(date, episode);
             manifest.Day(date).Steps[Manifest.EpisodeStep] = clock();
@@ -498,6 +503,30 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         {
             log.WriteLine($"warning: the episode's images could not be had ({e.Message}); the film goes without them.");
             return episode;
+        }
+    }
+
+    /// <summary>
+    /// The standing realms' banners for the website's flags (the owner, 2026-10-29), made once each and listed at
+    /// <see cref="WebBannersKey"/> (reference to image key); a failure leaves the flags plain.
+    /// </summary>
+    private async Task WebBannersAsync(PrefixedStore store, string snapshot, string date, CancellationToken ct)
+    {
+        if (!config.Images.Make) return;
+        try
+        {
+            using var saved = WorldStore.Open(snapshot);
+            var world = saved.Load().World;
+            var limit = StorageBudget.Bytes(config.Storage.MaxGigabytes);
+            var banners = await Likenesses.BannersAsync(world, store, images, config.Images.Style, date,
+                async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log, ct)
+                .ConfigureAwait(false);
+            await store.PutAsync(WebBannersKey, JsonSerializer.SerializeToUtf8Bytes(banners), "application/json", ct).ConfigureAwait(false);
+            log.WriteLine($"The website's flags: {banners.Count} realm banner(s).");
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException && !ct.IsCancellationRequested)
+        {
+            log.WriteLine($"warning: the realms' banners could not be had ({e.Message}); the website's flags stay plain.");
         }
     }
 
