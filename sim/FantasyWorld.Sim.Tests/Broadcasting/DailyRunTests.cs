@@ -252,6 +252,27 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task ARepaint_PaintsAndFilmsTodayAgain_AndUploadsAgain_ButTellsDiscordOnce()
+    {
+        var speech = new PronouncerTests.FakeSpeech();
+        var youtube = new VideoChannel();
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), speech: speech, also: youtube));
+        Assert.Equal((1, 1), (_discord.Posts.Count, youtube.Uploaded.Count));
+        var world = await Get("live/" + Config.WorldKey);
+        var spoken = speech.Spoken.Count;
+        await _root.PutAsync("live/episodes/2026-10-27/film/chunk-00.mp4", [1], "video/mp4");
+        await _root.PutAsync("live/" + YouTube.VideoKey("2026-10-27"), [1], "video/mp4");
+
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(1), new RunOptions(Repaint: true), speech: speech, also: youtube));
+        Assert.Contains("Repainted the episode of 2026-10-27", _log.ToString());
+        Assert.Null(await Get("live/episodes/2026-10-27/film/chunk-00.mp4"));
+        Assert.Null(await Get("live/" + YouTube.VideoKey("2026-10-27")));
+        Assert.Equal((1, 2), (_discord.Posts.Count, youtube.Uploaded.Count));
+        Assert.Equal(spoken, speech.Spoken.Count); // the narration is kept
+        Assert.Equal(world, await Get("live/" + Config.WorldKey)); // and the world is not lived again
+    }
+
+    [Fact]
     public async Task DryRuns_ShareTheLiveBudget()
     {
         var tight = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "voice": { "monthlyCharacterBudget": 5000 } }""");

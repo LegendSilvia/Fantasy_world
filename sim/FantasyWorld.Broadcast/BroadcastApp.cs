@@ -11,7 +11,7 @@ namespace FantasyWorld.Broadcast;
 public static class BroadcastApp
 {
     public const string Usage = """
-        usage: fw-broadcast run [--dry-run [--upload-unlisted]] [--create] [--prepare <plan.json>] [--config <broadcast.json>] [--local <dir>]
+        usage: fw-broadcast run [--dry-run [--upload-unlisted]] [--create] [--repaint] [--prepare <plan.json>] [--config <broadcast.json>] [--local <dir>]
                fw-broadcast map <world-file> <out.png>   the political map as the broadcast posts it
                fw-broadcast get <key> <file> [--local <dir>]   copy an object of the bucket to a file (the film jobs)
                fw-broadcast put <file> <key> [--local <dir>]   store a file in the bucket (the film jobs)
@@ -33,13 +33,13 @@ public static class BroadcastApp
         if (args is ["get" or "put", var first, var second, ..] && args.Skip(3).All(a => a is "--local" || a == Option(args, "--local")))
             return await CopyAsync(args[0] == "get", first, second, Option(args, "--local"), env, handler, output, ct).ConfigureAwait(false);
         if (args is not ["run", ..] || args.Skip(1).Any(a => a.StartsWith("--", StringComparison.Ordinal)
-                                                             && a is not ("--dry-run" or "--upload-unlisted" or "--create" or "--config" or "--local" or "--prepare"))
+                                                             && a is not ("--dry-run" or "--upload-unlisted" or "--create" or "--config" or "--local" or "--prepare" or "--repaint"))
                                      || args.Contains("--upload-unlisted") && !args.Contains("--dry-run"))
         {
             output.WriteLine(Usage);
             return DailyRun.Failed;
         }
-        var options = new RunOptions(args.Contains("--dry-run"), args.Contains("--create"), args.Contains("--upload-unlisted"), Option(args, "--prepare"));
+        var options = new RunOptions(args.Contains("--dry-run"), args.Contains("--create"), args.Contains("--upload-unlisted"), Option(args, "--prepare"), args.Contains("--repaint"));
 
         BroadcastConfig config;
         try

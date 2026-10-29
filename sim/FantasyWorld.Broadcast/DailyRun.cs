@@ -20,7 +20,7 @@ namespace FantasyWorld.Broadcast;
 /// Prepare only (sub-project 7 F2): build and narrate the day's episode, plan its diorama film, write the plan to this
 /// file for the workflow's film jobs, and post nothing; a later run posts it.
 /// </param>
-public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadUnlisted = false, string? PreparePlan = null);
+public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadUnlisted = false, string? PreparePlan = null, bool Repaint = false);
 
 /// <summary>
 /// One morning's broadcast (spec §3): pull the world, back it up, catch it up, build the episode, push the episode and
@@ -75,6 +75,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             {
                 log.WriteLine("Today's episode is already built; the world is not touched again today.");
                 episode = await StoredEpisodeAsync(store, date, ct).ConfigureAwait(false);
+                if (_options.Repaint) episode = await RepaintAsync(store, manifest, episode, date, ct).ConfigureAwait(false);
             }
             else
                 episode = await MakeEpisodeAsync(store, manifest, date, ct).ConfigureAwait(false);
@@ -307,6 +308,41 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         manifest.WorldName = null;
         await store.PutAsync(Manifest.Key, manifest.ToBytes(), "application/json", ct).ConfigureAwait(false);
         log.WriteLine($"A new world begins today: the old world's episode of {date} ({old.Count} stored files) is cleared and the day is made again.");
+    }
+
+    /// <summary>
+    /// Today's episode painted and filmed again (the owner, 2026-10-29: "rerender today's episode with the new stills"): the
+    /// world, script and narration stay as they are; the fights' stills are made afresh, and the film, the video and the
+    /// YouTube uploads are cleared so they are made and uploaded again. Discord, already told, is not posted again.
+    /// </summary>
+    private async Task<Episode> RepaintAsync(PrefixedStore store, Manifest manifest, Episode episode, string date, CancellationToken ct)
+    {
+        foreach (var still in episode.Parts.Select(p => p.Still).OfType<string>().Distinct()) await store.DeleteAsync(still, ct).ConfigureAwait(false);
+        episode = episode with { Sections = episode.Parts.Select(p => p with { Still = null }).ToList() };
+        var work = Directory.CreateTempSubdirectory("fw-repaint-");
+        try
+        {
+            var snapshot = Path.Combine(work.FullName, "world.fw.db");
+            await File.WriteAllBytesAsync(snapshot, await store.GetAsync(config.WorldKey, ct).ConfigureAwait(false)
+                                                    ?? throw new InvalidOperationException($"No world is stored at {store.Prefix}{config.WorldKey}."), ct).ConfigureAwait(false);
+            episode = await FaceOffImagesAsync(store, snapshot, episode, date, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            work.Delete(recursive: true);
+        }
+        await store.PutAsync(EpisodeKey(date), Encoding.UTF8.GetBytes(episode.ToJson()), "application/json", ct).ConfigureAwait(false);
+        var film = await store.ListAsync($"episodes/{date}/film/", ct).ConfigureAwait(false);
+        foreach (var key in film.Concat([Channels.YouTube.VideoKey(date), Channels.YouTube.ShortVideoKey(date), Channels.YouTube.ThumbnailKey(date),
+                     Channels.YouTube.StateKey(date), Channels.YouTube.ShortStateKey(date)]))
+            await store.DeleteAsync(key, ct).ConfigureAwait(false);
+        manifest.Day(date).Steps.Remove("youtube");
+        manifest.Day(date).Steps.Remove("youtube-short");
+        await SaveAsync(store, manifest, ct).ConfigureAwait(false);
+        log.WriteLine($"Repainted the episode of {date}: {episode.Parts.Count(p => p.Still is not null)} stills made afresh; "
+                      + "its film, video and YouTube uploads are cleared, to be made and uploaded again.");
+        return episode;
     }
 
     private async Task<Episode> MakeEpisodeAsync(PrefixedStore store, Manifest manifest, string date, CancellationToken ct)
