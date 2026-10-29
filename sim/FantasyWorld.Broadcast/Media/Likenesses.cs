@@ -107,7 +107,7 @@ public static class Likenesses
     /// </summary>
     public static string? KeyFor(World world, string reference) =>
         reference.Split('#') is [var kind, var id] && long.TryParse(id, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
-                                                   && kind is Character.Kind or Realm.Kind && Ask(world, reference, "") is { } request
+                                                   && kind is Character.Kind or Realm.Kind or Monster.Kind && Ask(world, reference, "") is { } request
             ? $"{Prefix}{kind}-{id}-{Fingerprint(World(world) + request.Prompt)}.png"
             : null;
 
@@ -184,17 +184,24 @@ public static class Likenesses
     }
 
     /// <summary>
-    /// Every standing realm's banner, made once and reused like a face-off's (the owner, 2026-10-29: the website's flags show
-    /// them): the realm's reference ("realm#3") and the banner's key, for those that could be had.
+    /// The website's images (the owner, 2026-10-29): every standing realm's banner, every living beast, and the duellists of the
+    /// past year's fights, made once each and reused like a face-off's; at most <paramref name="maxNew"/> new ones a day, so
+    /// a new world fills in over a few days. The reference ("realm#3", "monster#9", "char#12") and the image's key, for those had.
     /// </summary>
-    public static async Task<IReadOnlyDictionary<string, string>> BannersAsync(World world, IObjectStore store, IImageMaker? maker, string style,
-        string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct = default)
+    public static async Task<IReadOnlyDictionary<string, string>> ForWebAsync(World world, EventLog log, IObjectStore store, IImageMaker? maker, string style,
+        string date, Func<long, Task<bool>> room, TextWriter log2, int maxNew, CancellationToken ct = default)
     {
-        var realms = world.Realms.Values.Where(r => !r.Destroyed).OrderBy(r => r.Id)
-            .Select(r => (Ref: r.Ref.ToString(), r.Name, Key: KeyFor(world, r.Ref.ToString()))).Where(r => r.Key is not null).ToList();
-        var had = await MakeAsync(realms.Select(r => (r.Key!, r.Name, (Func<ImageRequest?>)(() => Ask(world, r.Ref, style)))).ToList(),
-            store, maker, date, room, log, ct).ConfigureAwait(false);
-        return realms.Where(r => had.Contains(r.Key!)).ToDictionary(r => r.Ref, r => r.Key!, StringComparer.Ordinal);
+        var since = world.Date.Day - FantasyWorld.Sim.Core.WorldDate.DaysPerYear;
+        var fighters = log.All.Where(e => e.Date.Day >= since && e.Type.StartsWith("Duel", StringComparison.Ordinal))
+            .SelectMany(e => new[] { "challenger", "defender" }.Select(r => e.Actors.TryGetValue(r, out var a) ? a : (EntityRef?)null))
+            .OfType<EntityRef>().Where(r => world.Characters.ContainsKey(r.Id)).Select(r => (Ref: r.ToString(), world.Characters[r.Id].Name));
+        var wanted = world.Realms.Values.Where(r => !r.Destroyed).OrderBy(r => r.Id).Select(r => (Ref: r.Ref.ToString(), r.Name))
+            .Concat(world.Monsters.Values.Where(m => m.Alive).OrderByDescending(m => m.Notoriety).ThenBy(m => m.Id).Select(m => (Ref: m.Ref.ToString(), m.Name)))
+            .Concat(fighters).DistinctBy(w => w.Ref)
+            .Select(w => (w.Ref, w.Name, Key: KeyFor(world, w.Ref))).Where(w => w.Key is not null).ToList();
+        var had = await MakeAsync(wanted.Select(w => (w.Key!, w.Name, (Func<ImageRequest?>)(() => Ask(world, w.Ref, style)))).ToList(),
+            store, maker, date, room, log2, ct, maxNew).ConfigureAwait(false);
+        return wanted.Where(w => had.Contains(w.Key!)).ToDictionary(w => w.Ref, w => w.Key!, StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -202,8 +209,9 @@ public static class Likenesses
     /// the day's asking, nothing made near the bucket's limit) and marked used today; the keys of those that could be had.
     /// </summary>
     private static async Task<HashSet<string>> MakeAsync(IReadOnlyList<(string Key, string Label, Func<ImageRequest?> Ask)> wanted, IObjectStore store,
-        IImageMaker? maker, string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct)
+        IImageMaker? maker, string date, Func<long, Task<bool>> room, TextWriter log, CancellationToken ct, int maxNew = int.MaxValue)
     {
+        var fresh = 0;
         var index = await IndexAsync(store, ct).ConfigureAwait(false);
         var kept = (await store.ListAsync(Prefix, ct).ConfigureAwait(false)).ToHashSet(StringComparer.Ordinal);
         var spent = maker is null;
@@ -213,7 +221,7 @@ public static class Likenesses
         {
             if (!kept.Contains(key))
             {
-                if (spent || ask() is not { } request) continue;
+                if (spent || fresh >= maxNew || ask() is not { } request) continue;
                 if (!await room(ExpectedBytes).ConfigureAwait(false))
                 {
                     log.WriteLine($"Images: the bucket is near its limit, so no image of {label} is made.");
@@ -234,6 +242,7 @@ public static class Likenesses
                     await store.PutAsync(key, made.Bytes, made.Mime, ct).ConfigureAwait(false);
                     index[key] = new Likeness(made.Bytes.LongLength, date, request.Prompt);
                     kept.Add(key);
+                    fresh++;
                     log.WriteLine($"Images: made {key} ({made.Bytes.LongLength / 1000} kB{(request.Transparent && !made.Transparent ? ", not transparent" : "")}).");
                 }
                 catch (ImageBudgetSpentException e)
@@ -289,6 +298,15 @@ public static class Likenesses
             var traits = c.Traits.Count > 0 ? $", {string.Join(", ", c.Traits.Take(3))} in bearing" : "";
             var scars = c.Wounds.Count > 0 ? ", scarred from old wounds" : "";
             return new ImageRequest($"a {who} {Decade(c.Age(world.Date)).Replace("their", c.Sex == Sex.Female ? "her" : "his")}, a {role}{culture}, {gear}, clothes in {dress}{traits}{scars}, medieval fantasy duellist",
+                "character", style, true, id);
+        }
+        if (kind == Monster.Kind && world.Monsters.TryGetValue(id, out var beast))
+        {
+            // A beast as the website shows it (the owner, 2026-10-29): its whole figure, painted from its breed and standing.
+            var land = world.Regions.TryGetValue(beast.RegionId, out var lair) ? $", from the {lair.Biome.ToString().ToLowerInvariant()}" : "";
+            var stature = beast.Legendary ? "a legendary, ancient and colossal" : beast.Might >= 60 ? "a huge and terrible" : "a fearsome";
+            var mood = beast.State == MonsterState.Slumbering ? "curled asleep" : "rearing in menace";
+            return new ImageRequest($"{stature} {beast.Breed}{land}, {mood}, scarred hide and glowing eyes, full body, dark fantasy bestiary illustration",
                 "character", style, true, id);
         }
         if (kind == Realm.Kind && world.Realms.TryGetValue(id, out var r2))

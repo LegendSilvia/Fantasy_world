@@ -46,8 +46,8 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
     /// <summary>The world for the browser viewer (sub-project 11): the day's world, its history and geography, no LLM journal.</summary>
     public const string WebBundleKey = "web/world.json.gz";
 
-    /// <summary>The standing realms' banners for the website, as JSON: {"realm#3": "images/realm-3-1a2b3c4d.png"}.</summary>
-    public const string WebBannersKey = "web/banners.json";
+    /// <summary>The website's images, as JSON: {"realm#3": "images/realm-3-1a2b3c4d.png", "monster#9": …, "char#12": …}.</summary>
+    public const string WebImagesKey = "web/images.json";
 
     public static string ScriptKey(string date) => $"episodes/{date}/script.txt";
 
@@ -418,7 +418,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             {
                 log.WriteLine($"warning: the web bundle could not be stored ({e.Message}); the website keeps yesterday's world.");
             }
-            await WebBannersAsync(store, snapshot, date, ct).ConfigureAwait(false);
+            await WebImagesAsync(store, snapshot, date, ct).ConfigureAwait(false);
 
             manifest.Record(date, episode);
             manifest.Day(date).Steps[Manifest.EpisodeStep] = clock();
@@ -549,27 +549,31 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         }
     }
 
+    /// <summary>At most this many new images a day for the website, so a new world fills in over a few days.</summary>
+    public const int NewWebImagesPerDay = 12;
+
     /// <summary>
-    /// The standing realms' banners for the website's flags (the owner, 2026-10-29), made once each and listed at
-    /// <see cref="WebBannersKey"/> (reference to image key); a failure leaves the flags plain.
+    /// The website's images (the owner, 2026-10-29): the realms' banners for the flags, the beasts for their badges and cards,
+    /// the past year's duellists for the fights' cards; made once each and listed at <see cref="WebImagesKey"/> (reference to
+    /// image key). A failure leaves the website without them.
     /// </summary>
-    private async Task WebBannersAsync(PrefixedStore store, string snapshot, string date, CancellationToken ct)
+    private async Task WebImagesAsync(PrefixedStore store, string snapshot, string date, CancellationToken ct)
     {
         if (!config.Images.Make) return;
         try
         {
             using var saved = WorldStore.Open(snapshot);
-            var world = saved.Load().World;
+            var (world, events, _) = saved.Load();
             var limit = StorageBudget.Bytes(config.Storage.MaxGigabytes);
-            var banners = await Likenesses.BannersAsync(world, store, images, config.Images.Style, date,
-                async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log, ct)
-                .ConfigureAwait(false);
-            await store.PutAsync(WebBannersKey, JsonSerializer.SerializeToUtf8Bytes(banners), "application/json", ct).ConfigureAwait(false);
-            log.WriteLine($"The website's flags: {banners.Count} realm banner(s).");
+            var pictures = await Likenesses.ForWebAsync(world, events, store, images, config.Images.Style, date,
+                async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log,
+                NewWebImagesPerDay, ct).ConfigureAwait(false);
+            await store.PutAsync(WebImagesKey, JsonSerializer.SerializeToUtf8Bytes(pictures), "application/json", ct).ConfigureAwait(false);
+            log.WriteLine($"The website's images: {pictures.Count} (banners, beasts and duellists).");
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException && !ct.IsCancellationRequested)
         {
-            log.WriteLine($"warning: the realms' banners could not be had ({e.Message}); the website's flags stay plain.");
+            log.WriteLine($"warning: the website's images could not be had ({e.Message}); it goes without them.");
         }
     }
 

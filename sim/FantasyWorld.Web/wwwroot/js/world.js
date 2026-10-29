@@ -94,6 +94,7 @@ async function showYear(year) {
     $("year").value = year;
     $("year-label").textContent = year;
     const s = JSON.parse(await call("Scene", year === world.year ? "" : String(year)));
+    const pics = await pictures;
     for (const child of [...dynamic.children]) { dynamic.remove(child); child.traverse(o => o.geometry?.dispose()); }
     labels.forEach(l => l.element.remove());
     labels = [];
@@ -127,12 +128,15 @@ async function showYear(year) {
     }
     // Badges: a boss marker over each beast, crossed swords where a fight was or is (a click asks why).
     const badge = (key, size, title) => `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.badges[key])}" style="height:${size}px" alt="" title="${esc(title)}">`;
+    // A painted beast stands in its frame (the owner, 2026-10-29); a click opens its card, a fight's its face-off.
+    const framed = (beast, size) => `<span class="beast-frame ${beast.badge}" style="width:${Math.round(size * 0.84)}px;height:${Math.round(size)}px" title="${esc(`${beast.name}, ${beast.breed}`)}">`
+        + `<img src="${esc(pics[beast.ref])}" alt=""></span>`;
     for (const beast of s.beasts)
-        label(badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
-            () => setHash({ panel: `why/${beast.eventId}` }));
+        label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
+            () => setHash({ panel: `beast/${id(beast.ref)}` }));
     for (const fight of s.fights)
         label(badge(fight.badge, fight.kind === "duel" ? 26 : 34, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`), "badge", lift(fight.at, 0.02), 75,
-            () => setHash({ panel: `why/${fight.eventId}` }));
+            () => setHash({ panel: `fight/${fight.eventId}` }));
     for (const place of s.settlements)
         label(esc(place.name), place.kind === "Conflict" || place.kind === "RecentEvent" ? "news" : "", lift(place.at, 0.03),
             10 + place.size * 100, () => setHash({ panel: `settlement/${id(place.ref)}` }));
@@ -159,8 +163,12 @@ function houses(data) {
     return group;
 }
 
-/** The realms' painted banners (realm reference to image), when the day's run had them; else the flags are plain. */
-const banners = fetch("banners.json").then(r => r.ok ? r.json() : {}).catch(() => ({}));
+/**
+ * The world's painted images (reference to file: realms' banners, beasts, duellists), when the day's run had them; without
+ * one, a flag stays plain, a beast keeps its skull badge and a card goes without a portrait.
+ */
+const pictures = fetch("images.json").then(r => r.ok ? r.json() : {}).catch(() => ({}));
+const banners = pictures;
 const bannerTextures = new Map();
 
 /** A realm's painted banner as a texture, once loaded (null while loading or when there is none). */
@@ -312,6 +320,11 @@ async function render(kind, key, year) {
     if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
     if (kind === "lore") return lore(JSON.parse(await call("Lore")));
     if (kind === "people") return people(JSON.parse(await call("People")));
+    if (kind === "beast") return beastCard(JSON.parse(await call("Beast", key)), await pictures);
+    if (kind === "fight") {
+        const f = JSON.parse(await call("Fight", key));
+        return (f ? fightCard(f, await pictures) : "") + why(JSON.parse(await call("Screen", "why", key)));
+    }
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
     if (kind === "character") return character(screen);
@@ -376,6 +389,42 @@ function gods(open, counts) {
 $("gods").addEventListener("click", () => setHash({ panel: "gods/today" }));
 $("lore").addEventListener("click", () => setHash({ panel: "lore/world" }));
 $("people").addEventListener("click", () => setHash({ panel: "people/all" }));
+
+/** A fight as a face-off card (the owner, 2026-10-29): both sides' portraits, classes, fates and figures, then the odds or the verdict. */
+function fightCard(f, pics) {
+    const moment = f.stage === "fought" ? "The verdict" : f.stage === "under way" ? "The clash rages" : "The challenge";
+    const side = (x, right) => `<div class="fo-side ${right ? "right" : ""}">`
+        + (pics[x.ref] ? `<div class="fo-portrait ${x.fate === "Slain" ? "slain" : ""}"><img src="${esc(pics[x.ref])}" alt="">`
+            + (x.fate ? `<span class="fo-stamp ${/Victor/.test(x.fate) ? "win" : /Slain|Defeated/.test(x.fate) ? "loss" : ""}">${esc(x.fate)}</span>` : "") + `</div>` : "")
+        + `<div class="fo-name"><i style="background:${css(x.colour)}"></i>${emblem(x.class)}${x.ref.startsWith("char#") || x.ref.startsWith("realm#") ? ref(x.ref, x.name) : esc(x.name)}</div>`
+        + `<div class="muted">${esc([x.class && x.class[0].toUpperCase() + x.class.slice(1), ...x.notes].filter(Boolean).join(" · "))}</div>`
+        + (!pics[x.ref] && x.fate ? `<div class="fo-stamp-inline">${esc(x.fate)}</div>` : "") + `</div>`;
+    const rows = f.a.stats.map((x, i) => {
+        const y = f.b.stats[i];
+        if (!y) return "";
+        const w = v => `${Math.round(100 * Math.min(1, v.value / Math.max(1, v.max)))}%`;
+        return `<div class="fo-row"><span>${esc(x.shown)}</span><span class="bar left"><b style="width:${w(x)};background:${css(f.a.colour)}"></b></span>`
+            + `<span class="fo-stat">${esc(x.name)}</span><span class="bar"><b style="width:${w(y)};background:${css(f.b.colour)}"></b></span><span>${esc(y.shown)}</span></div>`;
+    }).join("");
+    const odds = `<div class="fo-odds"><b style="width:${f.odds}%;background:${css(f.a.colour)}"></b><b style="width:${100 - f.odds}%;background:${css(f.b.colour)}"></b></div>`;
+    return `<div class="kicker">${moment} · ${esc(f.stakes)}</div>`
+        + `<div class="fo-sides">${side(f.a, false)}<img class="fo-vs" src="img/emblems/versus.png" alt="VS">${side(f.b, true)}</div>`
+        + `<div class="fo-rows">${rows}</div>`
+        + `<p class="kicker">${f.stage === "fought" ? "Victory" : "Who will prevail?"}</p>${odds}`
+        + (f.result ? `<p>${esc(f.result[0].toUpperCase() + f.result.slice(1))}</p>` : `<p class="muted">By the odds, ${esc(f.words)}.</p>`)
+        + `<hr>`;
+}
+
+/** A beast's card (the owner, 2026-10-29): its portrait, what it is, its legend, its lair and its deeds. */
+function beastCard(b, pics) {
+    if (!b) return `<p class="muted">The beast is gone from the chronicle.</p>`;
+    const state = b.state === "slain" ? `Slain${b.slayer ? ` by ${ref(b.slayer.ref, b.slayer.name)}` : ""}` : b.state === "slumbering" ? "Asleep in its lair" : "Abroad and hungry";
+    return `<div class="kicker">${b.legendary ? "A legend · " : ""}${esc(b.breed)}</div><h2>${esc(b.name)}</h2>`
+        + (pics[b.ref] ? `<div class="beast-portrait ${b.state === "slain" ? "slain" : ""}"><img src="${esc(pics[b.ref])}" alt=""></div>` : "")
+        + `<p class="muted">${state}${b.place ? ` · ${esc(b.place)}` : ""} · might ${b.might} · dread ${b.notoriety}</p>`
+        + (b.lore ? `<p>${esc(b.lore)}</p>` : "")
+        + (b.deeds.length ? `<h3>Its deeds</h3><ul>${b.deeds.map(d => `<li><span class="muted">Year ${d.year}</span> · ${linked(d.text)} · ${ref(d.event, "why")}</li>`).join("")}</ul>` : "");
+}
 
 /** The world's notable people, most renowned first, with a filter by name, class, realm or home (the owner, 2026-10-29). */
 function people(p) {

@@ -137,6 +137,49 @@ public static class Viewer
         return JsonSerializer.Serialize(new { people }, Json);
     }
 
+    /// <summary>
+    /// A fight on the map as a face-off card (the owner, 2026-10-29): both sides with their figures, the odds at the challenge
+    /// or the result and each side's fate; null where the event is no fight.
+    /// </summary>
+    [JSInvokable]
+    public static string Fight(string eventId)
+    {
+        var id = long.Parse(eventId, CultureInfo.InvariantCulture);
+        if (!Log.TryGet(id, out var ev)) return "null";
+        var f = FantasyWorld.Sim.Chronicle.FaceOffs.OfFight(World, Log, ev) ?? FantasyWorld.Sim.Chronicle.FaceOffs.For(World, ev);
+        if (f is null) return "null";
+        object Side(FantasyWorld.Sim.Chronicle.FaceOffSide side) => new
+        {
+            @ref = side.Ref, name = side.Name, colour = V3(WarLayout.Colour(side.Colour)), @class = side.Class, fate = side.Fate, notes = side.Notes,
+            stats = side.Stats.Select(x => new { name = x.Name, value = x.Value, max = x.Max, shown = FantasyWorld.Sim.Chronicle.FaceOffStat.Compact(x.Value) }),
+        };
+        return JsonSerializer.Serialize(new
+        {
+            kind = f.Kind, stage = f.Stage, stakes = f.Stakes, odds = f.OddsA, result = f.Result, words = f.Odds(), a = Side(f.A), b = Side(f.B),
+        }, Json);
+        static float[] V3(Vector3 v) => [v.X, v.Y, v.Z];
+    }
+
+    /// <summary>A beast's card (the owner, 2026-10-29): what it is, its legend, where it lairs, and its deeds, newest first.</summary>
+    [JSInvokable]
+    public static string Beast(string monsterId)
+    {
+        var id = long.Parse(monsterId, CultureInfo.InvariantCulture);
+        if (!World.Monsters.TryGetValue(id, out var m)) return "null";
+        var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
+        var reference = m.Ref;
+        var deeds = Log.All.Where(e => e.Actors.Values.Contains(reference)).OrderByDescending(e => e.Id).Take(12)
+            .Select(e => new { @event = $"event#{e.Id}", year = e.Date.Year, text = narrator.Sentence(e) });
+        var lore = Log.TryGet(m.RoseEventId, out var rose) ? rose.Payload.GetValueOrDefault("lore") : null;
+        return JsonSerializer.Serialize(new
+        {
+            @ref = reference.ToString(), name = m.Name, breed = m.Breed, legendary = m.Legendary, might = (int)Math.Round(m.Might),
+            notoriety = (int)Math.Round(m.Notoriety), state = m.State.ToString().ToLowerInvariant(), place = World.Regions.GetValueOrDefault(m.RegionId)?.Name,
+            lore, risen = m.RoseEventId, slayer = World.Characters.TryGetValue(m.SlayerId, out var slayer) ? new { @ref = slayer.Ref.ToString(), name = slayer.Name } : null,
+            deeds,
+        }, Json);
+    }
+
     [JSInvokable]
     public static string Screen(string kind, string arg)
     {
@@ -223,7 +266,7 @@ public static class Viewer
             // The map's badges (the owner, 2026-10-28): boss markers over beasts, crossed swords where fights are.
             beasts = (map.Monsters ?? []).Select(m => new
             {
-                name = m.Name, breed = m.Breed, might = m.Might, at = V(Projection.ToBlock(grid, m.Position, 0)), eventId = m.RoseEventId,
+                @ref = m.Ref.ToString(), name = m.Name, breed = m.Breed, might = m.Might, at = V(Projection.ToBlock(grid, m.Position, 0)), eventId = m.RoseEventId,
                 badge = m.Slumbering ? "asleep" : m.Legendary ? "legend" : "boss",
             }),
             fights = (map.Battles ?? []).Select(b => new
