@@ -92,6 +92,7 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         ["BattleJoined"] = "At {@place}, {attacker} and {defender} joined a battle of {war} that was not decided in a day.",
         ["BattleTurned"] = "The battle between {attacker} and {defender} at {@place} raged on.",
         ["BattleBrokenOff"] = "The battle between {attacker} and {defender} at {@place} was broken off.",
+        ["SecretRevealed"] = "At the bottom of {structure}, {delver} uncovered a secret of the world, {=title}: {=text}",
         ["ArmyMoved"] = "{army} marched from {from} into {@place}.",
         ["HostAttackedAtSea"] = "{monster} fell on the ships of {army} at sea off {@place}; {=lost} were lost to the deep.",
         ["EraBegan"] = "{=era} began.",

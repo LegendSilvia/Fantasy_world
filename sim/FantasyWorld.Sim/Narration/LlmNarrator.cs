@@ -25,7 +25,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
     /// holds the chronicler to its names and numbers; offline, over budget, refused, unfaithful, the wrong number of sections
     /// or the wrong length, the episode keeps its template script. Keyed by date and events, so a rebuilt episode asks anew.
     /// </summary>
-    public Episode EpisodeScript(Episode episode, int maxCharacters)
+    public Episode EpisodeScript(Episode episode, int maxCharacters, string? recent = null)
     {
         var parts = episode.Parts;
         var task = $"Write the script of today's spoken episode of the chronicle, to be read aloud, as exactly {parts.Count} sections, one for "
@@ -88,7 +88,104 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             Text = written[i],
             Scene = p.Scene is not null && scenes?[i] is { Length: > 0 and <= Stills.MaxCharacters } painted ? painted : p.Scene,
         }).ToList();
-        return episode with { Script = Episode.ScriptOf(sections), Sections = sections, Writer = Episode.ChroniclerWriter };
+        var chronicled = episode with { Script = Episode.ScriptOf(sections), Sections = sections, Writer = Episode.ChroniclerWriter };
+        return Review(chronicled, brief, facts, minimum, maxCharacters, task, recent);
+    }
+
+    /// <summary>
+    /// The editor's pass (the owner, 2026-10-29), before the script is voiced: Claude reads the whole transcript as a viewer
+    /// would hear it, beside the brief and why each thing it tells came to be (each section's chain of causes, the world's
+    /// legend and secrets), and changes or adds only what the viewer needs: a fact the brief contradicts, a cause left
+    /// unexplained, a story that depends on another told later, a repetition. Held to the same guard as the chronicler; a
+    /// review that changes nothing, or fails it, leaves the chronicler's script as it was. The recent episodes' transcripts
+    /// (<paramref name="recent"/>) show what the audience has already heard; the editor's feedback on the world itself, for
+    /// its maker, is kept on the episode.
+    /// </summary>
+    private Episode Review(Episode written, string brief, string facts, int minimum, int maxCharacters, string rules, string? recent)
+    {
+        var parts = written.Parts;
+        var key = $"narrate|episode-review|{written.Date}|{written.FirstEventId}-{written.LastEventId}";
+        if (!story.Gateway.MayAnswer(ModelTier.Narrate, key)) return written;
+        // Why each section's story came to be, so the editor knows what the chronicler took for granted.
+        string Causes(EpisodeSection p) => p.EventId != 0 && story.Log.TryGet(p.EventId, out var ev)
+            && Episode.Thread(story.Log, ev, 3).Skip(1).Select(c => _templates.Sentence(c)).ToList() is { Count: > 0 } why
+            ? $"\n(Why it came to be, nearest cause first: {PromptText.Data(string.Join(" ", why), 900)})" : "";
+        var why = string.Concat(parts.Select((p, i) => Causes(p) is { Length: > 0 } c ? $"\n[{i + 1}]{c}" : ""));
+        var lore = (story.World.Legend is { } legend ? $"The world's legend: {PromptText.Data(legend.Summary, 400)}\n" : "")
+                   + string.Concat(story.World.Secrets.Select(x => $"A secret uncovered: {PromptText.Data(x.Title)}: {PromptText.Data(x.Text, 500)}\n"));
+        var transcript = string.Join("\n\n", parts.Select((p, i) => $"[{i + 1}] {PromptText.Data(p.Text, maxCharacters)}"));
+        var prompt = PromptText.Section("brief", brief + (why.Length > 0 ? $"\n\nWhy things are as they are:{why}" : "") + (lore.Length > 0 ? $"\n\n{lore}" : ""))
+            + (recent is { Length: > 0 } ? "\n\n" + PromptText.Section("recent_episodes", PromptText.Data(recent, RecentCharacters)) : "")
+            + "\n\n" + PromptText.Section("transcript", transcript)
+            + $"\n\nYou are the episode's editor. The transcript is what will be voiced, section by section, exactly as written. Read it whole, "
+            + "as a viewer hearing it once would, and decide whether anything must change: a fact the brief contradicts; a cause a viewer needs "
+            + "to follow a story, left untold (add it in a few words, from why things are as they are); a story that leans on another told "
+            + "after it; a repetition, within the episode or of what the recent episodes already told (a story that goes on should say "
+            + "so, not start afresh); a sentence hard to follow by ear. Keep the chronicler's voice and change nothing that works. "
+            + $"The rules the chronicler wrote by still hold: {rules} "
+            + $"Answer with changed (whether you changed anything), notes (what you changed and why, or why nothing), sections: the whole "
+            + $"transcript, exactly {parts.Count} sections in the same order, each as it should be voiced; and feedback, for the world's "
+            + "maker and never voiced: three to six short lines on the world itself as this episode and the recent ones show it (not the "
+            + "writing): what felt repetitive, thin, implausible or confusing in what happens, what the audience would want more of, and "
+            + "a feature or rule that might make the world's stories better.";
+        var schema = JsonSerializer.Serialize(new
+        {
+            type = "object",
+            properties = new
+            {
+                changed = new { type = "boolean" },
+                notes = new { type = "string" },
+                sections = new { type = "array", items = new { type = "string" } },
+                feedback = new { type = "string" },
+            },
+            required = new[] { "changed", "notes", "sections", "feedback" },
+            additionalProperties = false,
+        });
+        // The causes and the lore are facts the editor may use too.
+        var known = facts + why + "\n" + lore;
+        string? Why(string json) => Sections(json, parts.Count) is not { } texts ? $"not {parts.Count} sections"
+            : string.Join("\n\n", texts).Length is var n && (n < minimum || n > maxCharacters) ? $"{n} characters, not {minimum} to {maxCharacters}"
+            : string.Join(", ", NarrationGuard.Problems(string.Join("\n\n", texts), known, rules).Distinct().Take(8)) is { Length: > 0 } problems ? problems
+            : null;
+        var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(2000, maxCharacters / 2));
+        var answer = story.Gateway.Ask(request, story.World.Date.Day, json => Why(json) is null, whyInvalid: json => Why(json) ?? "");
+        if (answer is null) return written;
+        var reviewed = written with { Feedback = Feedback(answer) };
+        if (!Changed(answer) || Sections(answer, parts.Count) is not { } edited) return reviewed;
+        var sections = parts.Select((p, i) => p with { Text = edited[i] }).ToList();
+        return reviewed with { Script = Episode.ScriptOf(sections), Sections = sections };
+    }
+
+    /// <summary>The most of the recent episodes' transcripts the editor is shown.</summary>
+    public const int RecentCharacters = 9000;
+
+    /// <summary>The editor's feedback on the world, if it gave any.</summary>
+    private static string? Feedback(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("feedback", out var f) && f.ValueKind == JsonValueKind.String && f.GetString()!.Trim() is { Length: > 0 } text
+                ? text.Length <= 3000 ? text : text[..3000] : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Whether the editor says it changed anything (an answer that does not say counts as a change only if it differs).</summary>
+    private static bool Changed(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return !doc.RootElement.TryGetProperty("changed", out var c) || c.ValueKind != JsonValueKind.False;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     /// <summary>The answer's scenes, one a section (empty where none), if it has exactly <paramref name="count"/>.</summary>

@@ -23,6 +23,9 @@ public sealed record EpisodeSection(string Kind, string Title, string Text, long
     IReadOnlyList<CampaignMove>? Moves = null, string? Scene = null, string? Still = null, IReadOnlyList<FightBeat>? Beats = null)
 {
     /// <summary>Why: "how it came to this", in episodes made before 2026-10-27; Comment: the chronicler's view of the year that replaced it.</summary>
+    /// <summary>Legend: the world's legend told in full (the owner, 2026-10-29), in the first episode that has it.</summary>
+    public const string Legend = "legend";
+
     public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
 
     /// <summary>
@@ -41,8 +44,11 @@ public sealed record EpisodeSection(string Kind, string Title, string Text, long
 public sealed record Episode(
     string Date, string WorldName, string Chronicler, int FromYear, int ToYear, int EventCount, long FirstEventId, long LastEventId,
     string ColdOpen, EpisodeStory? Headline, string HeadlineBody, IReadOnlyList<EpisodeStory> Stories, string? Why, string SignOff, string Script,
-    string Writer = Episode.TemplateWriter, IReadOnlyList<EpisodeSection>? Sections = null)
+    string Writer = Episode.TemplateWriter, IReadOnlyList<EpisodeSection>? Sections = null, string? Feedback = null)
 {
+    // Feedback: the editor's notes for the world's maker on what the episode shows of the world (the owner, 2026-10-29):
+    // what felt repetitive, thin, implausible or confusing in the world itself, and what might improve it. Never voiced.
+
     /// <summary>The script as sections; an episode stored before sections existed is one section.</summary>
     [JsonIgnore] public IReadOnlyList<EpisodeSection> Parts => Sections is { Count: > 0 } s ? s : [new EpisodeSection(EpisodeSection.Opening, WorldName, Script)];
 
@@ -119,6 +125,10 @@ public sealed record Episode(
         var body = top is null ? "" : narrator.Body(top, log, withCause: true);
         if (top is not null && body == $"{Digest.SeasonLabel(top.Date)}.") body = "";
         var coldOpen = OpeningFor(name, fromYear, toYear, events.Count, sinceEventId == 0);
+        // The world's legend (the owner, 2026-10-29): in brief after the opening line, or in full in the first episode to have it.
+        var legend = Legends.Told(world, sinceEventId, out var fullLegend);
+        if (legend is not null && !fullLegend) coldOpen = $"{coldOpen} {legend}";
+        var legendSection = legend is not null && fullLegend ? new EpisodeSection(EpisodeSection.Legend, $"The legend of {name}", legend) : null;
         var signOff = SignOffFor(chronicler, name);
 
         // The template script: drop the least important stories, then the chronicler's view, until it fits the budget.
@@ -160,7 +170,7 @@ public sealed record Episode(
             return s with { Text = Fights.Tell(fresh) is { Length: > 0 } told ? $"{s.Text}\n\n{told}" : s.Text, Beats = beats };
         }
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
-            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff));
+            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection));
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
@@ -220,9 +230,11 @@ public sealed record Episode(
         narrator.PlaceOf(ev) is { } place ? $"{Views.Categories.Kicker(ev)} at {English.Capitalise(place)}" : Views.Categories.Kicker(ev);
 
     private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
-        IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff)
+        IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff,
+        EpisodeSection? legend = null)
     {
         var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
+        if (legend is not null) sections.Add(legend);
         if (headline is not null)
             sections.Add(new(EpisodeSection.Headline, headline.Text, body.Length > 0 ? $"{headline.Text}.\n\n{body}" : $"{headline.Text}.", headline.EventId));
         // The challenges follow the headline: what is coming, before the news of what was.

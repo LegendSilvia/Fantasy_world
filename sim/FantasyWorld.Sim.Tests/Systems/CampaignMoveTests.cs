@@ -137,7 +137,7 @@ public class CampaignMoveTests
         var story = new FantasyWorld.Sim.Llm.StoryContext(world, log,
             new FantasyWorld.Sim.Llm.LlmGateway(fake, new FantasyWorld.Sim.Llm.LlmSettings { Provider = "fake" }, new FantasyWorld.Sim.Llm.LlmJournal()));
         var written = new FantasyWorld.Sim.Narration.LlmNarrator(story).EpisodeScript(episode, 20_000);
-        var prompt = fake.Requests.Single().Prompt;
+        var prompt = fake.Requests.First(r => r.Key.StartsWith("narrate|episode-sections", StringComparison.Ordinal)).Prompt;
         Assert.Contains("The war's marches:", prompt);
         Assert.All(marches, m => Assert.Contains(m.Line, prompt));
         Assert.Equal(moves, written.Parts.Single(p => p.Moves is { Count: > 0 }).Moves);

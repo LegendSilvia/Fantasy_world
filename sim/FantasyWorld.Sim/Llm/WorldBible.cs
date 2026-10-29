@@ -36,6 +36,9 @@ public static class WorldBible
         foreach (var faith in world.Faiths.Values)
             data.AppendLine($"- {PromptText.Data(faith.Name)}, worshipping {PromptText.Data(faith.Deity)}; tenets: {string.Join(", ", faith.Tenets.Select(t => PromptText.Data(t)))}");
 
+        // The legend, once written, is fixed for the world's life; the secrets uncovered later go in each brief instead.
+        if (world.Legend is { } legend) data.AppendLine($"The world's legend: {PromptText.Data(legend.Summary, 400)}");
+
         var chronicler = Chronicler.Of(world);
         return $"""
             You are the chronicler-arbiter of a persistent fantasy world that a simulation engine runs day by day.

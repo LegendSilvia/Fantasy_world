@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 210 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 211 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -14,7 +14,7 @@
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "eventId": 185
+      "eventId": 186
     },
     {
       "number": 3,
@@ -28,13 +28,13 @@
     },
     {
       "number": 5,
-      "place": "region#3",
-      "label": "Thonae",
+      "place": "region#7",
+      "label": "Gisreach",
       "position": {
-        "x": 0.3203125,
-        "y": 0.3515625
+        "x": 0.6796875,
+        "y": 0.1953125
       },
-      "eventId": 78
+      "eventId": 196
     },
     {
       "number": 6,
@@ -59,52 +59,52 @@
   ],
   "headline": {
     "number": 1,
-    "category": "structures",
-    "kicker": "A labyrinth cleared",
+    "category": "faithAndMagic",
+    "kicker": "A secret of the world",
     "title": {
-      "text": "The Deeps of Taramdale is cleared",
+      "text": "At the bottom of the Deeps of Taramdale, Giaskia of Gendtialing uncovered a secret of the world, the Broken Covenant of the Deeps of Taramdale: the peoples of the world were once one, the carvings show, until a covenant broken in the first age set them against each other",
       "links": [
         {
-          "start": 0,
+          "start": 17,
           "length": 22,
           "entity": "structure#1"
-        }
-      ]
-    },
-    "body": {
-      "text": "Giaskia of Gendtialing cleared the Deeps of Taramdale. Earlier that year, Giaskia of Gendtialing found the Reliquary of Miall in the depths of Taramdale.",
-      "links": [
+        },
         {
-          "start": 0,
+          "start": 41,
           "length": 22,
           "entity": "char#38"
         },
         {
-          "start": 31,
-          "length": 22,
-          "entity": "structure#1"
-        },
-        {
-          "start": 103,
-          "length": 22,
-          "entity": "artifact#6"
-        },
-        {
-          "start": 143,
+          "start": 133,
           "length": 9,
           "entity": "region#2"
         }
       ]
     },
-    "eventId": 185,
+    "body": {
+      "text": "Earlier that year, Giaskia of Gendtialing cleared the Deeps of Taramdale.",
+      "links": [
+        {
+          "start": 19,
+          "length": 22,
+          "entity": "char#38"
+        },
+        {
+          "start": 50,
+          "length": 22,
+          "entity": "structure#1"
+        }
+      ]
+    },
+    "eventId": 186,
     "canExplain": true
   },
   "items": [
     {
       "number": 2,
-      "category": "faithAndMagic",
+      "category": "structures",
       "text": {
-        "text": "Giaskia of Gendtialing slew the Lich of the Deeps of Taramdale in Taramdale.",
+        "text": "Giaskia of Gendtialing cleared the Deeps of Taramdale.",
         "links": [
           {
             "start": 0,
@@ -112,18 +112,13 @@
             "entity": "char#38"
           },
           {
-            "start": 28,
-            "length": 34,
-            "entity": "monster#1"
-          },
-          {
-            "start": 66,
-            "length": 9,
-            "entity": "region#2"
+            "start": 31,
+            "length": 22,
+            "entity": "structure#1"
           }
         ]
       },
-      "eventId": 183
+      "eventId": 185
     },
     {
       "number": 3,
@@ -145,18 +140,23 @@
     },
     {
       "number": 5,
-      "category": "nature",
+      "category": "characters",
       "text": {
-        "text": "Plague broke out in Thonae.",
+        "text": "Giaskia of Gendtialing hunted the monsters of Gisreach and was driven back.",
         "links": [
           {
-            "start": 20,
-            "length": 6,
-            "entity": "region#3"
+            "start": 0,
+            "length": 22,
+            "entity": "char#38"
+          },
+          {
+            "start": 46,
+            "length": 8,
+            "entity": "region#7"
           }
         ]
       },
-      "eventId": 78
+      "eventId": 196
     },
     {
       "number": 6,
@@ -202,26 +202,16 @@
       "number": 8,
       "category": "characters",
       "text": {
-        "text": "Lond of Cunvei married Meinrall of Cond at Drerithby.",
+        "text": "The Kingdom of Thonae kept the Tourney of Crowns: champions joust and wrestle before the throne.",
         "links": [
           {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          },
-          {
-            "start": 23,
-            "length": 16,
-            "entity": "char#5"
-          },
-          {
-            "start": 43,
-            "length": 9,
-            "entity": "settlement#3"
+            "start": 4,
+            "length": 17,
+            "entity": "realm#1"
           }
         ]
       },
-      "eventId": 79
+      "eventId": 195
     }
   ]
 }

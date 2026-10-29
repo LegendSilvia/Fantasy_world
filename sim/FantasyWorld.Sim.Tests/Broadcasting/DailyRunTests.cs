@@ -93,7 +93,8 @@ public class DailyRunTests : IDisposable
             return System.Text.Json.JsonSerializer.Serialize(new { sections });
         });
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1), providers: settings => settings.Provider == "anthropic" ? provider : null));
-        var request = Assert.Single(provider.Requests); // the script only: story beats are off
+        var request = provider.Requests[0]; // the script, then its editor: story beats are off
+        Assert.Equal(2, provider.Requests.Count);
         Assert.Equal(ModelTier.Narrate, request.Tier);
         Assert.Equal(Episode.ChroniclerWriter, _discord.Posts[1].Writer);
         Assert.Contains("And elsewhere, in brief:", _discord.Posts[1].Script);
@@ -106,7 +107,7 @@ public class DailyRunTests : IDisposable
         await File.WriteAllBytesAsync(copy.Path, (await Get("live/world.fw.db"))!);
         using (var store = WorldStore.Open(copy.Path))
         {
-            Assert.Equal(1, store.LoadJournal().Count);
+            Assert.Equal(2, store.LoadJournal().Count); // the chronicler and the editor
             Assert.Equal("claude-sonnet-5-5", store.LoadLlmSettings().ModelFor(ModelTier.Narrate));
             Assert.Equal(0, store.LoadLlmSettings().StoryBeatsPerDay);
         }

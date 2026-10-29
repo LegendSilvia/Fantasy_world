@@ -1,4 +1,5 @@
 using System.Globalization;
+using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Llm;
@@ -49,12 +50,34 @@ public static partial class CliApp
         var rng = Rng.ForStream(sim.World.Seed, "invent/festivals", 0);
         foreach (var realm in Realms.Independent(sim.World).OrderBy(r => r.Id).ToList())
             realm.Festival = FestivalSystem.Invent(sim.World, realm, rng, inventor, sim.World.Date.Year);
+        // The world's legend (the owner, 2026-10-29), told in full in its first episode.
+        sim.World.Legend ??= inventor.Legend(Legends.Rules(sim.World, sim.Log.Count > 0 ? sim.Log.All[^1].Id : 0));
         var fresh = gateway.Journal.Pending.ToList();
         store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
         foreach (var race in sim.World.Races.Values) output.WriteLine($"{race.Name}: {race.Looks}. {race.Nature}");
         foreach (var realm in Realms.Independent(sim.World).Where(r => r.Festival is not null))
             output.WriteLine($"{Statecraft.Title(realm)}: {realm.Festival!.Name} (month {realm.Festival.Month}), {realm.Festival.Rite}.");
         PrintLlmSummary(output, gateway, fresh);
+        return 0;
+    }
+
+    /// <summary>
+    /// The world's legend, written if it has none (the owner, 2026-10-29): a world made before legends gets one, told in
+    /// full in its next episode. A world that has one is left as it is.
+    /// </summary>
+    private static int Legend(string path, TextWriter output, Func<LlmSettings, ILlmProvider?> providers)
+    {
+        using var store = OpenExisting(path);
+        var (sim, gateway) = LoadLive(store, providers);
+        if (sim.World.Legend is null)
+        {
+            var inventor = new LlmInventor(new StoryContext(sim.World, sim.Log, gateway));
+            sim.World.Legend = inventor.Legend(Legends.Rules(sim.World, sim.Log.Count > 0 ? sim.Log.All[^1].Id : 0));
+            var fresh = gateway.Journal.Pending.ToList();
+            store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);
+            PrintLlmSummary(output, gateway, fresh);
+        }
+        output.WriteLine(sim.World.Legend.Summary);
         return 0;
     }
 

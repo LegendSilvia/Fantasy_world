@@ -20,11 +20,12 @@ public static partial class CliApp
     public const string Usage = """
         Usage:
           fw new <world-file> [--seed <n>] [--size tiny|medium|large|huge] [--prehistory <years>]   (default 100; tiny 0)
-          fw invent <world-file>                   Claude names and describes a new world's races and nations' festivals
+          fw invent <world-file>                   Claude names and describes a new world's races and nations' festivals, and writes its legend
+          fw legend <world-file>                   the world's legend, written if it has none (told in full in its next episode)
           fw answer <world-file> <tally.json>      the players' answers to prayers and blessings of face-offs
           fw advance <world-file> <duration> [--quiet]  e.g. 30d, 4mo, 7y (debug fast-forward; --quiet lists no events)
           fw catchup <world-file> [--quiet]         simulate the real time that has passed, then the digest (--quiet: none)
-          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--keep-marker]   the broadcast's episode since it last aired
+          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--recent <file>] [--keep-marker]   the broadcast's episode since it last aired
           fw snapshot <world-file> <copy>           a consistent single-file copy (safe to upload)
           fw live <world-file> [--minutes <n>]      keep the world running in real time (default 60; Ctrl+C stops)
           fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
@@ -92,6 +93,7 @@ public static partial class CliApp
                 "view" => View(path, rest, output),
                 "tell" => Tell(path, rest, output, providers),
                 "invent" => Invent(path, output, providers),
+                "legend" => Legend(path, output, providers),
                 "answer" => Answer(path, rest, output),
                 "digest" => DigestCommand(path, rest, output, providers),
                 "live" => Live(path, rest, output, clock, providers),
@@ -196,8 +198,11 @@ public static partial class CliApp
         var (world, log, queue) = (sim.World, sim.Log, sim.Queue);
         var episode = Episode.Build(world, log, world.LastBroadcastEventId, date, store.LoadFollowed(), stories, budget);
         // --narrate: the chronicler (the world's narrate model) writes the script; the template's stands if it cannot.
-        if (rest.Contains("--narrate")) episode = new LlmNarrator(new StoryContext(world, log, gateway)).EpisodeScript(episode, budget);
+        // --recent <file>: the recent episodes' transcripts, for the editor's pass (what the audience has already heard).
+        var recent = Option(rest, "--recent") is { } recentFile && File.Exists(recentFile) ? File.ReadAllText(recentFile) : null;
+        if (rest.Contains("--narrate")) episode = new LlmNarrator(new StoryContext(world, log, gateway)).EpisodeScript(episode, budget, recent);
         Directory.CreateDirectory(dir);
+        if (episode.Feedback is { Length: > 0 } feedback) File.WriteAllText(Path.Combine(dir, "feedback.md"), feedback);
         File.WriteAllText(Path.Combine(dir, "episode.json"), episode.ToJson());
         File.WriteAllText(Path.Combine(dir, "script.txt"), episode.Script);
         var fresh = gateway.Journal.Pending.ToList();

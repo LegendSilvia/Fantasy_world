@@ -310,6 +310,7 @@ async function render(kind, key, year) {
             + (s.holder ? `<p>Held by ${ref(s.holder, "its lord")}</p>` : "");
     }
     if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
+    if (kind === "lore") return lore(JSON.parse(await call("Lore")));
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
     if (kind === "character") return character(screen);
@@ -372,6 +373,17 @@ function gods(open, counts) {
 }
 
 $("gods").addEventListener("click", () => setHash({ panel: "gods/today" }));
+$("lore").addEventListener("click", () => setHash({ panel: "lore/world" }));
+
+/** The world's legend and the secrets uncovered so far (the owner, 2026-10-29), newest first. */
+function lore(l) {
+    const legend = l.legend ? l.legend.split(/\n+/).map(p => `<p>${esc(p)}</p>`).join("") : `<p class="muted">Its people tell no legend yet.</p>`;
+    const secrets = l.secrets.map(s => `<div class="prayer"><p><b>${esc(s.title)}</b> <span class="muted">· Year ${s.year}${s.place ? ` · ${esc(s.place)}` : ""}</span></p>`
+        + `<p>${esc(s.text)}</p>${s.by ? `<p class="muted">Uncovered by ${ref(s.by.ref, s.by.name)} · <a href="#" data-ref="${esc(s.event)}">how</a></p>` : ""}</div>`).join("");
+    return `<div class="kicker">The legend of</div><h2>${esc(l.name)}</h2>${legend}`
+        + `<h3>Secrets of the world</h3>`
+        + (secrets || `<p class="muted">No secret has come to light. They say the labyrinths keep them.</p>`);
+}
 
 $("panel-body").addEventListener("click", async e => {
     const button = e.target.closest("button[data-vote]");

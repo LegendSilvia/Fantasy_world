@@ -64,6 +64,22 @@ public static class Viewer
         static float[] V3(Vector3 v) => [v.X, v.Y, v.Z];
     }
 
+    /// <summary>
+    /// The world's lore (the owner, 2026-10-29): its legend as its people tell it, and the secrets deeds have uncovered so far,
+    /// newest first, each with who uncovered it, where and when.
+    /// </summary>
+    [JSInvokable]
+    public static string Lore()
+    {
+        var secrets = World.Secrets.AsEnumerable().Reverse().Select(s => new
+        {
+            title = s.Title, text = s.Text, year = new WorldDate(s.Day).Year, @event = $"event#{s.EventId}",
+            place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
+            by = World.Characters.TryGetValue(s.RevealerId, out var c) ? new { @ref = c.Ref.ToString(), name = c.Name } : null,
+        });
+        return JsonSerializer.Serialize(new { name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets }, Json);
+    }
+
     [JSInvokable]
     public static string Screen(string kind, string arg)
     {

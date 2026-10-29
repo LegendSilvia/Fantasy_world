@@ -1,10 +1,10 @@
 {
   "outcome": {
-    "eventId": 205,
+    "eventId": 206,
     "year": 20,
     "category": "characters",
     "title": {
-      "text": "Hesgres of Geigith was killed by monsters at the age of 32.",
+      "text": "Hesgres of Geigith was killed by monsters, aged 32.",
       "links": [
         {
           "start": 0,
@@ -20,7 +20,7 @@
   "layers": [
     [
       {
-        "eventId": 204,
+        "eventId": 205,
         "year": 20,
         "category": "characters",
         "title": {
@@ -46,8 +46,8 @@
   ],
   "edges": [
     {
-      "from": 204,
-      "to": 205,
+      "from": 205,
+      "to": 206,
       "kind": "trigger",
       "label": "because"
     }
@@ -74,7 +74,7 @@
   ],
   "consequences": [],
   "story": {
-    "text": "In Year 20, Hesgres of Geigith hunted the monsters of Gisreach and was killed. And so Hesgres of Geigith was killed by monsters at the age of 32.",
+    "text": "In Year 20, Hesgres of Geigith hunted the monsters of Gisreach and was killed. And so Hesgres of Geigith was killed by monsters, aged 32.",
     "links": [
       {
         "start": 12,

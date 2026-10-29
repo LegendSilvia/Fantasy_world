@@ -207,7 +207,7 @@ public class LikenessTests
 
         var written = Narrator(new { sections = episode.Parts.Select(p => p.Text), scenes = episode.Parts.Select(p => p.Scene is null ? "" : painted) }, out var fake)
             .EpisodeScript(episode, 20_000);
-        Assert.Contains("A scene to paint", fake.Requests.Single().Prompt);
+        Assert.Contains("A scene to paint", fake.Requests.First(r => r.Key.StartsWith("narrate|episode-sections", StringComparison.Ordinal)).Prompt);
         Assert.Equal(painted, written.Parts.Single(p => p.Scene is not null).Scene);
         Assert.DoesNotContain(painted, written.Script);
 

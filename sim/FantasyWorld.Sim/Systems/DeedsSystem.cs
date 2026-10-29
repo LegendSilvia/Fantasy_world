@@ -1,5 +1,6 @@
 using System.Globalization;
 using FantasyWorld.Sim.Agency;
+using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Engine;
 using FantasyWorld.Sim.Events;
@@ -324,6 +325,27 @@ public sealed class DeedsSystem : ISimSystem
             Importance: Fates.Importance(delver, 50), Tags: new[] { "Characters", "Deeds", "Structures" })).Id;
         (maze.Type, maze.State) = shrine ? (StructureKind.Shrine, StructureState.Standing) : (StructureKind.Ruin, StructureState.Ruined);
         region.Danger = Math.Max(0, region.Danger - 20);
+        Glory(ctx, delver, 10);
+        Reveal(ctx, delver, maze, region, maze.ClearedEventId);
+    }
+
+    /// <summary>
+    /// At the bottom of a cleared labyrinth lies a secret of the world (the owner, 2026-10-29): a truth the legend never
+    /// told, written by Claude where it may, kept on the world and told as news.
+    /// </summary>
+    private void Reveal(SimContext ctx, Character delver, Structure maze, Region region, long clearedEventId)
+    {
+        var world = ctx.World;
+        var (title, text) = Legends.RulesSecret(world, maze.Name);
+        var invention = _inventor.Invent(new InventionBrief("secret of the world", $"{maze.Ref}|secret",
+            Legends.SecretFacts(world, $"{maze.Name} in {region.Name}", delver.Name), title));
+        if (invention.Lore is { Length: > 0 } lore) (title, text) = (invention.Name, lore.Length <= Legends.MaxSecret ? lore : lore[..Legends.MaxSecret]);
+        var revealed = ctx.Emit(new EventDraft("SecretRevealed",
+            Actors: new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["structure"] = maze.Ref }, Place: region.Ref,
+            Payload: new Dictionary<string, string> { ["title"] = title, ["text"] = text },
+            Causes: new[] { new Cause(clearedEventId, CauseKind.Trigger, 1.0) },
+            Importance: Fates.Importance(delver, 70), Tags: new[] { "Characters", "Deeds", "Magic" }));
+        world.Secrets.Add(new Secret(revealed.Id, title, text, ctx.Date.Day, region.Id, delver.Id));
         Glory(ctx, delver, 10);
     }
 

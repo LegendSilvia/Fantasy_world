@@ -66,10 +66,10 @@ public class EpisodeCliTests
         output = new StringWriter();
         Assert.Equal(0, CliApp.Run(["episode", file.Path, "--out", dir.Path, "--date", "2026-10-27", "--narrate"], output, () => T0, _ => provider));
         Assert.Contains("by the chronicler", output.ToString());
-        Assert.Contains("LLM: 1 new answer(s)", output.ToString());
+        Assert.Contains("LLM: 2 new answer(s)", output.ToString()); // the chronicler, then the editor
         Assert.Equal(retold, File.ReadAllText(Path.Combine(dir.Path, "script.txt")));
         using var store = WorldStore.Open(file.Path);
-        Assert.Equal(1, store.LoadJournal().Count);
+        Assert.Equal(2, store.LoadJournal().Count); // the chronicler and the editor
     }
 
     [Fact]

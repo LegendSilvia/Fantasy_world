@@ -104,7 +104,7 @@ public class FaceOffTests
         var story = new StoryContext(world, log, new LlmGateway(fake, new LlmSettings { Provider = "fake" }, new LlmJournal()));
         var written = new LlmNarrator(story).EpisodeScript(episode, 20_000);
 
-        var prompt = fake.Requests.Single().Prompt;
+        var prompt = fake.Requests.First(r => r.Key.StartsWith("narrate|episode-sections", StringComparison.Ordinal)).Prompt;
         Assert.Contains("Face-off figures:", prompt);
         Assert.Contains("might 17", prompt);
         Assert.Contains("commentator", prompt);

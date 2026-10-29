@@ -363,6 +363,8 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 }
                 log.WriteLine($"A new world was made: its races and festivals named, {years} years of history lived.");
             }
+            // The world's legend (the owner, 2026-10-29): a world made before legends gets one, told in full in its next episode.
+            Fw("legend", worldPath);
             // The players' answers since yesterday (sub-project 13 N5: the players are the gods), before the day's history.
             if (tally is not null && await tally(ct).ConfigureAwait(false) is { Length: > 0 } votes)
             {
@@ -374,10 +376,14 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             }
             Fw("catchup", worldPath, "--quiet");
             var dir = Path.Combine(work.FullName, "episode");
+            // The recent episodes as the audience heard them, for the editor's pass (the owner, 2026-10-29).
+            var recent = Path.Combine(work.FullName, "recent.txt");
+            await File.WriteAllTextAsync(recent, await RecentScriptsAsync(store, manifest, date, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
             Fw(["episode", worldPath, "--out", dir, "--date", date,
                 "--stories", config.Stories.ToString(CultureInfo.InvariantCulture),
-                "--max-characters", config.MaxCharacters.ToString(CultureInfo.InvariantCulture), .. llm.Narrate ? ["--narrate"] : Array.Empty<string>()]);
+                "--max-characters", config.MaxCharacters.ToString(CultureInfo.InvariantCulture), .. llm.Narrate ? ["--narrate", "--recent", recent] : Array.Empty<string>()]);
             var episode = Episode.FromJson(await File.ReadAllTextAsync(Path.Combine(dir, "episode.json"), ct).ConfigureAwait(false));
+            await FeedbackAsync(store, date, episode, ct).ConfigureAwait(false);
             if (llm.Narrate && episode.Writer != Episode.ChroniclerWriter)
                 log.WriteLine("warning: the chronicler could not write today's script (see the LLM line above); the template script goes out.");
             var snapshot = Path.Combine(work.FullName, "upload.fw.db");
@@ -503,6 +509,43 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         {
             log.WriteLine($"warning: the episode's images could not be had ({e.Message}); the film goes without them.");
             return episode;
+        }
+    }
+
+    /// <summary>How many recent episodes the editor is shown.</summary>
+    public const int RecentEpisodes = 3;
+
+    /// <summary>The last few episodes' scripts before <paramref name="date"/>, oldest first, each under its date.</summary>
+    private static async Task<string> RecentScriptsAsync(PrefixedStore store, Manifest manifest, string date, CancellationToken ct)
+    {
+        var text = new StringBuilder();
+        foreach (var day in manifest.Episodes.Keys.Where(d => string.CompareOrdinal(d, date) < 0).OrderBy(d => d, StringComparer.Ordinal).TakeLast(RecentEpisodes))
+            if (await store.GetAsync(ScriptKey(day), ct).ConfigureAwait(false) is { } script)
+                text.Append($"The episode of {day}:\n{Encoding.UTF8.GetString(script)}\n\n");
+        return text.ToString();
+    }
+
+    /// <summary>Where the editor's feedback on the world is kept, a file a day (the owner, 2026-10-29).</summary>
+    public static string FeedbackKey(string date) => $"feedback/{date}.md";
+
+    /// <summary>
+    /// The editor's feedback on the world, for its maker: kept in the store, written to the log and, on GitHub, to the run's
+    /// summary page. Never voiced or posted.
+    /// </summary>
+    private async Task FeedbackAsync(PrefixedStore store, string date, Episode episode, CancellationToken ct)
+    {
+        if (episode.Feedback is not { Length: > 0 } feedback) return;
+        log.WriteLine($"The editor's feedback on the world:\n{feedback}");
+        try
+        {
+            await store.PutAsync(FeedbackKey(date), Encoding.UTF8.GetBytes($"# Feedback on the episode of {date}\n\n{feedback}\n"), "text/markdown; charset=utf-8", ct)
+                .ConfigureAwait(false);
+            if (Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is { Length: > 0 } summary)
+                await File.AppendAllTextAsync(summary, $"## The editor's feedback on the world ({date})\n\n{feedback}\n\n", ct).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or HttpRequestException && !ct.IsCancellationRequested)
+        {
+            log.WriteLine($"warning: the feedback could not be kept ({e.Message}).");
         }
     }
 

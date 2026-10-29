@@ -69,6 +69,12 @@ public sealed class World
     public SortedDictionary<long, Saga> Sagas { get; init; } = new();
     public SortedDictionary<long, Prayer> Prayers { get; init; } = new();
 
+    /// <summary>The world's legend, once written (<see cref="WorldLegend"/>); null for a world made before it.</summary>
+    public WorldLegend? Legend { get; set; }
+
+    /// <summary>The world's secrets uncovered so far, in the order they came to light (<see cref="Secret"/>).</summary>
+    public List<Secret> Secrets { get; init; } = new();
+
     /// <summary>The gods' favour (sub-project 13 N5): "char#12" or "realm#3" → the last day it lasts.</summary>
     public SortedDictionary<string, long> Favour { get; init; } = new(StringComparer.Ordinal);
 

@@ -41,7 +41,9 @@ public class EpisodeScriptTests
         // Each section is retold in place: same kinds, titles and events, so the chapters stand.
         Assert.Equal(Template().Parts.Select(p => (p.Kind, p.Title, p.EventId)), episode.Parts.Select(p => (p.Kind, p.Title, p.EventId)));
         Assert.Equal(Retold(Template()), episode.Parts.Select(p => p.Text));
-        var request = Assert.Single(provider.Requests);
+        var request = provider.Requests[0];
+        Assert.Equal(2, provider.Requests.Count); // the chronicler, then the editor
+        Assert.StartsWith("narrate|episode-review|", provider.Requests[1].Key);
         Assert.Equal(ModelTier.Narrate, request.Tier);
         Assert.StartsWith("narrate|episode-sections|2026-10-27|", request.Key);
         Assert.All(Template().Parts, p => Assert.Contains(p.Text, request.Prompt)); // the brief is the template episode
@@ -49,12 +51,43 @@ public class EpisodeScriptTests
         // The API's structured output refuses item counts above one: the schema states none, the answer is counted instead.
         Assert.DoesNotContain("minItems", request.Schema);
         Assert.DoesNotContain("maxItems", request.Schema);
-        Assert.Equal(1, journal.Count);
+        Assert.Equal(2, journal.Count); // the chronicler's answer and the editor's
 
         // Asked again (a rerun): the journal answers, the provider is not asked.
         var (again, offline, _) = Narrate(_ => [], journal, online: false);
         Assert.Equal(episode.Script, again.Script);
         Assert.Empty(offline.Requests);
+    }
+
+    [Fact]
+    public void TheEditor_ReadsTheWholeTranscript_WithTheCausesAndRecentEpisodes_AndMayChangeIt_AndGivesFeedback()
+    {
+        var template = Template();
+        var retold = Retold(template);
+        var edited = retold.Select((x, i) => i == 1 ? "As the last episode left it, the story goes on. " + x : x).ToList();
+        var provider = new FakeLlmProvider(r => r.Key.StartsWith("narrate|episode-review|", StringComparison.Ordinal)
+            ? JsonSerializer.Serialize(new { changed = true, notes = "linked the story to the last episode", sections = edited, feedback = "Too many duels; more trade." })
+            : Answer(retold));
+        var settings = new LlmSettings { Provider = "anthropic", Models = new(StringComparer.Ordinal) { ["narrate"] = "claude-sonnet-5-5" } };
+        var gateway = new LlmGateway(provider, settings, new LlmJournal());
+        var episode = new LlmNarrator(new StoryContext(Aged.World, Aged.Log, gateway)).EpisodeScript(template, Episode.DefaultMaxCharacters, "The episode of 2026-10-26:\nYesterday's tale.");
+        Assert.Equal(string.Join("\n\n", edited), episode.Script);
+        Assert.Equal("Too many duels; more trade.", episode.Feedback);
+        Assert.Equal(Episode.ChroniclerWriter, episode.Writer);
+        var review = provider.Requests.Single(r => r.Key.StartsWith("narrate|episode-review|", StringComparison.Ordinal));
+        Assert.Contains("<transcript>", review.Prompt);
+        Assert.Contains("Yesterday's tale.", review.Prompt); // the recent episodes
+        Assert.All(retold, t => Assert.Contains(t.Split("\n\n")[^1], review.Prompt));
+        if (template.Parts.Any(p => p.EventId != 0 && Aged.Log.Get(p.EventId).Causes.Count > 0))
+            Assert.Contains("Why things are as they are:", review.Prompt);
+
+        // An editor that invents a name is refused: the chronicler's script stands, and nothing is kept from it.
+        var liar = new FakeLlmProvider(r => r.Key.StartsWith("narrate|episode-review|", StringComparison.Ordinal)
+            ? JsonSerializer.Serialize(new { changed = true, notes = "", sections = retold.Select((x, i) => i == 1 ? x + " Then Zorbag the Unheard rode in." : x), feedback = "x" })
+            : Answer(retold));
+        var kept = new LlmNarrator(new StoryContext(Aged.World, Aged.Log, new LlmGateway(liar, settings, new LlmJournal()))).EpisodeScript(template, Episode.DefaultMaxCharacters);
+        Assert.Equal(string.Join("\n\n", retold), kept.Script);
+        Assert.Null(kept.Feedback);
     }
 
     [Fact]

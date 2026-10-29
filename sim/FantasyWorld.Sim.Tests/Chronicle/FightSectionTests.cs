@@ -51,7 +51,7 @@ public class FightSectionTests
         var fake = new FakeLlmProvider(_ => System.Text.Json.JsonSerializer.Serialize(new { sections = episode.Parts.Select(p => p.Text) }));
         var story = new StoryContext(world, log, new LlmGateway(fake, new LlmSettings { Provider = "fake" }, new LlmJournal()));
         var written = new LlmNarrator(story).EpisodeScript(episode, 20_000);
-        var prompt = fake.Requests.Single().Prompt;
+        var prompt = fake.Requests.First(r => r.Key.StartsWith("narrate|episode-sections", StringComparison.Ordinal)).Prompt;
         Assert.Contains("The fight, day by day:", prompt);
         Assert.Contains("Day 2: On the second morning", prompt);
         Assert.Contains("blow by blow", prompt);
