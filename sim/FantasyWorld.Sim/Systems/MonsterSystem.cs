@@ -131,6 +131,40 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
         }
     }
 
+    /// <summary>A mighty beast's raid takes a notable's life at most this often (its might in a hundred, times this).</summary>
+    public const double KillShare = 0.35;
+
+    /// <summary>How often a bold survivor of a raid swears to slay the beast.</summary>
+    public const double SwearChance = 0.35;
+
+    /// <summary>
+    /// A raid falls on the story's people too (the owner, 2026-10-29: an age full of beasts shapes the lives and desires of its
+    /// people): it may kill one of the town's notables, and the bold who survive it may swear to slay the beast, and so hunt it.
+    /// </summary>
+    private static void Befall(SimContext ctx, Monster beast, Settlement target, WorldEvent raid)
+    {
+        var world = ctx.World;
+        var people = world.PeopleOf(target).Where(c => c.IsActive && c.Stage(ctx.Date) != LifeStage.Child && !SagaSystem.IsDemonLord(world, c))
+            .OrderBy(c => c.Id).ToList();
+        if (people.Count == 0) return;
+        if (ctx.Rng.Chance(beast.Might / 100.0 * KillShare))
+        {
+            var victim = people[ctx.Rng.NextInt(0, people.Count)];
+            Fates.Die(ctx, victim, beast.Name, new[] { new Cause(raid.Id, CauseKind.Trigger, 1.0) });
+            people.Remove(victim);
+        }
+        foreach (var c in people.Where(c => !c.Has(Traits.Craven) && c.Ambition != Ambitions.Renown && c.Ambition != Ambitions.Vengeance))
+        {
+            // The bold swear readily; anyone but a coward may, having seen the beast at their gate.
+            if (!ctx.Rng.Chance(c.Has(Traits.Brave) || c.Has(Traits.Wrathful) ? SwearChance : SwearChance / 3)) continue;
+            c.Ambition = Ambitions.Renown;
+            c.AmbitionTarget = 0;
+            ctx.Emit(new EventDraft("SwornAgainstBeast", Actors: new Dictionary<string, EntityRef> { ["who"] = c.Ref, ["monster"] = beast.Ref },
+                Place: target.Ref, Causes: new[] { new Cause(raid.Id, CauseKind.Motive, 0.9) }, Importance: Fates.Importance(c, 14), Tags: new[] { "Characters" }));
+            break; // one oath a raid
+        }
+    }
+
     private static void Raid(SimContext ctx, Monster beast, Region lair)
     {
         var world = ctx.World;
@@ -154,6 +188,7 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
             Place: target.Ref, Payload: new Dictionary<string, string> { ["dead"] = dead.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             Causes: previous is null ? null : new[] { new Cause(previous.Id, CauseKind.Enabler, 0.5) },
             Importance: (int)Math.Clamp(25 + beast.Might / 3, 25, 60), Tags: new[] { "Magic" }));
+        Befall(ctx, beast, target, raid);
         // Merchants shun a land a beast has raided (the spec's raid that severs a road).
         foreach (var route in world.Routes.Values.Where(r => r.State == RouteState.Open && r.Regions.Contains(target.RegionId)).ToList())
             TradeSystem.Sever(ctx, route, "raid", target.Ref, raid.Id);

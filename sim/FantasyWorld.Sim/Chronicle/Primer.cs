@@ -38,6 +38,7 @@ public static class Primer
         if (wars.Count == 0) parts.Add("No war is being fought, though old grudges smoulder.");
         if (world.Sagas.Values.FirstOrDefault(s => s.Active) is { } saga && world.Characters.TryGetValue(saga.DemonLordId, out var demon) && demon.IsActive)
             parts.Add($"In the dark places, the demon lord {demon.Name} has risen, and the people wait for a hero.");
+        if (Legends.Beasts(world) is { } beasts) parts.Add(beasts);
         var notables = world.Characters.Values.Where(c => c.IsActive && c.Renown > 0).OrderByDescending(c => c.Renown).ThenBy(c => c.Id).Take(Notables).ToList();
         if (notables.Count > 0)
             parts.Add("Names to know: " + English.List(notables.Select(c => c.Class.Length > 0 ? $"{c.Name}, {English.WithArticle(Classes.IsAwakened(c.Class) ? Classes.Title(c.Class) : c.Class)}" : c.Name).ToList()) + ".");

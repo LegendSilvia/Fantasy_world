@@ -231,7 +231,8 @@ public partial class WarLayer : Node3D
             Name = $"Battle{battle.EventId}",
             Position = Diorama.ToGodot(Client.Projection.ToBlock(geography.Terrain, battle.Position, 0.018f)),
         };
-        node.AddChild(Badge.Sprite(Client.Badges.Swords(battle.UnderWay), battle.Kind == MapBattle.Duel ? 0.03f : 0.04f, "Badge"));
+        node.AddChild(Badge.Sprite(battle.Kind == MapBattle.Duel ? Client.Badges.Swords(battle.UnderWay) : Client.Badges.Banners(battle.UnderWay),
+            battle.Kind == MapBattle.Duel ? 0.03f : 0.04f, "Badge"));
         if (recent || battle.UnderWay) node.SetMeta("pulse", true);
         return node;
     }

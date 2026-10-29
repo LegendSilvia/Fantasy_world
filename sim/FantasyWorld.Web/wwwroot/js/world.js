@@ -135,7 +135,9 @@ async function showYear(year) {
         label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
             () => setHash({ panel: `beast/${id(beast.ref)}` }));
     for (const fight of s.fights)
-        label(badge(fight.badge, fight.kind === "duel" ? 26 : 34, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`), "badge", lift(fight.at, 0.02), 75,
+        // Crossed swords for a duel, crossed banners for a battle between nations; one still raging pulses (the owner, 2026-10-29).
+        label((fight.underWay ? `<span class="live">` : "") + badge(fight.badge, fight.kind === "duel" ? 26 : 34, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`)
+            + (fight.underWay ? `</span>` : ""), "badge", lift(fight.at, 0.02), fight.underWay ? 90 : 75,
             () => setHash({ panel: `fight/${fight.eventId}` }));
     for (const place of s.settlements)
         label(esc(place.name), place.kind === "Conflict" || place.kind === "RecentEvent" ? "news" : "", lift(place.at, 0.03),
@@ -372,7 +374,7 @@ async function render(kind, key, year) {
     }
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
-    if (kind === "character") return character({ ...screen, id: key, timeline: (screen.timeline ?? []).filter(row => row.year <= year) }, JSON.parse(await call("Fighter", key, Y)), await pictures);
+    if (kind === "character") return character({ ...screen, id: key, timeline: (screen.timeline ?? []).filter(row => row.year <= year && row.year >= world.firstYear) }, JSON.parse(await call("Fighter", key, Y)), await pictures);
     if (kind === "why") return why(screen);
     if (kind === "artifact") return `<div class="kicker">Artifact</div><h2>${esc(screen.name ?? screen.title ?? "")}</h2><p>${esc(screen.lore ?? "")}</p>`;
     throw new Error(kind);
@@ -490,19 +492,24 @@ function beastCard(b, pics) {
 
 /** The world's notable people, most renowned first, with a filter by name, class, realm or home (the owner, 2026-10-29). */
 function people(p) {
-    const row = c => `<li data-find="${esc([c.name, c.class, c.title, c.role, c.realm, c.home].filter(Boolean).join(" ").toLowerCase())}">`
-        + `${emblem(c.class)}${ref(c.ref, c.name)} <span class="muted">· ${esc([c.title, c.role].filter(Boolean).join(", "))}, ${c.age}`
+    const row = c => `<li data-find="${esc([c.name, c.class, c.title, c.role, c.realm, c.home].filter(Boolean).join(" ").toLowerCase())}" data-alive="${c.alive}"${c.alive ? "" : " hidden"}>`
+        + `${emblem(c.class)}${ref(c.ref, c.name)} <span class="muted">· ${esc([c.title, c.role].filter(Boolean).join(", "))}, ${c.alive ? c.age : `died Year ${c.died}, aged ${c.age}`}`
         + `${c.realm ? ` · ${esc(c.realm)}` : ""}${c.home ? ` · ${esc(c.home)}` : ""} · renown ${c.renown}</span></li>`;
+    // The living by default; the dead, or everyone, at a choice (the owner, 2026-10-29).
     return `<div class="kicker">The people of the world</div><h2>Who is who</h2>`
-        + `<input id="people-find" class="find" type="search" placeholder="Find by name, class, realm or home">`
+        + `<div class="find-row"><input id="people-find" class="find" type="search" placeholder="Find by name, class, realm or home">`
+        + `<select id="people-state" class="find"><option value="alive" selected>Living</option><option value="dead">The dead</option><option value="all">Everyone</option></select></div>`
         + `<ul class="people">${p.people.map(row).join("")}</ul>`;
 }
 
-$("panel-body").addEventListener("input", e => {
-    if (e.target.id !== "people-find") return;
-    const q = e.target.value.trim().toLowerCase();
-    for (const li of $("panel-body").querySelectorAll("ul.people li")) li.hidden = q.length > 0 && !li.dataset.find.includes(q);
-});
+function filterPeople() {
+    const q = ($("people-find")?.value ?? "").trim().toLowerCase(), state = $("people-state")?.value ?? "alive";
+    for (const li of $("panel-body").querySelectorAll("ul.people li"))
+        li.hidden = (q.length > 0 && !li.dataset.find.includes(q)) || (state !== "all" && (li.dataset.alive === "true") !== (state === "alive"));
+}
+
+$("panel-body").addEventListener("input", e => { if (e.target.id === "people-find") filterPeople(); });
+$("panel-body").addEventListener("change", e => { if (e.target.id === "people-state") filterPeople(); });
 
 /**
  * Everything the chronicle knows (the owner, 2026-10-29): the legend, the secrets uncovered (newest first), the peoples, the
@@ -513,7 +520,9 @@ function lore(l) {
     const legend = l.legend ? l.legend.split(/\n+/).map(p => `<p>${esc(p)}</p>`).join("") : `<p class="muted">Its people tell no legend yet.</p>`;
     const secrets = list(l.secrets, s => `<div class="prayer"><p><b>${esc(s.title)}</b> <span class="muted">· Year ${s.year}${s.place ? ` · ${esc(s.place)}` : ""}</span></p>`
         + `<p>${esc(s.text)}</p>${s.by ? `<p class="muted">Uncovered by ${ref(s.by.ref, s.by.name)} · ${ref(s.event, "how")}</p>` : ""}</div>`);
-    const races = list(l.races, r => `<div class="prayer"><p><b>The ${esc(r.name)}</b> <span class="muted">· ${esc(r.temper)}</span></p><p>${esc(r.looks.charAt(0).toUpperCase() + r.looks.slice(1))}. ${esc(r.nature)}</p>`
+    const tales = list(l.tales ?? [], t => `<div class="prayer"><p><b>${esc(t.title)}</b> <span class="muted">· a deed of Year ${t.year}, sung since Year ${t.since}</span></p>`
+        + `<p>${esc(t.text)}</p><p class="muted">${ref(t.event, "what happened")}</p></div>`);
+    const races = list(l.races, r => `<div class="prayer"><p><b>The ${esc(r.name)}</b> <span class="muted">· ${esc(r.temper)}${r.lifespan ? ` · live ${r.lifespan.old}–${r.lifespan.limit} years` : ""}</span></p><p>${esc(r.looks.charAt(0).toUpperCase() + r.looks.slice(1))}. ${esc(r.nature)}</p>`
         + (r.foes.length || r.friends.length ? `<p class="muted">${r.foes.length ? `Old foes of the ${r.foes.map(esc).join(", ")}. ` : ""}${r.friends.length ? `Friends of the ${r.friends.map(esc).join(", ")}.` : ""}</p>` : "") + `</div>`);
     const gods = list(l.gods, g => `<li><b>${esc(g.deity)}</b>, worshipped by the ${esc(g.faith)} <span class="muted">· ${g.tenets.map(esc).join(", ")}</span></li>`);
     const realms = list(l.realms, r => `<li>${ref(r.ref, r.title)} <span class="muted">· ${r.lands} land${r.lands === 1 ? "" : "s"}</span>`
@@ -531,6 +540,7 @@ function lore(l) {
     const part = (title, body) => body ? `<h3>${title}</h3>${body}` : "";
     return `<div class="kicker">The chronicle so far</div><h2>${esc(l.name)}</h2>`
         + part("The legend", legend)
+        + part("What the songs remember", tales)
         + `<h3>Secrets of the world</h3>` + (secrets || `<p class="muted">No secret has come to light. They say the labyrinths keep them.</p>`)
         + part("The peoples", races)
         + part("The gods", gods && `<ul class="people">${gods}</ul>`)

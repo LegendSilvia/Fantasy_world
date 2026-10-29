@@ -33,7 +33,29 @@ public static class Badges
             """;
     }
 
-    /// <summary>A fight's marker: crossed swords, gold-rimmed once fought, red-rimmed while it goes on.</summary>
+    /// <summary>
+    /// A battle's marker (the owner, 2026-10-29: nation against nation unlike a duel): two war banners crossed on their poles,
+    /// in red and blue, over the same plate, gold-rimmed once fought, red-rimmed while it goes on.
+    /// </summary>
+    public static string Banners(bool underWay)
+    {
+        var rim = underWay ? War : Gold;
+        string Banner(int angle, string cloth, bool flip) => $"""
+            <g transform="rotate({angle.ToString(CultureInfo.InvariantCulture)} 32 32)">
+            <rect x="30.6" y="8" width="2.8" height="48" rx="1" fill="#8a6a42"/>
+            <circle cx="32" cy="7.5" r="2.4" fill="{Gold}"/>
+            <path d="{(flip ? "M30.6 11 H17 L21 17 L17 23 H30.6 Z" : "M33.4 11 H47 L43 17 L47 23 H33.4 Z")}" fill="{cloth}" stroke="#f2ead8" stroke-width="0.8"/>
+            </g>
+            """;
+        return $"""
+            <svg xmlns="http://www.w3.org/2000/svg" width="{SwordsSize}" height="{SwordsSize}" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="28.5" fill="{Night}" stroke="{rim}" stroke-width="3.5"/>
+            {Banner(-28, "#b23a3a", true)}{Banner(28, "#3a66b2", false)}
+            </svg>
+            """;
+    }
+
+    /// <summary>A duel's marker: crossed swords, gold-rimmed once fought, red-rimmed while it goes on.</summary>
     public static string Swords(bool underWay)
     {
         var rim = underWay ? War : Gold;

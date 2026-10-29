@@ -13,3 +13,10 @@ public sealed record WorldLegend(string Summary, string Full, long SinceEventId 
 /// title, what it reveals, the event that revealed it, and when and where.
 /// </summary>
 public sealed record Secret(long EventId, string Title, string Text, long Day, long RegionId, long RevealerId);
+
+/// <summary>
+/// A tale the world's songs tell (the owner, 2026-10-29: the lore is revised every 25 years, some remembered, some
+/// forgotten, and the forgotten become secrets to uncover): a great deed of its age, sung from the revision after it.
+/// Forgotten, it is no longer sung; uncovered again at the bottom of a labyrinth, it is a secret of the world.
+/// </summary>
+public sealed record Tale(string Title, string Text, int Year, long EventId, int SungFrom, bool Forgotten = false, int ForgottenIn = 0, bool Uncovered = false);

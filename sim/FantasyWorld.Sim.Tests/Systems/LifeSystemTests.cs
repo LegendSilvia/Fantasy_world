@@ -30,7 +30,23 @@ public class LifeSystemTests
         var sim = Make(world);
         sim.AdvanceDays(360 * 5);
         Assert.True(elders.Count(e => !e.IsAlive) >= 20);
-        Assert.All(sim.Log.All.Where(e => e.Type == "CharacterDied"), e => Assert.Equal("old age", e.Payload["cause"]));
+        // Old age, or the sickness the old fall into near their people's limit.
+        Assert.All(sim.Log.All.Where(e => e.Type == "CharacterDied"), e => Assert.Contains(e.Payload["cause"], new[] { "old age", "illness" }));
+    }
+
+    [Fact]
+    public void NoneOutliveTheirPeoplesLimit_AndTheOldFallIllBeforeIt()
+    {
+        var world = TestPeople.World();
+        var elders = Enumerable.Range(0, 30).Select(_ => TestPeople.Add(world, 1, Peoples.CommonLimit - 1)).ToList();
+        var old = Enumerable.Range(0, 60).Select(_ => TestPeople.Add(world, 1, Peoples.CommonOld)).ToList();
+        var sim = Make(world);
+        sim.AdvanceDays(360 * 2);
+        Assert.All(elders, e => Assert.False(e.IsAlive));
+        Assert.Contains(sim.Log.All, e => e.Type == "FellIll");
+        Assert.Contains(old, c => c.Wounds.Contains(LifeSystem.Sickness));
+        Assert.Equal((70, 95), Peoples.Lifespan(1));
+        Assert.Equal((178, 253), Peoples.Lifespan(3));
     }
 
     [Fact]

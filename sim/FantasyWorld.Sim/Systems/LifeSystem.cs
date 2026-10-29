@@ -41,11 +41,27 @@ public sealed class LifeSystem : ISimSystem
             // A demon lord does not age (sub-project 13).
             var risks = Risks(c, region, ctx.Date, SagaSystem.IsDemonLord(world, c) ? 100 : Peoples.SpanOf(world, c));
             var total = risks.Sum(r => r.PerYear);
+            // At their people's limit, none lives another month (the owner, 2026-10-29).
+            var spent = !SagaSystem.IsDemonLord(world, c) && Aged(c.Age(ctx.Date), Peoples.SpanOf(world, c)) >= Peoples.CommonLimit;
+            if (spent)
+            {
+                Fates.Die(ctx, c, "old age", Array.Empty<Cause>());
+                continue;
+            }
             if (ctx.Rng.Chance(total / 12))
             {
                 var (cause, _, citing) = Pick(risks, ctx.Rng);
                 Fates.Die(ctx, c, cause, citing == 0 ? Array.Empty<Cause>() : new[] { new Cause(citing, CauseKind.Trigger, 0.9) });
                 continue;
+            }
+            // Past their people's old age, the old fall ill (the owner, 2026-10-29); the sickness stays, and may carry them off.
+            if (!c.Wounds.Contains(Sickness) && !SagaSystem.IsDemonLord(world, c) && Aged(c.Age(ctx.Date), Peoples.SpanOf(world, c)) >= Peoples.CommonOld
+                && ctx.Rng.Chance(SickenPerYear / 12))
+            {
+                c.Wounds.Add(Sickness);
+                ctx.Emit(new EventDraft("FellIll", Actors: new Dictionary<string, EntityRef> { ["who"] = c.Ref }, Place: world.Settlements[c.SettlementId].Ref,
+                    Payload: new Dictionary<string, string> { ["age"] = c.Age(ctx.Date).ToString(System.Globalization.CultureInfo.InvariantCulture) },
+                    Importance: Fates.Importance(c, 6), Tags: new[] { "Characters" }));
             }
             if (TurnsAgeThisMonth(c, Character.AdultAge, ctx.Date)) ComeOfAge(ctx, c, people.Count / Math.Max(1, target));
         }
@@ -61,7 +77,8 @@ public sealed class LifeSystem : ISimSystem
         if (region.Conditions.TryGetValue(Conditions.Plague, out var plague)) risks.Add(("plague", 0.08, plague));
         if (region.Conditions.TryGetValue(Conditions.Shortage, out var shortage))
             risks.Add(("famine", age < Character.AdultAge || age >= Character.ElderAge ? 0.06 : 0.03, shortage));
-        if (c.Wounds.Count > 0) risks.Add(("old wounds", 0.01 * c.Wounds.Count, 0));
+        if (c.Wounds.Contains(Sickness)) risks.Add(("illness", SicknessMortality, 0));
+        if (c.Wounds.Count(w => w != Sickness) is var wounds and > 0) risks.Add(("old wounds", 0.01 * wounds, 0));
         return risks;
     }
 
@@ -82,8 +99,17 @@ public sealed class LifeSystem : ISimSystem
         < 75 => 0.1,
         < 80 => 0.15,
         < 85 => 0.25,
-        _ => 0.4,
+        < 90 => 0.4,
+        // Near the end of a common lifetime death comes fast, and none outlive its limit (the owner, 2026-10-29).
+        < Peoples.CommonLimit => 0.65,
+        _ => 1.0,
     };
+
+    /// <summary>What the old fall ill of, kept among their wounds; it makes death likelier.</summary>
+    public const string Sickness = "the sickness of age";
+
+    /// <summary>Yearly chance that one past their people's old age falls ill, and the yearly risk of dying of it once ill.</summary>
+    public const double SickenPerYear = 0.2, SicknessMortality = 0.15;
 
     private static (string Cause, double PerYear, long Citing) Pick(List<(string Cause, double PerYear, long Citing)> risks, Rng rng)
     {

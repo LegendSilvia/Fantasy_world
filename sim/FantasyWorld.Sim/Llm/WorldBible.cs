@@ -25,7 +25,7 @@ public static class WorldBible
             {
                 var foes = race.Foes.Select(id => world.Races.GetValueOrDefault(id)?.Name).OfType<string>().ToList();
                 var friends = race.Friends.Select(id => world.Races.GetValueOrDefault(id)?.Name).OfType<string>().ToList();
-                data.AppendLine($"- {PromptText.Data(race.Name)}: {PromptText.Data(race.Looks)}. {PromptText.Data(race.Nature)} Temper: {race.Temper}"
+                data.AppendLine($"- {PromptText.Data(race.Name)}: {PromptText.Data(race.Looks)}. {PromptText.Data(race.Nature)} Temper: {race.Temper}; they grow old at {Peoples.Lifespan(race.Span).Old} and none live past {Peoples.Lifespan(race.Span).Limit}"
                     + (foes.Count > 0 ? $"; old foes of the {string.Join(", ", foes.Select(f => PromptText.Data(f)))}" : "")
                     + (friends.Count > 0 ? $"; old friends of the {string.Join(", ", friends.Select(f => PromptText.Data(f)))}" : ""));
             }

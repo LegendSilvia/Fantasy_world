@@ -13,6 +13,23 @@ public static class Legends
 {
     public const int MaxSummary = 320, MaxFull = 2000, MaxSecret = 480;
 
+    /// <summary>So many living beasts make an age of beasts, which the legend and the world's state tell of.</summary>
+    public const int BeastAge = 8;
+
+    /// <summary>
+    /// The beasts preying on the world now (the owner, 2026-10-29: a world full of beasts shapes its lore): how many, and the
+    /// most feared of them with where it lairs; null when there are too few to mark the age.
+    /// </summary>
+    public static string? Beasts(World world)
+    {
+        var living = world.Monsters.Values.Where(m => m.Alive).ToList();
+        if (living.Count < BeastAge) return null;
+        var feared = living.OrderByDescending(m => m.Notoriety).ThenByDescending(m => m.Might).ThenBy(m => m.Id).First();
+        var where = world.Regions.GetValueOrDefault(feared.RegionId)?.Name;
+        return $"This is an age of beasts: {English.Count(living.Count, "beast")} prey on the lands, and the most feared of them is {English.InProse(feared.Name)}"
+               + (where is null ? "." : $", in {where}.");
+    }
+
     /// <summary>What the legend may draw on: the world's lands, peoples, gods, and the shadow it fears.</summary>
     public static string Facts(World world)
     {
@@ -26,6 +43,10 @@ public static class Legends
         var mazes = world.Structures.Values.Count(s => s.Type == StructureKind.Labyrinth);
         if (mazes > 0) lines.Add($"{English.Capitalise(English.Count(mazes, "labyrinth"))} lie beneath its lands, their depths unexplored.");
         lines.Add("Its people fear a demon lord who rises in the dark places of the world, and await a hero to stand against it.");
+        if (Beasts(world) is { } beasts) lines.Add(beasts + " The people of this age live in fear of them.");
+        // The tales the songs keep (LoreSystem): the legend may weave them in; forgotten ones it must not tell.
+        if (world.Tales.Where(t => !t.Forgotten).ToList() is { Count: > 0 } sung)
+            lines.Add("The songs remember: " + string.Join(" ", sung.Select(t => $"{t.Title} (Year {t.Year}): {t.Text}")));
         return string.Join("\n", lines);
     }
 

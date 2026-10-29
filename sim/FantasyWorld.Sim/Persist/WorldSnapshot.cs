@@ -42,7 +42,8 @@ public sealed record WorldSnapshot(
     SortedDictionary<string, long>? Favour = null,
     WorldLegend? Legend = null,
     List<Secret>? Secrets = null,
-    List<Calling>? Callings = null)
+    List<Calling>? Callings = null,
+    List<Tale>? Tales = null)
 {
     public const int CurrentVersion = 6;
 
@@ -80,7 +81,8 @@ public sealed record WorldSnapshot(
         world.Favour,
         world.Legend,
         world.Secrets,
-        world.Callings);
+        world.Callings,
+        world.Tales);
 
     /// <summary>Rebuilds the world. Older snapshots lack newer entities, which load empty.</summary>
     public World ToWorld() => new()
@@ -116,6 +118,7 @@ public sealed record WorldSnapshot(
         Legend = Legend,
         Secrets = Secrets is null ? new List<Secret>() : new List<Secret>(Secrets),
         Callings = Callings is null ? new List<Calling>() : new List<Calling>(Callings),
+        Tales = Tales is null ? new List<Tale>() : new List<Tale>(Tales),
     };
 
     private static SortedDictionary<long, T> Copy<T>(SortedDictionary<long, T>? source) =>

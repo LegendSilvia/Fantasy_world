@@ -30,7 +30,11 @@ public class ViewerTests
 
         // Screens: the very JSON the game's views make, today and in a past year.
         Assert.Equal(ViewJson.Serialize(MapScreen.Build(world, log)), Viewer.Screen("map", ""));
-        Assert.Equal(ViewJson.Serialize(MapScreen.Build(world, log, new FantasyWorld.Sim.Core.WorldDate(5L * FantasyWorld.Sim.Core.WorldDate.DaysPerYear - 1))), Viewer.Screen("map", "5"));
+        // No year before the chronicle's start (Year 100, or a younger world's own year) is shown: an earlier one is the first.
+        var first = loaded.RootElement.GetProperty("firstYear").GetInt32();
+        Assert.Equal(Math.Min(Viewer.ChronicleYear, world.Date.Year), first);
+        Assert.Equal(ViewJson.Serialize(MapScreen.Build(world, log, new FantasyWorld.Sim.Core.WorldDate((long)Math.Max(5, first) * FantasyWorld.Sim.Core.WorldDate.DaysPerYear - 1))),
+            Viewer.Screen("map", "5"));
         var realm = world.Realms.Keys.First();
         Assert.Equal(ViewJson.Serialize(RealmScreen.Build(world, log, realm)), Viewer.Screen("realm", realm.ToString()));
         Assert.Throws<ArgumentException>(() => Viewer.Screen("nothing", ""));

@@ -20,4 +20,14 @@ public static class Peoples
 
     /// <summary>How long a character's people live against the common span.</summary>
     public static double SpanOf(World world, Character c) => Of(world, c)?.Span ?? 1;
+
+    /// <summary>A common lifetime's age range: the old begin to sicken from the first, and none outlive the second.</summary>
+    public const int CommonOld = 70, CommonLimit = 95;
+
+    /// <summary>
+    /// A people's age range (the owner, 2026-10-29: each race has an age limit): from when its old begin to fall ill to the
+    /// age none outlive, the common range stretched by its span past adulthood (as <see cref="Systems.LifeSystem.Aged"/> ages them).
+    /// </summary>
+    public static (int Old, int Limit) Lifespan(double span) =>
+        (Character.AdultAge + (int)Math.Round((CommonOld - Character.AdultAge) * span), Character.AdultAge + (int)Math.Round((CommonLimit - Character.AdultAge) * span));
 }

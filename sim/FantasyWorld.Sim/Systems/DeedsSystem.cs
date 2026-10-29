@@ -373,6 +373,14 @@ public sealed class DeedsSystem : ISimSystem
     private void Reveal(SimContext ctx, Character delver, Structure maze, Region region, long clearedEventId, EntityRef? spoils)
     {
         var world = ctx.World;
+        // What the songs forgot is found again first (the owner, 2026-10-29): the oldest forgotten tale, as a secret.
+        if (LoreSystem.Buried(world) is { } tale)
+        {
+            world.Tales = world.Tales.Select(t => t == tale ? t with { Uncovered = true } : t).ToList();
+            Announce(ctx, world, delver, maze, region, clearedEventId, spoils, $"The Forgotten {Narration.English.InProse(tale.Title).TrimStart()}".Replace("Forgotten the ", "Forgotten "),
+                $"Carved at the bottom was a tale the songs forgot: {tale.Text}");
+            return;
+        }
         var rules = Legends.RulesSecret(world, maze.Name);
         var invention = _inventor.Invent(new InventionBrief("secret of the world", $"{maze.Ref}|secret",
             Legends.SecretFacts(world, $"{maze.Name} in {region.Name}", delver.Name), rules?.Title ?? $"The Secret of {Narration.English.InProse(maze.Name)}"));
@@ -380,6 +388,12 @@ public sealed class DeedsSystem : ISimSystem
         if (invention.Lore is { Length: > 0 } lore) (title, text) = (invention.Name, lore.Length <= Legends.MaxSecret ? lore : lore[..Legends.MaxSecret]);
         else if (rules is { } told) (title, text) = told;
         else return; // nothing new to reveal: the labyrinth is cleared, its secret kept
+        Announce(ctx, world, delver, maze, region, clearedEventId, spoils, title, text);
+    }
+
+    private static void Announce(SimContext ctx, World world, Character delver, Structure maze, Region region, long clearedEventId, EntityRef? spoils,
+        string title, string text)
+    {
         var who = new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["structure"] = maze.Ref };
         if (spoils is { } relic) who["artifact"] = relic;
         var revealed = ctx.Emit(new EventDraft("SecretRevealed", Actors: who, Place: region.Ref,

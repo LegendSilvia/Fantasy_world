@@ -40,6 +40,7 @@ public static class DefaultSystems
         new ArtifactSystem(),
         new PromotionSystem(),
         new StructureSystem(inventor),
+        new LoreSystem(inventor),
         new ChronicleSystem(),
     };
 }

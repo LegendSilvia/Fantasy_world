@@ -36,7 +36,7 @@ public static class Viewer
     public static string Load(byte[] gzip)
     {
         (_world, _log) = WebBundle.FromGzip(gzip).Load();
-        return JsonSerializer.Serialize(new { name = DigestScreen.DisplayName(World), year = World.Date.Year, firstYear = 1, today = World.Date.ToString() }, Json);
+        return JsonSerializer.Serialize(new { name = DigestScreen.DisplayName(World), year = World.Date.Year, firstYear = FirstYear, today = World.Date.ToString() }, Json);
     }
 
     /// <summary>
@@ -86,6 +86,7 @@ public static class Viewer
         var races = World.Races.Values.OrderBy(r => r.Id).Select(r => new
         {
             name = r.Name, looks = r.Looks, nature = r.Nature, temper = r.Temper,
+            lifespan = new { old = Peoples.Lifespan(r.Span).Old, limit = Peoples.Lifespan(r.Span).Limit },
             foes = r.Foes.Select(id => World.Races.GetValueOrDefault(id)?.Name).OfType<string>(),
             friends = r.Friends.Select(id => World.Races.GetValueOrDefault(id)?.Name).OfType<string>(),
         });
@@ -124,13 +125,18 @@ public static class Viewer
                                                                                      || FantasyWorld.Sim.Systems.Prominence.IsNotable(World, c)))
             .OrderByDescending(c => FantasyWorld.Sim.Systems.Prominence.Of(World, c)).ThenBy(c => c.Id).Take(MaxCompanions)
             .Select(c => new { name = c.Companion!.Name, what = c.Companion.What, lore = c.Companion.Lore, of = new { @ref = c.Ref.ToString(), name = c.Name } });
+        // What the songs tell as of the year shown (the owner, 2026-10-29: the lore revised every 25 years): tales sung by
+        // then and not yet forgotten.
+        var thenYear = until is { } cut ? new WorldDate(cut).Year : World.Date.Year;
+        var tales = World.Tales.Where(t => t.SungFrom <= thenYear && (!t.Forgotten || t.ForgottenIn > thenYear))
+            .OrderByDescending(t => t.Year).Select(t => new { title = t.Title, text = t.Text, year = t.Year, @event = $"event#{t.EventId}", since = t.SungFrom });
         var shadow = World.Sagas.Values.OrderByDescending(s => s.Id).Select(s => new
         {
             demon = Who(s.DemonLordId), active = s.Active, outcome = s.Outcome, hero = s.HeroId != 0 ? Who(s.HeroId) : null,
         }).FirstOrDefault();
         return JsonSerializer.Serialize(new
         {
-            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, races, gods, realms, labyrinths, relics, shadow, callings, companions,
+            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, tales, races, gods, realms, labyrinths, relics, shadow, callings, companions,
         }, Json);
     }
 
@@ -143,17 +149,22 @@ public static class Viewer
     {
         var until = Until(year);
         var then = until is { } u ? new WorldDate(u) : World.Date;
-        // Those living then: born by then, not yet dead (or faded from the story, today).
-        var people = World.Characters.Values.Where(c => c.BirthDay <= then.Day && (until is null ? c.IsActive : c.Died is null || c.Died.Value.Day > then.Day)
-                                                        && new WorldDate(then.Day).Year - new WorldDate(c.BirthDay).Year >= 16)
-            .OrderByDescending(c => c.Renown).ThenBy(c => c.Id).Take(400)
+        // Those living then (born by then, not yet dead, nor faded from the story today), and the dead by then (the owner,
+        // 2026-10-29: a filter for the living or the dead), each grown before they were gone.
+        bool Living(Character c) => until is null ? c.IsActive : c.Died is null || c.Died.Value.Day > then.Day;
+        bool DeadBy(Character c) => c.Died is { } d && d.Day <= then.Day;
+        bool Grown(Character c) => ((DeadBy(c) ? c.Died!.Value.Day : then.Day) - c.BirthDay) / WorldDate.DaysPerYear >= Character.AdultAge;
+        var born = World.Characters.Values.Where(c => c.BirthDay <= then.Day && Grown(c)).ToList();
+        var people = born.Where(Living).OrderByDescending(c => c.Renown).ThenBy(c => c.Id).Take(400)
+            .Concat(born.Where(DeadBy).OrderByDescending(c => c.Renown).ThenBy(c => c.Id).Take(300))
             .Select(c =>
             {
                 var home = World.Settlements.GetValueOrDefault(c.SettlementId);
                 var realm = home is not null && World.Regions.TryGetValue(home.RegionId, out var region) ? World.Realms.GetValueOrDefault(region.OwnerRealmId) : null;
                 return new
                 {
-                    @ref = c.Ref.ToString(), name = c.Name, @class = Classes.Base(c.Class), title = c.Class.Length > 0 ? Classes.Title(c.Class) : "", role = c.Role.ToString().ToLowerInvariant(), age = c.Age(then),
+                    @ref = c.Ref.ToString(), name = c.Name, @class = Classes.Base(c.Class), title = c.Class.Length > 0 ? Classes.Title(c.Class) : "", role = c.Role.ToString().ToLowerInvariant(),
+                    alive = !DeadBy(c), died = DeadBy(c) ? c.Died!.Value.Year : (int?)null, age = c.Age(DeadBy(c) ? c.Died!.Value : then),
                     renown = (int)Math.Round(c.Renown), realm = realm?.Name, home = home?.Name,
                 };
             });
@@ -227,7 +238,7 @@ public static class Viewer
         // Its end, if it came after the year shown, has not come yet.
         var slain = World.Characters.ContainsKey(m.SlayerId) && Log.All.LastOrDefault(e => e.Type == "MonsterSlain" && e.Actors.Values.Contains(reference)) is { } end
             ? By(until, end.Date.Day) : until is null;
-        var deeds = Log.All.Where(e => e.Actors.Values.Contains(reference) && By(until, e.Date.Day)).OrderByDescending(e => e.Id).Take(12)
+        var deeds = Log.All.Where(e => e.Actors.Values.Contains(reference) && By(until, e.Date.Day) && e.Date.Year >= FirstYear).OrderByDescending(e => e.Id).Take(12)
             .Select(e => new { @event = $"event#{e.Id}", year = e.Date.Year, text = narrator.Sentence(e) });
         var lore = Log.TryGet(m.RoseEventId, out var rose) ? rose.Payload.GetValueOrDefault("lore") : null;
         return JsonSerializer.Serialize(new
@@ -260,7 +271,7 @@ public static class Viewer
     /// <summary>The map at the end of a year, as the game's history slider shows it (empty or this year: today).</summary>
     private static MapScreen MapAt(string year) =>
         MapScreen.Build(World, Log, int.TryParse(year, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) && y >= 1 && y < World.Date.Year
-            ? new WorldDate((long)y * WorldDate.DaysPerYear - 1) : null);
+            ? new WorldDate((long)Math.Max(y, FirstYear) * WorldDate.DaysPerYear - 1) : null);
 
     /// <summary>
     /// The last day of a year the history slider shows, or null for today (empty, or this year or later): every panel shows
@@ -268,7 +279,15 @@ public static class Viewer
     /// </summary>
     private static long? Until(string? year) =>
         int.TryParse(year, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) && y >= 1 && y < World.Date.Year
-            ? (long)y * WorldDate.DaysPerYear - 1 : null;
+            ? (long)Math.Max(y, FirstYear) * WorldDate.DaysPerYear - 1 : null;
+
+    /// <summary>
+    /// The earliest year a viewer may look back to (the owner, 2026-10-29): the chronicle begins at Year 100, so the offline
+    /// history before it is never shown as a year of its own (a world younger than that shows from its first year).
+    /// </summary>
+    public const int ChronicleYear = 100;
+
+    private static int FirstYear => Math.Min(ChronicleYear, World.Date.Year);
 
     private static (long Day, EventLog Log)? _pastLog;
 
@@ -298,7 +317,7 @@ public static class Viewer
     [JSInvokable]
     public static string Happenings(string year)
     {
-        var y = int.Parse(year, NumberStyles.Integer, CultureInfo.InvariantCulture);
+        var y = Math.Max(int.Parse(year, NumberStyles.Integer, CultureInfo.InvariantCulture), FirstYear);
         var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
         var nameOf = FantasyWorld.Sim.Query.Names.Of(World);
         var none = new HashSet<EntityRef>();
@@ -384,12 +403,13 @@ public static class Viewer
             fights = (map.Battles ?? []).Select(b => new
             {
                 kind = b.Kind, underWay = b.UnderWay, at = V(Projection.ToBlock(grid, b.Position, 0)), eventId = b.EventId,
-                badge = b.UnderWay ? "underway" : "fought",
+                badge = (b.Kind == MapBattle.Battle ? "battle-" : "") + (b.UnderWay ? "underway" : "fought"),
             }),
             badges = new Dictionary<string, string>
             {
                 ["boss"] = Badges.Boss(false, false), ["legend"] = Badges.Boss(true, false), ["asleep"] = Badges.Boss(false, true),
                 ["fought"] = Badges.Swords(false), ["underway"] = Badges.Swords(true),
+                ["battle-fought"] = Badges.Banners(false), ["battle-underway"] = Badges.Banners(true),
             },
         };
         return JsonSerializer.Serialize(scene, Json);
