@@ -5,7 +5,7 @@ namespace FantasyWorld.Sim.Chronicle;
 
 /// <summary>
 /// How much an event matters to the reader now (spec §7 "Importance and the digest"): the importance the
-/// engine gave it, raised by the fame of those involved (renowned people, independent and high-ranked realms)
+/// engine gave it, raised by the fame of those involved (prominent people: rulers, heirs, the awakened, the renowned; independent and high-ranked realms)
 /// and above all by entities the player follows; 0–100.
 /// </summary>
 public static class Importance
@@ -19,7 +19,7 @@ public static class Importance
         foreach (var actor in ev.Actors.Values)
         {
             if (actor.Kind == Character.Kind && world.Characters.TryGetValue(actor.Id, out var c))
-                fame = Math.Max(fame, c.Renown / 5 + (c.Role == Role.Lord ? 5 : 0));
+                fame = Math.Max(fame, Systems.Prominence.Of(world, c) / 3.0);
             else if (actor.Kind == Realm.Kind && world.Realms.TryGetValue(actor.Id, out var realm))
                 fame = Math.Max(fame, (realm.LiegeId == 0 ? 10 : 0) + (int)realm.Rank * 3);
         }

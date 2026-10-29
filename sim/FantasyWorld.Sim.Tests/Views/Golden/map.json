@@ -555,11 +555,11 @@
         "y": 0.7890625
       },
       "holder": "realm#2",
-      "marker": "realm",
+      "marker": "recentEvent",
       "card": {
         "kicker": "Niar · Town",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 1,964 · 0 events this year"
+        "line": "Pop. 1,964 · 2 events this year"
       },
       "marks": [
         "temple"
@@ -637,7 +637,21 @@
     }
   ],
   "armies": [],
-  "battles": [],
+  "battles": [
+    {
+      "eventId": 234,
+      "year": 20,
+      "position": {
+        "x": 0.2578125,
+        "y": 0.7890625
+      },
+      "victor": "char#11",
+      "vanquished": "char#24",
+      "war": "#0",
+      "kind": "duel",
+      "underWay": false
+    }
+  ],
   "routes": [
     {
       "ref": "route#1",

@@ -41,7 +41,13 @@ public sealed class DeedsSystem : ISimSystem
     public const string DuelKind = "duel";
 
     /// <summary>At most this many challenges wait to be fought across the world before a new one to first blood is made.</summary>
-    public const int MaxOpenChallenges = 3;
+    public const int MaxOpenChallenges = 7;
+
+    /// <summary>Of those, how many may be between two ordinary people; the rest are kept for the story's own (<see cref="Prominence"/>).</summary>
+    public const int OrdinaryChallenges = 2;
+
+    /// <summary>How keenly a challenge is weighed when a notable fighter is in it (an ordinary one weighs 10).</summary>
+    public const int NotableUrge = 70;
 
     /// <summary>A beat of a duel that lasts more than a day, told on its day (sub-project 8 §5).</summary>
     public const string DuelTurnKind = "duel-turn";
@@ -141,11 +147,35 @@ public sealed class DeedsSystem : ISimSystem
         var rival = (neighbours ?? world.PeopleOf(home))
             .Where(o => o.Id != c.Id && o.IsActive && o.Stage(ctx.Date) != LifeStage.Child && Relations.Opinion(c, o) <= Relations.RivalAt)
             .OrderBy(o => Relations.Opinion(c, o)).ThenBy(o => o.Id).FirstOrDefault();
-        // A challenge to first blood is rare news (the owner, 2026-10-29: a few showdowns a year, not a page of them): only
-        // while fewer than MaxOpenChallenges duels are pending in the whole world. A vengeance is never held back.
-        if (free && rival is not null && !Challenged(ctx.Queue, rival.Id) && (c.Has(Traits.Wrathful) || c.Has(Traits.Brave))
-            && PendingDuels(ctx.Queue).Count(a => a.Kind == DuelKind) < MaxOpenChallenges)
-            options.Add(new($"duel:{rival.Id}", 10 * bold, $"challenge {rival.Name} to first blood"));
+        // A notable one's quarrels reach further (the owner, 2026-10-29: about six showdowns a year, the story's own first):
+        // anyone nearby they hold a grudge against, a milder one will do.
+        if (rival is null && Prominence.IsNotable(world, c))
+            rival = c.Memories.Select(m => m.About).Distinct()
+                .Select(id => world.Characters.GetValueOrDefault(id))
+                .OfType<Character>()
+                .Where(o => o.Id != c.Id && o.IsActive && o.Stage(ctx.Date) != LifeStage.Child && Relations.Opinion(c, o) <= Relations.RivalAt / 2
+                            && world.Settlements.TryGetValue(o.SettlementId, out var at) && nearby.Any(r => r.Id == at.RegionId))
+                .OrderBy(o => Relations.Opinion(c, o)).ThenBy(o => o.Id).FirstOrDefault();
+        // And a notable one hungry for glory may call out another notable fighter nearby with no grudge at all: a contest
+        // of honour between two of the story's own, to first blood.
+        if (rival is null && Prominence.IsNotable(world, c) && (c.Ambition == Ambitions.Renown || c.Has(Traits.Brave) || c.Has(Traits.Wrathful)))
+        {
+            var regions = nearby.Select(r => r.Id).ToHashSet();
+            rival = world.ActiveCharacters
+                .Where(o => o.Id != c.Id && o.Stage(ctx.Date) != LifeStage.Child && o.Attributes.Prowess >= c.Attributes.Prowess - 3
+                            && Relations.Opinion(c, o) < 20 && world.Settlements.TryGetValue(o.SettlementId, out var at) && regions.Contains(at.RegionId)
+                            && Prominence.IsNotable(world, o))
+                .OrderByDescending(o => o.Renown).ThenBy(o => o.Id).FirstOrDefault();
+        }
+        // A challenge to first blood is news (the owner, 2026-10-29: about six showdowns a year): only while fewer than
+        // MaxOpenChallenges duels are pending in the whole world, and only OrdinaryChallenges of them may be between two of
+        // the crowd; the rest wait for a notable fighter. A vengeance is never held back.
+        // A notable one with a rival need not be wrathful or brave to call them out: their standing is at stake.
+        var notable = rival is not null && (Prominence.IsNotable(world, c) || Prominence.IsNotable(world, rival));
+        if (free && rival is not null && !Challenged(ctx.Queue, rival.Id) && (notable || c.Has(Traits.Wrathful) || c.Has(Traits.Brave))
+            && PendingDuels(ctx.Queue).Count(a => a.Kind == DuelKind) is var open && open < MaxOpenChallenges
+            && (open < OrdinaryChallenges || notable))
+            options.Add(new($"duel:{rival.Id}", (notable ? NotableUrge : 10) * bold, $"challenge {rival.Name} to first blood"));
         return options;
     }
 

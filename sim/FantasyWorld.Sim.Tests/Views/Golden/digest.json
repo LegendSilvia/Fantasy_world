@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 229 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 238 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -14,7 +14,7 @@
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "eventId": 203
+      "eventId": 204
     },
     {
       "number": 3,
@@ -24,27 +24,7 @@
         "x": 0.2578125,
         "y": 0.7890625
       },
-      "eventId": 152
-    },
-    {
-      "number": 4,
-      "place": "settlement#3",
-      "label": "Drerithby",
-      "position": {
-        "x": 0.3515625,
-        "y": 0.1953125
-      },
-      "eventId": 31
-    },
-    {
-      "number": 7,
-      "place": "settlement#16",
-      "label": "Greindrondcross",
-      "position": {
-        "x": 0.8828125,
-        "y": 0.4296875
-      },
-      "eventId": 35
+      "eventId": 235
     }
   ],
   "headline": {
@@ -52,51 +32,51 @@
     "category": "faithAndMagic",
     "kicker": "A secret of the world",
     "title": {
-      "text": "Nanian of Gathnendis reached the bottom of the Deeps of Taramdale and walked away with the Reliquary of Miall, and with a secret of the world, the Broken Covenant of the Deeps of Taramdale: the peoples of the world were once one, the carvings show, until a covenant broken in the first age set them against each other",
+      "text": "Giaskia of Gendtialing reached the bottom of the Deeps of Taramdale and walked away with the Reliquary of Miall, and with a secret of the world, the Broken Covenant of the Deeps of Taramdale: the peoples of the world were once one, the carvings show, until a covenant broken in the first age set them against each other",
       "links": [
         {
           "start": 0,
-          "length": 20,
-          "entity": "char#39"
+          "length": 22,
+          "entity": "char#38"
         },
         {
-          "start": 43,
+          "start": 45,
           "length": 22,
           "entity": "structure#1"
         },
         {
-          "start": 87,
+          "start": 89,
           "length": 22,
           "entity": "artifact#6"
         },
         {
-          "start": 179,
+          "start": 181,
           "length": 9,
           "entity": "region#2"
         }
       ]
     },
     "body": {
-      "text": "Earlier that year, Nanian of Gathnendis cleared the Deeps of Taramdale, and walked away with the Reliquary of Miall.",
+      "text": "Earlier that year, Giaskia of Gendtialing cleared the Deeps of Taramdale, and walked away with the Reliquary of Miall.",
       "links": [
         {
           "start": 19,
-          "length": 20,
-          "entity": "char#39"
+          "length": 22,
+          "entity": "char#38"
         },
         {
-          "start": 48,
+          "start": 50,
           "length": 22,
           "entity": "structure#1"
         },
         {
-          "start": 93,
+          "start": 95,
           "length": 22,
           "entity": "artifact#6"
         }
       ]
     },
-    "eventId": 203,
+    "eventId": 204,
     "canExplain": true
   },
   "items": [
@@ -104,19 +84,39 @@
       "number": 2,
       "category": "faithAndMagic",
       "text": {
-        "text": "Nanian of Gathnendis was not the same after it: something woke in them, and they rose a Shadowdancer: steps from one shadow into the next as if through a door.",
+        "text": "Giaskia of Gendtialing was not the same after it: something woke in them, and they rose a Stormcaller: lightning falls where they point.",
         "links": [
           {
             "start": 0,
-            "length": 20,
-            "entity": "char#39"
+            "length": 22,
+            "entity": "char#38"
           }
         ]
       },
-      "eventId": 204
+      "eventId": 205
     },
     {
       "number": 3,
+      "category": "characters",
+      "text": {
+        "text": "Stiath of Vallbrorneth rose from it a changed soul, sworn to destroy Coth of Rialling.",
+        "links": [
+          {
+            "start": 0,
+            "length": 22,
+            "entity": "char#24"
+          },
+          {
+            "start": 69,
+            "length": 16,
+            "entity": "char#11"
+          }
+        ]
+      },
+      "eventId": 235
+    },
+    {
+      "number": 4,
       "category": "characters",
       "text": {
         "text": "Stiath of Vallbrorneth came back from it with a new hunger: a longing to master the powers they glimpsed.",
@@ -131,25 +131,57 @@
       "eventId": 152
     },
     {
-      "number": 4,
-      "category": "politics",
-      "text": {
-        "text": "The Banners Age of Thonae began.",
-        "links": []
-      },
-      "eventId": 31
-    },
-    {
       "number": 5,
-      "category": "politics",
+      "category": "characters",
       "text": {
-        "text": "The Age of Long Peace of Thonae began.",
-        "links": []
+        "text": "Coth of Rialling challenged Stiath of Vallbrorneth to a duel (to the death), to be fought at Niar in a year and a day.",
+        "links": [
+          {
+            "start": 0,
+            "length": 16,
+            "entity": "char#11"
+          },
+          {
+            "start": 28,
+            "length": 22,
+            "entity": "char#24"
+          },
+          {
+            "start": 93,
+            "length": 4,
+            "entity": "settlement#24"
+          }
+        ]
       },
-      "eventId": 50
+      "eventId": 192
     },
     {
       "number": 6,
+      "category": "characters",
+      "text": {
+        "text": "Gral of Bandbia found the Gold Chalice in the depths of Taramdale.",
+        "links": [
+          {
+            "start": 0,
+            "length": 15,
+            "entity": "char#16"
+          },
+          {
+            "start": 22,
+            "length": 16,
+            "entity": "artifact#5"
+          },
+          {
+            "start": 56,
+            "length": 9,
+            "entity": "region#2"
+          }
+        ]
+      },
+      "eventId": 194
+    },
+    {
+      "number": 7,
       "category": "characters",
       "text": {
         "text": "At Niar, Stiath of Vallbrorneth met Coth of Rialling to first blood.",
@@ -172,46 +204,6 @@
         ]
       },
       "eventId": 151
-    },
-    {
-      "number": 7,
-      "category": "characters",
-      "text": {
-        "text": "Keth of Bandbia was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
-        "links": [
-          {
-            "start": 0,
-            "length": 15,
-            "entity": "char#17"
-          },
-          {
-            "start": 32,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 60,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 35
-    },
-    {
-      "number": 8,
-      "category": "faithAndMagic",
-      "text": {
-        "text": "Stiath of Vallbrorneth prayed to Ciscoun for an heir.",
-        "links": [
-          {
-            "start": 0,
-            "length": 22,
-            "entity": "char#24"
-          }
-        ]
-      },
-      "eventId": 52
     }
   ]
 }

@@ -1,15 +1,25 @@
 {
   "outcome": {
-    "eventId": 223,
+    "eventId": 234,
     "year": 20,
     "category": "characters",
     "title": {
-      "text": "Giaskia of Gendtialing was killed by monsters at the age of 37.",
+      "text": "Coth of Rialling fought Stiath of Vallbrorneth to first blood at Niar.",
       "links": [
         {
           "start": 0,
+          "length": 16,
+          "entity": "char#11"
+        },
+        {
+          "start": 24,
           "length": 22,
-          "entity": "char#38"
+          "entity": "char#24"
+        },
+        {
+          "start": 65,
+          "length": 4,
+          "entity": "settlement#24"
         }
       ]
     },
@@ -20,71 +30,216 @@
   "layers": [
     [
       {
-        "eventId": 222,
-        "year": 20,
+        "eventId": 96,
+        "year": 6,
         "category": "characters",
         "title": {
-          "text": "Giaskia of Gendtialing hunted the monsters of Gisreach and was killed.",
+          "text": "Stiath of Vallbrorneth fought Coth of Rialling to first blood at Niar.",
           "links": [
             {
               "start": 0,
               "length": 22,
-              "entity": "char#38"
+              "entity": "char#24"
             },
             {
-              "start": 46,
-              "length": 8,
-              "entity": "region#7"
+              "start": 30,
+              "length": 16,
+              "entity": "char#11"
+            },
+            {
+              "start": 65,
+              "length": 4,
+              "entity": "settlement#24"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      },
+      {
+        "eventId": 223,
+        "year": 19,
+        "category": "characters",
+        "title": {
+          "text": "Coth of Rialling called Stiath of Vallbrorneth out (to first blood); they will meet at Niar in a year and a day.",
+          "links": [
+            {
+              "start": 0,
+              "length": 16,
+              "entity": "char#11"
+            },
+            {
+              "start": 24,
+              "length": 22,
+              "entity": "char#24"
+            },
+            {
+              "start": 87,
+              "length": 4,
+              "entity": "settlement#24"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      }
+    ],
+    [
+      {
+        "eventId": 25,
+        "year": 1,
+        "category": "characters",
+        "title": {
+          "text": "Coth of Rialling and Stiath of Vallbrorneth fell out over the clash of a content nature with an ambitious one.",
+          "links": [
+            {
+              "start": 0,
+              "length": 16,
+              "entity": "char#11"
+            },
+            {
+              "start": 21,
+              "length": 22,
+              "entity": "char#24"
             }
           ]
         },
         "note": null,
         "isRoot": true,
         "hasMore": false
+      },
+      {
+        "eventId": 77,
+        "year": 5,
+        "category": "characters",
+        "title": {
+          "text": "Stiath of Vallbrorneth called Coth of Rialling out (to first blood); they will meet at Niar in a year and a day.",
+          "links": [
+            {
+              "start": 0,
+              "length": 22,
+              "entity": "char#24"
+            },
+            {
+              "start": 30,
+              "length": 16,
+              "entity": "char#11"
+            },
+            {
+              "start": 87,
+              "length": 4,
+              "entity": "settlement#24"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
       }
     ]
   ],
   "edges": [
     {
-      "from": 222,
-      "to": 223,
+      "from": 223,
+      "to": 234,
       "kind": "trigger",
+      "label": "because, and"
+    },
+    {
+      "from": 96,
+      "to": 234,
+      "kind": "motive",
+      "label": "because, and"
+    },
+    {
+      "from": 96,
+      "to": 223,
+      "kind": "motive",
+      "label": "because"
+    },
+    {
+      "from": 77,
+      "to": 96,
+      "kind": "trigger",
+      "label": "because, and"
+    },
+    {
+      "from": 25,
+      "to": 96,
+      "kind": "motive",
+      "label": "because, and"
+    },
+    {
+      "from": 25,
+      "to": 77,
+      "kind": "motive",
       "label": "because"
     }
   ],
-  "summary": "Traced back within the year, through one root cause.",
+  "summary": "Traced back 19 years, through one root cause.",
   "people": [
     {
-      "ref": "char#38",
-      "name": "Giaskia of Gendtialing"
+      "ref": "char#11",
+      "name": "Coth of Rialling"
+    },
+    {
+      "ref": "char#24",
+      "name": "Stiath of Vallbrorneth"
     }
   ],
   "places": [
     {
-      "ref": "settlement#18",
-      "name": "Droukolford"
-    },
-    {
-      "ref": "region#7",
-      "name": "Gisreach"
+      "ref": "settlement#24",
+      "name": "Niar"
     }
   ],
   "systems": [
     "characters"
   ],
-  "consequences": [],
+  "consequences": [
+    {
+      "eventId": 235,
+      "year": 20,
+      "category": "characters",
+      "title": {
+        "text": "Stiath of Vallbrorneth rose from it a changed soul, sworn to destroy Coth of Rialling.",
+        "links": [
+          {
+            "start": 0,
+            "length": 22,
+            "entity": "char#24"
+          },
+          {
+            "start": 69,
+            "length": 16,
+            "entity": "char#11"
+          }
+        ]
+      },
+      "note": null,
+      "isRoot": false,
+      "hasMore": false
+    }
+  ],
   "story": {
-    "text": "In Year 20, Giaskia of Gendtialing hunted the monsters of Gisreach and was killed. And so Giaskia of Gendtialing was killed by monsters at the age of 37.",
+    "text": "In Year 1, Coth of Rialling and Stiath of Vallbrorneth fell out over the clash of a content nature with an ambitious one. In Year 5, Stiath of Vallbrorneth called Coth of Rialling out (to first blood); they will meet at Niar in a year and a day. In Year 6, Stiath of Vallbrorneth fought Coth of Rialling to first blood at Niar. In Year 19, Coth of Rialling called Stiath of Vallbrorneth out (to first blood); they will meet at Niar in a year and a day. And so, in Year 20, Coth of Rialling fought Stiath of Vallbrorneth to first blood at Niar.",
     "links": [
       {
-        "start": 12,
-        "length": 22,
-        "entity": "char#38"
+        "start": 11,
+        "length": 16,
+        "entity": "char#11"
       },
       {
-        "start": 58,
-        "length": 8,
-        "entity": "region#7"
+        "start": 32,
+        "length": 22,
+        "entity": "char#24"
+      },
+      {
+        "start": 220,
+        "length": 4,
+        "entity": "settlement#24"
       }
     ]
   }

@@ -29,7 +29,9 @@ public class NarrationEvalTests
             var s = narrator.Sentence(ev);
             Assert.False(s.Contains('{') || s.Contains('}'), $"unfilled placeholder: {s}");
             Assert.True(char.IsUpper(s[0]) && s.EndsWith('.'), $"not a sentence: {s}");
-            Assert.InRange(s.Split(' ').Length, 2, 45);
+            // A secret of the world is told whole (the owner, 2026-10-29): only the words around it are bounded.
+            var words = (ev.Type == "SecretRevealed" && ev.Payload.TryGetValue("text", out var truth) ? s.Replace(truth, "") : s).Split(' ').Length;
+            Assert.True(words is >= 2 and <= 45, $"{words} words: {s}");
             Assert.False(Regex.IsMatch(s, @"\b(\w+) \1\b", RegexOptions.IgnoreCase), $"doubled word: {s}");
             Assert.DoesNotContain("(s)", s);
             var linked = LinkedText.Link(s, LinkedText.Mentions(ev), nameOf);
