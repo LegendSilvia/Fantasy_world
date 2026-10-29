@@ -59,4 +59,22 @@ public class TransformTests
         Assert.Contains("abilities: " + Abilities.Signature(world, fighters[0]).Name, brief);
         Assert.Contains("Fights: ", brief);
     }
+
+    [Fact]
+    public void AOneSidedFight_IsToldByTheStrongersAura_NotATwist()
+    {
+        Assert.Contains("one-sided: the attacker is far the stronger", FantasyWorld.Sim.Llm.FightAnswer.Instructions(10, 0.85));
+        Assert.Contains("one-sided: the defender is far the stronger", FantasyWorld.Sim.Llm.FightAnswer.Instructions(10, 0.2));
+        Assert.DoesNotContain("one-sided", FantasyWorld.Sim.Llm.FightAnswer.Instructions(10, 0.6));
+        Assert.Contains("within a single day", FantasyWorld.Sim.Llm.FightAnswer.Instructions(10, 0.85));
+
+        // The far stronger side winning ends it within a day; an upset, or an even fight, may last longer.
+        using var three = System.Text.Json.JsonDocument.Parse("""{"days": 3}""");
+        using var one = System.Text.Json.JsonDocument.Parse("""{"days": 1}""");
+        Assert.NotNull(FantasyWorld.Sim.Llm.FightAnswer.Swift(three.RootElement, 0.85, attackerWins: true));
+        Assert.NotNull(FantasyWorld.Sim.Llm.FightAnswer.Swift(three.RootElement, 0.15, attackerWins: false));
+        Assert.Null(FantasyWorld.Sim.Llm.FightAnswer.Swift(one.RootElement, 0.85, attackerWins: true));
+        Assert.Null(FantasyWorld.Sim.Llm.FightAnswer.Swift(three.RootElement, 0.85, attackerWins: false));
+        Assert.Null(FantasyWorld.Sim.Llm.FightAnswer.Swift(three.RootElement, 0.6, attackerWins: true));
+    }
 }

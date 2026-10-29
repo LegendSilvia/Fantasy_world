@@ -59,7 +59,7 @@ public sealed partial class LlmArbiter
             + (tight ? "\n\nUpsets have been frequent of late; let the likelier side win unless the brief makes it ring false." : "")
             + $"\n\nDecide this battle whole: {(sides.Count == 2 ? "which side wins" : "how the side that must win does so")}, each side's losses "
             + "(as how many in a hundred of its troops fell)" + (notables.Count > 0 ? ", the fate of each of those present" : "")
-            + $", and how it went. {FightAnswer.Instructions(MaxBattleDays)}";
+            + $", and how it went. {FightAnswer.Instructions(MaxBattleDays, odds)}";
         var properties = new Dictionary<string, object>
         {
             ["outcome"] = new { type = "string", @enum = sides },
@@ -83,7 +83,11 @@ public sealed partial class LlmArbiter
         {
             if (Read(json, sides, notables) is not { } plan) return ["the outcome must be one of the allowed sides"];
             var problems = new List<string>();
-            using (var doc = JsonDocument.Parse(json)) problems.AddRange(FightAnswer.Problems(doc.RootElement, MaxBattleDays, brief));
+            using (var doc = JsonDocument.Parse(json))
+            {
+                problems.AddRange(FightAnswer.Problems(doc.RootElement, MaxBattleDays, brief));
+                if (FightAnswer.Swift(doc.RootElement, odds, plan.AttackerWins) is { } slow) problems.Add(slow);
+            }
             if (!MilitarySystem.WinnerLosses.Holds(plan.WinnerLosses)) problems.Add("the victors' losses are out of their range");
             if (!MilitarySystem.LoserLosses.Holds(plan.LoserLosses)) problems.Add("the vanquished's losses are out of their range");
             foreach (var n in notables)

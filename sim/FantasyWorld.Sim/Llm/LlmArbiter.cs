@@ -61,7 +61,7 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
         var prompt = PromptText.Section("brief", brief)
             + (tight ? "\n\nUpsets have been frequent of late; let the likelier outcome stand unless the brief makes it ring false." : "")
             + (whole
-                ? $"\n\nDecide {name}'s duel whole: which of the possible outcomes it comes to, and how. {FightAnswer.Instructions(MaxDuelDays)}"
+                ? $"\n\nDecide {name}'s duel whole: which of the possible outcomes it comes to, and how. {FightAnswer.Instructions(MaxDuelDays, odds)}"
                 : $"\n\nDecide how {name}'s {encounter.Kind} ends. Name its turning point and give a short account (two or three sentences).");
         var schema = JsonSerializer.Serialize(whole
             ? new
@@ -91,8 +91,9 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
         var request = new LlmRequest(ModelTier.Arbitrate, key, story.Bible, prompt, schema);
 
         bool Upset(EncounterOutcome o) => o.AttackerWins != (odds >= 0.5);
-        string Why(string answer) => string.Join("; ", Problems(answer, keys, whole, brief));
-        var json = story.Gateway.Ask(request, day, answer => Problems(answer, keys, whole, brief).Count == 0,
+        bool AttackerWins(string key) => allowed.First(o => o.Key == key).AttackerWins;
+        string Why(string answer) => string.Join("; ", Problems(answer, keys, whole, brief, odds, AttackerWins));
+        var json = story.Gateway.Ask(request, day, answer => Problems(answer, keys, whole, brief, odds, AttackerWins).Count == 0,
             answer => Upset(allowed.First(o => o.Key == Parse(answer, keys)!.Outcome)) ? "upset" : "", Why);
         if (json is null || Parse(json, keys) is not { } chosen) return fallback;
         if (chosen.Chapters.Count > 0)
@@ -115,12 +116,14 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
     private sealed record Answer(string Outcome, string TurningPoint, string Account, int Days, IReadOnlyList<FightChapter> Chapters);
 
     /// <summary>Why a new answer is refused: no legal outcome, or (for a whole fight) a length or course out of bounds.</summary>
-    private static IReadOnlyList<string> Problems(string json, IReadOnlyList<string> keys, bool whole, string brief)
+    private static IReadOnlyList<string> Problems(string json, IReadOnlyList<string> keys, bool whole, string brief, double odds, Func<string, bool> attackerWins)
     {
-        if (Parse(json, keys) is null) return ["the outcome must be one of the possible outcomes"];
+        if (Parse(json, keys) is not { } answer) return ["the outcome must be one of the possible outcomes"];
         if (!whole) return [];
         using var doc = JsonDocument.Parse(json);
-        return FightAnswer.Problems(doc.RootElement, MaxDuelDays, brief);
+        var problems = FightAnswer.Problems(doc.RootElement, MaxDuelDays, brief).ToList();
+        if (FightAnswer.Swift(doc.RootElement, odds, attackerWins(answer.Outcome)) is { } slow) problems.Add(slow);
+        return problems;
     }
 
     /// <summary>The answer as it is applied; lenient, so answers journaled before fights had a length still replay.</summary>

@@ -29,6 +29,21 @@ public static class FightAnswer
     };
 
     /// <summary>The instructions for the shared parts.</summary>
+    /// <summary>Odds this far from even make a fight one-sided: told as the stronger side's dread, not as a twist.</summary>
+    public const double OneSided = 0.75;
+
+    /// <summary>
+    /// The instructions with the fight's odds (the attacker's chance): a one-sided fight (the owner, 2026-10-29) needs no
+    /// twist if the stronger side wins; it is told by the stronger one's aura, the weaker one's dread, and the gap between them.
+    /// </summary>
+    public static string Instructions(int maxDays, double odds) => Instructions(maxDays)
+        + (odds >= OneSided || odds <= 1 - OneSided
+            ? $" This fight is one-sided: the {(odds >= OneSided ? "attacker" : "defender")} is far the stronger. If the stronger side wins, "
+              + "it is over within a single day (days 1), told with no twist: their presence and menace, the weaker side's dread before the "
+              + "first blow, a gap that cannot be closed, each blow showing how far apart they are. Only an upset, if you choose one, "
+              + "comes as a twist and may last longer."
+            : "");
+
     public static string Instructions(int maxDays) =>
         $"Decide how long it lasts: a single day, or longer, up to {maxDays} days, as the two sides would make it. Tell its course in "
         + $"{MinChapters} to {MaxChapters} chapters, each on a day of the fight (day 1 is the first; the last chapter falls on its last day), "
@@ -60,6 +75,15 @@ public static class FightAnswer
         if (chapters.Count > 0 && chapters[^1].Day != days) problems.Add("the last chapter must fall on the fight's last day");
         return problems.Distinct().ToList();
     }
+
+    /// <summary>
+    /// A one-sided fight the stronger side wins is over within a day (the owner, 2026-10-29); the problem with an answer that
+    /// drags it on, if any.
+    /// </summary>
+    public static string? Swift(JsonElement root, double odds, bool attackerWins) =>
+        (odds >= OneSided && attackerWins || odds <= 1 - OneSided && !attackerWins) && Days(root) > 1
+            ? "the far stronger side wins, so the fight is over within a day: days must be 1"
+            : null;
 
     /// <summary>The days, 1 when the answer has none (an answer journaled before fights had a length).</summary>
     public static int Days(JsonElement root) =>
