@@ -34,7 +34,20 @@ public static partial class NarrationGuard
         "Through", "During", "Within", "Without", "Upon", "Into", "Above", "Below", "Around", "Behind", "Between", "Like", "Which", "Is", "Was",
         "Were", "Be", "Will", "Would", "Shall", "May", "Might", "Can", "Could", "Must", "Did", "Do", "Does", "Has", "Have", "Had", "Word", "News",
         "Old", "Young", "Great", "Far",
+        // The plain nouns of a chronicle of war and beasts, which may open a sentence ("Hunger followed the host"): the live
+        // episode of 2026-10-29 lost its script to one.
+        "Hunger", "Fear", "Blood", "Fire", "Death", "Grief", "Rage", "Hope", "Glory", "Honour", "Honor", "Pride", "Shame", "Silence", "Darkness",
+        "Ruin", "Sorrow", "Famine", "Plague", "Winter", "Steel", "Iron", "Smoke", "Ash", "Ashes", "Gold", "Coin", "Faith", "Doubt", "Victory",
+        "Defeat", "Vengeance", "Revenge", "Courage", "Fortune", "Fate", "Time", "Night", "Dawn", "Dusk", "Rain", "Storm", "Snow", "Wind",
+        "Kings", "Crowns", "Swords", "Banners", "Armies", "Beasts", "Monsters", "Wolves", "Ravens", "Songs", "Tales", "Rumour", "Rumours",
+        "Whispers", "Trouble", "Danger", "Chaos", "Order", "Law", "Justice", "Mercy", "Treachery", "Betrayal", "Loyalty", "Love", "Hate",
     };
+
+    /// <summary>
+    /// Small counts a chronicler says without having been given them as numbers ("two kingdoms", "three days"): too small to be
+    /// an invented figure worth refusing a script over (the live episode of 2026-10-29 lost its script to a "three").
+    /// </summary>
+    public const long SmallCount = 3;
 
     /// <summary>
     /// What the narration says that the brief does not: invented numbers and names. A sentence may open with a plain word
@@ -57,8 +70,8 @@ public static partial class NarrationGuard
         var briefValues = NumberWords(brief).Select(n => n.Value).ToHashSet();
         foreach (var (value, text) in NumberWords(narration))
         {
-            // "one" is as often a pronoun ("no one", "one of them") as a count.
-            if (value == 1) continue;
+            // "one" is as often a pronoun ("no one", "one of them") as a count; two and three are counts anyone may say.
+            if (value <= SmallCount) continue;
             if (!briefNumbers.Contains(value.ToString(CultureInfo.InvariantCulture)) && !briefValues.Contains(value)) problems.Add($"number {text}");
         }
         foreach (Match m in Capitalised().Matches(narration))

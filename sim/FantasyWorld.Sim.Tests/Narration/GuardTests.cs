@@ -13,7 +13,8 @@ public class GuardTests
         const string brief = "In Year 12, Maren of Holt fell in battle at Esk, aged 41.";
         Assert.Empty(NarrationGuard.Problems("Maren of Holt died at Esk in Year 12, at 41. The town grieved.", brief));
         // A sentence may not open with a word the brief lacks: a false alarm costs only the template prose.
-        Assert.Equal(new[] { "name Grief" }, NarrationGuard.Problems("Grief lay on Esk.", brief));
+        Assert.Equal(new[] { "name Orvane" }, NarrationGuard.Problems("Orvane lay on Esk.", brief));
+        Assert.Empty(NarrationGuard.Problems("Grief lay on Esk, and three days passed.", brief)); // a plain noun, and a small count
         Assert.Equal(new[] { "name Tarvo" }, NarrationGuard.Problems("Maren of Holt died at Esk beside her friend Tarvo.", brief));
         Assert.Equal(new[] { "number 300" }, NarrationGuard.Problems("Maren of Holt died at Esk with 300 others.", brief));
     }
@@ -30,7 +31,7 @@ public class GuardTests
         Assert.Empty(NarrationGuard.Problems("Ruin came to Haencellvale, and the ruin was long.", brief));
         // Names are still names, at an opening or anywhere else, whatever the task says.
         Assert.Equal(["name Orrin"], NarrationGuard.Problems(script + " Orrin wept.", brief, task));
-        Assert.Equal(["name Grief"], NarrationGuard.Problems("Grief lay on Haencellvale.", brief, task));
+        Assert.Equal(["name Orvane"], NarrationGuard.Problems("Orvane lay on Haencellvale.", brief, task));
         // The live episode of 2026-10-29: a plural of the brief's plain word opening a sentence is no name.
         Assert.Empty(NarrationGuard.Problems("Wars are long in Haencellvale.", "Haencellvale is at war with its neighbour."));
         Assert.Equal(["name Wars"], NarrationGuard.Problems("Then came the Wars.", "Haencellvale is at war with its neighbour."));

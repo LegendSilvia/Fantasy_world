@@ -87,7 +87,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         });
         var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(1500, maxCharacters / 2));
         string? Why(string json) => Sections(json, parts.Count) is not { } texts ? $"not {parts.Count} sections"
-            : string.Join("\n\n", texts).Length is var n && (n < minimum || n > maxCharacters) ? $"{n} characters, not {minimum} to {maxCharacters}"
+            : string.Join("\n\n", texts).Length is var n && (n < minimum || n > Slack(maxCharacters)) ? $"{n} characters, not {minimum} to {maxCharacters}"
             : string.Join(", ", NarrationGuard.Problems(string.Join("\n\n", texts), facts, task).Distinct().Take(8)) is { Length: > 0 } problems ? problems
             : null;
         // The day's script is worth a third try (the owner, 2026-10-29: a template script went out after two near misses).
@@ -156,7 +156,7 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
         // The causes and the lore are facts the editor may use too.
         var known = facts + why + "\n" + lore;
         string? Why(string json) => Sections(json, parts.Count) is not { } texts ? $"not {parts.Count} sections"
-            : string.Join("\n\n", texts).Length is var n && (n < minimum || n > maxCharacters) ? $"{n} characters, not {minimum} to {maxCharacters}"
+            : string.Join("\n\n", texts).Length is var n && (n < minimum || n > Slack(maxCharacters)) ? $"{n} characters, not {minimum} to {maxCharacters}"
             : string.Join(", ", NarrationGuard.Problems(string.Join("\n\n", texts), known, rules).Distinct().Take(8)) is { Length: > 0 } problems ? problems
             : null;
         var request = new LlmRequest(ModelTier.Narrate, key, story.Bible, prompt, schema, MaxTokens: Math.Max(2000, maxCharacters / 2));
@@ -215,6 +215,12 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             return null;
         }
     }
+
+    /// <summary>
+    /// The longest script taken: a few in a hundred over the asked-for length (the live episode of 2026-10-29 lost its script
+    /// for 89 characters over 3,600); the voice's budget allows for it.
+    /// </summary>
+    public static int Slack(int maxCharacters) => maxCharacters + maxCharacters / 25;
 
     /// <summary>The answer's section texts, if it has exactly <paramref name="count"/> non-empty ones.</summary>
     private static IReadOnlyList<string>? Sections(string json, int count)
