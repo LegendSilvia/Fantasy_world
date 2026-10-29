@@ -96,7 +96,7 @@ public class EpisodeScriptTests
         var (invented, provider, journal) = Narrate(t => Retold(t).Select((x, i) => i == 1 ? x + " Then Zorbag the Unheard rode in." : x).ToList());
         Assert.Equal(Episode.TemplateWriter, invented.Writer);
         Assert.Equal(Template().Script, invented.Script);
-        Assert.Equal(2, provider.Requests.Count); // one retry, then the template
+        Assert.Equal(3, provider.Requests.Count); // two retries, then the template
         Assert.All(journal.All, c => Assert.Contains("!rejected", c.Hash));
 
         var (longer, _, _) = Narrate(t => t.Parts.Select(p => string.Concat(Enumerable.Repeat(p.Text + " ", Episode.DefaultMaxCharacters / t.Script.Length + 2))).ToList());

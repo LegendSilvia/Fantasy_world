@@ -30,7 +30,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
     {
         var parts = episode.Parts;
         var task = $"Write the script of today's spoken episode of the chronicle, to be read aloud, as exactly {parts.Count} sections, one for "
-                   + "each numbered section of the brief and in its order: the opening line, the headline told in full, each face-off as a "
+                   + $"each numbered section of the brief and in its order ([1] to [{parts.Count}]: never merge two, never split one, "
+                   + "and keep the legend and the world's state each in its own section where the brief has them): the opening line, the headline told in full, each face-off as a "
                    + "commentator before a bout (both sides' strengths and weaknesses from the figures given, where each could win or lose it, "
                    + "and whom the odds favour, in words only: never a percentage, a chance or odds as a number; without deciding it), each other story "
                    + "briefly (where a section lists a war's marches, say each in a few words, how long and from where to where, naming no place between; "
@@ -89,7 +90,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
             : string.Join("\n\n", texts).Length is var n && (n < minimum || n > maxCharacters) ? $"{n} characters, not {minimum} to {maxCharacters}"
             : string.Join(", ", NarrationGuard.Problems(string.Join("\n\n", texts), facts, task).Distinct().Take(8)) is { Length: > 0 } problems ? problems
             : null;
-        var answer = story.Gateway.Ask(request, story.World.Date.Day, json => Why(json) is null, whyInvalid: json => Why(json) ?? "");
+        // The day's script is worth a third try (the owner, 2026-10-29: a template script went out after two near misses).
+        var answer = story.Gateway.Ask(request, story.World.Date.Day, json => Why(json) is null, whyInvalid: json => Why(json) ?? "", attempts: 3);
         if (answer is null || Sections(answer, parts.Count) is not { } written) return episode;
         // The chronicler's picture of each marked scene replaces the template's; a missing or overlong one keeps it.
         var scenes = Scenes(answer, parts.Count);

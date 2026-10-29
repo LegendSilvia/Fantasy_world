@@ -49,7 +49,7 @@ public sealed class LlmGateway
     /// rejected answer; it is kept in the journal's note ("rejected: …") so a failed answer can be diagnosed, and the retry is told.
     /// </summary>
     public string? Ask(LlmRequest request, long worldDay, Func<string, bool> isValid, Func<string, string>? noteFor = null,
-        Func<string, string>? whyInvalid = null)
+        Func<string, string>? whyInvalid = null, int attempts = 2)
     {
         if (Journal.TryGet(request.Hash, out var known))
         {
@@ -62,7 +62,7 @@ public sealed class LlmGateway
             return null;
         }
         var asked = request;
-        for (var attempt = 0; attempt < 2 && _provider is not null; attempt++)
+        for (var attempt = 0; attempt < attempts && _provider is not null; attempt++)
         {
             LlmResponse response;
             try

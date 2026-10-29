@@ -69,7 +69,10 @@ public static partial class NarrationGuard
                 // A number word ("Nineteen fell") is checked as a number above, not as a name.
                 if (part.Length == 0 || !char.IsUpper(part[0]) || Titles.Contains(part) || briefWords.Contains(part) || IsNumberWord(part)) continue;
                 var lower = part.ToLowerInvariant();
-                if (opening && (Openings.Contains(part) || lowerBrief.Contains(lower) || plain.Contains(lower) || Abstract().IsMatch(lower))) continue;
+                // A plain word's plural or singular will do too ("Wars" opening a sentence, where the brief says "war").
+                var other = lower.EndsWith('s') ? lower[..^1] : lower + "s";
+                if (opening && (Openings.Contains(part) || lowerBrief.Contains(lower) || plain.Contains(lower) || lowerBrief.Contains(other)
+                                || plain.Contains(other) || Abstract().IsMatch(lower))) continue;
                 problems.Add($"name {part}");
             }
         }

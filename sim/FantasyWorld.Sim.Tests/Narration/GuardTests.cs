@@ -31,6 +31,9 @@ public class GuardTests
         // Names are still names, at an opening or anywhere else, whatever the task says.
         Assert.Equal(["name Orrin"], NarrationGuard.Problems(script + " Orrin wept.", brief, task));
         Assert.Equal(["name Grief"], NarrationGuard.Problems("Grief lay on Haencellvale.", brief, task));
+        // The live episode of 2026-10-29: a plural of the brief's plain word opening a sentence is no name.
+        Assert.Empty(NarrationGuard.Problems("Wars are long in Haencellvale.", "Haencellvale is at war with its neighbour."));
+        Assert.Equal(["name Wars"], NarrationGuard.Problems("Then came the Wars.", "Haencellvale is at war with its neighbour."));
     }
 
     [Fact]
