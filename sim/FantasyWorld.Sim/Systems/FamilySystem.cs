@@ -103,11 +103,23 @@ public sealed class FamilySystem : ISimSystem
         var houseId = CharacterFactory.LineageParent(world, father, mother)!.HouseId;
         var child = CharacterFactory.Create(world, ctx.Rng, mother.SettlementId, ctx.Rng.Chance(0.5) ? Sex.Female : Sex.Male,
             ctx.Date.Day, houseId, father: father, mother: mother);
+        // Only a birth that matters is news (the owner, 2026-10-29): a ruler's child (a prince or princess; the heir if
+        // first-born) is told, a lord's is minor, any other is the chronicle's small print.
+        var realm = world.Realms.Values.FirstOrDefault(r => !r.Destroyed && Realms.RulerOf(world, r) is { } ruler && (ruler.Id == father.Id || ruler.Id == mother.Id));
+        var lord = world.Settlements.Values.Any(s => s.LordId == father.Id || s.LordId == mother.Id);
+        var firstBorn = father.Children.Count(id => id != child.Id) == 0 && mother.Children.Count(id => id != child.Id) == 0;
+        var payload = new Dictionary<string, string>();
+        if (realm is not null)
+        {
+            payload["title"] = (realm.Rank is RealmRank.Kingdom or RealmRank.Empire ? (child.Sex == Sex.Female ? "princess" : "prince") : (child.Sex == Sex.Female ? "lady" : "lord"))
+                               + (firstBorn ? $", heir to the {Statecraft.Title(realm)}" : $" of the {Statecraft.Title(realm)}");
+        }
         var born = ctx.Emit(new EventDraft("CharacterBorn",
             Actors: new Dictionary<string, EntityRef> { ["child"] = child.Ref, ["mother"] = mother.Ref, ["father"] = father.Ref },
             Place: world.Settlements[mother.SettlementId].Ref,
+            Payload: payload,
             Causes: mother.MarriageEventId != 0 ? new[] { new Cause(mother.MarriageEventId, CauseKind.Enabler, 0.5) } : null,
-            Importance: Math.Max(Fates.Importance(mother, 5), Fates.Importance(father, 5)),
+            Importance: realm is not null ? (firstBorn ? 45 : 32) : lord ? 12 : 2,
             Tags: new[] { "Characters", "Family" }));
         if (ctx.Rng.Chance(0.01))
             Fates.Die(ctx, mother, "childbirth", new[] { new Cause(born.Id, CauseKind.Trigger, 1.0) });

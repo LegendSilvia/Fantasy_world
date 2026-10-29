@@ -280,6 +280,8 @@ public sealed partial class TemplateNarrator(World world) : INarrator
     private static readonly IReadOnlyList<(string Type, Func<WorldEvent, bool> When, string Template)> Variants = new (string, Func<WorldEvent, bool>, string)[]
     {
         ("MonsterRaid", e => e.Payload.GetValueOrDefault("dead") == "0", "{monster} fell on {@place}."),
+        // A birth worth telling is a ruler's child (the owner, 2026-10-29).
+        ("CharacterBorn", e => e.Payload.ContainsKey("title"), "At {@place}, {mother} and {father} welcomed {child}, {=title}."),
         // A beast come to a character's side (the owner, 2026-10-29).
         ("CompanionJoined", e => e.Payload.GetValueOrDefault("kind") == "beast", "{=name}, {=what}, came to {who}'s side and would not leave it."),
         // A character changed by what befell them (the owner, 2026-10-29), by what the change was.

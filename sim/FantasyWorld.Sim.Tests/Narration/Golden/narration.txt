@@ -1,11 +1,14 @@
 In Year 1, Brim of Sind and Braldro of Sind became rivals over the clash of a calm nature with a wrathful one.
+In Year 2, at Thaell, Griardrall of Dram and Fome of Dram welcomed Mam of Dram, lord of the Duchy of Taengriarnwold.
 In Year 2, the fields of Nor withered in a drought.
 In Year 2, Griardrall of Dram and Sam of Mardareth fell out over the clash of an ambitious nature with a content one.
 In Year 2, no rain fell on Bem.
 In Year 2, Hiamiarn of Graenow came back from it with a new hunger: a wish to live for those they love while they still can.
 In Year 2, Keirn of Grirnen found the Bone Circlet in the depths of Wan.
+In Year 4, at Thaell, Griardrall of Dram and Fome of Dram welcomed Dombria of Dram, lady of the Duchy of Taengriarnwold.
 In Year 5, Greymane, a war-hound of the grassland, came to Griardrall of Dram's side and would not leave it.
 In Year 5, the Bone Circlet passed to Draern of Grirnen.
+In Year 7, at Kesburg, Aen of Liangriarn and Fiakon of Liangriarn welcomed Keilirn of Liangriarn, lady of the Duchy of Bem.
 In Year 7, with no heir to claim it, the Bone Circlet went to the treasury of Bellkae.
 In Year 8, Fiakon of Liangriarn and Aen of Liangriarn swore to stand by each other, come what may.
 In Year 8, no rain fell on Taengriarnwold.
@@ -16,6 +19,7 @@ In Year 9, an earthquake shook Drorwold.
 In Year 10, Fiarn of Liangriarn and Aen of Liangriarn became rivals over the clash of a diligent nature with a lazy one.
 In Year 11, drought parched Miarnreach.
 In Year 11, power welled up in the ley lines of Ramraemdale.
+In Year 12, at Kesburg, Aen of Liangriarn and Fiakon of Liangriarn welcomed Drae of Liangriarn, lady of the Duchy of Bem.
 In Year 13, power welled up in the ley lines of Miarnreach.
 In Year 13, Griardrall of Dram died of old age, aged 49.
 In Year 13, at Thaell, Holl of Ein took the seat of Griardrall of Dram.
@@ -41,6 +45,7 @@ In Year 17, the ley lines of Miarnreach surged.
 In Year 17, an earthquake shook Taengriarnwold.
 In Year 17, Brim of Sind married Mondgril of Dram at Mimton.
 In Year 18, Mei answered the prayer of Drias of Kalorn for an heir.
+In Year 18, at Thaell, Dram of Kalorn and Drias of Kalorn welcomed Dias of Kalorn, lady, heir to the Duchy of Taengriarnwold.
 In Year 18, Stormtail, a hunting falcon of the grassland, came to Brim of Sind's side and would not leave it.
 In Year 18, before the hosts at Bem, Lian of Leillkeirnis of the Kingdom of Bem met Brom of Mindmeow of the County of Taengriarnwold in single combat and struck down them.
 In Year 18, at Bem, the Kingdom of Bem defeated the County of Taengriarnwold in a battle of the Bem War.
@@ -73,11 +78,6 @@ In Year 19, the Kingdom of Bem grew into a kingdom.
 In Year 19, the Rising Age of Bem began.
 In Year 19, the Waning Age of Taengriarnwold began.
 In Year 19, the Kingdom of Bem and the County of Taengriarnwold declared each other rivals.
-In Year 19, Drias of Kalorn fought Fome of Dram to first blood at Thaell.
-In Year 20, the Age of Hearth of Bem began.
-In Year 20, the Kingdom of Bem went to war against the County of Taengriarnwold over a disputed border: the Gildale War.
-In Year 20, Drias of Kalorn cleared Endgaendholt of monsters.
-In Year 20, power welled up in the ley lines of Ceirbiandmarch.
 
 In Year 25, the County of Taengriarnwold went to war against the Kingdom of Bem over a disputed border: the Taengriarnwold War. It came about because in Year 19, the Kingdom of Bem and the County of Taengriarnwold declared each other rivals. And also because in Year 22, the Kingdom of Bem gained Drorwold from the County of Taengriarnwold. Before that, in Year 22, the Gildale War ended in victory for the Kingdom of Bem over the County of Taengriarnwold: two regions ceded. Earlier still, in Year 22, Thounlial fell to the Host of Bem. Earlier still, in Year 20, the Kingdom of Bem went to war against the County of Taengriarnwold over a disputed border: the Gildale War.
 

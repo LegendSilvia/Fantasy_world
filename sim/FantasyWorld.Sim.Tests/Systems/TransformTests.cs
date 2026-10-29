@@ -103,6 +103,17 @@ public class TransformTests
     }
 
     [Fact]
+    public void OnlyABirthThatMatters_IsNews_ARulersChild_ThePrinceOrPrincessOrHeir()
+    {
+        var births = Aged.Log.All.Where(e => e.Type == "CharacterBorn" && e.Date.Year >= 2).ToList();
+        Assert.Contains(births, e => e.Payload.ContainsKey("title"));
+        Assert.All(births.Where(e => e.Payload.ContainsKey("title")), e => Assert.True(e.Importance >= 32));
+        Assert.All(births.Where(e => !e.Payload.ContainsKey("title")), e => Assert.True(e.Importance < FantasyWorld.Sim.Chronicle.Compactor.MinorBelow));
+        var royal = births.First(e => e.Payload.ContainsKey("title"));
+        Assert.Contains(royal.Payload["title"], new FantasyWorld.Sim.Narration.TemplateNarrator(Aged.World).Sentence(royal));
+    }
+
+    [Fact]
     public void AnAwakenedClass_StandsWhereItsBaseStood_AndFightsATenthStronger()
     {
         var k = Classes.Awaken(Classes.Mage, "Stormcaller");
