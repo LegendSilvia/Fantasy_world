@@ -52,5 +52,22 @@ public class ViewerTests
         Assert.Equal(0, scene.RootElement.GetProperty("houses").GetArrayLength() % 9);
         Assert.Equal(world.Realms.Values.Count(r => !r.Destroyed && r.LiegeId == 0), scene.RootElement.GetProperty("realms").GetArrayLength());
         Assert.NotEqual(0, scene.RootElement.GetProperty("borders").GetArrayLength());
+
+        // Labyrinths stand on the map (the owner, 2026-10-30), each one the lore can open by its ref.
+        var mazes = scene.RootElement.GetProperty("labyrinths").EnumerateArray().Select(m => m.GetProperty("ref").GetString()).ToList();
+        Assert.Equal(world.Structures.Values.Count(s => s.Levels > 0 && (s.Type == FantasyWorld.Sim.Model.StructureKind.Labyrinth || s.ClearedEventId != 0)), mazes.Count);
+        using var lore = JsonDocument.Parse(Viewer.Lore());
+        var known = lore.RootElement.GetProperty("labyrinths").EnumerateArray().Select(m => m.GetProperty("ref").GetString()).ToHashSet();
+        Assert.All(mazes, m => Assert.Contains(m, known));
+
+        // The chronicle (the owner, 2026-10-30): today shows the last whole year, every event of it, one kind when asked.
+        using var chronicle = JsonDocument.Parse(Viewer.Chronicle());
+        var told = Math.Max(world.Date.Day % FantasyWorld.Sim.Core.WorldDate.DaysPerYear == 0 ? world.Date.Year - 1 : world.Date.Year, first);
+        Assert.Equal(told, chronicle.RootElement.GetProperty("toYear").GetInt32());
+        Assert.Equal(log.All.Count(e => e.Date.Year == told && !FantasyWorld.Sim.Model.Bestiary.Hidden(world, e)), chronicle.RootElement.GetProperty("total").GetInt32());
+        using var wars = JsonDocument.Parse(Viewer.Chronicle("", "war"));
+        Assert.True(wars.RootElement.GetProperty("total").GetInt32() <= chronicle.RootElement.GetProperty("total").GetInt32());
+        Assert.All(wars.RootElement.GetProperty("seasons").EnumerateArray().SelectMany(s => s.GetProperty("rows").EnumerateArray()),
+            r => Assert.Equal("war", r.GetProperty("category").GetString()));
     }
 }

@@ -55,6 +55,26 @@ public static class Badges
             """;
     }
 
+    /// <summary>
+    /// A labyrinth's marker (the owner, 2026-10-30: labyrinths on the map): a maze of rings with a dark heart and one way in,
+    /// on a stone plate; ember-rimmed while unconquered, greyed and gold-rimmed once cleared.
+    /// </summary>
+    public static string Labyrinth(bool cleared)
+    {
+        var (rim, plate, wall, heart) = cleared ? (Gold, "#5b5750", "#cfc6b4", "#8a8478") : (Ember, "#3a3128", "#e9dcc0", "#120d0a");
+        return $"""
+            <svg xmlns="http://www.w3.org/2000/svg" width="{SwordsSize}" height="{SwordsSize}" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="28.5" fill="{plate}" stroke="{rim}" stroke-width="3.5"/>
+            <g fill="none" stroke="{wall}" stroke-width="3" stroke-linecap="round">
+            <path d="M32 11 A21 21 0 1 1 25.5 12"/>
+            <path d="M38 18.5 A15 15 0 1 1 32 17"/>
+            <path d="M32 23 A9 9 0 1 1 26 25.3"/>
+            </g>
+            <circle cx="32" cy="32" r="4.2" fill="{heart}"/>
+            </svg>
+            """;
+    }
+
     /// <summary>A duel's marker: crossed swords, gold-rimmed once fought, red-rimmed while it goes on.</summary>
     public static string Swords(bool underWay)
     {

@@ -136,6 +136,9 @@ async function showYear(year) {
     for (const beast of s.beasts)
         label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
             () => setHash({ panel: `beast/${id(beast.ref)}` }));
+    for (const maze of s.labyrinths ?? [])
+        label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", 26, `${maze.name}${maze.cleared ? " (cleared)" : ", a labyrinth"}`), "badge",
+            lift(maze.at, 0.02), 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }));
     for (const fight of s.fights)
         // Crossed swords for a duel, crossed banners for a battle between nations; one still raging pulses (the owner, 2026-10-29).
         label((fight.underWay ? `<span class="live">` : "") + badge(fight.badge, fight.kind === "duel" ? 26 : 34, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`)
@@ -376,6 +379,19 @@ async function render(kind, key, year) {
     if (kind === "lore") return lore(JSON.parse(await call("Lore", Y)));
     if (kind === "wiki") return wiki(JSON.parse(await call("Wiki", Y)), key);
     if (kind === "events") return worldEvents(JSON.parse(await call("WorldEvents", Y)));
+    if (kind === "labyrinth") {
+        const m = (JSON.parse(await call("Lore", Y)).labyrinths ?? []).find(x => x.ref === `structure#${key}`);
+        if (!m) throw new Error(kind);
+        return `<div class="kicker">Labyrinth${m.place ? ` · ${esc(m.place)}` : ""}</div><h2>${esc(m.name)}</h2>`
+            + (m.cleared
+                ? `<p>Cleared in Year ${m.cleared.year}${m.cleared.by ? ` by ${ref(m.cleared.by.ref, m.cleared.by.name)}` : ""}. ${ref(m.cleared.event, "How it was done")}</p>`
+                : `<p>Unconquered. Delvers have gone down to level ${m.depth} of ${m.levels}; what lies at its heart is still unknown.</p>`)
+            + `<p class="muted">Labyrinths keep the world's secrets, its relics and the beasts that guard them. The one who reaches the bottom brings a secret back.</p>`;
+    }
+    if (kind === "chronicle") {
+        const [only, page] = (key ?? "all-1").split("-");
+        return chronicle(JSON.parse(await call("Chronicle", Y, only === "all" ? "" : only, page ?? "1")), only, +(page ?? 1));
+    }
     if (kind === "people") return people(JSON.parse(await call("People", Y)));
     if (kind === "beast") return beastCard(JSON.parse(await call("Beast", key, Y)), await pictures);
     if (kind === "fight") {
@@ -453,6 +469,34 @@ $("lore").addEventListener("click", () => setHash({ panel: "lore/world" }));
 $("people").addEventListener("click", () => setHash({ panel: "people/all" }));
 $("wiki").addEventListener("click", () => setHash({ panel: "wiki/races" }));
 $("events").addEventListener("click", () => setHash({ panel: "events/all" }));
+$("chronicle").addEventListener("click", () => setHash({ panel: "chronicle/all-1" }));
+
+/** The kinds of event the chronicle can be narrowed to, with the labels shown. */
+const KINDS = [["all", "All"], ["war", "War"], ["politics", "Politics"], ["characters", "People"], ["faithAndMagic", "Faith & magic"],
+    ["economy", "Economy"], ["structures", "Building"], ["nature", "Nature"]];
+
+/**
+ * The chronicle of a year (the owner, 2026-10-30: "there is no normal event to see?"): every event of the year on the
+ * slider, newest first by season, narrowed to one kind if asked, a page at a time, each with its why.
+ */
+function chronicle(c, only, page) {
+    const chips = KINDS.map(([k, label]) => `<a class="chip${k === only ? " on" : ""}" data-chronicle="${k}-1">${esc(label)}</a>`).join("");
+    const season = s => `<h3>${esc(s.label)}</h3><ul class="people">`
+        + s.rows.map(r => `<li>${linked(r.text)} <a data-ref="event#${r.eventId}" title="Why?">why</a></li>`).join("") + `</ul>`;
+    const pager = c.pages > 1
+        ? `<p class="chips">${page > 1 ? `<a class="chip" data-chronicle="${only}-${page - 1}">‹ Newer</a>` : ""}`
+        + `<span class="muted">Page ${c.page} of ${c.pages}</span>`
+        + `${page < c.pages ? `<a class="chip" data-chronicle="${only}-${page + 1}">Older ›</a>` : ""}</p>` : "";
+    return `<div class="kicker">The chronicle</div><h2>Year ${c.toYear}</h2>`
+        + `<p class="muted">${c.total} event${c.total === 1 ? "" : "s"} this year. Move the slider to read another year.</p>`
+        + `<div class="chips">${chips}</div>`
+        + (c.seasons.map(season).join("") || `<p class="muted">Nothing of this kind happened this year.</p>`) + pager;
+}
+
+$("panel-body").addEventListener("click", e => {
+    const tab = e.target.closest("[data-chronicle]");
+    if (tab) { e.preventDefault(); setHash({ panel: `chronicle/${tab.dataset.chronicle}` }); }
+});
 
 /**
  * The wiki (the owner, 2026-10-30): a tab per category, then how that part of the world works and its articles, each with

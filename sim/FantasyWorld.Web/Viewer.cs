@@ -117,6 +117,7 @@ public static class Viewer
         var labyrinths = World.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth || s.ClearedEventId != 0).OrderBy(s => s.ClearedEventId == 0).ThenBy(s => s.Name)
             .Select(s => new
             {
+                @ref = s.Ref.ToString(),
                 name = s.Name,
                 place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
                 levels = s.Levels,
@@ -359,6 +360,22 @@ public static class Viewer
     [JSInvokable]
     public static string WorldEvents(string year = "") => ViewJson.Serialize(WorldEventsScreen.Build(World, Log, Until(year)));
 
+    /// <summary>
+    /// Everything that happened in a year, newest first by season (the owner, 2026-10-30: "there is no normal event to see?"):
+    /// the slider's year, or the last whole year when it shows today; one kind of event (a category) or all; a page at a time.
+    /// </summary>
+    [JSInvokable]
+    public static string Chronicle(string year = "", string category = "", string page = "1")
+    {
+        var y = int.TryParse(year, NumberStyles.Integer, CultureInfo.InvariantCulture, out var asked) && asked < World.Date.Year
+            ? asked
+            : World.Date.Day % WorldDate.DaysPerYear == 0 ? World.Date.Year - 1 : World.Date.Year;
+        y = Math.Max(y, FirstYear);
+        Category? only = Enum.TryParse<Category>(category, ignoreCase: true, out var c) ? c : null;
+        var p = int.TryParse(page, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 1;
+        return ViewJson.Serialize(ChronicleScreen.Build(World, Log, y, y, only, page: p));
+    }
+
     [JSInvokable]
     public static string Screen(string kind, string arg)
     {
@@ -529,10 +546,22 @@ public static class Viewer
                 underWay = b.UnderWay,
                 at = V(Projection.ToBlock(grid, b.Position, 0)),
                 eventId = b.EventId,
-                badge = (b.Kind == MapBattle.Battle ? "battle-" : "") + (b.UnderWay ? "underway" : "fought"),
+                badge = (b.Kind == MapBattle.Duel ? "" : "battle-") + (b.UnderWay ? "underway" : "fought"),
             }),
+            // The labyrinths (the owner, 2026-10-30), open or cleared by the year shown; a click opens its card.
+            labyrinths = (map.Structures ?? []).Where(st => st.Position is not null
+                                                          && (st.Kind == nameof(StructureKind.Labyrinth) || st.Detail == "cleared" && World.Structures.TryGetValue(st.Ref.Id, out var was) && was.Levels > 0))
+                .Select(st => new
+                {
+                    @ref = st.Ref.ToString(),
+                    name = st.Name,
+                    cleared = st.Detail == "cleared",
+                    at = V(Projection.ToBlock(grid, st.Position!, 0)),
+                }),
             badges = new Dictionary<string, string>
             {
+                ["labyrinth"] = Badges.Labyrinth(false),
+                ["labyrinth-cleared"] = Badges.Labyrinth(true),
                 ["boss"] = Badges.Boss(false, false),
                 ["legend"] = Badges.Boss(true, false),
                 ["asleep"] = Badges.Boss(false, true),

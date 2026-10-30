@@ -629,7 +629,21 @@
     }
   ],
   "armies": [],
-  "battles": [],
+  "battles": [
+    {
+      "eventId": 404,
+      "year": 20,
+      "position": {
+        "x": 0.2578125,
+        "y": 0.7890625
+      },
+      "victor": "char#32",
+      "vanquished": "char#28",
+      "war": "#0",
+      "kind": "duel",
+      "underWay": true
+    }
+  ],
   "routes": [
     {
       "ref": "route#1",

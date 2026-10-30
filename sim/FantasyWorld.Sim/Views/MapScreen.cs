@@ -52,7 +52,7 @@ public sealed record MapRealm(EntityRef Ref, string Name, string Rank, string Co
 public sealed record MapBattle(long EventId, int Year, MapPoint Position, EntityRef Victor, EntityRef Vanquished, EntityRef War,
     string Kind = MapBattle.Battle, bool UnderWay = false)
 {
-    public const string Battle = "battle", Duel = "duel";
+    public const string Battle = "battle", Duel = "duel", Siege = "siege";
 }
 
 /// <summary>
@@ -233,11 +233,13 @@ public sealed record MapScreen(
     private static IReadOnlyList<MapBattle> BattlesBefore(World world, EventLog log, WorldDate date)
     {
         var fights = new List<MapBattle>();
+        // A challenge or clash is under way from the day it is made until it is fought or called off (the owner, 2026-10-30:
+        // every fight, the ones still to come included, is on the map); once begun, the duel's own start stands for it.
         var ended = new HashSet<long>();
         foreach (var e in log.All)
         {
             if (e.Date > date) break;
-            if (e.Type is "BattleFought" or "BattleBrokenOff" or "DuelFought" or "DuelCalledOff")
+            if (e.Type is "BattleFought" or "BattleBrokenOff" or "DuelFought" or "DuelCalledOff" or "DuelBegun" or "SiegeEnded")
                 foreach (var c in e.Causes.Where(c => c.Kind == CauseKind.Trigger)) ended.Add(c.EventId);
         }
         foreach (var e in log.All)
@@ -260,9 +262,35 @@ public sealed record MapScreen(
                 case "DuelBegun" when !ended.Contains(e.Id) && e.Actors.TryGetValue("challenger", out var a) && e.Actors.TryGetValue("defender", out var d):
                     fights.Add(new MapBattle(e.Id, e.Date.Year, at, a, d, default, MapBattle.Duel, UnderWay: true));
                     break;
+                case "DuelDeclared" or "ClashBegun" when !ended.Contains(e.Id) && e.Date.Day > date.Day - PendingDays
+                                                        && e.Actors.TryGetValue("challenger", out var a) && e.Actors.TryGetValue("defender", out var d)
+                                                        && Alive(world, a, date) && Alive(world, d, date):
+                    fights.Add(new MapBattle(e.Id, e.Date.Year, at, a, d, default, MapBattle.Duel, UnderWay: true));
+                    break;
+                case "SiegeBegan" when !ended.Contains(e.Id) && Besieging(world, log, e, date):
+                    fights.Add(new MapBattle(e.Id, e.Date.Year, at, e.Actors.GetValueOrDefault("army"), default, e.Actors.GetValueOrDefault("war"), MapBattle.Siege, UnderWay: true));
+                    break;
             }
         }
         return fights;
+    }
+
+    /// <summary>A challenge or clash not fought within two years has lapsed (its people moved on, or the world forgot it).</summary>
+    public const int PendingDays = 2 * WorldDate.DaysPerYear;
+
+    private static bool Alive(World world, EntityRef who, WorldDate date) =>
+        who.Kind != Character.Kind || !world.Characters.TryGetValue(who.Id, out var c) || c.Died is not { } died || died > date;
+
+    /// <summary>
+    /// A siege goes on until the town falls, its war ends, or (today) its besiegers have left.
+    /// </summary>
+    private static bool Besieging(World world, EventLog log, WorldEvent began, WorldDate date)
+    {
+        if (began.Actors.TryGetValue("war", out var w) && world.Wars.TryGetValue(w.Id, out var war)
+            && war.EndedEventId != 0 && log.TryGet(war.EndedEventId, out var end) && end.Date <= date) return false;
+        if (date < world.Date) return true;
+        return began.Place is { Kind: Settlement.Kind } at && world.Settlements.TryGetValue(at.Id, out var town)
+            && world.Regions.TryGetValue(town.RegionId, out var region) && region.BesiegerArmyId != 0;
     }
 
     /// <summary>A landmark is building until its completion event, and ruined once its settlement's ruin event has passed.</summary>
