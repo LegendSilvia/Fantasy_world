@@ -55,7 +55,7 @@ jobs:
           # A frame every six seconds, at half size.
           ffmpeg -loglevel error -i "$RUNNER_TEMP/video.mp4" -vf "fps=1/6,scale=iw/2:-2" "$RUNNER_TEMP/frames/frame-%03d.png"
           ls "$RUNNER_TEMP/frames" | wc -l
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.video }}-frames-${{ inputs.video-date }}
           path: ${{ runner.temp }}/frames
@@ -148,7 +148,7 @@ jobs:
             --images "$RUNNER_TEMP/images" \
             --from 1 --to 8 --fps 24 --frames "$RUNNER_TEMP/tall" --vertical
           for n in 000016 000029 000040 000100 000118 000164; do cp "$RUNNER_TEMP/tall/frame$n.png" "$RUNNER_TEMP/sample/tall-$n.png"; done
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: film-preview
