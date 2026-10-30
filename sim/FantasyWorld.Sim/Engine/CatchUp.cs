@@ -30,4 +30,18 @@ public static class CatchUp
         world.LastRealUtc += TimeSpan.FromTicks(TimeScale.RealTimePerWorldDay.Ticks * days);
         return new CatchUpResult(days, owed - days, from, world.Date);
     }
+
+    /// <summary>
+    /// One year a run (the owner, 2026-10-30: "make each run advance exactly one year"): the world goes on to the first day
+    /// of its next year, however long ago it last ran, and its clock is set to now.
+    /// </summary>
+    public static CatchUpResult OneYear(Simulator sim, DateTimeOffset nowUtc, IProgress<WorldDate>? progress = null, CancellationToken ct = default)
+    {
+        var world = sim.World;
+        var from = world.Date;
+        var days = WorldDate.DaysPerYear - from.Day % WorldDate.DaysPerYear;
+        sim.AdvanceDays(days, progress, ct);
+        world.LastRealUtc = nowUtc;
+        return new CatchUpResult(days, 0, from, world.Date);
+    }
 }

@@ -24,7 +24,7 @@ public static partial class CliApp
           fw legend <world-file>                   the world's legend, written if it has none (told in full in its next episode)
           fw answer <world-file> <tally.json>      the players' answers to prayers and blessings of face-offs
           fw advance <world-file> <duration> [--quiet]  e.g. 30d, 4mo, 7y (debug fast-forward; --quiet lists no events)
-          fw catchup <world-file> [--quiet]         simulate the real time that has passed, then the digest (--quiet: none)
+          fw catchup <world-file> [--quiet] [--year] simulate the real time that has passed (--year: on to the next year), then the digest (--quiet: none)
           fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--recent <file>] [--keep-marker]   the broadcast's episode since it last aired
           fw snapshot <world-file> <copy>           a consistent single-file copy (safe to upload)
           fw live <world-file> [--minutes <n>]      keep the world running in real time (default 60; Ctrl+C stops)
@@ -167,7 +167,7 @@ public static partial class CliApp
         using var store = OpenExisting(path);
         Backups.Rotate(store, path);
         var (sim, gateway) = LoadLive(store, providers);
-        var result = CatchUp.Run(sim, clock());
+        var result = rest.Contains("--year") ? CatchUp.OneYear(sim, clock()) : CatchUp.Run(sim, clock());
         var fresh = gateway.Journal.Pending.ToList();
         var digest = quiet ? null : TellDigest(store, sim, gateway, sinceEventId: null);
         store.Save(sim.World, sim.Log, sim.Queue, gateway.Journal);

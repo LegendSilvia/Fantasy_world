@@ -85,6 +85,18 @@ public class EpisodeCliTests
     }
 
     [Fact]
+    public void CatchUpByTheYear_GoesOnToTheNextYear_HoweverLongItHasBeen()
+    {
+        using var file = new TempFile();
+        Run(T0, "new", file.Path, "--seed", "3", "--size", "tiny");
+        // The owner, 2026-10-30: each run is exactly one year, whether a day or an hour has passed.
+        var (code, output) = Run(T0.AddHours(20), "catchup", file.Path, "--quiet", "--year");
+        Assert.Equal(0, code);
+        Assert.Contains("Advanced 360 days", output);
+        Assert.Contains("Advanced 360 days", Run(T0.AddDays(3), "catchup", file.Path, "--quiet", "--year").Output);
+    }
+
+    [Fact]
     public void FwSnapshot_WritesACopyThatOpensAsTheSameWorld()
     {
         using var file = new TempFile();

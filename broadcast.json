@@ -1,6 +1,6 @@
 {
-  "worldKey": "age4.fw.db",
-  "seed": 20261030,
+  "worldKey": "world1.fw.db",
+  "seed": 20261105,
   "size": "huge",
   "timeZone": "Asia/Bangkok",
   "language": "en",
@@ -29,7 +29,8 @@
   },
   "youTube": {
     "upload": true,
-    "privacy": "unlisted",
+    "privacy": "public",
+    "goPublic": true,
     "categoryId": "24"
   },
   "keepAlive": true,

@@ -431,7 +431,8 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 try { Fw("answer", worldPath, answers); }
                 catch (InvalidOperationException) { log.WriteLine("warning: the players' answers could not be applied; the rules decide today."); }
             }
-            Fw("catchup", worldPath, "--quiet");
+            // Each day's run is one year of the world (the owner, 2026-10-30).
+            Fw("catchup", worldPath, "--quiet", "--year");
             var dir = Path.Combine(work.FullName, "episode");
             // The recent episodes as the audience heard them, for the editor's pass (the owner, 2026-10-29).
             var recent = Path.Combine(work.FullName, "recent.txt");
