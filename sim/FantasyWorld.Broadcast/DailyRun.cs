@@ -20,7 +20,8 @@ namespace FantasyWorld.Broadcast;
 /// Prepare only (sub-project 7 F2): build and narrate the day's episode, plan its diorama film, write the plan to this
 /// file for the workflow's film jobs, and post nothing; a later run posts it.
 /// </param>
-public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadUnlisted = false, string? PreparePlan = null, bool Repaint = false);
+public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadUnlisted = false, string? PreparePlan = null, bool Repaint = false,
+    bool ReleaseOnly = false);
 
 /// <summary>
 /// One morning's broadcast (spec §3): pull the world, back it up, catch it up, build the episode, push the episode and
@@ -49,6 +50,14 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
     /// <summary>The website's images, as JSON: {"realm#3": "images/realm-3-1a2b3c4d.png", "monster#9": …, "char#12": …}.</summary>
     public const string WebImagesKey = "web/images.json";
 
+    /// <summary>
+    /// The day's own copies of the website's world and images (the owner, 2026-10-30: the public website shows a day's world
+    /// only once its episode is released, so each day's is kept until then).
+    /// </summary>
+    public static string WebBundleKeyOf(string date) => $"episodes/{date}/world.json.gz";
+
+    public static string WebImagesKeyOf(string date) => $"episodes/{date}/images.json";
+
     public static string ScriptKey(string date) => $"episodes/{date}/script.txt";
 
     public static string MapKey(string date) => $"episodes/{date}/map.png";
@@ -71,7 +80,14 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         {
             manifest = Manifest.FromBytes(await store.GetAsync(Manifest.Key, ct).ConfigureAwait(false));
             await NewWorldTakesTodayAsync(store, manifest, date, ct).ConfigureAwait(false);
-            if (manifest.Day(date).Done(Manifest.EpisodeStep))
+            if (_options.ReleaseOnly && !manifest.Day(date).Done(Manifest.EpisodeStep))
+            {
+                // The release (the owner, 2026-10-30): posts what is due, and never makes the day's episode, which is the
+                // morning run's to make.
+                log.WriteLine("Today's episode is not made yet; the release only posts what is due.");
+                episode = null!;
+            }
+            else if (manifest.Day(date).Done(Manifest.EpisodeStep))
             {
                 log.WriteLine("Today's episode is already built; the world is not touched again today.");
                 episode = await StoredEpisodeAsync(store, date, ct).ConfigureAwait(false);
@@ -94,7 +110,8 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         var dates = manifest.Episodes
             .Where(d => d.Value.Done(Manifest.EpisodeStep) && string.CompareOrdinal(d.Key, earliest) >= 0 && string.CompareOrdinal(d.Key, date) <= 0)
             .Select(d => d.Key).ToList();
-        var result = await SpeakAsync(store, manifest, dates, date, episode, ct).ConfigureAwait(false);
+        // The release speaks nothing new: narration is the morning run's.
+        var result = _options.ReleaseOnly ? Ok : await SpeakAsync(store, manifest, dates, date, episode, ct).ConfigureAwait(false);
         if (_options.PreparePlan is { } planPath)
         {
             var plan = await PlanFilmAsync(store, date, ct).ConfigureAwait(false);
@@ -470,7 +487,9 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 // The browser's copy of the day; a failure costs only the website's update.
                 var web = Path.Combine(work.FullName, "world.json.gz");
                 Fw("export-web", snapshot, web);
-                await store.PutAsync(WebBundleKey, await File.ReadAllBytesAsync(web, ct).ConfigureAwait(false), "application/gzip", ct).ConfigureAwait(false);
+                var bundle = await File.ReadAllBytesAsync(web, ct).ConfigureAwait(false);
+                await store.PutAsync(WebBundleKeyOf(date), bundle, "application/gzip", ct).ConfigureAwait(false);
+                await store.PutAsync(WebBundleKey, bundle, "application/gzip", ct).ConfigureAwait(false);
             }
             catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException)
             {
@@ -647,6 +666,7 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             var pictures = await Likenesses.ForWebAsync(world, events, store, images, config.Images.Style, date,
                 async bytes => StorageBudget.Room((await root.ListSizesAsync("", ct).ConfigureAwait(false)).Sum(o => o.Bytes), bytes, limit), log,
                 NewWebImagesPerDay, ct).ConfigureAwait(false);
+            await store.PutAsync(WebImagesKeyOf(date), JsonSerializer.SerializeToUtf8Bytes(pictures), "application/json", ct).ConfigureAwait(false);
             await store.PutAsync(WebImagesKey, JsonSerializer.SerializeToUtf8Bytes(pictures), "application/json", ct).ConfigureAwait(false);
             log.WriteLine($"The website's images: {pictures.Count} (banners, beasts and duellists).");
         }

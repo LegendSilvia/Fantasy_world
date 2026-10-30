@@ -11,7 +11,8 @@ namespace FantasyWorld.Broadcast;
 public static class BroadcastApp
 {
     public const string Usage = """
-        usage: fw-broadcast run [--dry-run [--upload-unlisted]] [--create] [--repaint] [--prepare <plan.json>] [--config <broadcast.json>] [--local <dir>]
+        usage: fw-broadcast run [--dry-run [--upload-unlisted]] [--create] [--repaint] [--release] [--prepare <plan.json>] [--config <broadcast.json>] [--local <dir>]
+               fw-broadcast released [--dry-run] [--config <broadcast.json>] [--local <dir>]   the latest released day (its world goes on the website)
                fw-broadcast map <world-file> <out.png>   the political map as the broadcast posts it
                fw-broadcast get <key> <file> [--local <dir>]   copy an object of the bucket to a file (the film jobs)
                fw-broadcast put <file> <key> [--local <dir>]   store a file in the bucket (the film jobs)
@@ -21,6 +22,7 @@ public static class BroadcastApp
           --create    begin a new world when none is stored (never done by a scheduled run)
           --local     keep the world in a local directory instead of R2
           --prepare   build and narrate the episode and plan its diorama film (written to the file), posting nothing
+          --release   post only what is due (at the release hour): never makes the day's episode
         """;
 
     public static async Task<int> RunAsync(string[] args, TextWriter output, Func<DateTimeOffset> clock,
@@ -34,14 +36,17 @@ public static class BroadcastApp
             return await CopyAsync(args[0] == "get", first, second, Option(args, "--local"), env, handler, output, ct).ConfigureAwait(false);
         if (args is ["report", ..])
             return await ReportAsync(args, env, handler, output, clock, ct).ConfigureAwait(false);
+        if (args is ["released", ..])
+            return await ReleasedAsync(args, env, handler, output, clock, ct).ConfigureAwait(false);
         if (args is not ["run", ..] || args.Skip(1).Any(a => a.StartsWith("--", StringComparison.Ordinal)
-                                                             && a is not ("--dry-run" or "--upload-unlisted" or "--create" or "--config" or "--local" or "--prepare" or "--repaint"))
+                                                             && a is not ("--dry-run" or "--upload-unlisted" or "--create" or "--config" or "--local" or "--prepare" or "--repaint" or "--release"))
                                      || args.Contains("--upload-unlisted") && !args.Contains("--dry-run"))
         {
             output.WriteLine(Usage);
             return DailyRun.Failed;
         }
-        var options = new RunOptions(args.Contains("--dry-run"), args.Contains("--create"), args.Contains("--upload-unlisted"), Option(args, "--prepare"), args.Contains("--repaint"));
+        var options = new RunOptions(args.Contains("--dry-run"), args.Contains("--create"), args.Contains("--upload-unlisted"), Option(args, "--prepare"), args.Contains("--repaint"),
+            args.Contains("--release"));
 
         BroadcastConfig config;
         try
@@ -65,14 +70,15 @@ public static class BroadcastApp
         }
 
         var webhookName = options.DryRun ? "DISCORD_TEST_WEBHOOK_URL" : "DISCORD_WEBHOOK_URL";
-        var youtube = YouTubeChannel(config, options, env, http, output);
+        var youtube = YouTubeChannel(config, options, env, http, output, clock: clock);
         // YouTube goes first, so the Discord post can carry the day's video link.
         var channels = new List<IEpisodeChannel>();
         if (youtube is not null) channels.Add(youtube);
         // The vertical short (the owner, 2026-10-28), after the episode's own video.
-        if (YouTubeChannel(config, options, env, http, TextWriter.Null, vertical: true) is { } shorts) channels.Add(shorts);
+        if (YouTubeChannel(config, options, env, http, TextWriter.Null, vertical: true, clock: clock) is { } shorts) channels.Add(shorts);
         if (env(webhookName) is { Length: > 0 } webhook)
-            channels.Add(new DiscordWebhook(http, webhook, config.DiscordName, episode => config.Site.LinkFor(episode, options.DryRun)));
+            channels.Add(new DiscordWebhook(http, webhook, config.DiscordName, episode => config.Site.LinkFor(episode, options.DryRun),
+                options.DryRun ? null : day => config.Released(day, clock())));
         else if (!options.DryRun)
         {
             output.WriteLine($"error: {webhookName} is not set, so the episode could not be posted.");
@@ -157,7 +163,7 @@ public static class BroadcastApp
     /// to upload it as unlisted (<c>--upload-unlisted</c>): the whole upload tried, with a link that can be shared but is not listed on the channel.
     /// </summary>
     public static Channels.YouTube? YouTubeChannel(BroadcastConfig config, RunOptions options, Func<string, string?> env, HttpClient http, TextWriter output,
-        bool vertical = false)
+        bool vertical = false, Func<DateTimeOffset>? clock = null)
     {
         if (!config.YouTube.Upload || vertical && !(config.YouTube.Shorts && config.YouTube.Diorama)) return null;
         var uploads = !options.DryRun || options.UploadUnlisted;
@@ -167,7 +173,29 @@ public static class BroadcastApp
         if (uploads && account is null) output.WriteLine("YouTube: the YouTube secrets are not set, so the video is made and stored but not uploaded.");
         if (!config.Voice.Speak) output.WriteLine("warning: YouTube is set up but voice.speak is off, so there is no narration to make a video of.");
         var settings = options.DryRun ? config.YouTube with { Privacy = "unlisted" } : config.YouTube;
-        return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings, episode => config.Site.LinkFor(episode, options.DryRun), vertical);
+        return new Channels.YouTube(http, account, new Media.FfmpegVideo(), settings, episode => config.Site.LinkFor(episode, options.DryRun), vertical,
+            options.DryRun ? null : config.ReleaseOf, clock);
+    }
+
+    /// <summary>
+    /// The latest day whose episode is made and released (the owner, 2026-10-30: the website shows the past until the video is
+    /// public), printed alone for the workflow; nothing printed, and 1, when none is.
+    /// </summary>
+    private static async Task<int> ReleasedAsync(string[] args, Func<string, string?> env, HttpMessageHandler? handler, TextWriter output,
+        Func<DateTimeOffset> clock, CancellationToken ct)
+    {
+        var config = BroadcastConfig.Load(Option(args, "--config") ?? "broadcast.json");
+        using var http = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
+        IObjectStore? store = Option(args, "--local") is { } dir ? new LocalObjectStore(dir) : R2ObjectStore.FromEnvironment(http, env);
+        if (store is null) return DailyRun.Failed;
+        var prefixed = new PrefixedStore(store, args.Contains("--dry-run") ? config.StagingPrefix : config.LivePrefix);
+        var manifest = Manifest.FromBytes(await prefixed.GetAsync(Manifest.Key, ct).ConfigureAwait(false));
+        var now = clock();
+        var day = manifest.Episodes.Where(d => d.Value.Done(Manifest.EpisodeStep) && config.Released(d.Key, now))
+            .Select(d => d.Key).OrderByDescending(d => d, StringComparer.Ordinal).FirstOrDefault();
+        if (day is null) return DailyRun.Failed;
+        output.WriteLine(day);
+        return DailyRun.Ok;
     }
 
     /// <summary>A whole script with adaptive thinking can take minutes; the run itself has 45.</summary>

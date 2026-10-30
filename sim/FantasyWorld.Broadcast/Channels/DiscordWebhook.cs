@@ -32,7 +32,8 @@ public interface IStatefulChannel
 /// and anyone may watch it, its link goes in the message, where Discord plays it, in place of the narration file. The
 /// webhook URL is a secret (it carries its token), so errors name the status code only.
 /// </summary>
-public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string username, Func<Episode, string?>? siteLink = null) : IEpisodeChannel, IStatefulChannel
+public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string username, Func<Episode, string?>? siteLink = null,
+    Func<string, bool>? released = null) : IEpisodeChannel, IStatefulChannel
 {
     private Storage.IObjectStore? _store;
 
@@ -133,6 +134,8 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
 
     public async Task PublishAsync(Episode episode, byte[]? map, byte[]? audio, CancellationToken ct = default)
     {
+        // The post tells the episode, so it waits for the episode's release with its video (the owner, 2026-10-30).
+        if (released is not null && !released(episode.Date)) throw new ChannelWaitingException("it waits for the episode's release.");
         var url = webhookUrl + (webhookUrl.Contains('?') ? "&" : "?") + "wait=true";
         var video = _store is null ? null : await YouTube.WatchUrlAsync(_store, episode.Date, ct).ConfigureAwait(false);
         var timeline = _store is null ? null : await Speech.Chapters.LoadAsync(_store, episode.Date, ct).ConfigureAwait(false);

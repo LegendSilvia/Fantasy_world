@@ -113,6 +113,27 @@ public class YouTubeTests : IDisposable
     }
 
     [Fact]
+    public async Task APublicEpisode_IsScheduledForItsRelease_AndKeptAsPublic()
+    {
+        // The owner, 2026-10-30: every video goes public the next day at 10:00 (Bangkok); YouTube publishes it at the hour.
+        var config = BroadcastConfig.Parse("""{"releaseTime":"10:00","youTube":{"privacy":"public","goPublic":true}}""");
+        var google = new FakeGoogle(Session, Created);
+        var youtube = new YouTube(new HttpClient(google), Account, new FakeVideo(), config.YouTube, releaseOf: config.ReleaseOf,
+            clock: () => new DateTimeOffset(2026, 10, 27, 5, 30, 0, TimeSpan.FromHours(7)));
+        youtube.Attach(_store, _log, "2026-10-27");
+        await youtube.PublishAsync(Sample(), [1], [2]);
+        var status = JsonNode.Parse(Encoding.UTF8.GetString(google.Seen[1].Body!))!["status"]!;
+        Assert.Equal(("private", "2026-10-28T03:00:00Z"), ((string)status["privacyStatus"]!, (string)status["publishAt"]!));
+        Assert.Equal("public", (await State())!.Privacy);
+        Assert.DoesNotContain("YouTube made the video", _log.ToString());
+        Assert.Contains("to go public at 2026-10-28 10:00", _log.ToString());
+
+        // A video made after its release hour goes public at once.
+        var late = YouTube.Details(Sample(), config.YouTube, publishAt: null);
+        Assert.Equal("public", (string)late["status"]!["privacyStatus"]!);
+    }
+
+    [Fact]
     public async Task TheThumbnail_IsTheHeadlinesFrame_CaptionedAndSet_AndARefusalIsOnlyAWarning()
     {
         var timeline = new FantasyWorld.Broadcast.Speech.Timeline(60, [new("Opening", 0), new("The War of <Ash> begins", 20), new("Until tomorrow", 50)]);

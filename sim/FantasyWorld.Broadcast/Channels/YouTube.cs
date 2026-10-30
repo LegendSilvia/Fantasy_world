@@ -36,7 +36,7 @@ public sealed record UploadState(string State, string? Session = null, long Leng
 /// video is made and stored but not uploaded. An episode without narration has nothing to show, so it waits.
 /// </summary>
 public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMaker video, BroadcastYouTube settings, Func<Episode, string?>? siteLink = null,
-    bool vertical = false) : IEpisodeChannel, IStatefulChannel
+    bool vertical = false, Func<string, DateTimeOffset?>? releaseOf = null, Func<DateTimeOffset>? clock = null) : IEpisodeChannel, IStatefulChannel
 {
     public const string TokenUrl = "https://oauth2.googleapis.com/token";
     public const string UploadUrl = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status";
@@ -82,8 +82,17 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
 
     public void Attach(IObjectStore store, TextWriter log, string today) => (_store, _log, _today, _uploads) = (store, log, today, 0);
 
-    public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null, string? siteLink = null, bool shortForm = false)
+    public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null, string? siteLink = null, bool shortForm = false,
+        DateTimeOffset? publishAt = null)
     {
+        // A scheduled release (the owner, 2026-10-30): uploaded private, and YouTube makes it public at the hour itself.
+        JsonObject Status() => publishAt is { } at
+            ? new JsonObject
+            {
+                ["privacyStatus"] = "private", ["publishAt"] = at.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
+                ["selfDeclaredMadeForKids"] = false,
+            }
+            : new JsonObject { ["privacyStatus"] = settings.Privacy, ["selfDeclaredMadeForKids"] = false };
         var title = episode.Headline is { } headline ? $"{episode.WorldName}, Year {episode.ToYear}: {headline.Text}" : $"{episode.WorldName}, Year {episode.ToYear}";
         // YouTube refuses angle brackets in titles and descriptions.
         static string Plain(string text) => text.Replace('<', '‹').Replace('>', '›');
@@ -101,7 +110,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                     ["title"] = shortTitle, ["description"] = ClipBytes(Plain(lines), MaxDescriptionBytes), ["categoryId"] = settings.CategoryId,
                     ["tags"] = Tags(episode, shortForm: true),
                 },
-                ["status"] = new JsonObject { ["privacyStatus"] = settings.Privacy, ["selfDeclaredMadeForKids"] = false },
+                ["status"] = Status(),
             };
         }
         // The chapter list leads, so it survives the description's limit; YouTube turns it into the video's chapters.
@@ -118,7 +127,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
                 ["categoryId"] = settings.CategoryId,
                 ["tags"] = Tags(episode),
             },
-            ["status"] = new JsonObject { ["privacyStatus"] = settings.Privacy, ["selfDeclaredMadeForKids"] = false },
+            ["status"] = Status(),
         };
     }
 
@@ -255,7 +264,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             _uploads++;
             var token = await TokenAsync(ct).ConfigureAwait(false);
             var timeline = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
-            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode), vertical)) };
+            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode), vertical, PublishAt(day))) };
             start.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Type", "video/mp4");
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Length", mp4.Length.ToString(CultureInfo.InvariantCulture));
@@ -344,6 +353,13 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
         }
     }
 
+    /// <summary>
+    /// When the day's video is to go public: its release, if it is still ahead (a quarter of an hour at least, as YouTube
+    /// wants a time in the future); a late upload goes public at once. Only a public video is scheduled.
+    /// </summary>
+    private DateTimeOffset? PublishAt(string day) =>
+        settings.Privacy == "public" && releaseOf?.Invoke(day) is { } at && at > (clock ?? (() => DateTimeOffset.UtcNow))().AddMinutes(15) ? at : null;
+
     private async Task FinishAsync(IObjectStore store, string day, UploadState state, HttpResponseMessage response, CancellationToken ct)
     {
         string? id = null, privacy = null;
@@ -356,8 +372,12 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
         catch (Exception e) when (e is JsonException or InvalidOperationException or NotSupportedException)
         {
         }
+        // A scheduled video is private only until its release: it is kept as what it will be.
+        var release = privacy == "private" && settings.Privacy == "public" ? releaseOf?.Invoke(day) : null;
+        if (release is not null) privacy = settings.Privacy;
         await SaveAsync(store, day, new UploadState(UploadState.Done, null, state.Length, id, privacy), ct).ConfigureAwait(false);
-        _log.WriteLine($"youtube: uploaded the episode of {day}{(id is null ? "" : $" (https://youtu.be/{id})")}.");
+        _log.WriteLine($"youtube: uploaded the episode of {day}{(id is null ? "" : $" (https://youtu.be/{id})")}"
+                       + (release is { } at ? $", to go public at {at:yyyy-MM-dd HH:mm} ({at.Offset:hh\\:mm} from UTC)." : "."));
         if (!vertical && id is not null) await SetThumbnailAsync(store, day, id, ct).ConfigureAwait(false);
         if (privacy is not null && privacy != settings.Privacy)
             _log.WriteLine($"warning: YouTube made the video {privacy}, not {settings.Privacy}: uploads stay private until the Google app passes "

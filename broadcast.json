@@ -3,6 +3,7 @@
   "seed": 20261105,
   "size": "huge",
   "timeZone": "Asia/Bangkok",
+  "releaseTime": "10:00",
   "language": "en",
   "livePrefix": "live/",
   "stagingPrefix": "staging/",

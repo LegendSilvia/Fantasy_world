@@ -135,6 +135,16 @@ public sealed record BroadcastConfig
 
     public string Language { get; init; } = "en";
 
+    /// <summary>
+    /// When a day's episode is released (the owner, 2026-10-30: "every video ... premiere to public tmr 10:00AM", and "the
+    /// world web must still be the past until video is public"): the hour (HH:mm, in <see cref="TimeZone"/>) on the day
+    /// <see cref="ReleaseDaysLater"/> after the broadcast date. The video is uploaded scheduled for it, and the Discord post
+    /// and the public website wait for it. Unset, everything goes out as soon as it is made.
+    /// </summary>
+    public string? ReleaseTime { get; init; }
+
+    public int ReleaseDaysLater { get; init; } = 1;
+
     public string LivePrefix { get; init; } = "live/";
 
     public string StagingPrefix { get; init; } = "staging/";
@@ -180,6 +190,18 @@ public sealed record BroadcastConfig
 
     public TimeZoneInfo Zone => TimeZoneInfo.FindSystemTimeZoneById(TimeZone);
 
+    /// <summary>When the episode of <paramref name="date"/> is released, or null when episodes go out as soon as they are made.</summary>
+    public DateTimeOffset? ReleaseOf(string date)
+    {
+        if (ReleaseTime is null) return null;
+        var day = DateOnly.ParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture).AddDays(ReleaseDaysLater);
+        var local = day.ToDateTime(TimeOnly.ParseExact(ReleaseTime, "HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+        return new DateTimeOffset(local, Zone.GetUtcOffset(local));
+    }
+
+    /// <summary>Whether the episode of <paramref name="date"/> is out at <paramref name="now"/> (always, without a release time).</summary>
+    public bool Released(string date, DateTimeOffset now) => ReleaseOf(date) is not { } at || now >= at;
+
     /// <summary>The broadcast date (yyyy-MM-dd) at <paramref name="now"/>, in the broadcast's time zone.</summary>
     public string DateAt(DateTimeOffset now) => TimeZoneInfo.ConvertTime(now, Zone).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
@@ -212,6 +234,9 @@ public sealed record BroadcastConfig
         if (Site.Project.Length == 0 || !Site.Project.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-'))
             throw new FormatException($"site.project must be lower-case letters, digits and hyphens (got \"{Site.Project}\").");
         _ = Zone; // throws TimeZoneNotFoundException for an unknown zone
+        if (ReleaseTime is not null && !TimeOnly.TryParseExact(ReleaseTime, "HH:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
+            throw new FormatException($"releaseTime must look like 10:00 (got \"{ReleaseTime}\").");
+        if (ReleaseDaysLater < 0) throw new FormatException("releaseDaysLater cannot be negative.");
         return this;
     }
 }

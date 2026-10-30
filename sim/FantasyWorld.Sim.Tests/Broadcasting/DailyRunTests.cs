@@ -380,6 +380,41 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task TheRelease_NeverMakesAnEpisode_AndEachDayKeepsItsOwnWorldForTheWebsite()
+    {
+        // The owner, 2026-10-30: the release (10:00) posts what is due; the morning run alone makes the day.
+        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true, ReleaseOnly: true)));
+        Assert.Contains("the release only posts what is due", _log.ToString());
+        Assert.Null(await Get("live/world.fw.db"));
+        Assert.Empty(_discord.Posts);
+
+        await Run(Morning, new RunOptions(Create: true));
+        if (await Get("live/" + DailyRun.WebBundleKey) is { } bundle)
+            Assert.Equal(bundle, await Get("live/" + DailyRun.WebBundleKeyOf("2026-10-27")));
+    }
+
+    [Fact]
+    public void TheRelease_IsTheNextDayAtItsHour_InTheBroadcastsTimeZone()
+    {
+        var config = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "releaseTime": "10:00" }""");
+        Assert.Equal(new DateTimeOffset(2026, 10, 28, 3, 0, 0, TimeSpan.Zero), config.ReleaseOf("2026-10-27"));
+        Assert.False(config.Released("2026-10-27", new DateTimeOffset(2026, 10, 28, 9, 59, 0, TimeSpan.FromHours(7))));
+        Assert.True(config.Released("2026-10-27", new DateTimeOffset(2026, 10, 28, 10, 0, 0, TimeSpan.FromHours(7))));
+        Assert.Null(Config.ReleaseOf("2026-10-27"));
+        Assert.True(Config.Released("2026-10-27", DateTimeOffset.MinValue));
+        Assert.Throws<FormatException>(() => BroadcastConfig.Parse("""{ "releaseTime": "10am" }"""));
+    }
+
+    [Fact]
+    public async Task TheDiscordPost_WaitsForTheRelease()
+    {
+        var discord = new FantasyWorld.Broadcast.Channels.DiscordWebhook(new HttpClient(), "https://discord.invalid/hook", "The Chronicle",
+            released: _ => false);
+        var episode = await Task.FromResult(BroadcastPartsTests.SampleEpisode());
+        await Assert.ThrowsAsync<ChannelWaitingException>(() => discord.PublishAsync(episode, null, null));
+    }
+
+    [Fact]
     public async Task TheNextMorning_BacksUpFirst_LivesAYear_AndTellsOnlyWhatIsNew()
     {
         await Run(Morning, new RunOptions(Create: true));

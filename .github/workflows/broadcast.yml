@@ -9,6 +9,9 @@ name: broadcast
 on:
   schedule:
     - cron: '30 22 * * *'
+    # The release (the owner, 2026-10-30): at 10:00 in Bangkok yesterday's episode goes public (YouTube publishes the video
+    # itself at the hour), its Discord post goes out, and the website moves on to its world.
+    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       dry-run:
@@ -27,6 +30,10 @@ on:
         description: 'With dry-run: upload the staging video to YouTube as unlisted (a link to share, not listed on the channel)'
         type: boolean
         default: false
+      release:
+        description: "Only the release: post what is due and put the latest released day's world on the website (no new episode)"
+        type: boolean
+        default: false
 
 # One run at a time, and a run in progress is never cancelled: two runs must not touch the world together.
 concurrency:
@@ -41,11 +48,13 @@ env:
   CREATE: ${{ inputs.create }}
   UPLOAD_UNLISTED: ${{ inputs.upload-unlisted }}
   REPAINT: ${{ inputs.repaint }}
+  RELEASE: ${{ github.event.schedule == '0 3 * * *' || inputs.release == true }}
   REF: ${{ github.ref }}
   DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
 
 jobs:
   prepare:
+    if: github.event.schedule != '0 3 * * *' && inputs.release != true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -193,8 +202,10 @@ jobs:
     # The world in a browser (sub-project 11): the viewer app and the day's world, deployed to Cloudflare Pages while the
     # film is being made. A dry run deploys to the project's staging branch, so the public site changes only when live.
     # Skipped until the CLOUDFLARE_API_TOKEN secret (Pages: Edit) exists; a failure here never stops the broadcast.
-    needs: prepare
-    if: needs.prepare.result == 'success'
+    # With a release time (broadcast.json releaseTime), the public site shows only released days: the release run deploys
+    # the latest released day's world, and the morning run leaves it be (a dry run still deploys to staging at once).
+    needs: [prepare, release]
+    if: always() && (needs.prepare.result == 'success' || needs.release.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
@@ -219,10 +230,26 @@ jobs:
         id: build
         if: steps.token.outputs.ready == 'true'
         run: |
-          dotnet publish sim/FantasyWorld.Web --configuration Release --output "$RUNNER_TEMP/site"
           if [ "$DRY_RUN" = "true" ]; then prefix=$(jq -r .stagingPrefix broadcast.json); else prefix=$(jq -r .livePrefix broadcast.json); fi
+          bundle_key="${prefix}web/world.json.gz"; images_key="${prefix}web/images.json"
+          if [ "$RELEASE" = "true" ]; then
+            # The latest released day's own world and images (kept beside its episode).
+            released=(released --config broadcast.json); if [ "$DRY_RUN" = "true" ]; then released+=(--dry-run); fi
+            if ! day=$(dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- "${released[@]}"); then
+              echo "No day is released yet: the website is kept as it is."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            echo "The website shows the world of $day, the latest released day."
+            bundle_key="${prefix}episodes/$day/world.json.gz"; images_key="${prefix}episodes/$day/images.json"
+          elif [ "$DRY_RUN" != "true" ] && [ -n "$(jq -r '.releaseTime // empty' broadcast.json)" ]; then
+            echo "The public website waits for the release, when the day's video goes public."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          dotnet publish sim/FantasyWorld.Web --configuration Release --output "$RUNNER_TEMP/site"
           bundle="$RUNNER_TEMP/site/wwwroot/world.json.gz"
-          if ! dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "${prefix}web/world.json.gz" "$bundle"; then
+          if [ "$RELEASE" = "true" ] && ! dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "$bundle_key" "$bundle"; then
+            # A day from before the days kept their own worlds: the website is kept rather than shown the world's future.
+            echo "No stored world for $day: the website is kept as it is."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$RELEASE" != "true" ] && ! dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "$bundle_key" "$bundle"; then
             # A day's episode made before the website existed has no bundle: make one from the stored world (only read).
             echo "No stored bundle for the day; exporting one from the stored world."
             world=$(jq -r '.worldKey // "world.fw.db"' broadcast.json)
@@ -232,7 +259,7 @@ jobs:
           # The website's images (the owner, 2026-10-29): realms' banners, beasts, duellists; copied beside the viewer, listed in images.json.
           pictures="$RUNNER_TEMP/site/wwwroot/pictures"
           mkdir -p "$pictures" && echo '{}' > "$RUNNER_TEMP/site/wwwroot/images.json"
-          if dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "${prefix}web/images.json" "$RUNNER_TEMP/images.json"; then
+          if dotnet run --configuration Release --project sim/FantasyWorld.Broadcast -- get "$images_key" "$RUNNER_TEMP/images.json"; then
             for ref in $(jq -r 'keys[]' "$RUNNER_TEMP/images.json"); do
               key=$(jq -r --arg r "$ref" '.[$r]' "$RUNNER_TEMP/images.json"); file="${ref//#/-}.png"
               if dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- get "$prefix$key" "$pictures/$file"; then
@@ -248,7 +275,7 @@ jobs:
           echo "project=$(jq -r '.site.project // "fantasy-world-chronicle"' broadcast.json)" >> "$GITHUB_OUTPUT"
           if [ "$DRY_RUN" = "true" ]; then echo "branch=staging" >> "$GITHUB_OUTPUT"; else echo "branch=main" >> "$GITHUB_OUTPUT"; fi
       - name: Create the Pages project (once; already there is fine)
-        if: steps.token.outputs.ready == 'true'
+        if: steps.token.outputs.ready == 'true' && steps.build.outputs.skip != 'true'
         continue-on-error: true
         uses: cloudflare/wrangler-action@v3
         with:
@@ -257,7 +284,7 @@ jobs:
           command: pages project create ${{ steps.build.outputs.project }} --production-branch=main
       - name: Deploy the site, with the players' prayers
         id: deploy
-        if: steps.token.outputs.ready == 'true'
+        if: steps.token.outputs.ready == 'true' && steps.build.outputs.skip != 'true'
         continue-on-error: true
         uses: cloudflare/wrangler-action@v3
         with:
@@ -267,22 +294,61 @@ jobs:
           command: pages deploy --project-name=${{ steps.build.outputs.project }} --branch=${{ steps.build.outputs.branch }} --commit-dirty=true
       - name: Deploy the site without the prayers (the token cannot bind their database)
         id: plain
-        if: steps.token.outputs.ready == 'true' && steps.deploy.outcome == 'failure'
+        if: steps.token.outputs.ready == 'true' && steps.build.outputs.skip != 'true' && steps.deploy.outcome == 'failure'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.R2_ACCOUNT_ID }}
           command: pages deploy ${{ runner.temp }}/site/wwwroot --project-name=${{ steps.build.outputs.project }} --branch=${{ steps.build.outputs.branch }} --commit-dirty=true
       - name: Say where it is
-        if: steps.token.outputs.ready == 'true'
+        if: steps.token.outputs.ready == 'true' && steps.build.outputs.skip != 'true'
         env:
           URL: ${{ steps.deploy.outputs.deployment-url || steps.plain.outputs.deployment-url }}
         run: echo "The world is at $URL (set site.url in broadcast.json to link to it from the posts)."
 
+  release:
+    # The release (the owner, 2026-10-30): at the release hour, what is due goes out (yesterday's Discord post; any video
+    # still waiting), never a new episode; then the site job puts the released day's world on the website.
+    if: github.event.schedule == '0 3 * * *' || inputs.release == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build
+        run: dotnet build sim/FantasyWorld.Broadcast --configuration Release
+      - name: Install ffmpeg (a video still waiting is made here)
+        continue-on-error: true
+        timeout-minutes: 10
+        run: command -v ffmpeg || .github/scripts/apt-install.sh ffmpeg
+      - name: Release what is due
+        # A post that fails is tried again by the next run; the website still moves on.
+        continue-on-error: true
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_TEST_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ "$DRY_RUN" != "true" ] && [ "$REF" != "$DEFAULT_REF" ]; then
+            echo "error: the live release runs only from the default branch; tick dry-run to try a branch."
+            exit 1
+          fi
+          args=(run --config broadcast.json --release)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
+
   publish:
     needs: [prepare, film]
     # After the film jobs, whatever became of them: a stretch not filmed only means the map pans instead.
-    if: always() && needs.prepare.result != 'cancelled'
+    if: always() && needs.prepare.result != 'cancelled' && needs.prepare.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -374,7 +440,7 @@ jobs:
   # heartbeat failed is caught up by the next morning's run.
   keep-alive:
     needs: publish
-    if: always() && github.event_name == 'schedule'
+    if: always() && github.event_name == 'schedule' && github.event.schedule != '0 3 * * *'
     runs-on: ubuntu-latest
     permissions:
       contents: write
