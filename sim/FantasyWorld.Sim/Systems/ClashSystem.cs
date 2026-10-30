@@ -40,7 +40,7 @@ public sealed class ClashSystem : ISimSystem
             if (engaged.Contains(b.Id) || DeedsSystem.Engaged(ctx.Queue, b.Id) || SagaSystem.IsDemonLord(world, b)) continue;
             // The lower keep away from the higher (the owner, 2026-10-30): one with a grudge against a higher level seldom acts on
             // it, and one a higher level comes for may slip away.
-            if (Hash.Percent(a.Id, 9401, year) >= Levels.Wariness(Levels.Of(a), Levels.Of(b)) * 100) continue;
+            if (Hash.Percent(a.Id, 9401, year) >= Levels.Wariness(a, b) * 100) continue;
             if (Levels.Evades(b, a, year))
             {
                 DeedsSystem.Avoided(ctx, b, a);

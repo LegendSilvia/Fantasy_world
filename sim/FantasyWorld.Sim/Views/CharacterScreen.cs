@@ -129,6 +129,12 @@ public sealed record CharacterScreen(
             Add(child, "Child", "", ToneOf2(child));
         foreach (var sibling in Fates.Siblings(world, c))
             Add(sibling, "Sibling", "", ToneOf2(sibling));
+        // Master and apprentices (the owner, 2026-10-30): estranged once they fell out.
+        if (world.Characters.GetValueOrDefault(c.MasterId) is { } master)
+            Add(master, "Master", c.Estranged ? "estranged" : "", c.Estranged ? Tone.Hostile : ToneOf(master));
+        foreach (var apprentice in world.Characters.Values.Where(a => a.MasterId == c.Id).OrderBy(a => a.Id))
+            Add(apprentice, apprentice.Id == c.SuccessorId ? "Successor" : "Apprentice", apprentice.Estranged ? "estranged" : "",
+                apprentice.Estranged ? Tone.Hostile : ToneOf(apprentice));
         foreach (var other in c.Memories.Select(m => m.About).Distinct().Select(id => world.Characters.GetValueOrDefault(id)).OfType<Character>()
                      .Select(o => (Other: o, Opinion: Relations.Opinion(c, o)))
                      .Where(x => x.Opinion >= Relations.FriendAt || x.Opinion <= Relations.RivalAt)

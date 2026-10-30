@@ -73,6 +73,18 @@ public static class Levels
     /// </summary>
     public static double Wariness(int own, int other) => other > own ? Math.Pow(0.5, other - own) : 1;
 
+    /// <summary>The renown at which a character's level is known to others: their name goes before them.</summary>
+    public const int KnownAt = 40;
+
+    /// <summary>
+    /// The level one takes another to be (the owner, 2026-10-30: they only know an enemy is higher if the enemy has high
+    /// renown): their true level when they are renowned, otherwise no higher than the watcher's own.
+    /// </summary>
+    public static int Seen(Character watcher, Character other) => other.Renown >= KnownAt ? Of(other) : Math.Min(Of(other), Of(watcher));
+
+    /// <summary>How willing one is to pick a fight with another, by the level they take the other to be.</summary>
+    public static double Wariness(Character own, Character other) => Wariness(Of(own), Seen(own, other));
+
     /// <summary>The chance, in a hundred, that one sought out by a higher level slips away from the fight: a fifth for each level between, at most four in five.</summary>
     public static int EvadeChance(int sought, int seeker) => seeker > sought ? Math.Min(80, 20 * (seeker - sought)) : 0;
 
@@ -81,7 +93,7 @@ public static class Levels
     /// the lower, who avoid them); rolled from the two and the moment, not the world's dice.
     /// </summary>
     public static bool Evades(Character sought, Character seeker, long moment) =>
-        Hash.Percent(sought.Id * 7919 + seeker.Id, 7601, moment) < EvadeChance(Of(sought), Of(seeker));
+        Hash.Percent(sought.Id * 7919 + seeker.Id, 7601, moment) < EvadeChance(Of(sought), Seen(sought, seeker));
 
     /// <summary>Those whose calling is fighting, who train harder each year.</summary>
     private static bool Armed(Character c) => c.Role is Role.Knight or Role.Adventurer or Role.Lord or Role.Rebel

@@ -350,7 +350,7 @@ public sealed partial class MilitarySystem : ISimSystem
     }
 
     /// <summary>Two realms fight on opposite sides of some ongoing war.</summary>
-    private static bool AtWarWith(World world, long a, long b) =>
+    public static bool AtWarWith(World world, long a, long b) =>
         world.Wars.Values.Any(w => !w.Ended && (w.Attackers.Contains(a) && w.Defenders.Contains(b) || w.Attackers.Contains(b) && w.Defenders.Contains(a)));
 
     private static bool Strong(World world, Army army)

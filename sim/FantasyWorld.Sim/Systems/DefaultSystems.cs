@@ -47,6 +47,7 @@ public static class DefaultSystems
         new LoreSystem(inventor),
         new GoalSystem(),
         new GrowthSystem(),
+        new MentorSystem(),
         new LevelSystem(),
         new ChronicleSystem(),
     };

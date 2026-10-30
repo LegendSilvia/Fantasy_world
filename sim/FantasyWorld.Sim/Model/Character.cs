@@ -109,6 +109,15 @@ public sealed class Character
     /// <summary>1–10 (<see cref="Levels"/>); 0 until first levelled (a world made before levels is levelled when it loads).</summary>
     public int Level { get; set; }
 
+    /// <summary>Who taught them their art (the owner, 2026-10-30), 0 for none; kept after a falling-out, as history.</summary>
+    public long MasterId { get; set; }
+
+    /// <summary>The apprentice they named to carry on their art when they are gone, 0 for none.</summary>
+    public long SuccessorId { get; set; }
+
+    /// <summary>Whether they fell out with their master: the bond is broken, and they are enemies.</summary>
+    public bool Estranged { get; set; }
+
     /// <summary>The experience earned by their years and deeds, which their level follows.</summary>
     public double Experience { get; set; }
 

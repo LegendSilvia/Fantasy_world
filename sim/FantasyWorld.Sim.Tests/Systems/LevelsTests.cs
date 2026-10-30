@@ -119,9 +119,44 @@ public class LevelsTests
         Assert.Equal(40, Levels.EvadeChance(3, 5));
         Assert.Equal(80, Levels.EvadeChance(1, 9));
 
+        // They only know the other stands higher when the other's name goes before them.
+        var low = new Character { Id = 1, Name = "Low", Level = 2 };
+        var high = new Character { Id = 2, Name = "High", Level = 6, Renown = 10 };
+        Assert.Equal(1, Levels.Wariness(low, high));
+        Assert.Equal(2, Levels.Seen(low, high));
+        high.Renown = Levels.KnownAt;
+        Assert.Equal(6, Levels.Seen(low, high));
+        Assert.Equal(Math.Pow(0.5, 4), Levels.Wariness(low, high));
+
         var sim = History(120);
         var avoided = sim.Log.All.Where(e => e.Type == "FightAvoided").ToList();
         Assert.NotEmpty(avoided);
         Assert.All(avoided, e => Assert.True(int.Parse(e.Payload["avoider level"]) < int.Parse(e.Payload["seeker level"])));
+    }
+
+    [Fact]
+    public void MastersTakeApprentices_NameSuccessors_PassTheirMantle_AndSometimesFallOut()
+    {
+        var sim = History(150);
+        var world = sim.World;
+        EntityRef Of(WorldEvent e, string role) => e.Actors[role];
+        var taken = sim.Log.All.Where(e => e.Type == "ApprenticeTaken").ToList();
+        Assert.NotEmpty(taken);
+        Assert.All(taken, e => Assert.True(Levels.Of(world.Characters[Of(e, "apprentice").Id]) >= 1));
+        // Each apprentice has one master, and none teaches more than two at once.
+        Assert.Equal(taken.Count, taken.Select(e => Of(e, "apprentice")).Distinct().Count());
+        Assert.All(world.ActiveCharacters, m => Assert.True(world.ActiveCharacters.Count(a => a.MasterId == m.Id && !a.Estranged) <= MentorSystem.MostApprentices));
+        // A named successor is the master's own apprentice, still loyal.
+        Assert.All(world.ActiveCharacters.Where(m => m.SuccessorId != 0), m =>
+            Assert.True(world.Characters[m.SuccessorId] is var s && s.MasterId == m.Id && !s.Estranged));
+        Assert.Contains(sim.Log.All, e => e.Type == "SuccessorNamed");
+        Assert.Contains(sim.Log.All, e => e.Type == "MantleInherited");
+        // A falling-out leaves them enemies, whatever it was over.
+        var fell = sim.Log.All.Where(e => e.Type == "FellOutWithMaster").ToList();
+        Assert.NotEmpty(fell);
+        Assert.All(fell, e => Assert.Contains(e.Payload["reason"], new[] { "hatred", "outgrown", "war" }));
+        Assert.All(fell, e => Assert.True(world.Characters[Of(e, "apprentice").Id].Estranged));
+        Assert.All(fell.Select(e => world.Characters[Of(e, "apprentice").Id]).Where(a => a.IsActive && world.Characters[a.MasterId].IsActive),
+            a => Assert.False(Relations.Bound(a, world.Characters[a.MasterId])));
     }
 }

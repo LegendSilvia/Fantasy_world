@@ -1,6 +1,6 @@
 {
   "outcome": {
-    "eventId": 300,
+    "eventId": 304,
     "year": 19,
     "category": "characters",
     "title": {
@@ -20,7 +20,7 @@
   "layers": [
     [
       {
-        "eventId": 299,
+        "eventId": 303,
         "year": 19,
         "category": "characters",
         "title": {
@@ -50,7 +50,7 @@
     ],
     [
       {
-        "eventId": 286,
+        "eventId": 287,
         "year": 18,
         "category": "characters",
         "title": {
@@ -76,14 +76,14 @@
   ],
   "edges": [
     {
-      "from": 299,
-      "to": 300,
+      "from": 303,
+      "to": 304,
       "kind": "trigger",
       "label": "because"
     },
     {
-      "from": 286,
-      "to": 299,
+      "from": 287,
+      "to": 303,
       "kind": "enabler",
       "label": "because"
     }

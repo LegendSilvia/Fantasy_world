@@ -115,7 +115,8 @@ public sealed class IdentitySystem(IInventor? inventor = null) : ISimSystem
         var spell = ForgottenCauses[Hash.Percent(c.Id, 9302, year) % ForgottenCauses.Length];
         var culture = world.Cultures.GetValueOrDefault(c.CultureId);
         var given = new NameGen(new Rng(unchecked((ulong)c.Id * 0x9E3779B97F4A7C15UL + (ulong)year)), culture?.Style).Given();
-        var fallback = how == Reborn ? $"{c.Name} {Epithets[Hash.Percent(c.Id, 9303, year) % Epithets.Length]}" : given;
+        // A drawn name that happens to be their own would change nothing, so it takes an epithet.
+        var fallback = how == Reborn || given == c.Name ? $"{c.Name} {Epithets[Hash.Percent(c.Id, 9303, year) % Epithets.Length]}" : given;
         var told = how switch
         {
             Forgot => "woke from it with no memory of who they had been",

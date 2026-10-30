@@ -166,7 +166,7 @@ public sealed partial class DeedsSystem : ISimSystem
         {
             // A sworn avenger bides their time until they are a match for their foe, then comes for their life.
             var ready = Encounters.Strength(world, c) >= Encounters.Strength(world, foe) * ReadyForRevenge;
-            options.Add(new($"avenge:{foe.Id}", (ready ? 60 : 8) * bold * Levels.Wariness(Levels.Of(c), Levels.Of(foe)), $"challenge {foe.Name} to the death"));
+            options.Add(new($"avenge:{foe.Id}", (ready ? 60 : 8) * bold * Levels.Wariness(c, foe), $"challenge {foe.Name} to the death"));
         }
 
         var rival = (neighbours ?? world.PeopleOf(home))
@@ -200,7 +200,7 @@ public sealed partial class DeedsSystem : ISimSystem
         if (free && rival is not null && !Challenged(ctx.Queue, rival.Id) && (notable || c.Has(Traits.Wrathful) || c.Has(Traits.Brave))
             && PendingDuels(ctx.Queue).Count(a => a.Kind == DuelKind) is var open && open < MaxOpenChallenges
             && (open < OrdinaryChallenges || notable))
-            options.Add(new($"duel:{rival.Id}", (notable ? NotableUrge : 10) * bold * Levels.Wariness(Levels.Of(c), Levels.Of(rival)), $"challenge {rival.Name} to first blood"));
+            options.Add(new($"duel:{rival.Id}", (notable ? NotableUrge : 10) * bold * Levels.Wariness(c, rival), $"challenge {rival.Name} to first blood"));
         return options;
     }
 
