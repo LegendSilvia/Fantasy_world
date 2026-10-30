@@ -117,7 +117,8 @@ public static class WarLayout
         uvs.Add(new Vector2(0, 1));
         indices.AddRange(new[] { b, b + 2, b + 1 });
         return new MeshData(positions.ToArray(), Enumerable.Repeat(Vector3.UnitY, positions.Count).ToArray(),
-            Enumerable.Repeat(colour, positions.Count).ToArray(), indices.ToArray()) { Uvs = uvs.ToArray(), Alphas = Enumerable.Repeat(0.9f, positions.Count).ToArray() };
+            Enumerable.Repeat(colour, positions.Count).ToArray(), indices.ToArray())
+        { Uvs = uvs.ToArray(), Alphas = Enumerable.Repeat(0.9f, positions.Count).ToArray() };
     }
 
     /// <summary>Fronts of the wars on the map: where a region of one side meets a region of the other.</summary>

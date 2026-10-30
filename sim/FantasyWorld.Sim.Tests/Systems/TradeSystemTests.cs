@@ -53,8 +53,16 @@ public class TradeSystemTests
         var declared = sim.Log.Append(world.Date, new EventDraft("WarDeclared", Causes: new[] { new Cause(cb.Id, CauseKind.Motive, 0.9) }));
         var war = new War
         {
-            Id = world.Ids.Take(War.Kind), Name = "The Toll War", AttackerId = x, DefenderId = y, Attackers = { x }, Defenders = { y },
-            CasusBelli = CasusBelli.Revenge, CasusBelliEventId = cb.Id, DeclaredEventId = declared.Id, StartDay = world.Date.Day,
+            Id = world.Ids.Take(War.Kind),
+            Name = "The Toll War",
+            AttackerId = x,
+            DefenderId = y,
+            Attackers = { x },
+            Defenders = { y },
+            CasusBelli = CasusBelli.Revenge,
+            CasusBelliEventId = cb.Id,
+            DeclaredEventId = declared.Id,
+            StartDay = world.Date.Day,
         };
         world.Wars[war.Id] = war;
         sim.AdvanceDays(31);

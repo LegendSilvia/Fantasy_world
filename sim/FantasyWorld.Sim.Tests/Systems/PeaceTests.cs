@@ -84,8 +84,15 @@ public class PeaceTests
         var declared = log.Append(world.Date, new EventDraft("IndependenceDeclared"));
         var war = new War
         {
-            Id = world.Ids.Take(War.Kind), Name = "The Rebellion", AttackerId = 1, DefenderId = 2, Attackers = { 1 }, Defenders = { 2 },
-            CasusBelli = CasusBelli.Independence, CasusBelliEventId = declared.Id, DeclaredEventId = declared.Id,
+            Id = world.Ids.Take(War.Kind),
+            Name = "The Rebellion",
+            AttackerId = 1,
+            DefenderId = 2,
+            Attackers = { 1 },
+            Defenders = { 2 },
+            CasusBelli = CasusBelli.Independence,
+            CasusBelliEventId = declared.Id,
+            DeclaredEventId = declared.Id,
         };
         world.Wars[war.Id] = war;
         world.Realms[2].Treaties.Add(new Treaty(TreatyKind.Rivalry, 1, declared.Id, 0));
@@ -103,8 +110,15 @@ public class PeaceTests
         var declared = log.Append(world.Date, new EventDraft("IndependenceDeclared"));
         var war = new War
         {
-            Id = world.Ids.Take(War.Kind), Name = "The Rebellion", AttackerId = 1, DefenderId = 2, Attackers = { 1 }, Defenders = { 2 },
-            CasusBelli = CasusBelli.Independence, CasusBelliEventId = declared.Id, DeclaredEventId = declared.Id,
+            Id = world.Ids.Take(War.Kind),
+            Name = "The Rebellion",
+            AttackerId = 1,
+            DefenderId = 2,
+            Attackers = { 1 },
+            Defenders = { 2 },
+            CasusBelli = CasusBelli.Independence,
+            CasusBelliEventId = declared.Id,
+            DeclaredEventId = declared.Id,
         };
         world.Wars[war.Id] = war;
         MilitarySystem.MakePeace(Context(world, log), war, attackerWon: false, white: false);
@@ -123,8 +137,15 @@ public class PeaceTests
         var crown = TestPeople.GiveArtifact(world, holder);
         world.Wars[war.Id] = new War
         {
-            Id = war.Id, Name = war.Name, AttackerId = 1, DefenderId = 2, Attackers = { 1 }, Defenders = { 2 },
-            CasusBelli = CasusBelli.ArtifactRecovery, CasusBelliEventId = war.CasusBelliEventId, DeclaredEventId = war.DeclaredEventId,
+            Id = war.Id,
+            Name = war.Name,
+            AttackerId = 1,
+            DefenderId = 2,
+            Attackers = { 1 },
+            Defenders = { 2 },
+            CasusBelli = CasusBelli.ArtifactRecovery,
+            CasusBelliEventId = war.CasusBelliEventId,
+            DeclaredEventId = war.DeclaredEventId,
             TargetArtifactId = crown.Id,
         };
         MilitarySystem.MakePeace(Context(world, log), world.Wars[war.Id], attackerWon: true, white: false);

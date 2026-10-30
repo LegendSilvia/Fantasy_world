@@ -59,7 +59,9 @@ public sealed class GoalSystem : ISimSystem
             ctx.Emit(new EventDraft("AmbitionAbandoned", Actors: new Dictionary<string, EntityRef> { ["who"] = c.Ref },
                 Payload: new Dictionary<string, string>
                 {
-                    ["goal"] = Goal(goal), ["next"] = Goal(turned), ["failures"] = English.Number(failed),
+                    ["goal"] = Goal(goal),
+                    ["next"] = Goal(turned),
+                    ["failures"] = English.Number(failed),
                 },
                 Causes: theirs.Where(e => Failures.Contains(e.Type)).OrderByDescending(e => e.Id).Take(Events.EventLog.MaxCauses)
                     .Select(e => new Cause(e.Id, CauseKind.Trigger, 0.6)).ToArray(),

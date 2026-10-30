@@ -121,7 +121,11 @@ public sealed class ElevenLabs(HttpClient http, string apiKey) : ISpeech
     private static JsonArray Rules(IReadOnlyDictionary<string, string> aliases) =>
         new(aliases.Select(a => (JsonNode)new JsonObject
         {
-            ["type"] = "alias", ["string_to_replace"] = a.Key, ["alias"] = a.Value, ["case_sensitive"] = true, ["word_boundaries"] = true,
+            ["type"] = "alias",
+            ["string_to_replace"] = a.Key,
+            ["alias"] = a.Value,
+            ["case_sensitive"] = true,
+            ["word_boundaries"] = true,
         }).ToArray());
 
     private async Task<DictionaryRef> DictionaryAsync(string url, JsonObject body, CancellationToken ct)

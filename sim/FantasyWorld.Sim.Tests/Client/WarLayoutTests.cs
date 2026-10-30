@@ -25,14 +25,23 @@ public class WarLayoutTests
         var people = world.Characters.Values.Where(c => c.IsActive).Take(2).ToList();
         var army = new Army
         {
-            Id = world.Ids.Take(Army.Kind), Name = $"The Host of {a.Name}", RealmId = a.Id, WarId = war.Id, CommanderId = people[0].Id,
-            Knights = { people[1].Id }, Levies = 900, MenAtArms = 100, RegionId = home.Id, Path = { target.Id }, TargetRegionId = target.Id,
+            Id = world.Ids.Take(Army.Kind),
+            Name = $"The Host of {a.Name}",
+            RealmId = a.Id,
+            WarId = war.Id,
+            CommanderId = people[0].Id,
+            Knights = { people[1].Id },
+            Levies = 900,
+            MenAtArms = 100,
+            RegionId = home.Id,
+            Path = { target.Id },
+            TargetRegionId = target.Id,
             Objective = ArmyObjective.Siege,
         };
         world.Armies[army.Id] = army;
         target.OccupierRealmId = a.Id;
         log.Append(world.Date, new EventDraft("BattleFought", Actors: new Dictionary<string, EntityRef>
-            { ["victor"] = a.Ref, ["vanquished"] = b.Ref, ["war"] = war.Ref }, Place: target.Ref));
+        { ["victor"] = a.Ref, ["vanquished"] = b.Ref, ["war"] = war.Ref }, Place: target.Ref));
         return (world, log, army, target);
     }
 

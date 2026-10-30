@@ -103,7 +103,9 @@ public sealed class FestivalSystem(IInventor? inventor = null) : ISimSystem
             Actors: new Dictionary<string, EntityRef> { ["realm"] = realm.Ref }, Place: ctx.World.Settlements[realm.CapitalId].Ref,
             Payload: new Dictionary<string, string>
             {
-                ["festival"] = festival.Name, ["rite"] = festival.Rite, ["honours"] = festival.Honours,
+                ["festival"] = festival.Name,
+                ["rite"] = festival.Rite,
+                ["honours"] = festival.Honours,
                 ["month"] = festival.Month.ToString(CultureInfo.InvariantCulture),
             },
             Causes: realm.FoundedEventId != 0 ? new[] { new Cause(realm.FoundedEventId, CauseKind.Enabler, 0.5) } : null,

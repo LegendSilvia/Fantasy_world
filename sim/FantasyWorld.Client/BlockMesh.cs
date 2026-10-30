@@ -182,9 +182,17 @@ public static class BlockMesh
     /// <summary>A muted, painted palette: soft greens and sands that sit quietly on the design's warm grey.</summary>
     private static readonly Dictionary<Biome, Vector3> BiomeColours = new()
     {
-        [Biome.Ocean] = Hex(0xd9d2b4), [Biome.Tundra] = Hex(0xb9bfae), [Biome.Taiga] = Hex(0x7d9677), [Biome.Grassland] = Hex(0xa9ba86),
-        [Biome.Forest] = Hex(0x7f9e62), [Biome.Swamp] = Hex(0x8b9870), [Biome.Desert] = Hex(0xd8c9a0), [Biome.Savanna] = Hex(0xc2bb8c),
-        [Biome.Jungle] = Hex(0x6f9458), [Biome.Hills] = Hex(0xa3ad7e), [Biome.Mountain] = Hex(0xa09a8c),
+        [Biome.Ocean] = Hex(0xd9d2b4),
+        [Biome.Tundra] = Hex(0xb9bfae),
+        [Biome.Taiga] = Hex(0x7d9677),
+        [Biome.Grassland] = Hex(0xa9ba86),
+        [Biome.Forest] = Hex(0x7f9e62),
+        [Biome.Swamp] = Hex(0x8b9870),
+        [Biome.Desert] = Hex(0xd8c9a0),
+        [Biome.Savanna] = Hex(0xc2bb8c),
+        [Biome.Jungle] = Hex(0x6f9458),
+        [Biome.Hills] = Hex(0xa3ad7e),
+        [Biome.Mountain] = Hex(0xa09a8c),
     };
 
     public static readonly Vector3 Sand = Hex(0xe3d9bd);

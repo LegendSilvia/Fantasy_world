@@ -45,9 +45,17 @@ public static class TestRealms
         var declared = log.Append(world.Date, new EventDraft("WarDeclared", Causes: new[] { new Cause(cb.Id, CauseKind.Motive, 0.9) }));
         var war = new War
         {
-            Id = world.Ids.Take(War.Kind), Name = "The Test War", AttackerId = 1, DefenderId = 2,
-            Attackers = { 1 }, Defenders = { 2 }, CasusBelli = CasusBelli.Revenge, CasusBelliEventId = cb.Id,
-            DeclaredEventId = declared.Id, TargetRegionId = target, StartDay = world.Date.Day,
+            Id = world.Ids.Take(War.Kind),
+            Name = "The Test War",
+            AttackerId = 1,
+            DefenderId = 2,
+            Attackers = { 1 },
+            Defenders = { 2 },
+            CasusBelli = CasusBelli.Revenge,
+            CasusBelliEventId = cb.Id,
+            DeclaredEventId = declared.Id,
+            TargetRegionId = target,
+            StartDay = world.Date.Day,
         };
         world.Wars[war.Id] = war;
         return war;

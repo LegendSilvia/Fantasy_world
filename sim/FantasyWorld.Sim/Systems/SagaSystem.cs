@@ -113,9 +113,19 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
         var treasury = world.Realms.Values.Where(r => !r.Destroyed && r.LiegeId == 0).Select(r => Math.Max(0, r.Treasury)).DefaultIfEmpty(1000).Average() * 2;
         var dominion = new Realm
         {
-            Id = world.Ids.Take(Realm.Kind), Name = region.Name, CapitalId = seat.Id, Government = Government.Dominion,
-            SuccessionLaw = SuccessionLaw.Seniority, MagicLaw = MagicLaw.Embraced, Legitimacy = 60, Stability = 60, Treasury = treasury,
-            CultureId = region.CultureId, FaithId = region.FaithId, Colors = ["sable", "crimson"], FoundedEventId = rose.Id,
+            Id = world.Ids.Take(Realm.Kind),
+            Name = region.Name,
+            CapitalId = seat.Id,
+            Government = Government.Dominion,
+            SuccessionLaw = SuccessionLaw.Seniority,
+            MagicLaw = MagicLaw.Embraced,
+            Legitimacy = 60,
+            Stability = 60,
+            Treasury = treasury,
+            CultureId = region.CultureId,
+            FaithId = region.FaithId,
+            Colors = ["sable", "crimson"],
+            FoundedEventId = rose.Id,
             RegionsAtLastReview = lands.Count,
         };
         world.Realms[dominion.Id] = dominion;

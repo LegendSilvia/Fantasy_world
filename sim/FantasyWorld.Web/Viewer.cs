@@ -54,14 +54,22 @@ public static class Viewer
         var prayers = World.Prayers.Values.Where(p => p.IsOpen && Log.TryGet(p.EventId, out _)).OrderByDescending(p => p.Day).ThenBy(p => p.Id)
             .Select(p => new
             {
-                id = p.Id, plea = p.Plea, god = World.Faiths.GetValueOrDefault(p.FaithId)?.Deity, text = narrator.Sentence(Log.Get(p.EventId)),
-                supplicant = World.Characters[p.SupplicantId].Ref.ToString(), year = new WorldDate(p.Day).Year,
+                id = p.Id,
+                plea = p.Plea,
+                god = World.Faiths.GetValueOrDefault(p.FaithId)?.Deity,
+                text = narrator.Sentence(Log.Get(p.EventId)),
+                supplicant = World.Characters[p.SupplicantId].Ref.ToString(),
+                year = new WorldDate(p.Day).Year,
             });
         var faceOffs = PrayerSystem.Blessable(World, Log).Select(e => FantasyWorld.Sim.Chronicle.FaceOffs.For(World, e)).OfType<FantasyWorld.Sim.Chronicle.FaceOff>()
             .Select(f => new
             {
-                id = f.EventId, kind = f.Kind, stakes = f.Stakes, odds = f.OddsA,
-                a = new { name = f.A.Name, colour = V3(WarLayout.Colour(f.A.Colour)), @class = f.A.Class }, b = new { name = f.B.Name, colour = V3(WarLayout.Colour(f.B.Colour)), @class = f.B.Class },
+                id = f.EventId,
+                kind = f.Kind,
+                stakes = f.Stakes,
+                odds = f.OddsA,
+                a = new { name = f.A.Name, colour = V3(WarLayout.Colour(f.A.Colour)), @class = f.A.Class },
+                b = new { name = f.B.Name, colour = V3(WarLayout.Colour(f.B.Colour)), @class = f.B.Class },
             });
         return JsonSerializer.Serialize(new { prayers, faceOffs }, Json);
         static float[] V3(Vector3 v) => [v.X, v.Y, v.Z];
@@ -77,7 +85,10 @@ public static class Viewer
         var until = Until(year);
         var secrets = World.Secrets.AsEnumerable().Reverse().Where(s => By(until, s.Day)).Select(s => new
         {
-            title = s.Title, text = s.Text, year = new WorldDate(s.Day).Year, @event = $"event#{s.EventId}",
+            title = s.Title,
+            text = s.Text,
+            year = new WorldDate(s.Day).Year,
+            @event = $"event#{s.EventId}",
             place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
             by = World.Characters.TryGetValue(s.RevealerId, out var c) ? new { @ref = c.Ref.ToString(), name = c.Name } : null,
         });
@@ -85,7 +96,10 @@ public static class Viewer
         object? Who(long id) => World.Characters.TryGetValue(id, out var c) ? new { @ref = c.Ref.ToString(), name = c.Name } : null;
         var races = World.Races.Values.OrderBy(r => r.Id).Select(r => new
         {
-            name = r.Name, looks = r.Looks, nature = r.Nature, temper = r.Temper,
+            name = r.Name,
+            looks = r.Looks,
+            nature = r.Nature,
+            temper = r.Temper,
             lifespan = new { old = Peoples.Lifespan(r.Span).Old, limit = Peoples.Lifespan(r.Span).Limit },
             foes = r.Foes.Select(id => World.Races.GetValueOrDefault(id)?.Name).OfType<string>(),
             friends = r.Friends.Select(id => World.Races.GetValueOrDefault(id)?.Name).OfType<string>(),
@@ -94,26 +108,39 @@ public static class Viewer
         var realms = Realms.Independent(World).Select(r => (Realm: r, Lands: World.Regions.Values.Count(g => g.OwnerRealmId == r.Id)))
             .Where(r => r.Lands > 0).OrderByDescending(r => r.Lands).ThenBy(r => r.Realm.Id).Select(r => new
             {
-                @ref = r.Realm.Ref.ToString(), title = Statecraft.Title(r.Realm), lands = r.Lands,
+                @ref = r.Realm.Ref.ToString(),
+                title = Statecraft.Title(r.Realm),
+                lands = r.Lands,
                 ruler = Realms.RulerOf(World, r.Realm) is { } ruler ? Who(ruler.Id) : null,
                 festival = r.Realm.Festival is { } f ? new { name = f.Name, rite = f.Rite } : null,
             });
         var labyrinths = World.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth || s.ClearedEventId != 0).OrderBy(s => s.ClearedEventId == 0).ThenBy(s => s.Name)
             .Select(s => new
             {
-                name = s.Name, place = World.Regions.GetValueOrDefault(s.RegionId)?.Name, levels = s.Levels, depth = s.Depth,
+                name = s.Name,
+                place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
+                levels = s.Levels,
+                depth = s.Depth,
                 cleared = s.ClearedEventId != 0 && Log.TryGet(s.ClearedEventId, out var c) && By(until, c.Date.Day)
                     ? new { year = c.Date.Year, by = c.Actors.TryGetValue("delver", out var d) ? Who(d.Id) : null, @event = $"event#{c.Id}" } : null,
             });
         var relics = World.Artifacts.Values.Where(a => a.Place != ArtifactPlace.Destroyed).OrderByDescending(a => a.Fame).ThenBy(a => a.Id).Take(15).Select(a => new
         {
-            @ref = a.Ref.ToString(), name = a.Name, lore = a.Lore, where = a.Place.ToString().ToLowerInvariant(),
+            @ref = a.Ref.ToString(),
+            name = a.Name,
+            lore = a.Lore,
+            where = a.Place.ToString().ToLowerInvariant(),
             holder = a.Place == ArtifactPlace.Held ? Who(a.HolderId) : null,
         });
         // The powers awakened in the world (the owner, 2026-10-29): where each comes from, what it does, its condition, who bears it.
         var callings = World.Callings.Where(k => EventBy(until, k.EventId)).Select(k => new
         {
-            name = k.Name, @base = k.Base, origin = k.Origin, does = k.Does, condition = k.Condition, @event = k.EventId != 0 ? $"event#{k.EventId}" : null,
+            name = k.Name,
+            @base = k.Base,
+            origin = k.Origin,
+            does = k.Does,
+            condition = k.Condition,
+            @event = k.EventId != 0 ? $"event#{k.EventId}" : null,
             bearers = World.Characters.Values.Where(c => c.Class == Classes.Awaken(k.Base, k.Name))
                 .OrderByDescending(c => c.IsActive).ThenBy(c => c.Id).Select(c => new { @ref = c.Ref.ToString(), name = c.Name, living = c.IsActive }),
         });
@@ -134,21 +161,47 @@ public static class Viewer
         var landmarks = World.Structures.Values.Where(s => s.Type == StructureKind.Landmark && s.State == StructureState.Standing && EventBy(until, s.CompletedEventId))
             .OrderBy(s => s.Name).Select(s => new
             {
-                name = s.Name, purpose = s.Purpose, town = World.Settlements.GetValueOrDefault(s.SettlementId)?.Name,
+                name = s.Name,
+                purpose = s.Purpose,
+                town = World.Settlements.GetValueOrDefault(s.SettlementId)?.Name,
                 @for = s.ForEventId != 0 && EventBy(until, s.ForEventId) ? $"event#{s.ForEventId}" : null,
             });
         // The world's own resources (the owner, 2026-10-29): found ones with their story and who found them; the hidden only as a rumour.
         var wonders = World.Wonders.Select(w => !w.Hidden && EventBy(until, w.FoundEventId)
-            ? (object)new { name = w.Name, what = w.What, power = w.Power, place = World.Regions.GetValueOrDefault(w.RegionId)?.Name, by = Who(w.FinderId),
-                @event = w.FoundEventId != 0 ? $"event#{w.FoundEventId}" : null }
+            ? (object)new
+            {
+                name = w.Name,
+                what = w.What,
+                power = w.Power,
+                place = World.Regions.GetValueOrDefault(w.RegionId)?.Name,
+                by = Who(w.FinderId),
+                @event = w.FoundEventId != 0 ? $"event#{w.FoundEventId}" : null
+            }
             : new { name = (string?)null, what = (string?)null, power = w.Power, place = (string?)null, by = (object?)null, @event = (string?)null });
         var shadow = World.Sagas.Values.OrderByDescending(s => s.Id).Select(s => new
         {
-            demon = Who(s.DemonLordId), active = s.Active, outcome = s.Outcome, hero = s.HeroId != 0 ? Who(s.HeroId) : null,
+            demon = Who(s.DemonLordId),
+            active = s.Active,
+            outcome = s.Outcome,
+            hero = s.HeroId != 0 ? Who(s.HeroId) : null,
         }).FirstOrDefault();
         return JsonSerializer.Serialize(new
         {
-            name = World.Name, legend = World.Legend?.Full, summary = World.Legend?.Summary, secrets, tales, races, gods, realms, labyrinths, relics, shadow, callings, companions, wonders, landmarks,
+            name = World.Name,
+            legend = World.Legend?.Full,
+            summary = World.Legend?.Summary,
+            secrets,
+            tales,
+            races,
+            gods,
+            realms,
+            labyrinths,
+            relics,
+            shadow,
+            callings,
+            companions,
+            wonders,
+            landmarks,
         }, Json);
     }
 
@@ -175,9 +228,17 @@ public static class Viewer
                 var realm = home is not null && World.Regions.TryGetValue(home.RegionId, out var region) ? World.Realms.GetValueOrDefault(region.OwnerRealmId) : null;
                 return new
                 {
-                    @ref = c.Ref.ToString(), name = c.Name, @class = Classes.Base(c.Class), title = c.Class.Length > 0 ? Classes.Title(c.Class) : "", role = c.Role.ToString().ToLowerInvariant(),
-                    alive = !DeadBy(c), died = DeadBy(c) ? c.Died!.Value.Year : (int?)null, age = c.Age(DeadBy(c) ? c.Died!.Value : then),
-                    renown = (int)Math.Round(c.Renown), realm = realm?.Name, home = home?.Name,
+                    @ref = c.Ref.ToString(),
+                    name = c.Name,
+                    @class = Classes.Base(c.Class),
+                    title = c.Class.Length > 0 ? Classes.Title(c.Class) : "",
+                    role = c.Role.ToString().ToLowerInvariant(),
+                    alive = !DeadBy(c),
+                    died = DeadBy(c) ? c.Died!.Value.Year : (int?)null,
+                    age = c.Age(DeadBy(c) ? c.Died!.Value : then),
+                    renown = (int)Math.Round(c.Renown),
+                    realm = realm?.Name,
+                    home = home?.Name,
                 };
             });
         return JsonSerializer.Serialize(new { people }, Json);
@@ -196,12 +257,24 @@ public static class Viewer
         if (f is null) return "null";
         object Side(FantasyWorld.Sim.Chronicle.FaceOffSide side) => new
         {
-            @ref = side.Ref, name = side.Name, colour = V3(WarLayout.Colour(side.Colour)), @class = side.Class, fate = side.Fate, notes = side.Notes,
+            @ref = side.Ref,
+            name = side.Name,
+            colour = V3(WarLayout.Colour(side.Colour)),
+            @class = side.Class,
+            fate = side.Fate,
+            notes = side.Notes,
             stats = side.Stats.Select(x => new { name = x.Name, value = x.Value, max = x.Max, shown = FantasyWorld.Sim.Chronicle.FaceOffStat.Compact(x.Value) }),
         };
         return JsonSerializer.Serialize(new
         {
-            kind = f.Kind, stage = f.Stage, stakes = f.Stakes, odds = f.OddsA, result = f.Result, words = f.Odds(), a = Side(f.A), b = Side(f.B),
+            kind = f.Kind,
+            stage = f.Stage,
+            stakes = f.Stakes,
+            odds = f.OddsA,
+            result = f.Result,
+            words = f.Odds(),
+            a = Side(f.A),
+            b = Side(f.B),
         }, Json);
         static float[] V3(Vector3 v) => [v.X, v.Y, v.Z];
     }
@@ -223,7 +296,9 @@ public static class Viewer
             : FantasyWorld.Sim.Chronicle.Reputation.Of(World, LogUntil(until));
         return JsonSerializer.Serialize(new
         {
-            @class = Classes.Base(calling), title = Classes.Title(calling), awakened = Classes.IsAwakened(calling),
+            @class = Classes.Base(calling),
+            title = Classes.Title(calling),
+            awakened = Classes.IsAwakened(calling),
             talents = Talents.Of(c).Select(t => new { name = t.Name, shows = t.Shows }),
             abilities = Abilities.Of(World, c).Where(a => EventBy(until, a.EventId)).Select(a => new { name = a.Name, text = a.Text, @event = a.EventId != 0 ? $"event#{a.EventId}" : null }),
             known = reputation.Of(c.Id),
@@ -260,10 +335,18 @@ public static class Viewer
         var witness = seen && World.Characters.TryGetValue(m.RevealedById, out var w) ? new { @ref = w.Ref.ToString(), name = w.Name } : null;
         return JsonSerializer.Serialize(new
         {
-            @ref = reference.ToString(), name = m.Name, breed = m.Breed, witness, legendary = m.Legendary, might = (int)Math.Round(m.Might),
-            notoriety = (int)Math.Round(m.Notoriety), state = m.State == MonsterState.Slain && !slain ? "roaming" : m.State.ToString().ToLowerInvariant(),
+            @ref = reference.ToString(),
+            name = m.Name,
+            breed = m.Breed,
+            witness,
+            legendary = m.Legendary,
+            might = (int)Math.Round(m.Might),
+            notoriety = (int)Math.Round(m.Notoriety),
+            state = m.State == MonsterState.Slain && !slain ? "roaming" : m.State.ToString().ToLowerInvariant(),
             place = World.Regions.GetValueOrDefault(m.RegionId)?.Name,
-            lore, risen = m.RoseEventId, slayer = slain && World.Characters.TryGetValue(m.SlayerId, out var slayer) ? new { @ref = slayer.Ref.ToString(), name = slayer.Name } : null,
+            lore,
+            risen = m.RoseEventId,
+            slayer = slain && World.Characters.TryGetValue(m.SlayerId, out var slayer) ? new { @ref = slayer.Ref.ToString(), name = slayer.Name } : null,
             deeds,
         }, Json);
     }
@@ -410,31 +493,53 @@ public static class Viewer
             roads = RouteLayout.Roads(map, geography).Select(r => new { open = r.Open, sea = r.Sea, points = r.Line.SelectMany(V).ToArray() }),
             realms = (map.Realms ?? []).Select(r => new
             {
-                @ref = r.Ref.ToString(), name = r.Name, rank = r.Rank, regions = r.Regions,
-                at = V(Projection.ToBlock(grid, r.Position, 0)), colour = V(WarLayout.Colour(r.Colour)), accent = V(Palette.Heraldic(r.Accent)),
+                @ref = r.Ref.ToString(),
+                name = r.Name,
+                rank = r.Rank,
+                regions = r.Regions,
+                at = V(Projection.ToBlock(grid, r.Position, 0)),
+                colour = V(WarLayout.Colour(r.Colour)),
+                accent = V(Palette.Heraldic(r.Accent)),
             }),
             armies = (map.Armies ?? []).Select(a => new
             {
-                @ref = a.Ref.ToString(), name = a.Name, soldiers = a.Soldiers, side = a.Side, at = V(Projection.ToBlock(grid, a.Position, 0)),
-                colour = V(WarLayout.Colour(a.Colour)), commander = a.Commander?.Name,
+                @ref = a.Ref.ToString(),
+                name = a.Name,
+                soldiers = a.Soldiers,
+                side = a.Side,
+                at = V(Projection.ToBlock(grid, a.Position, 0)),
+                colour = V(WarLayout.Colour(a.Colour)),
+                commander = a.Commander?.Name,
             }),
             arrows = WarLayout.Arrows(map, geography).Select(a => new { army = a.Army.ToString(), mesh = Convert.ToBase64String(Pack(a.Mesh)) }),
             // The map's badges (the owner, 2026-10-28): boss markers over beasts, crossed swords where fights are.
             beasts = (map.Monsters ?? []).Select(m => new
             {
-                @ref = m.Ref.ToString(), name = m.Name, breed = m.Breed, might = m.Might, at = V(Projection.ToBlock(grid, m.Position, 0)), eventId = m.RoseEventId,
+                @ref = m.Ref.ToString(),
+                name = m.Name,
+                breed = m.Breed,
+                might = m.Might,
+                at = V(Projection.ToBlock(grid, m.Position, 0)),
+                eventId = m.RoseEventId,
                 badge = m.Slumbering ? "asleep" : m.Legendary ? "legend" : "boss",
             }),
             fights = (map.Battles ?? []).Select(b => new
             {
-                kind = b.Kind, underWay = b.UnderWay, at = V(Projection.ToBlock(grid, b.Position, 0)), eventId = b.EventId,
+                kind = b.Kind,
+                underWay = b.UnderWay,
+                at = V(Projection.ToBlock(grid, b.Position, 0)),
+                eventId = b.EventId,
                 badge = (b.Kind == MapBattle.Battle ? "battle-" : "") + (b.UnderWay ? "underway" : "fought"),
             }),
             badges = new Dictionary<string, string>
             {
-                ["boss"] = Badges.Boss(false, false), ["legend"] = Badges.Boss(true, false), ["asleep"] = Badges.Boss(false, true),
-                ["fought"] = Badges.Swords(false), ["underway"] = Badges.Swords(true),
-                ["battle-fought"] = Badges.Banners(false), ["battle-underway"] = Badges.Banners(true),
+                ["boss"] = Badges.Boss(false, false),
+                ["legend"] = Badges.Boss(true, false),
+                ["asleep"] = Badges.Boss(false, true),
+                ["fought"] = Badges.Swords(false),
+                ["underway"] = Badges.Swords(true),
+                ["battle-fought"] = Badges.Banners(false),
+                ["battle-underway"] = Badges.Banners(true),
             },
         };
         return JsonSerializer.Serialize(scene, Json);

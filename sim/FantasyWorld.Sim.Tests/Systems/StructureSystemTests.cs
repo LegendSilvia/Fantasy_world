@@ -68,8 +68,14 @@ public class StructureSystemTests
         var begun = log.Append(world.Date, new EventDraft("LandmarkBegun"));
         world.Structures[world.Ids.Take(Structure.Kind)] = new Structure
         {
-            Id = 1, Name = "The Spire", Type = StructureKind.Landmark, RegionId = town.RegionId, SettlementId = town.Id,
-            BuilderId = lord.Id, StartedEventId = begun.Id, State = StructureState.Building,
+            Id = 1,
+            Name = "The Spire",
+            Type = StructureKind.Landmark,
+            RegionId = town.RegionId,
+            SettlementId = town.Id,
+            BuilderId = lord.Id,
+            StartedEventId = begun.Id,
+            State = StructureState.Building,
         };
         var abandoned = log.Append(world.Date, new EventDraft("SettlementAbandoned", Place: town.Ref));
         town.Abandoned = true;

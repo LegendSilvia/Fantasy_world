@@ -55,12 +55,12 @@ public static class MapPainter
             var colour = TileColour(terrain, tile, geography.RegionOf[tile] is var id and > 0 ? regions.GetValueOrDefault(id) : null);
             var occupied = geography.RegionOf[tile] > 0 && regions.GetValueOrDefault(geography.RegionOf[tile])?.Occupier is not null;
             for (var py = 0; py < scale; py++)
-            for (var px = 0; px < scale; px++)
-            {
-                var (x, y) = (tx * scale + px, ty * scale + py);
-                var c = occupied && (x + y) % 8 < 2 ? Palette.Conflict : colour;
-                Set(rgb, w, x, y, c);
-            }
+                for (var px = 0; px < scale; px++)
+                {
+                    var (x, y) = (tx * scale + px, ty * scale + py);
+                    var c = occupied && (x + y) % 8 < 2 ? Palette.Conflict : colour;
+                    Set(rgb, w, x, y, c);
+                }
 
             // Borders on this tile's right and bottom edges: ink between realms (and at the coast), faint between regions.
             foreach (var (nx, ny, right) in new[] { (tx + 1, ty, true), (tx, ty + 1, false) })
@@ -74,9 +74,9 @@ public static class MapPainter
                 if (line is not { } ink) continue;
                 var thick = a != b ? Math.Max(1, scale / 2) : 1;
                 for (var t = 0; t < scale; t++)
-                for (var k = 0; k < thick; k++)
-                    if (right) Set(rgb, w, tx * scale + scale - 1 - k, ty * scale + t, ink);
-                    else Set(rgb, w, tx * scale + t, ty * scale + scale - 1 - k, ink);
+                    for (var k = 0; k < thick; k++)
+                        if (right) Set(rgb, w, tx * scale + scale - 1 - k, ty * scale + t, ink);
+                        else Set(rgb, w, tx * scale + t, ty * scale + scale - 1 - k, ink);
             }
         }
 
@@ -108,8 +108,8 @@ public static class MapPainter
     private static void Dot(byte[] rgb, int w, int h, int cx, int cy, int r, Vector3 c)
     {
         for (var y = cy - r; y <= cy + r; y++)
-        for (var x = cx - r; x <= cx + r; x++)
-            if (x >= 0 && y >= 0 && x < w && y < h && (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) Set(rgb, w, x, y, c);
+            for (var x = cx - r; x <= cx + r; x++)
+                if (x >= 0 && y >= 0 && x < w && y < h && (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) Set(rgb, w, x, y, c);
     }
 
     private static void Set(byte[] rgb, int w, int x, int y, Vector3 c)

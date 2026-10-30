@@ -29,7 +29,10 @@ public sealed record WorldGenOptions(ulong Seed, WorldSize Size = WorldSize.Medi
             var continents = Size == WorldSize.Huge ? 2 + (int)(StableHash.Derive(Seed, "worldgen/continents") % 3) : 0;
             return defaults with
             {
-                Width = MapSize, Height = MapSize, MinIslandTiles = (int)(land / TargetRegions / 2), Continents = continents,
+                Width = MapSize,
+                Height = MapSize,
+                MinIslandTiles = (int)(land / TargetRegions / 2),
+                Continents = continents,
                 LandFraction = continents > 0 ? 0.42 : defaults.LandFraction,
             };
         }

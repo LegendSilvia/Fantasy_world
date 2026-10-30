@@ -93,8 +93,14 @@ public sealed class TradeSystem : ISimSystem
                     Place: a.Ref, Importance: 30, Tags: new[] { "Economy" }));
                 world.Routes[id] = new TradeRoute
                 {
-                    Id = id, Name = $"The {a.Name}–{b.Name} Sea Route", FromId = a.Id, ToId = b.Id,
-                    Regions = way.Path.ToList(), State = RouteState.Open, OpenedEventId = opening.Id, BySea = true,
+                    Id = id,
+                    Name = $"The {a.Name}–{b.Name} Sea Route",
+                    FromId = a.Id,
+                    ToId = b.Id,
+                    Regions = way.Path.ToList(),
+                    State = RouteState.Open,
+                    OpenedEventId = opening.Id,
+                    BySea = true,
                 };
                 linked.Add((a.Id, b.Id));
                 opened++;
@@ -161,8 +167,13 @@ public sealed class TradeSystem : ISimSystem
                     Place: a.Ref, Importance: 25, Tags: new[] { "Economy" }));
                 var route = new TradeRoute
                 {
-                    Id = id, Name = $"The {a.Name}–{b.Name} Road", FromId = a.Id, ToId = b.Id,
-                    Regions = way.Path.ToList(), State = RouteState.Open, OpenedEventId = road.Id,
+                    Id = id,
+                    Name = $"The {a.Name}–{b.Name} Road",
+                    FromId = a.Id,
+                    ToId = b.Id,
+                    Regions = way.Path.ToList(),
+                    State = RouteState.Open,
+                    OpenedEventId = road.Id,
                 };
                 world.Routes[route.Id] = route;
                 linked.Add((a.Id, b.Id));

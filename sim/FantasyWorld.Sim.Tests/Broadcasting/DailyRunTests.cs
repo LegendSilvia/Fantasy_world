@@ -653,7 +653,9 @@ public class DailyRunTests : IDisposable
         var env = new Dictionary<string, string>
         {
             ["DISCORD_TEST_WEBHOOK_URL"] = "https://discord.test/api/webhooks/9/SECRET-TOKEN",
-            ["YOUTUBE_CLIENT_ID"] = "id", ["YOUTUBE_CLIENT_SECRET"] = "s", ["YOUTUBE_REFRESH_TOKEN"] = "r", // a dry run uploads only when asked (--upload-unlisted)
+            ["YOUTUBE_CLIENT_ID"] = "id",
+            ["YOUTUBE_CLIENT_SECRET"] = "s",
+            ["YOUTUBE_REFRESH_TOKEN"] = "r", // a dry run uploads only when asked (--upload-unlisted)
         };
         var output = new StringWriter();
 

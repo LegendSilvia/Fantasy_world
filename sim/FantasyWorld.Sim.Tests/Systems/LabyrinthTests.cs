@@ -29,14 +29,27 @@ public class LabyrinthTests
         var opened = log.Append(world.Date, new EventDraft("LabyrinthOpened", Place: world.Regions[2].Ref));
         var maze = new Structure
         {
-            Id = world.Ids.Take(Structure.Kind), Name = "The Deeps of Eastmoor", Type = StructureKind.Labyrinth, RegionId = 2,
-            StartedEventId = opened.Id, CompletedEventId = opened.Id, Progress = 100, State = StructureState.Standing, Levels = 3,
+            Id = world.Ids.Take(Structure.Kind),
+            Name = "The Deeps of Eastmoor",
+            Type = StructureKind.Labyrinth,
+            RegionId = 2,
+            StartedEventId = opened.Id,
+            CompletedEventId = opened.Id,
+            Progress = 100,
+            State = StructureState.Standing,
+            Levels = 3,
         };
         world.Structures[maze.Id] = maze;
         var guardian = new Monster
         {
-            Id = world.Ids.Take(Monster.Kind), Name = "The Minotaur", Breed = "minotaur", RegionId = 2, Might = 50,
-            State = MonsterState.Lairing, RoseEventId = opened.Id, LairStructureId = maze.Id,
+            Id = world.Ids.Take(Monster.Kind),
+            Name = "The Minotaur",
+            Breed = "minotaur",
+            RegionId = 2,
+            Might = 50,
+            State = MonsterState.Lairing,
+            RoseEventId = opened.Id,
+            LairStructureId = maze.Id,
         };
         world.Monsters[guardian.Id] = guardian;
         maze.GuardianId = guardian.Id;

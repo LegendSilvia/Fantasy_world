@@ -19,9 +19,18 @@ public class SuccessionLawTests
         world.Characters.Remove(ruler.Id);
         var king = new Character
         {
-            Id = ruler.Id, Name = ruler.Name, HouseId = ruler.HouseId, Sex = Sex.Male, BirthDay = ruler.BirthDay,
-            CultureId = 1, FaithId = 1, SettlementId = 1, FatherId = father.Id, MotherId = mother.Id,
-            Attributes = ruler.Attributes, Role = Role.Lord,
+            Id = ruler.Id,
+            Name = ruler.Name,
+            HouseId = ruler.HouseId,
+            Sex = Sex.Male,
+            BirthDay = ruler.BirthDay,
+            CultureId = 1,
+            FaithId = 1,
+            SettlementId = 1,
+            FatherId = father.Id,
+            MotherId = mother.Id,
+            Attributes = ruler.Attributes,
+            Role = Role.Lord,
         };
         world.Characters[king.Id] = king;
         father.Children.Add(king.Id);

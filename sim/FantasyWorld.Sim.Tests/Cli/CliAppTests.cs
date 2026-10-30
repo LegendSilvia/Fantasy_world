@@ -309,8 +309,15 @@ public class CliAppTests
         var declared = log.Append(world.Date, new EventDraft("WarDeclared"));
         world.Wars[1] = new War
         {
-            Id = 1, Name = "The Test War", AttackerId = 1, DefenderId = 2, Attackers = { 1 }, Defenders = { 2 },
-            CasusBelli = CasusBelli.Revenge, CasusBelliEventId = cb.Id, DeclaredEventId = declared.Id,
+            Id = 1,
+            Name = "The Test War",
+            AttackerId = 1,
+            DefenderId = 2,
+            Attackers = { 1 },
+            Defenders = { 2 },
+            CasusBelli = CasusBelli.Revenge,
+            CasusBelliEventId = cb.Id,
+            DeclaredEventId = declared.Id,
         };
         using (var store = WorldStore.Open(file.Path)) store.Save(world, log, new EventQueue());
 

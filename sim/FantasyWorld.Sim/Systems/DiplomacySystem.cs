@@ -288,7 +288,9 @@ public sealed class DiplomacySystem : ISimSystem
             Place: world.Settlements[defender.CapitalId].Ref,
             Payload: new Dictionary<string, string>
             {
-                ["casus belli"] = cb.Kind, ["war"] = name, ["odds"] = DeedsSystem.Percent(odds),
+                ["casus belli"] = cb.Kind,
+                ["war"] = name,
+                ["odds"] = DeedsSystem.Percent(odds),
                 ["attacker strength"] = Math.Round(mine).ToString(CultureInfo.InvariantCulture),
                 ["defender strength"] = Math.Round(theirs).ToString(CultureInfo.InvariantCulture),
                 ["hostilities"] = war.HostilitiesDay.ToString(CultureInfo.InvariantCulture),
@@ -313,7 +315,8 @@ public sealed class DiplomacySystem : ISimSystem
                     Payload: new Dictionary<string, string> { ["side"] = side == war.Attackers ? "attackers" : "defenders" },
                     Place: world.Settlements[ally.CapitalId].Ref,
                     Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 1.0) }, Importance: 45, Tags: new[] { "Politics", "War" }));
-            }        return war;
+            }
+        return war;
     }
 
     /// <summary>

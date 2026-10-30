@@ -116,8 +116,12 @@ public static class Awakenings
         c.Dormant = 0;
         var (a, b) = calling.Base switch
         {
-            Classes.Rogue => ("intrigue", "prowess"), Classes.Mage => ("lore", "intrigue"), Classes.Paladin => ("martial", "prowess"),
-            Classes.Warlock => ("lore", "intrigue"), Classes.Ranger => ("prowess", "stewardship"), _ => ("prowess", "martial"),
+            Classes.Rogue => ("intrigue", "prowess"),
+            Classes.Mage => ("lore", "intrigue"),
+            Classes.Paladin => ("martial", "prowess"),
+            Classes.Warlock => ("lore", "intrigue"),
+            Classes.Ranger => ("prowess", "stewardship"),
+            _ => ("prowess", "martial"),
         };
         c.Attributes.Set(a, c.Attributes.Get(a) + 2);
         c.Attributes.Set(b, c.Attributes.Get(b) + 2);
@@ -129,7 +133,12 @@ public static class Awakenings
     {
         var payload = new Dictionary<string, string>
         {
-            ["kind"] = TransformSystem.Awakening, ["title"] = calling.Name, ["text"] = calling.Does, ["from"] = from, ["to"] = c.Class, ["how"] = how,
+            ["kind"] = TransformSystem.Awakening,
+            ["title"] = calling.Name,
+            ["text"] = calling.Does,
+            ["from"] = from,
+            ["to"] = c.Class,
+            ["how"] = how,
         };
         if (how == Slept) payload["slept"] = slept.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var ev = ctx.Emit(new EventDraft("CharacterTransformed", Actors: new Dictionary<string, EntityRef> { ["who"] = c.Ref }, Place: place,

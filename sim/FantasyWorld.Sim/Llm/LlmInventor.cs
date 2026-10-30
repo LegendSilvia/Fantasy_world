@@ -159,8 +159,13 @@ public sealed class LlmInventor(StoryContext story) : IInventor
                         type = "object",
                         properties = new
                         {
-                            candidate = new { type = "integer" }, cause = new { type = "integer" }, cause_text = new { type = "string" },
-                            culprit = new { type = "string" }, hidden = new { type = "boolean" }, title = new { type = "string" }, lore = new { type = "string" },
+                            candidate = new { type = "integer" },
+                            cause = new { type = "integer" },
+                            cause_text = new { type = "string" },
+                            culprit = new { type = "string" },
+                            hidden = new { type = "boolean" },
+                            title = new { type = "string" },
+                            lore = new { type = "string" },
                         },
                         required = new[] { "candidate", "cause", "cause_text", "culprit", "hidden", "title", "lore" },
                         additionalProperties = false,

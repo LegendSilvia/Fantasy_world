@@ -103,7 +103,7 @@ public class VideoTests
     private static string Probe(string file, string entries)
     {
         using var probe = Process.Start(new ProcessStartInfo("ffprobe", $"-v error -select_streams v:0 -show_entries {entries} -of csv=p=0 {file}")
-            { RedirectStandardOutput = true })!;
+        { RedirectStandardOutput = true })!;
         var text = probe.StandardOutput.ReadToEnd().Trim();
         probe.WaitForExit();
         return text;

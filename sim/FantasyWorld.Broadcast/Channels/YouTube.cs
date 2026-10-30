@@ -89,7 +89,8 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
         JsonObject Status() => publishAt is { } at
             ? new JsonObject
             {
-                ["privacyStatus"] = "private", ["publishAt"] = at.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
+                ["privacyStatus"] = "private",
+                ["publishAt"] = at.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
                 ["selfDeclaredMadeForKids"] = false,
             }
             : new JsonObject { ["privacyStatus"] = settings.Privacy, ["selfDeclaredMadeForKids"] = false };
@@ -109,7 +110,9 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             {
                 ["snippet"] = new JsonObject
                 {
-                    ["title"] = shortTitle, ["description"] = ClipBytes(Plain(lines), MaxDescriptionBytes), ["categoryId"] = settings.CategoryId,
+                    ["title"] = shortTitle,
+                    ["description"] = ClipBytes(Plain(lines), MaxDescriptionBytes),
+                    ["categoryId"] = settings.CategoryId,
                     ["tags"] = Tags(episode, shortForm: true),
                 },
                 ["status"] = Status(),
@@ -266,8 +269,11 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             _uploads++;
             var token = await TokenAsync(ct).ConfigureAwait(false);
             var timeline = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
-            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode), vertical, PublishAt(day),
-                vertical ? await WatchUrlAsync(store, day, ct).ConfigureAwait(false) : null)) };
+            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl)
+            {
+                Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode), vertical, PublishAt(day),
+                vertical ? await WatchUrlAsync(store, day, ct).ConfigureAwait(false) : null))
+            };
             start.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Type", "video/mp4");
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Length", mp4.Length.ToString(CultureInfo.InvariantCulture));
@@ -447,8 +453,10 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
         {
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = account1.ClientId, ["client_secret"] = account1.ClientSecret,
-                ["refresh_token"] = account1.RefreshToken, ["grant_type"] = "refresh_token",
+                ["client_id"] = account1.ClientId,
+                ["client_secret"] = account1.ClientSecret,
+                ["refresh_token"] = account1.RefreshToken,
+                ["grant_type"] = "refresh_token",
             }),
         };
         using var response = await SendAsync(request, "sign in", ct).ConfigureAwait(false);

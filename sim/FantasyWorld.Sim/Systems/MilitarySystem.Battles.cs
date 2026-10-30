@@ -108,7 +108,9 @@ public sealed partial class MilitarySystem
         var clash = ctx.Emit(new EventDraft("ChampionsClashed",
             Actors: new Dictionary<string, EntityRef>
             {
-                ["victor"] = victor.Ref, ["vanquished"] = vanquished.Ref, ["war"] = war.Ref,
+                ["victor"] = victor.Ref,
+                ["vanquished"] = vanquished.Ref,
+                ["war"] = war.Ref,
                 ["victor realm"] = world.Realms[(attackerWins ? attacker : defender).RealmId].Ref,
                 ["vanquished realm"] = world.Realms[(attackerWins ? defender : attacker).RealmId].Ref,
             },

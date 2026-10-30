@@ -62,11 +62,11 @@ public sealed class Reputation
                     Add(Actor(e, "delver"), $"who uncovered {secret}");
                     break;
                 case "DuelFought":
-                {
-                    var won = (e.Payload.GetValueOrDefault("outcome") ?? "").StartsWith("attacker", StringComparison.Ordinal) ? Actor(e, "challenger") : Actor(e, "defender");
-                    duels[won] = duels.GetValueOrDefault(won) + 1;
-                    break;
-                }
+                    {
+                        var won = (e.Payload.GetValueOrDefault("outcome") ?? "").StartsWith("attacker", StringComparison.Ordinal) ? Actor(e, "challenger") : Actor(e, "defender");
+                        duels[won] = duels.GetValueOrDefault(won) + 1;
+                        break;
+                    }
                 case "ChampionsClashed":
                     Add(Actor(e, "victor"), "a champion of the hosts");
                     break;

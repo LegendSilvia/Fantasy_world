@@ -78,15 +78,15 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
                 yield return (Id("hunter"), 0.12, 0);
                 break;
             case "DuelFought":
-            {
-                var outcome = deed.Payload.GetValueOrDefault("outcome") ?? "";
-                var challengerWon = outcome.StartsWith("attacker", StringComparison.Ordinal);
-                var (winner, loser) = challengerWon ? (Id("challenger"), Id("defender")) : (Id("defender"), Id("challenger"));
-                // The beaten who live came back from the brink; the one who killed has tasted it.
-                if (!outcome.EndsWith("kills", StringComparison.Ordinal) && outcome != "both_die") yield return (loser, 0.3, winner);
-                else if (outcome != "both_die") yield return (winner, 0.15, 0);
-                break;
-            }
+                {
+                    var outcome = deed.Payload.GetValueOrDefault("outcome") ?? "";
+                    var challengerWon = outcome.StartsWith("attacker", StringComparison.Ordinal);
+                    var (winner, loser) = challengerWon ? (Id("challenger"), Id("defender")) : (Id("defender"), Id("challenger"));
+                    // The beaten who live came back from the brink; the one who killed has tasted it.
+                    if (!outcome.EndsWith("kills", StringComparison.Ordinal) && outcome != "both_die") yield return (loser, 0.3, winner);
+                    else if (outcome != "both_die") yield return (winner, 0.15, 0);
+                    break;
+                }
             case "ChampionsClashed" when deed.Payload.GetValueOrDefault("outcome") != "slew":
                 yield return (Id("vanquished"), 0.3, Id("victor"));
                 break;
@@ -111,8 +111,11 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
         if (kind == Awakening && !woken && ctx.Rng.Chance(DormantChance))
         {
             ctx.Queue.Schedule(ctx.Date.AddDays(ctx.Rng.NextInt(WorldDate.DaysPerYear, 5 * WorldDate.DaysPerYear + 1)), DormantKind,
-                new Dictionary<string, string> { ["who"] = c.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    ["deed"] = deed.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+                new Dictionary<string, string>
+                {
+                    ["who"] = c.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ["deed"] = deed.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                });
             c.ChangedDay = ctx.Date.Day;
             c.Dormant = deed.Id;
             return;
@@ -125,29 +128,29 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
         switch (kind)
         {
             case Awakening:
-            {
-                var awakened = Awakenings.Invent(world, c, deed, _inventor, woken ? Awakenings.Slept : Awakenings.Now, ctx.Date.Day);
-                var was = c.Class;
-                Awakenings.Take(world, c, awakened);
-                Awakenings.Announce(ctx, c, awakened, was, deed.Id, woken ? Awakenings.Slept : Awakenings.Now, deed.Place, slept);
-                return;
-            }
+                {
+                    var awakened = Awakenings.Invent(world, c, deed, _inventor, woken ? Awakenings.Slept : Awakenings.Now, ctx.Date.Day);
+                    var was = c.Class;
+                    Awakenings.Take(world, c, awakened);
+                    Awakenings.Announce(ctx, c, awakened, was, deed.Id, woken ? Awakenings.Slept : Awakenings.Now, deed.Place, slept);
+                    return;
+                }
             case Art:
-            {
-                var known = c.Abilities.Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var fallback = (Arts.TryGetValue(Classes.Base(calling), out var arts) ? arts : [])
-                    .Append((Name: "The Last Stand", Text: "a way of fighting no one else knows")).FirstOrDefault(a => !known.Contains(a.Name));
-                if (fallback.Name is null) { Raise(c, Classes.Base(calling), 1); return; } // every art of their calling already theirs
-                var named = _inventor.Invent(new InventionBrief("fighting art", $"{c.Ref}|art|{ctx.Date.Day}",
-                    facts + " From it they make an art of fighting all their own: name it, and tell what it does in a fight.", fallback.Name));
-                title = Clean(named.Name, 40) is { Length: > 0 } n ? n : fallback.Name;
-                text = named.Lore is { Length: > 0 } lore ? Clean(lore, 300) : fallback.Text;
-                // An art they already have is not learned twice (an inventor may name an old one again).
-                if (known.Contains(title)) { Raise(c, Classes.Base(calling), 1); return; }
-                c.Abilities.Add(new Ability(title, text));
-                Raise(c, Classes.Base(calling), 1);
-                break;
-            }
+                {
+                    var known = c.Abilities.Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var fallback = (Arts.TryGetValue(Classes.Base(calling), out var arts) ? arts : [])
+                        .Append((Name: "The Last Stand", Text: "a way of fighting no one else knows")).FirstOrDefault(a => !known.Contains(a.Name));
+                    if (fallback.Name is null) { Raise(c, Classes.Base(calling), 1); return; } // every art of their calling already theirs
+                    var named = _inventor.Invent(new InventionBrief("fighting art", $"{c.Ref}|art|{ctx.Date.Day}",
+                        facts + " From it they make an art of fighting all their own: name it, and tell what it does in a fight.", fallback.Name));
+                    title = Clean(named.Name, 40) is { Length: > 0 } n ? n : fallback.Name;
+                    text = named.Lore is { Length: > 0 } lore ? Clean(lore, 300) : fallback.Text;
+                    // An art they already have is not learned twice (an inventor may name an old one again).
+                    if (known.Contains(title)) { Raise(c, Classes.Base(calling), 1); return; }
+                    c.Abilities.Add(new Ability(title, text));
+                    Raise(c, Classes.Base(calling), 1);
+                    break;
+                }
             case Vengeance:
                 (from, to) = (c.Ambition, Ambitions.Vengeance);
                 c.Ambition = Ambitions.Vengeance;
@@ -155,15 +158,15 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
                 text = $"sworn to destroy {foe.Name}";
                 break;
             default:
-            {
-                var wants = new[] { Ambitions.Renown, Ambitions.Artifact, Ambitions.Magic, Ambitions.Wealth, Ambitions.Family }.Where(a => a != c.Ambition).ToList();
-                var want = wants[ctx.Rng.NextInt(0, wants.Count)];
-                (from, to) = (c.Ambition, want);
-                c.Ambition = want;
-                c.AmbitionTarget = 0;
-                text = Desires[want];
-                break;
-            }
+                {
+                    var wants = new[] { Ambitions.Renown, Ambitions.Artifact, Ambitions.Magic, Ambitions.Wealth, Ambitions.Family }.Where(a => a != c.Ambition).ToList();
+                    var want = wants[ctx.Rng.NextInt(0, wants.Count)];
+                    (from, to) = (c.Ambition, want);
+                    c.Ambition = want;
+                    c.AmbitionTarget = 0;
+                    text = Desires[want];
+                    break;
+                }
         }
         c.ChangedDay = ctx.Date.Day;
         var actors = new Dictionary<string, EntityRef> { ["who"] = c.Ref };
@@ -191,8 +194,12 @@ public sealed class TransformSystem(IInventor? inventor = null) : ISimSystem
     {
         var (a, b) = calling switch
         {
-            Classes.Rogue => ("intrigue", "prowess"), Classes.Mage => ("lore", "intrigue"), Classes.Paladin => ("martial", "prowess"),
-            Classes.Warlock => ("lore", "intrigue"), Classes.Ranger => ("prowess", "stewardship"), _ => ("prowess", "martial"),
+            Classes.Rogue => ("intrigue", "prowess"),
+            Classes.Mage => ("lore", "intrigue"),
+            Classes.Paladin => ("martial", "prowess"),
+            Classes.Warlock => ("lore", "intrigue"),
+            Classes.Ranger => ("prowess", "stewardship"),
+            _ => ("prowess", "martial"),
         };
         c.Attributes.Set(a, c.Attributes.Get(a) + by);
         c.Attributes.Set(b, c.Attributes.Get(b) + by);

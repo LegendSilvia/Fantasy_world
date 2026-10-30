@@ -120,12 +120,19 @@ public sealed class PrayerSystem : ISimSystem
             var offered = ctx.Emit(new EventDraft("PrayerOffered", Actors: actors, Place: world.Settlements[need.Supplicant.SettlementId].Ref,
                 Payload: new Dictionary<string, string>
                 {
-                    ["plea"] = need.Plea, ["god"] = faith.Deity, ["prayer"] = id.ToString(CultureInfo.InvariantCulture),
+                    ["plea"] = need.Plea,
+                    ["god"] = faith.Deity,
+                    ["prayer"] = id.ToString(CultureInfo.InvariantCulture),
                 },
                 Importance: 30, Tags: new[] { "Faith" }));
             world.Prayers[id] = new Prayer
             {
-                Id = id, EventId = offered.Id, SupplicantId = need.Supplicant.Id, FaithId = faith.Id, Plea = need.Plea, About = need.About,
+                Id = id,
+                EventId = offered.Id,
+                SupplicantId = need.Supplicant.Id,
+                FaithId = faith.Id,
+                Plea = need.Plea,
+                About = need.About,
                 Day = ctx.Date.Day,
             };
         }
@@ -225,8 +232,10 @@ public sealed class PrayerSystem : ISimSystem
         if (!ctx.Log.TryGet(declaredEventId, out var declared) || !Blessable(world, ctx.Log, declared)) return null;
         var key = (declared.Type, firstSide) switch
         {
-            ("DuelDeclared" or "ClashBegun", true) => "challenger", ("DuelDeclared" or "ClashBegun", false) => "defender",
-            ("WarDeclared", true) => "attacker", ("WarDeclared", false) => "defender",
+            ("DuelDeclared" or "ClashBegun", true) => "challenger",
+            ("DuelDeclared" or "ClashBegun", false) => "defender",
+            ("WarDeclared", true) => "attacker",
+            ("WarDeclared", false) => "defender",
             _ => null,
         };
         if (key is null || !declared.Actors.TryGetValue(key, out var blessed)) return null;

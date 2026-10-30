@@ -143,44 +143,44 @@ public static class FaceOffs
         {
             case "DuelBegun" or "DuelTurned" or "DuelFought" when ev.Actors.TryGetValue("challenger", out var a) && ev.Actors.TryGetValue("defender", out var b)
                                                                  && world.Characters.TryGetValue(a.Id, out var challenger) && world.Characters.TryGetValue(b.Id, out var defender):
-            {
-                var stakes = ev.Payload.GetValueOrDefault("stakes") ?? "first blood";
-                var (sa, sb) = (Fighter(world, challenger, "crimson"), Fighter(world, defender, "azure"));
-                if (ev.Type != "DuelFought") return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, DeclaredOdds(log, ev), FaceOff.UnderWay, soFar);
-                var outcome = ev.Payload.GetValueOrDefault("outcome") ?? "";
-                var challengerWon = outcome.StartsWith("attacker", StringComparison.Ordinal);
-                var (winner, loser) = challengerWon ? (sa.Name, sb.Name) : (sb.Name, sa.Name);
-                var both = outcome == "both_die";
-                var how = both ? "both were slain"
-                    : outcome.EndsWith("kills", StringComparison.Ordinal) ? $"{loser} was slain"
-                    : outcome.EndsWith("maims", StringComparison.Ordinal) ? $"{loser} was maimed"
-                    : outcome.EndsWith("wounds", StringComparison.Ordinal) ? "both were wounded"
-                    : outcome.EndsWith("escaped", StringComparison.Ordinal) ? $"{loser} was wounded but escaped" : $"{loser} yielded";
-                var (won, lost) = (both ? Fates.Slain : Fates.Victor, Fates.OfLoser(outcome));
-                (sa, sb) = challengerWon ? (sa with { Fate = won }, sb with { Fate = lost }) : (sa with { Fate = lost }, sb with { Fate = won });
-                return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, challengerWon ? 100 : 0, FaceOff.Fought,
-                    both ? $"Neither won{(days is null ? "" : $" after {days} days")}; {how}." : $"{winner} won{(days is null ? "" : $" after {days} days")}; {how}.");
-            }
+                {
+                    var stakes = ev.Payload.GetValueOrDefault("stakes") ?? "first blood";
+                    var (sa, sb) = (Fighter(world, challenger, "crimson"), Fighter(world, defender, "azure"));
+                    if (ev.Type != "DuelFought") return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, DeclaredOdds(log, ev), FaceOff.UnderWay, soFar);
+                    var outcome = ev.Payload.GetValueOrDefault("outcome") ?? "";
+                    var challengerWon = outcome.StartsWith("attacker", StringComparison.Ordinal);
+                    var (winner, loser) = challengerWon ? (sa.Name, sb.Name) : (sb.Name, sa.Name);
+                    var both = outcome == "both_die";
+                    var how = both ? "both were slain"
+                        : outcome.EndsWith("kills", StringComparison.Ordinal) ? $"{loser} was slain"
+                        : outcome.EndsWith("maims", StringComparison.Ordinal) ? $"{loser} was maimed"
+                        : outcome.EndsWith("wounds", StringComparison.Ordinal) ? "both were wounded"
+                        : outcome.EndsWith("escaped", StringComparison.Ordinal) ? $"{loser} was wounded but escaped" : $"{loser} yielded";
+                    var (won, lost) = (both ? Fates.Slain : Fates.Victor, Fates.OfLoser(outcome));
+                    (sa, sb) = challengerWon ? (sa with { Fate = won }, sb with { Fate = lost }) : (sa with { Fate = lost }, sb with { Fate = won });
+                    return new FaceOff(FaceOff.Duel, ev.Id, stakes, sa, sb, challengerWon ? 100 : 0, FaceOff.Fought,
+                        both ? $"Neither won{(days is null ? "" : $" after {days} days")}; {how}." : $"{winner} won{(days is null ? "" : $" after {days} days")}; {how}.");
+                }
             case "BattleJoined" or "BattleTurned" when ev.Actors.TryGetValue("attacker", out var a) && ev.Actors.TryGetValue("defender", out var b)
                                                        && world.Realms.TryGetValue(a.Id, out var attacker) && world.Realms.TryGetValue(b.Id, out var defender):
-            {
-                var (sa, sd) = (DiplomacySystem.Strength(world, attacker), DiplomacySystem.Strength(world, defender));
-                return Scaled(new FaceOff(FaceOff.War, ev.Id, place is null ? "battle" : $"the battle at {place}",
-                    Host(world, attacker, sa, Math.Max(sa, sd)), Host(world, defender, sd, Math.Max(sa, sd)), DeclaredOdds(log, ev), FaceOff.UnderWay, soFar));
-            }
+                {
+                    var (sa, sd) = (DiplomacySystem.Strength(world, attacker), DiplomacySystem.Strength(world, defender));
+                    return Scaled(new FaceOff(FaceOff.War, ev.Id, place is null ? "battle" : $"the battle at {place}",
+                        Host(world, attacker, sa, Math.Max(sa, sd)), Host(world, defender, sd, Math.Max(sa, sd)), DeclaredOdds(log, ev), FaceOff.UnderWay, soFar));
+                }
             case "BattleFought" when ev.Actors.TryGetValue("victor", out var a) && ev.Actors.TryGetValue("vanquished", out var b)
                                      && world.Realms.TryGetValue(a.Id, out var victor) && world.Realms.TryGetValue(b.Id, out var vanquished):
-            {
-                var (sv, sq) = (DiplomacySystem.Strength(world, victor), DiplomacySystem.Strength(world, vanquished));
-                double Lost(string key) => double.TryParse(ev.Payload.GetValueOrDefault(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0;
-                var (lv, lq) = (Lost("victor losses"), Lost("vanquished losses"));
-                FaceOffSide WithLosses(FaceOffSide side, double lost) =>
-                    side with { Stats = side.Stats.Prepend(new FaceOffStat("Losses", lost, Math.Max(1, Math.Max(lv, lq)))).ToList() };
-                var f = Scaled(new FaceOff(FaceOff.War, ev.Id, place is null ? "battle" : $"the battle at {place}",
-                    Host(world, victor, sv, Math.Max(sv, sq)), Host(world, vanquished, sq, Math.Max(sv, sq)), 100, FaceOff.Fought,
-                    $"{victor.Name} won{(days is null ? "" : $" after {days} days")}; {Number(lv)} of theirs and {Number(lq)} of {vanquished.Name}'s fell."));
-                return f with { A = WithLosses(f.A, lv) with { Fate = Fates.Victorious }, B = WithLosses(f.B, lq) with { Fate = Fates.Defeated } };
-            }
+                {
+                    var (sv, sq) = (DiplomacySystem.Strength(world, victor), DiplomacySystem.Strength(world, vanquished));
+                    double Lost(string key) => double.TryParse(ev.Payload.GetValueOrDefault(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0;
+                    var (lv, lq) = (Lost("victor losses"), Lost("vanquished losses"));
+                    FaceOffSide WithLosses(FaceOffSide side, double lost) =>
+                        side with { Stats = side.Stats.Prepend(new FaceOffStat("Losses", lost, Math.Max(1, Math.Max(lv, lq)))).ToList() };
+                    var f = Scaled(new FaceOff(FaceOff.War, ev.Id, place is null ? "battle" : $"the battle at {place}",
+                        Host(world, victor, sv, Math.Max(sv, sq)), Host(world, vanquished, sq, Math.Max(sv, sq)), 100, FaceOff.Fought,
+                        $"{victor.Name} won{(days is null ? "" : $" after {days} days")}; {Number(lv)} of theirs and {Number(lq)} of {vanquished.Name}'s fell."));
+                    return f with { A = WithLosses(f.A, lv) with { Fate = Fates.Victorious }, B = WithLosses(f.B, lq) with { Fate = Fates.Defeated } };
+                }
             default:
                 return null;
         }
@@ -288,7 +288,7 @@ public static class FaceOffs
         var strengths = (a.Length, b.Length) switch
         {
             (0, 0) => "They are evenly matched.",
-            (> 0, 0) => $"{f.A.Name} has the better of it in {a}.",
+            ( > 0, 0) => $"{f.A.Name} has the better of it in {a}.",
             (0, > 0) => $"{f.B.Name} has the better of it in {b}.",
             _ => $"{f.A.Name} is the stronger in {a}; {f.B.Name} in {b}.",
         };

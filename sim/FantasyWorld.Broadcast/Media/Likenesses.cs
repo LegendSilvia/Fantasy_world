@@ -63,8 +63,11 @@ public sealed class FluxImages(HttpClient http, string baseUrl, string accessKey
     {
         var body = new JsonObject
         {
-            ["prompt"] = request.Prompt, ["scenario"] = request.Scenario, ["style"] = request.Style,
-            ["transparent"] = request.Transparent, ["seed"] = request.Seed,
+            ["prompt"] = request.Prompt,
+            ["scenario"] = request.Scenario,
+            ["style"] = request.Style,
+            ["transparent"] = request.Transparent,
+            ["seed"] = request.Seed,
         };
         if (request.Width is { } width) body["width"] = width;
         if (request.Height is { } height) body["height"] = height;
@@ -343,8 +346,15 @@ public static class Likenesses
                 : world.Cultures.TryGetValue(c.CultureId, out var cu) ? $" of the {cu.Name} people" : "";
             var role = c.Role switch
             {
-                Role.Lord => "noble lord", Role.Knight => "knight", Role.Mage => "mage", Role.Priest => "priest", Role.Merchant => "merchant",
-                Role.Elder => "village elder", Role.Adventurer => "adventurer", Role.Rebel => "rebel", _ => "commoner",
+                Role.Lord => "noble lord",
+                Role.Knight => "knight",
+                Role.Mage => "mage",
+                Role.Priest => "priest",
+                Role.Merchant => "merchant",
+                Role.Elder => "village elder",
+                Role.Adventurer => "adventurer",
+                Role.Rebel => "rebel",
+                _ => "commoner",
             };
             var (who, dress) = (c.Sex == Sex.Female ? "woman" : "man",
                 world.Realms.Values.FirstOrDefault(r => Realms.RulerOf(world, r)?.HouseId == c.HouseId && c.HouseId != 0) is { } realm
@@ -369,8 +379,12 @@ public static class Likenesses
             var rank = r2.Rank.ToString().ToLowerInvariant();
             var crest = r2.Government switch
             {
-                Government.Theocracy => "a holy sun emblem", Government.Magocracy => "an arcane star emblem", Government.MerchantRepublic => "a ship emblem",
-                Government.Tribal => "a beast's head emblem", Government.ElectiveKingdom => "a crowned tower emblem", _ => "a crowned lion emblem",
+                Government.Theocracy => "a holy sun emblem",
+                Government.Magocracy => "an arcane star emblem",
+                Government.MerchantRepublic => "a ship emblem",
+                Government.Tribal => "a beast's head emblem",
+                Government.ElectiveKingdom => "a crowned tower emblem",
+                _ => "a crowned lion emblem",
             };
             // A hanging pennant, flat and seen straight on (the owner, 2026-10-28): cloth on a gilded crossbar, a pointed
             // foot, a stitched border, the crest at its heart.

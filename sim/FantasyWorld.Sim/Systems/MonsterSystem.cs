@@ -126,8 +126,14 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
             Importance: 45, Tags: new[] { "Magic" }));
         world.Monsters[id] = new Monster
         {
-            Id = id, Name = invention.Name, Breed = breed, RegionId = region.Id, Might = Math.Clamp(45 + ctx.Rng.NextInt(0, 31), 1, 100),
-            BornDay = ctx.Date.Day, State = MonsterState.Roaming, RoseEventId = rose.Id,
+            Id = id,
+            Name = invention.Name,
+            Breed = breed,
+            RegionId = region.Id,
+            Might = Math.Clamp(45 + ctx.Rng.NextInt(0, 31), 1, 100),
+            BornDay = ctx.Date.Day,
+            State = MonsterState.Roaming,
+            RoseEventId = rose.Id,
         };
     }
 
@@ -156,8 +162,14 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
                 Importance: 40, Tags: new[] { "Magic" }));
             world.Monsters[id] = new Monster
             {
-                Id = id, Name = invention.Name, Breed = breed, RegionId = region.Id, Might = Math.Clamp(20 + region.Danger / 2 + ctx.Rng.NextInt(0, 21), 1, 100),
-                BornDay = ctx.Date.Day, State = MonsterState.Roaming, RoseEventId = rose.Id,
+                Id = id,
+                Name = invention.Name,
+                Breed = breed,
+                RegionId = region.Id,
+                Might = Math.Clamp(20 + region.Danger / 2 + ctx.Rng.NextInt(0, 21), 1, 100),
+                BornDay = ctx.Date.Day,
+                State = MonsterState.Roaming,
+                RoseEventId = rose.Id,
             };
             return; // at most one a year
         }

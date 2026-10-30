@@ -148,7 +148,10 @@ public class LlmArbiterTests
     private static string Battle(string outcome, int days, int victor, int vanquished, string n1, string n2) =>
         JsonSerializer.Serialize(new
         {
-            outcome, days, victor_losses = victor, vanquished_losses = vanquished,
+            outcome,
+            days,
+            victor_losses = victor,
+            vanquished_losses = vanquished,
             chapters = new[] { new { day = 1, text = "The lines met." }, new { day = days, text = "The field was won." } },
             fates = new { n1, n2 },
         });

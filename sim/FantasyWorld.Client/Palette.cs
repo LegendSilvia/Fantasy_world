@@ -36,9 +36,17 @@ public static class Palette
 
     private static readonly Dictionary<string, Vector3> Heraldry = new(StringComparer.Ordinal)
     {
-        ["crimson"] = BlockMesh.Hex(0xa8323a), ["azure"] = Realm, ["gold"] = BlockMesh.Hex(0xc9a227), ["silver"] = BlockMesh.Hex(0x9aa0a6),
-        ["sable"] = Ink, ["vert"] = BlockMesh.Hex(0x3f7d4e), ["purpure"] = BlockMesh.Hex(0x6d4c8f), ["orange"] = Conflict,
-        ["white"] = Card, ["russet"] = BlockMesh.Hex(0x8b4a2b), ["grey"] = Muted,
+        ["crimson"] = BlockMesh.Hex(0xa8323a),
+        ["azure"] = Realm,
+        ["gold"] = BlockMesh.Hex(0xc9a227),
+        ["silver"] = BlockMesh.Hex(0x9aa0a6),
+        ["sable"] = Ink,
+        ["vert"] = BlockMesh.Hex(0x3f7d4e),
+        ["purpure"] = BlockMesh.Hex(0x6d4c8f),
+        ["orange"] = Conflict,
+        ["white"] = Card,
+        ["russet"] = BlockMesh.Hex(0x8b4a2b),
+        ["grey"] = Muted,
     };
 
     /// <summary>A realm's heraldic colour name (e.g. "azure") as a colour; unknown names are muted.</summary>

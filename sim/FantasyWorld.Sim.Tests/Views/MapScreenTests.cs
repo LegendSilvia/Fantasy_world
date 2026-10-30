@@ -88,12 +88,30 @@ public class MapScreenTests
         var opened = log.Append(world.Date, new EventDraft("LabyrinthOpened", Place: world.Regions[2].Ref));
         var maze = new Structure
         {
-            Id = world.Ids.Take(Structure.Kind), Name = "The Deeps", Type = StructureKind.Labyrinth, RegionId = 2, StartedEventId = opened.Id,
-            CompletedEventId = opened.Id, Progress = 100, State = StructureState.Standing, Levels = 5, Depth = 2,
+            Id = world.Ids.Take(Structure.Kind),
+            Name = "The Deeps",
+            Type = StructureKind.Labyrinth,
+            RegionId = 2,
+            StartedEventId = opened.Id,
+            CompletedEventId = opened.Id,
+            Progress = 100,
+            State = StructureState.Standing,
+            Levels = 5,
+            Depth = 2,
         };
         world.Structures[maze.Id] = maze;
-        var guardian = new Monster { Id = world.Ids.Take(Monster.Kind), Name = "The Lich", Breed = "lich", RegionId = 2, Might = 60,
-            State = MonsterState.Lairing, RoseEventId = opened.Id, LairStructureId = maze.Id, RevealedEventId = opened.Id }; // seen, so on the map
+        var guardian = new Monster
+        {
+            Id = world.Ids.Take(Monster.Kind),
+            Name = "The Lich",
+            Breed = "lich",
+            RegionId = 2,
+            Might = 60,
+            State = MonsterState.Lairing,
+            RoseEventId = opened.Id,
+            LairStructureId = maze.Id,
+            RevealedEventId = opened.Id
+        }; // seen, so on the map
         world.Monsters[guardian.Id] = guardian;
         maze.GuardianId = guardian.Id;
 

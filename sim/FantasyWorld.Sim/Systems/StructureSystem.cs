@@ -175,9 +175,18 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 Importance: Fates.Importance(lord, 30), Tags: new[] { "Structures" }));
             world.Structures[id] = new Structure
             {
-                Id = id, Name = invention.Name, Type = StructureKind.Landmark, RegionId = seat.RegionId, SettlementId = seat.Id,
-                BuilderId = lord.Id, ArchitectId = architect?.Id ?? 0, StartedEventId = begun.Id, State = StructureState.Building,
-                Rushed = lord.Has(Traits.Ambitious) || lord.Has(Traits.Wrathful), Purpose = purpose, ForEventId = remembered,
+                Id = id,
+                Name = invention.Name,
+                Type = StructureKind.Landmark,
+                RegionId = seat.RegionId,
+                SettlementId = seat.Id,
+                BuilderId = lord.Id,
+                ArchitectId = architect?.Id ?? 0,
+                StartedEventId = begun.Id,
+                State = StructureState.Building,
+                Rushed = lord.Has(Traits.Ambitious) || lord.Has(Traits.Wrathful),
+                Purpose = purpose,
+                ForEventId = remembered,
             };
         }
     }
@@ -224,8 +233,15 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 Causes: new[] { new Cause(siege.Id, CauseKind.Motive, 0.8) }, Importance: Fates.Importance(lord, 30), Tags: new[] { "Structures", "War" }));
             world.Structures[id] = new Structure
             {
-                Id = id, Name = invention.Name, Type = StructureKind.Fortification, RegionId = seat.RegionId, SettlementId = seat.Id,
-                BuilderId = lord.Id, ArchitectId = Architect(world, seat, ctx.Date)?.Id ?? 0, StartedEventId = begun.Id, State = StructureState.Building,
+                Id = id,
+                Name = invention.Name,
+                Type = StructureKind.Fortification,
+                RegionId = seat.RegionId,
+                SettlementId = seat.Id,
+                BuilderId = lord.Id,
+                ArchitectId = Architect(world, seat, ctx.Date)?.Id ?? 0,
+                StartedEventId = begun.Id,
+                State = StructureState.Building,
             };
         }
     }
@@ -331,16 +347,29 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 Importance: 50, Tags: new[] { "Structures", "Magic" }));
             world.Structures[id] = new Structure
             {
-                Id = id, Name = invention.Name, Type = StructureKind.Labyrinth, RegionId = region.Id,
-                StartedEventId = opened.Id, CompletedEventId = opened.Id, Progress = 100, State = StructureState.Standing,
-                Levels = levels, GuardianId = guardianId,
+                Id = id,
+                Name = invention.Name,
+                Type = StructureKind.Labyrinth,
+                RegionId = region.Id,
+                StartedEventId = opened.Id,
+                CompletedEventId = opened.Id,
+                Progress = 100,
+                State = StructureState.Standing,
+                Levels = levels,
+                GuardianId = guardianId,
             };
             var deeps = invention.Name.StartsWith("The ", StringComparison.Ordinal) ? "the " + invention.Name[4..] : invention.Name;
             world.Monsters[guardianId] = new Monster
             {
-                Id = guardianId, Name = $"The {char.ToUpperInvariant(breed[0])}{breed[1..]} of {deeps}", Breed = breed, RegionId = region.Id,
-                Might = Math.Clamp(30 + 8 * levels + ctx.Rng.NextInt(0, 11), 1, 100), BornDay = ctx.Date.Day, State = MonsterState.Lairing,
-                RoseEventId = opened.Id, LairStructureId = id,
+                Id = guardianId,
+                Name = $"The {char.ToUpperInvariant(breed[0])}{breed[1..]} of {deeps}",
+                Breed = breed,
+                RegionId = region.Id,
+                Might = Math.Clamp(30 + 8 * levels + ctx.Rng.NextInt(0, 11), 1, 100),
+                BornDay = ctx.Date.Day,
+                State = MonsterState.Lairing,
+                RoseEventId = opened.Id,
+                LairStructureId = id,
             };
             region.Danger = Math.Min(100, region.Danger + 15);
             // Its treasures (sub-project 13): one every other level, the deeper the more famous, the greatest at the bottom.
@@ -372,8 +401,15 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 Importance: 25, Tags: new[] { "Structures" }));
             world.Structures[id] = new Structure
             {
-                Id = id, Name = $"The Ruins of {town.Name}", Type = StructureKind.Ruin, RegionId = town.RegionId, SettlementId = town.Id,
-                StartedEventId = fell.Id, CompletedEventId = fell.Id, Progress = 100, State = StructureState.Ruined,
+                Id = id,
+                Name = $"The Ruins of {town.Name}",
+                Type = StructureKind.Ruin,
+                RegionId = town.RegionId,
+                SettlementId = town.Id,
+                StartedEventId = fell.Id,
+                CompletedEventId = fell.Id,
+                Progress = 100,
+                State = StructureState.Ruined,
             };
             foreach (var work in world.Structures.Values.Where(s => s.SettlementId == town.Id && s.Type is StructureKind.Landmark or StructureKind.Fortification && s.State != StructureState.Ruined))
                 work.State = StructureState.Ruined;

@@ -217,8 +217,15 @@ public sealed class FaithSystem(IInventor? inventor = null) : ISimSystem
             Causes: new[] { new Cause(strain, CauseKind.Motive, 0.8) }, Importance: 55, Tags: new[] { "Faith" }));
         world.Faiths[id] = new Faith
         {
-            Id = id, Name = invention.Name, Deity = old.Deity, Tenets = tenets, HolyRegionId = home.Id, Zeal = 60,
-            ParentFaithId = old.Id, FounderId = heresiarch.Id, FoundedEventId = schism.Id,
+            Id = id,
+            Name = invention.Name,
+            Deity = old.Deity,
+            Tenets = tenets,
+            HolyRegionId = home.Id,
+            Zeal = 60,
+            ParentFaithId = old.Id,
+            FounderId = heresiarch.Id,
+            FoundedEventId = schism.Id,
         };
         old.Zeal = Math.Max(0, old.Zeal - 20);
         heresiarch.FaithId = id;
@@ -252,8 +259,14 @@ public sealed class FaithSystem(IInventor? inventor = null) : ISimSystem
             if (town is null) continue;
             world.Artifacts[relicId] = new Artifact
             {
-                Id = relicId, Name = $"The Relics of Saint {c.Name}", Type = ArtifactType.Relic, Material = "bone", OriginEventId = declared.Id,
-                Fame = Math.Min(100, c.Renown / 2), Place = ArtifactPlace.Treasury, SettlementId = town.Id,
+                Id = relicId,
+                Name = $"The Relics of Saint {c.Name}",
+                Type = ArtifactType.Relic,
+                Material = "bone",
+                OriginEventId = declared.Id,
+                Fame = Math.Min(100, c.Renown / 2),
+                Place = ArtifactPlace.Treasury,
+                SettlementId = town.Id,
                 Powers = { new ArtifactPower("devotion", null, 1) },
                 Provenance = { new ProvenanceEntry(declared.Id, c.Id, 0, "enshrined") },
             };

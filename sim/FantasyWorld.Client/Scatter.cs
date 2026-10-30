@@ -28,8 +28,16 @@ public static class Scatter
 
     public static double Density(Biome biome) => biome switch
     {
-        Biome.Forest => 0.75, Biome.Jungle => 0.85, Biome.Taiga => 0.7, Biome.Swamp => 0.3, Biome.Savanna => 0.08,
-        Biome.Grassland => 0.04, Biome.Hills => 0.12, Biome.Mountain => 0.02, Biome.Tundra => 0.02, _ => 0,
+        Biome.Forest => 0.75,
+        Biome.Jungle => 0.85,
+        Biome.Taiga => 0.7,
+        Biome.Swamp => 0.3,
+        Biome.Savanna => 0.08,
+        Biome.Grassland => 0.04,
+        Biome.Hills => 0.12,
+        Biome.Mountain => 0.02,
+        Biome.Tundra => 0.02,
+        _ => 0,
     };
 
     /// <summary>Trees on a jittered lattice; each spot is kept with its biome's density. Clearings are kept around the given points.</summary>

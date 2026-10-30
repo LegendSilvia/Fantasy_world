@@ -73,8 +73,14 @@ public class PrayerTests
         var ctx = Context(world);
         var war = new War
         {
-            Id = world.Ids.Take(War.Kind), Name = "The Test War", AttackerId = 1, DefenderId = 2, Attackers = { 1 }, Defenders = { 2 },
-            StartDay = world.Date.Day, HostilitiesDay = world.Date.Day + War.MusterDays,
+            Id = world.Ids.Take(War.Kind),
+            Name = "The Test War",
+            AttackerId = 1,
+            DefenderId = 2,
+            Attackers = { 1 },
+            Defenders = { 2 },
+            StartDay = world.Date.Day,
+            HostilitiesDay = world.Date.Day + War.MusterDays,
         };
         world.Wars[war.Id] = war;
         var declared = ctx.Log.Append(world.Date, new EventDraft("WarDeclared",

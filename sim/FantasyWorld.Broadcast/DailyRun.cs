@@ -125,45 +125,45 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         foreach (var stateful in channels.OfType<IStatefulChannel>()) stateful.Attach(store, log, date);
         if (channels.Count == 0) log.WriteLine("No channel is configured: the episode is stored but posted nowhere.");
         foreach (var channel in channels)
-        foreach (var day in dates)
-        {
-            if (manifest.Day(day).Done(channel.Name))
+            foreach (var day in dates)
             {
-                if (day == date) log.WriteLine($"{channel.Name}: already posted today, not posting again.");
-                continue;
+                if (manifest.Day(day).Done(channel.Name))
+                {
+                    if (day == date) log.WriteLine($"{channel.Name}: already posted today, not posting again.");
+                    continue;
+                }
+                try
+                {
+                    var told = day == date ? episode : await StoredEpisodeAsync(store, day, ct).ConfigureAwait(false);
+                    // Episodes from before the map (or whose map failed) are posted without one.
+                    var map = day == date && _todaysMap is not null ? _todaysMap : await store.GetAsync(MapKey(day), ct).ConfigureAwait(false);
+                    // The narration, when it was made in time; a post never waits for speech that failed.
+                    var audio = manifest.Day(day).Done(Manifest.AudioStep) ? await store.GetAsync(NarrationKey(day), ct).ConfigureAwait(false) : null;
+                    await channel.PublishAsync(told, map, audio, ct).ConfigureAwait(false);
+                }
+                catch (ChannelWaitingException e)
+                {
+                    log.WriteLine($"{channel.Name}: the episode of {day} is not posted yet: {e.Message}");
+                    continue;
+                }
+                catch (Exception e) when (e is ChannelException or IOException or InvalidOperationException && !ct.IsCancellationRequested)
+                {
+                    log.WriteLine($"{channel.Name}: the episode of {day} was not posted: {e.Message} It will be tried again on the next run.");
+                    result = Partial;
+                    continue;
+                }
+                manifest.Day(day).Steps[channel.Name] = clock();
+                try
+                {
+                    await SaveAsync(store, manifest, ct).ConfigureAwait(false);
+                }
+                catch (IOException e)
+                {
+                    log.WriteLine($"error: {channel.Name} was posted, but the manifest could not be saved ({e.Message}); a rerun today would post again.");
+                    return Failed;
+                }
+                log.WriteLine(day == date ? $"{channel.Name}: posted." : $"{channel.Name}: posted the missed episode of {day}.");
             }
-            try
-            {
-                var told = day == date ? episode : await StoredEpisodeAsync(store, day, ct).ConfigureAwait(false);
-                // Episodes from before the map (or whose map failed) are posted without one.
-                var map = day == date && _todaysMap is not null ? _todaysMap : await store.GetAsync(MapKey(day), ct).ConfigureAwait(false);
-                // The narration, when it was made in time; a post never waits for speech that failed.
-                var audio = manifest.Day(day).Done(Manifest.AudioStep) ? await store.GetAsync(NarrationKey(day), ct).ConfigureAwait(false) : null;
-                await channel.PublishAsync(told, map, audio, ct).ConfigureAwait(false);
-            }
-            catch (ChannelWaitingException e)
-            {
-                log.WriteLine($"{channel.Name}: the episode of {day} is not posted yet: {e.Message}");
-                continue;
-            }
-            catch (Exception e) when (e is ChannelException or IOException or InvalidOperationException && !ct.IsCancellationRequested)
-            {
-                log.WriteLine($"{channel.Name}: the episode of {day} was not posted: {e.Message} It will be tried again on the next run.");
-                result = Partial;
-                continue;
-            }
-            manifest.Day(day).Steps[channel.Name] = clock();
-            try
-            {
-                await SaveAsync(store, manifest, ct).ConfigureAwait(false);
-            }
-            catch (IOException e)
-            {
-                log.WriteLine($"error: {channel.Name} was posted, but the manifest could not be saved ({e.Message}); a rerun today would post again.");
-                return Failed;
-            }
-            log.WriteLine(day == date ? $"{channel.Name}: posted." : $"{channel.Name}: posted the missed episode of {day}.");
-        }
 
         await PublishFeedAsync(store, manifest, ct).ConfigureAwait(false);
         await PruneBackupsAsync(store, date, ct).ConfigureAwait(false);

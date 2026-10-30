@@ -55,12 +55,12 @@ public sealed class IdentitySystem(IInventor? inventor = null) : ISimSystem
                 foreach (var kin in dead.Children.Append(dead.SpouseId)) yield return (kin, "grief", 4);
                 break;
             case "DuelFought":
-            {
-                var outcome = ev.Payload.GetValueOrDefault("outcome") ?? "";
-                var loser = outcome.StartsWith("attacker", StringComparison.Ordinal) ? Id("defender") : Id("challenger");
-                if (!outcome.EndsWith("kills", StringComparison.Ordinal) && outcome != "both_die") yield return (loser, "wound", 5);
-                break;
-            }
+                {
+                    var outcome = ev.Payload.GetValueOrDefault("outcome") ?? "";
+                    var loser = outcome.StartsWith("attacker", StringComparison.Ordinal) ? Id("defender") : Id("challenger");
+                    if (!outcome.EndsWith("kills", StringComparison.Ordinal) && outcome != "both_die") yield return (loser, "wound", 5);
+                    break;
+                }
             case "WoundedInBattle":
                 yield return (Id("character"), "wound", 5);
                 break;

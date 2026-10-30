@@ -515,7 +515,8 @@ public sealed class DeedsSystem : ISimSystem
             Place: ctx.World.Settlements[defender.SettlementId].Ref,
             Payload: new Dictionary<string, string>
             {
-                ["stakes"] = stakes, ["odds"] = Percent(odds),
+                ["stakes"] = stakes,
+                ["odds"] = Percent(odds),
                 ["day"] = ctx.Date.AddDays(DuelDelayDays).Day.ToString(CultureInfo.InvariantCulture),
             },
             Causes: grudge is not null ? new[] { new Cause(grudge.EventId, CauseKind.Motive, 0.9) } : null,
@@ -605,25 +606,25 @@ public sealed class DeedsSystem : ISimSystem
         switch (action.Kind)
         {
             case DuelTurnKind:
-            {
-                using var account = ctx.Annotate("account", action.Data.GetValueOrDefault("account"));
-                ctx.Emit(new EventDraft("DuelTurned",
-                    Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
-                    Place: world.Settlements[defender.SettlementId].Ref,
-                    Payload: new Dictionary<string, string> { ["stakes"] = action.Data["stakes"], ["day"] = action.Data["day"], ["days"] = action.Data["days"] },
-                    Causes: new[] { new Cause(begun, CauseKind.Trigger, 1.0) },
-                    Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 18 : 10), Fates.Importance(defender, toTheDeath ? 18 : 10)),
-                    Tags: new[] { "Characters", "Deeds" }));
-                return;
-            }
+                {
+                    using var account = ctx.Annotate("account", action.Data.GetValueOrDefault("account"));
+                    ctx.Emit(new EventDraft("DuelTurned",
+                        Actors: new Dictionary<string, EntityRef> { ["challenger"] = challenger.Ref, ["defender"] = defender.Ref },
+                        Place: world.Settlements[defender.SettlementId].Ref,
+                        Payload: new Dictionary<string, string> { ["stakes"] = action.Data["stakes"], ["day"] = action.Data["day"], ["days"] = action.Data["days"] },
+                        Causes: new[] { new Cause(begun, CauseKind.Trigger, 1.0) },
+                        Importance: Math.Max(Fates.Importance(challenger, toTheDeath ? 18 : 10), Fates.Importance(defender, toTheDeath ? 18 : 10)),
+                        Tags: new[] { "Characters", "Deeds" }));
+                    return;
+                }
             case DuelEndKind:
-            {
-                // The outcome Claude chose, among the same outcomes as on the first day (the stakes fix them).
-                var encounter = Encounters.DuelBetween(world, challenger, defender, toTheDeath, edge: Edge(how));
-                var outcome = encounter.Outcomes.First(o => o.Key == action.Data["outcome"]) with { Account = action.Data.GetValueOrDefault("account") };
-                Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, begun, int.Parse(action.Data["days"], CultureInfo.InvariantCulture), how);
-                return;
-            }
+                {
+                    // The outcome Claude chose, among the same outcomes as on the first day (the stakes fix them).
+                    var encounter = Encounters.DuelBetween(world, challenger, defender, toTheDeath, edge: Edge(how));
+                    var outcome = encounter.Outcomes.First(o => o.Key == action.Data["outcome"]) with { Account = action.Data.GetValueOrDefault("account") };
+                    Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, begun, int.Parse(action.Data["days"], CultureInfo.InvariantCulture), how);
+                    return;
+                }
             default:
                 // A clash's fighters are armed as a challenge's were when it was declared.
                 if (how is not null)

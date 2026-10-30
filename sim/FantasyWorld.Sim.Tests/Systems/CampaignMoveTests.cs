@@ -60,9 +60,17 @@ public class CampaignMoveTests
                     var declared = log.Append(world.Date, new EventDraft("WarDeclared", Causes: new[] { new Cause(cb.Id, CauseKind.Motive, 0.9) }));
                     var war = new War
                     {
-                        Id = world.Ids.Take(War.Kind), Name = "The Long March", AttackerId = attacker.Id, DefenderId = defender.Id,
-                        Attackers = { attacker.Id }, Defenders = { defender.Id }, CasusBelli = CasusBelli.Revenge, CasusBelliEventId = cb.Id,
-                        DeclaredEventId = declared.Id, TargetRegionId = to, StartDay = world.Date.Day,
+                        Id = world.Ids.Take(War.Kind),
+                        Name = "The Long March",
+                        AttackerId = attacker.Id,
+                        DefenderId = defender.Id,
+                        Attackers = { attacker.Id },
+                        Defenders = { defender.Id },
+                        CasusBelli = CasusBelli.Revenge,
+                        CasusBelliEventId = cb.Id,
+                        DeclaredEventId = declared.Id,
+                        TargetRegionId = to,
+                        StartDay = world.Date.Day,
                     };
                     world.Wars[war.Id] = war;
                     var host = MilitarySystem.Mobilise(new SimContext(world, log, new EventQueue(), new Rng(1)), war, attacker);

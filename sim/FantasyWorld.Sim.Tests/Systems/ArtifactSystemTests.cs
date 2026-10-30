@@ -18,8 +18,12 @@ public class ArtifactSystemTests
         var holder = TestPeople.Add(world, 1, 30, traits: new[] { Traits.Trusting });
         var cursed = new Artifact
         {
-            Id = world.Ids.Take(Artifact.Kind), Name = "The Whispering Ring", Curse = "paranoia",
-            Place = ArtifactPlace.Held, HolderId = holder.Id, Powers = { new("attribute", "intrigue", 2) },
+            Id = world.Ids.Take(Artifact.Kind),
+            Name = "The Whispering Ring",
+            Curse = "paranoia",
+            Place = ArtifactPlace.Held,
+            HolderId = holder.Id,
+            Powers = { new("attribute", "intrigue", 2) },
         };
         world.Artifacts[cursed.Id] = cursed;
         var sim = Make(world);

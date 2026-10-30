@@ -78,7 +78,9 @@ public sealed class DiscordWebhook(HttpClient http, string webhookUrl, string us
         if (timeline is { Chapters.Count: > 1 })
             fields.Add(new JsonObject
             {
-                ["name"] = "In this episode", ["value"] = Clip(Speech.Chapters.Lines(timeline.Chapters), MaxField), ["inline"] = false,
+                ["name"] = "In this episode",
+                ["value"] = Clip(Speech.Chapters.Lines(timeline.Chapters), MaxField),
+                ["inline"] = false,
             });
         if (fields.Count > 0) payload["embeds"]![0]!["fields"] = fields;
         // In the message itself, not the embed, so Discord shows the video's player.

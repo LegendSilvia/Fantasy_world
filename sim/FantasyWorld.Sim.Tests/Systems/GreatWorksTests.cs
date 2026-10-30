@@ -31,8 +31,16 @@ public class GreatWorksTests
         var begun = log.Append(world.Date, new EventDraft("LandmarkBegun", Place: seat.Ref));
         var work = new Structure
         {
-            Id = world.Ids.Take(Structure.Kind), Name = "The Spire", Type = StructureKind.Landmark, RegionId = seat.RegionId, SettlementId = seat.Id,
-            BuilderId = lord.Id, StartedEventId = begun.Id, State = StructureState.Building, Rushed = rushed, Progress = progress,
+            Id = world.Ids.Take(Structure.Kind),
+            Name = "The Spire",
+            Type = StructureKind.Landmark,
+            RegionId = seat.RegionId,
+            SettlementId = seat.Id,
+            BuilderId = lord.Id,
+            StartedEventId = begun.Id,
+            State = StructureState.Building,
+            Rushed = rushed,
+            Progress = progress,
         };
         world.Structures[work.Id] = work;
         return work;
@@ -122,8 +130,15 @@ public class GreatWorksTests
         var begun = log.Append(world.Date, new EventDraft("FortificationBegun", Place: seat.Ref));
         var walls = new Structure
         {
-            Id = world.Ids.Take(Structure.Kind), Name = "The Walls", Type = StructureKind.Fortification, RegionId = seat.RegionId, SettlementId = seat.Id,
-            BuilderId = lord.Id, StartedEventId = begun.Id, State = StructureState.Building, Progress = 90,
+            Id = world.Ids.Take(Structure.Kind),
+            Name = "The Walls",
+            Type = StructureKind.Fortification,
+            RegionId = seat.RegionId,
+            SettlementId = seat.Id,
+            BuilderId = lord.Id,
+            StartedEventId = begun.Id,
+            State = StructureState.Building,
+            Progress = 90,
         };
         world.Structures[walls.Id] = walls;
         foreach (var c in world.Characters.Values.Where(c => c.SettlementId == seat.Id)) c.SettlementId = 2;

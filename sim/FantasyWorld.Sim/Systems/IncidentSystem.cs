@@ -361,71 +361,77 @@ public sealed class IncidentSystem(IDecider? decider = null, IInventor? inventor
                 Council(ctx, candidate, choice, payload, actors, causes);
                 break;
             case Incident.Loss:
-            {
-                var realm = world.Realms[Entity(world, candidate.Subject)!.Value.Id];
-                var kind = Stocks.Kinds.Where(k => Stocks.Stock(realm, k) >= 1 && !Stocks.Short(realm, k)).OrderByDescending(k => Stocks.Stock(realm, k)).FirstOrDefault();
-                if (realm.Destroyed || kind is null) return;
-                actors["realm"] = realm.Ref;
-                payload["resource"] = kind;
-                var ev = ctx.Emit(new EventDraft("StoresLost", Actors: actors, Place: world.Settlements[realm.CapitalId].Ref, Payload: payload,
-                    Causes: causes, Importance: 50, Tags: new[] { "Economy", "Politics" }));
-                Stocks.Use(ctx, realm, kind, Stocks.Stock(realm, kind) + 1, ev.Id);
-                Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var realm = world.Realms[Entity(world, candidate.Subject)!.Value.Id];
+                    var kind = Stocks.Kinds.Where(k => Stocks.Stock(realm, k) >= 1 && !Stocks.Short(realm, k)).OrderByDescending(k => Stocks.Stock(realm, k)).FirstOrDefault();
+                    if (realm.Destroyed || kind is null) return;
+                    actors["realm"] = realm.Ref;
+                    payload["resource"] = kind;
+                    var ev = ctx.Emit(new EventDraft("StoresLost", Actors: actors, Place: world.Settlements[realm.CapitalId].Ref, Payload: payload,
+                        Causes: causes, Importance: 50, Tags: new[] { "Economy", "Politics" }));
+                    Stocks.Use(ctx, realm, kind, Stocks.Stock(realm, kind) + 1, ev.Id);
+                    Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
+                    break;
+                }
             case Incident.Plot:
             case Incident.Meeting:
-            {
-                var plotters = candidate.Suspects.Select(s => Entity(world, s.Ref)!.Value).ToList();
-                var target = world.Characters[Entity(world, candidate.Subject)!.Value.Id];
-                if (!target.IsActive || plotters.Any(p => !world.Characters[p.Id].IsActive)) return;
-                var plotter = culprit ?? plotters[0];
-                WorldEvent ev;
-                if (candidate.Kind == Incident.Meeting)
                 {
-                    actors["a"] = plotters[0];
-                    actors["b"] = plotters[1];
-                    actors["target"] = target.Ref;
-                    ev = ctx.Emit(new EventDraft("ConspiratorsMet", Actors: actors, Place: world.Settlements[world.Characters[plotters[0].Id].SettlementId].Ref,
-                        Payload: payload, Causes: causes, Importance: 50, Tags: new[] { "Characters", "Intrigue" }));
-                    Fates.Remember(world.Characters[plotters[0].Id], ev.Id, plotters[1].Id, 40, 60);
-                    Fates.Remember(world.Characters[plotters[1].Id], ev.Id, plotters[0].Id, 40, 60);
+                    var plotters = candidate.Suspects.Select(s => Entity(world, s.Ref)!.Value).ToList();
+                    var target = world.Characters[Entity(world, candidate.Subject)!.Value.Id];
+                    if (!target.IsActive || plotters.Any(p => !world.Characters[p.Id].IsActive)) return;
+                    var plotter = culprit ?? plotters[0];
+                    WorldEvent ev;
+                    if (candidate.Kind == Incident.Meeting)
+                    {
+                        actors["a"] = plotters[0];
+                        actors["b"] = plotters[1];
+                        actors["target"] = target.Ref;
+                        ev = ctx.Emit(new EventDraft("ConspiratorsMet", Actors: actors, Place: world.Settlements[world.Characters[plotters[0].Id].SettlementId].Ref,
+                            Payload: payload, Causes: causes, Importance: 50, Tags: new[] { "Characters", "Intrigue" }));
+                        Fates.Remember(world.Characters[plotters[0].Id], ev.Id, plotters[1].Id, 40, 60);
+                        Fates.Remember(world.Characters[plotters[1].Id], ev.Id, plotters[0].Id, 40, 60);
+                    }
+                    else
+                    {
+                        actors["target"] = target.Ref;
+                        ev = ctx.Emit(new EventDraft("AssassinationPlotted", Actors: actors, Place: world.Settlements[target.SettlementId].Ref,
+                            Payload: payload, Causes: causes, Importance: Fates.Importance(target, 45), Tags: new[] { "Characters", "Intrigue" }));
+                    }
+                    world.Incidents.Add(new Incident(ev.Id, candidate.Kind, year, plotter.ToString(), choice.Hidden, target.Ref.ToString(), Target: target.Ref.ToString()));
+                    break;
                 }
-                else
-                {
-                    actors["target"] = target.Ref;
-                    ev = ctx.Emit(new EventDraft("AssassinationPlotted", Actors: actors, Place: world.Settlements[target.SettlementId].Ref,
-                        Payload: payload, Causes: causes, Importance: Fates.Importance(target, 45), Tags: new[] { "Characters", "Intrigue" }));
-                }
-                world.Incidents.Add(new Incident(ev.Id, candidate.Kind, year, plotter.ToString(), choice.Hidden, target.Ref.ToString(), Target: target.Ref.ToString()));
-                break;
-            }
             case Incident.Outbreak:
-            {
-                var deeps = world.Structures[Entity(world, candidate.Subject)!.Value.Id];
-                var region = world.Regions[deeps.RegionId];
-                var breeds = Monster.BreedsOf(region.Biome).Concat(Monster.GuardianBreeds).ToList();
-                var breed = breeds[Hash.Percent(deeps.Id, 9104, year) % breeds.Count];
-                var id = world.Ids.Take(Monster.Kind);
-                var name = $"The {string.Join(' ', breed.Split(' ').Select(Capital))} of {Lower(deeps.Name)}";
-                actors["structure"] = deeps.Ref;
-                actors["monster"] = new EntityRef(Monster.Kind, id);
-                payload["name"] = name;
-                payload["breed"] = breed;
-                // The beast came out of the deeps: their opening is always among its causes.
-                var outbreakCauses = (causes ?? []).Where(c => c.EventId != deeps.StartedEventId)
-                    .Append(new Cause(deeps.StartedEventId, CauseKind.Enabler, 0.6)).ToArray();
-                var ev = ctx.Emit(new EventDraft("LabyrinthOutbreak", Actors: actors, Place: region.Ref, Payload: payload,
-                    Causes: outbreakCauses, Importance: 55, Tags: new[] { "Magic", "Structures" }));
-                world.Monsters[id] = new Monster
                 {
-                    Id = id, Name = name, Breed = breed, RegionId = region.Id, Might = Math.Clamp(40 + region.Danger / 2 + Hash.Percent(id, 9105, year) / 5, 1, 100),
-                    BornDay = ctx.Date.Day, State = MonsterState.Roaming, RoseEventId = ev.Id,
-                };
-                var owner = Realms.SovereignOf(world, region);
-                Keep(ctx, ev, candidate.Kind, choice, owner?.Ref.ToString() ?? "", "");
-                break;
-            }
+                    var deeps = world.Structures[Entity(world, candidate.Subject)!.Value.Id];
+                    var region = world.Regions[deeps.RegionId];
+                    var breeds = Monster.BreedsOf(region.Biome).Concat(Monster.GuardianBreeds).ToList();
+                    var breed = breeds[Hash.Percent(deeps.Id, 9104, year) % breeds.Count];
+                    var id = world.Ids.Take(Monster.Kind);
+                    var name = $"The {string.Join(' ', breed.Split(' ').Select(Capital))} of {Lower(deeps.Name)}";
+                    actors["structure"] = deeps.Ref;
+                    actors["monster"] = new EntityRef(Monster.Kind, id);
+                    payload["name"] = name;
+                    payload["breed"] = breed;
+                    // The beast came out of the deeps: their opening is always among its causes.
+                    var outbreakCauses = (causes ?? []).Where(c => c.EventId != deeps.StartedEventId)
+                        .Append(new Cause(deeps.StartedEventId, CauseKind.Enabler, 0.6)).ToArray();
+                    var ev = ctx.Emit(new EventDraft("LabyrinthOutbreak", Actors: actors, Place: region.Ref, Payload: payload,
+                        Causes: outbreakCauses, Importance: 55, Tags: new[] { "Magic", "Structures" }));
+                    world.Monsters[id] = new Monster
+                    {
+                        Id = id,
+                        Name = name,
+                        Breed = breed,
+                        RegionId = region.Id,
+                        Might = Math.Clamp(40 + region.Danger / 2 + Hash.Percent(id, 9105, year) / 5, 1, 100),
+                        BornDay = ctx.Date.Day,
+                        State = MonsterState.Roaming,
+                        RoseEventId = ev.Id,
+                    };
+                    var owner = Realms.SovereignOf(world, region);
+                    Keep(ctx, ev, candidate.Kind, choice, owner?.Ref.ToString() ?? "", "");
+                    break;
+                }
             default:
                 More(ctx, candidate, choice, payload, actors, causes, culprit);
                 break;
@@ -446,167 +452,167 @@ public sealed class IncidentSystem(IDecider? decider = null, IInventor? inventor
         switch (candidate.Kind)
         {
             case Incident.Theft:
-            {
-                var artifact = world.Artifacts[subjects[0].Id];
-                if (artifact.Place != ArtifactPlace.Held || !world.Characters.TryGetValue(artifact.HolderId, out var holder) || !holder.IsActive
-                    || holder.Id == doer?.Id) return;
-                actors["artifact"] = artifact.Ref;
-                actors["holder"] = holder.Ref;
-                var ev = Emit("ArtifactTaken", world.Settlements[holder.SettlementId].Ref, Math.Max(50, Fates.Importance(holder, 45)), "Artifacts", "Intrigue");
-                // Into the thief's hands, or, with no thief, lost in the land (to be found again by delvers).
-                if (doer is not null) Fates.MoveToHolder(artifact, doer, ev.Id, "stolen");
-                else Fates.Lose(artifact, world.Settlements[holder.SettlementId].RegionId, ev.Id, holder.Id);
-                Keep(ctx, ev, candidate.Kind, choice, holder.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var artifact = world.Artifacts[subjects[0].Id];
+                    if (artifact.Place != ArtifactPlace.Held || !world.Characters.TryGetValue(artifact.HolderId, out var holder) || !holder.IsActive
+                        || holder.Id == doer?.Id) return;
+                    actors["artifact"] = artifact.Ref;
+                    actors["holder"] = holder.Ref;
+                    var ev = Emit("ArtifactTaken", world.Settlements[holder.SettlementId].Ref, Math.Max(50, Fates.Importance(holder, 45)), "Artifacts", "Intrigue");
+                    // Into the thief's hands, or, with no thief, lost in the land (to be found again by delvers).
+                    if (doer is not null) Fates.MoveToHolder(artifact, doer, ev.Id, "stolen");
+                    else Fates.Lose(artifact, world.Settlements[holder.SettlementId].RegionId, ev.Id, holder.Id);
+                    Keep(ctx, ev, candidate.Kind, choice, holder.Ref.ToString(), "");
+                    break;
+                }
             case Incident.Abduction:
-            {
-                var child = world.Characters[subjects[0].Id];
-                if (world.Characters.Values.FirstOrDefault(p => p.Children.Contains(child.Id) && p.IsActive) is not { } parent || !child.IsActive) return;
-                actors["child"] = child.Ref;
-                actors["parent"] = parent.Ref;
-                var ev = Emit("KinTaken", world.Settlements[child.SettlementId].Ref, Math.Max(55, Fates.Importance(parent, 45)), "Characters", "Intrigue");
-                if (doer is not null && !IsLord(world, child)) child.SettlementId = doer.SettlementId; // held where the taker lives
-                if (doer is not null) Fates.Remember(child, ev.Id, doer.Id, -60, 70);
-                Keep(ctx, ev, candidate.Kind, choice, parent.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var child = world.Characters[subjects[0].Id];
+                    if (world.Characters.Values.FirstOrDefault(p => p.Children.Contains(child.Id) && p.IsActive) is not { } parent || !child.IsActive) return;
+                    actors["child"] = child.Ref;
+                    actors["parent"] = parent.Ref;
+                    var ev = Emit("KinTaken", world.Settlements[child.SettlementId].Ref, Math.Max(55, Fates.Importance(parent, 45)), "Characters", "Intrigue");
+                    if (doer is not null && !IsLord(world, child)) child.SettlementId = doer.SettlementId; // held where the taker lives
+                    if (doer is not null) Fates.Remember(child, ev.Id, doer.Id, -60, 70);
+                    Keep(ctx, ev, candidate.Kind, choice, parent.Ref.ToString(), "");
+                    break;
+                }
             case Incident.Blight:
-            {
-                var town = world.Settlements[subjects[0].Id];
-                var realm = world.Realms[world.Regions[town.RegionId].OwnerRealmId];
-                actors["realm"] = realm.Ref;
-                var lost = town.Adults / 10;
-                town.Adults -= lost;
-                town.Unrest = Math.Min(100, town.Unrest + 25);
-                payload["dead"] = lost.ToString(CultureInfo.InvariantCulture);
-                var ev = Emit("TownSickened", town.Ref, 50, "Disaster");
-                Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var town = world.Settlements[subjects[0].Id];
+                    var realm = world.Realms[world.Regions[town.RegionId].OwnerRealmId];
+                    actors["realm"] = realm.Ref;
+                    var lost = town.Adults / 10;
+                    town.Adults -= lost;
+                    town.Unrest = Math.Min(100, town.Unrest + 25);
+                    payload["dead"] = lost.ToString(CultureInfo.InvariantCulture);
+                    var ev = Emit("TownSickened", town.Ref, 50, "Disaster");
+                    Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
+                    break;
+                }
             case Incident.Forgery:
-            {
-                var (a, b) = (world.Realms[subjects[0].Id], world.Realms[subjects[1].Id]);
-                actors["a"] = a.Ref;
-                actors["b"] = b.Ref;
-                var ev = Emit("LetterForged", SeatOf(a), 55, "Politics", "Intrigue");
-                a.Treaties.RemoveAll(t => t.Kind == TreatyKind.Alliance && t.With == b.Id);
-                b.Treaties.RemoveAll(t => t.Kind == TreatyKind.Alliance && t.With == a.Id);
-                Statecraft.Remember(a, ev.Id, b.Id, -45, 70);
-                Statecraft.Remember(b, ev.Id, a.Id, -45, 70);
-                Keep(ctx, ev, candidate.Kind, choice, $"{a.Ref}|{b.Ref}", "");
-                break;
-            }
+                {
+                    var (a, b) = (world.Realms[subjects[0].Id], world.Realms[subjects[1].Id]);
+                    actors["a"] = a.Ref;
+                    actors["b"] = b.Ref;
+                    var ev = Emit("LetterForged", SeatOf(a), 55, "Politics", "Intrigue");
+                    a.Treaties.RemoveAll(t => t.Kind == TreatyKind.Alliance && t.With == b.Id);
+                    b.Treaties.RemoveAll(t => t.Kind == TreatyKind.Alliance && t.With == a.Id);
+                    Statecraft.Remember(a, ev.Id, b.Id, -45, 70);
+                    Statecraft.Remember(b, ev.Id, a.Id, -45, 70);
+                    Keep(ctx, ev, candidate.Kind, choice, $"{a.Ref}|{b.Ref}", "");
+                    break;
+                }
             case Incident.Insult:
-            {
-                var other = candidate.Suspects.Select(x => Entity(world, x.Ref)!.Value).First(r => r != culprit);
-                actors["insulted"] = other;
-                var ev = Emit("InsultGiven", world.Settlements[doer!.SettlementId].Ref, Math.Max(45, Fates.Importance(doer, 40)), "Characters");
-                Fates.Remember(world.Characters[other.Id], ev.Id, doer.Id, -55, 80);
-                break;
-            }
+                {
+                    var other = candidate.Suspects.Select(x => Entity(world, x.Ref)!.Value).First(r => r != culprit);
+                    actors["insulted"] = other;
+                    var ev = Emit("InsultGiven", world.Settlements[doer!.SettlementId].Ref, Math.Max(45, Fates.Importance(doer, 40)), "Characters");
+                    Fates.Remember(world.Characters[other.Id], ev.Id, doer.Id, -55, 80);
+                    break;
+                }
             case Incident.Sedition:
-            {
-                var realm = world.Realms[subjects[0].Id];
-                actors["realm"] = realm.Ref;
-                var seat = world.Settlements[doer!.SettlementId];
-                seat.Unrest = Math.Min(100, seat.Unrest + 35);
-                var ev = Emit("SeditionStirred", seat.Ref, 50, "Politics", "Intrigue");
-                Keep(ctx, ev, candidate.Kind, choice, Realms.RulerOf(world, realm)?.Ref.ToString() ?? "", "");
-                break;
-            }
+                {
+                    var realm = world.Realms[subjects[0].Id];
+                    actors["realm"] = realm.Ref;
+                    var seat = world.Settlements[doer!.SettlementId];
+                    seat.Unrest = Math.Min(100, seat.Unrest + 35);
+                    var ev = Emit("SeditionStirred", seat.Ref, 50, "Politics", "Intrigue");
+                    Keep(ctx, ev, candidate.Kind, choice, Realms.RulerOf(world, realm)?.Ref.ToString() ?? "", "");
+                    break;
+                }
             case Incident.Sacrilege:
-            {
-                var realm = world.Realms[subjects[1].Id];
-                var region = subjects[0].Kind == Structure.Kind ? world.Regions[world.Structures[subjects[0].Id].RegionId] : world.Regions[subjects[0].Id];
-                actors["holy"] = subjects[0];
-                actors["realm"] = realm.Ref;
-                var ev = Emit("ShrineDefiled", region.Ref, 55, "Faith");
-                if (world.Faiths.TryGetValue(realm.FaithId, out var faith)) faith.Zeal = Math.Min(100, faith.Zeal + 15);
-                Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var realm = world.Realms[subjects[1].Id];
+                    var region = subjects[0].Kind == Structure.Kind ? world.Regions[world.Structures[subjects[0].Id].RegionId] : world.Regions[subjects[0].Id];
+                    actors["holy"] = subjects[0];
+                    actors["realm"] = realm.Ref;
+                    var ev = Emit("ShrineDefiled", region.Ref, 55, "Faith");
+                    if (world.Faiths.TryGetValue(realm.FaithId, out var faith)) faith.Zeal = Math.Min(100, faith.Zeal + 15);
+                    Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
+                    break;
+                }
             case Incident.Raid:
-            {
-                var town = world.Settlements[subjects[0].Id];
-                var realm = world.Realms[world.Regions[town.RegionId].OwnerRealmId];
-                actors["realm"] = realm.Ref;
-                town.Wealth *= 0.7;
-                town.Adults -= town.Adults / 20;
-                town.Unrest = Math.Min(100, town.Unrest + 20);
-                var ev = Emit("BorderRaided", town.Ref, 50, "War");
-                Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var town = world.Settlements[subjects[0].Id];
+                    var realm = world.Realms[world.Regions[town.RegionId].OwnerRealmId];
+                    actors["realm"] = realm.Ref;
+                    town.Wealth *= 0.7;
+                    town.Adults -= town.Adults / 20;
+                    town.Unrest = Math.Min(100, town.Unrest + 20);
+                    var ev = Emit("BorderRaided", town.Ref, 50, "War");
+                    Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");
+                    break;
+                }
             case Incident.Quest:
-            {
-                var deeps = world.Structures[subjects[0].Id];
-                actors["structure"] = deeps.Ref;
-                doer!.Ambition = Ambitions.Artifact;
-                Emit("QuestSworn", world.Settlements[doer.SettlementId].Ref, Math.Max(45, Fates.Importance(doer, 40)), "Characters", "Deeds");
-                break;
-            }
+                {
+                    var deeps = world.Structures[subjects[0].Id];
+                    actors["structure"] = deeps.Ref;
+                    doer!.Ambition = Ambitions.Artifact;
+                    Emit("QuestSworn", world.Settlements[doer.SettlementId].Ref, Math.Max(45, Fates.Importance(doer, 40)), "Characters", "Deeds");
+                    break;
+                }
             case Incident.Pretender:
-            {
-                var ruler = world.Characters[subjects[0].Id];
-                actors["ruler"] = ruler.Ref;
-                var ev = Emit("ClaimPressed", world.Settlements[ruler.SettlementId].Ref, Math.Max(55, Fates.Importance(ruler, 45)), "Politics", "Characters");
-                Fates.Remember(doer!, ev.Id, ruler.Id, -60, 80);
-                Fates.Remember(ruler, ev.Id, doer!.Id, -50, 80);
-                doer.Ambition = Ambitions.Renown;
-                break;
-            }
+                {
+                    var ruler = world.Characters[subjects[0].Id];
+                    actors["ruler"] = ruler.Ref;
+                    var ev = Emit("ClaimPressed", world.Settlements[ruler.SettlementId].Ref, Math.Max(55, Fates.Importance(ruler, 45)), "Politics", "Characters");
+                    Fates.Remember(doer!, ev.Id, ruler.Id, -60, 80);
+                    Fates.Remember(ruler, ev.Id, doer!.Id, -50, 80);
+                    doer.Ambition = Ambitions.Renown;
+                    break;
+                }
             case Incident.Betrayal:
-            {
-                var guest = world.Characters[subjects[0].Id];
-                if (!guest.IsActive) return;
-                actors["guest"] = guest.Ref;
-                var ev = Emit("GuestRightBroken", world.Settlements[doer!.SettlementId].Ref, Math.Max(65, Fates.Importance(guest, 55)), "Characters", "Politics");
-                Fates.Die(ctx, guest, "slain at a feast under the guest-right", [new Cause(ev.Id, CauseKind.Trigger, 1.0)], killer: doer);
-                if (RealmOf(world, doer) is { } host && RealmOf(world, guest) is { } wronged && host.Id != wronged.Id)
-                    Statecraft.Remember(wronged, ev.Id, host.Id, -80, 90);
-                break;
-            }
+                {
+                    var guest = world.Characters[subjects[0].Id];
+                    if (!guest.IsActive) return;
+                    actors["guest"] = guest.Ref;
+                    var ev = Emit("GuestRightBroken", world.Settlements[doer!.SettlementId].Ref, Math.Max(65, Fates.Importance(guest, 55)), "Characters", "Politics");
+                    Fates.Die(ctx, guest, "slain at a feast under the guest-right", [new Cause(ev.Id, CauseKind.Trigger, 1.0)], killer: doer);
+                    if (RealmOf(world, doer) is { } host && RealmOf(world, guest) is { } wronged && host.Id != wronged.Id)
+                        Statecraft.Remember(wronged, ev.Id, host.Id, -80, 90);
+                    break;
+                }
             case Incident.Lovers:
-            {
-                var (a, b) = (world.Characters[subjects[0].Id], world.Characters[subjects[1].Id]);
-                if (!FamilySystem.Marriageable(a, ctx.Date) || !FamilySystem.Marriageable(b, ctx.Date)) return;
-                actors["a"] = a.Ref;
-                actors["b"] = b.Ref;
-                var ev = Emit("LoversEloped", world.Settlements[a.SettlementId].Ref, 50, "Characters");
-                FamilySystem.Wed(ctx, a, b);
-                // Each house holds the other's child to blame.
-                foreach (var (child, other) in new[] { (a, b), (b, a) })
-                    foreach (var kin in world.Characters.Values.Where(p => p.IsActive && p.Children.Contains(child.Id)))
-                        Fates.Remember(kin, ev.Id, other.Id, -40, 60);
-                break;
-            }
+                {
+                    var (a, b) = (world.Characters[subjects[0].Id], world.Characters[subjects[1].Id]);
+                    if (!FamilySystem.Marriageable(a, ctx.Date) || !FamilySystem.Marriageable(b, ctx.Date)) return;
+                    actors["a"] = a.Ref;
+                    actors["b"] = b.Ref;
+                    var ev = Emit("LoversEloped", world.Settlements[a.SettlementId].Ref, 50, "Characters");
+                    FamilySystem.Wed(ctx, a, b);
+                    // Each house holds the other's child to blame.
+                    foreach (var (child, other) in new[] { (a, b), (b, a) })
+                        foreach (var kin in world.Characters.Values.Where(p => p.IsActive && p.Children.Contains(child.Id)))
+                            Fates.Remember(kin, ev.Id, other.Id, -40, 60);
+                    break;
+                }
             case Incident.Framed:
-            {
-                var accused = world.Characters[subjects[0].Id];
-                if (!accused.IsActive) return;
-                actors["accused"] = accused.Ref;
-                var ev = Emit("FalselyAccused", world.Settlements[accused.SettlementId].Ref, Math.Max(50, Fates.Importance(accused, 45)), "Characters", "Intrigue");
-                // Driven out to a far town; they will know whom to hate once the truth is out (or at once, if the accuser was open).
-                if (!IsLord(world, accused) && world.Settlements.Values.Where(t => !t.Abandoned && t.Id != accused.SettlementId && RealmOf(world, accused) is { } home
-                                                         && Realms.SovereignOf(world, world.Regions[t.RegionId])?.Id != home.Id)
-                        .OrderBy(t => Hash.Percent(accused.Id, 9110, t.Id)).FirstOrDefault() is { } exile)
-                    accused.SettlementId = exile.Id;
-                accused.Renown = Math.Max(0, accused.Renown - 20);
-                Keep(ctx, ev, candidate.Kind, choice, accused.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var accused = world.Characters[subjects[0].Id];
+                    if (!accused.IsActive) return;
+                    actors["accused"] = accused.Ref;
+                    var ev = Emit("FalselyAccused", world.Settlements[accused.SettlementId].Ref, Math.Max(50, Fates.Importance(accused, 45)), "Characters", "Intrigue");
+                    // Driven out to a far town; they will know whom to hate once the truth is out (or at once, if the accuser was open).
+                    if (!IsLord(world, accused) && world.Settlements.Values.Where(t => !t.Abandoned && t.Id != accused.SettlementId && RealmOf(world, accused) is { } home
+                                                             && Realms.SovereignOf(world, world.Regions[t.RegionId])?.Id != home.Id)
+                            .OrderBy(t => Hash.Percent(accused.Id, 9110, t.Id)).FirstOrDefault() is { } exile)
+                        accused.SettlementId = exile.Id;
+                    accused.Renown = Math.Max(0, accused.Renown - 20);
+                    Keep(ctx, ev, candidate.Kind, choice, accused.Ref.ToString(), "");
+                    break;
+                }
             case Incident.Envoy:
-            {
-                var (sender, host) = (world.Realms[subjects[0].Id], world.Realms[subjects[1].Id]);
-                actors["realm"] = sender.Ref;
-                actors["host"] = host.Ref;
-                var ev = Emit("EnvoySlain", SeatOf(host), 55, "Politics", "Diplomacy");
-                // The sender blames the host, whoever truly did it; the truth may come out later.
-                Statecraft.Remember(sender, ev.Id, host.Id, -50, 80);
-                Keep(ctx, ev, candidate.Kind, choice, sender.Ref.ToString(), "");
-                break;
-            }
+                {
+                    var (sender, host) = (world.Realms[subjects[0].Id], world.Realms[subjects[1].Id]);
+                    actors["realm"] = sender.Ref;
+                    actors["host"] = host.Ref;
+                    var ev = Emit("EnvoySlain", SeatOf(host), 55, "Politics", "Diplomacy");
+                    // The sender blames the host, whoever truly did it; the truth may come out later.
+                    Statecraft.Remember(sender, ev.Id, host.Id, -50, 80);
+                    Keep(ctx, ev, candidate.Kind, choice, sender.Ref.ToString(), "");
+                    break;
+                }
         }
     }
 
