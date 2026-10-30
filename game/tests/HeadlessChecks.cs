@@ -81,6 +81,7 @@ public partial class HeadlessChecks : Node
             world.Monsters[beastId] = new FantasyWorld.Sim.Model.Monster
             {
                 Id = beastId, Name = "The Wyrm of the Staged War", Breed = "wyrm", RegionId = home.Id, Might = 80, Legendary = true, RoseEventId = rose.Id,
+                RevealedEventId = rose.Id, // seen and survived, so the map shows it
             };
             return (army.Ref, leader.Ref);
         });
