@@ -1,7 +1,8 @@
 // A player's answer (sub-project 13 N5: the players are the gods): grant or deny a prayer, or bless one side of a
-// face-off. One vote per visitor per item; a second vote replaces the first. Visitors are told apart by a hash of
+// face-off; and what a viewer cares for (the owner, 2026-10-30: the videos follow the characters viewers like): follow a
+// character (on/off), or a character's page seen. One vote per visitor per item; a second vote replaces the first. Visitors are told apart by a hash of
 // their address and browser, never stored as such.
-const CHOICES = { prayer: ["grant", "deny"], blessing: ["a", "b"] };
+const CHOICES = { prayer: ["grant", "deny"], blessing: ["a", "b"], follow: ["on", "off"], view: ["seen"] };
 
 async function voter(request) {
   const who = `${request.headers.get("cf-connecting-ip") ?? ""}|${request.headers.get("user-agent") ?? ""}`;

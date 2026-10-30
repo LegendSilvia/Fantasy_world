@@ -37,6 +37,12 @@ public sealed record EpisodeSection(string Kind, string Title, string Text, long
     /// </summary>
     public const string World = "world", Results = "results";
 
+    /// <summary>Favourites: where the viewers' favourite characters stand this year (the owner, 2026-10-30), a line each.</summary>
+    public const string Favourites = "favourites";
+
+    /// <summary>The most favourites told of in an episode.</summary>
+    public const int MostFavourites = 3;
+
     /// <summary>The world events: the demon lord's rise and end, the prophecy, the heroes and their fights with it.</summary>
     public static readonly IReadOnlySet<string> WorldEvents = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -174,6 +180,7 @@ public sealed record Episode(
         var primerSection = (fullLegend || sinceEventId == 0) && Primer.Of(world, log) is { } primer ? new EpisodeSection(EpisodeSection.Primer, "The world today", primer) : null;
         var signOff = SignOffFor(chronicler, name);
         var worldSection = WorldSection(world, narrator, worldNews);
+        var favouritesSection = FavouritesSection(world, narrator, events, followed, chosen.Append(top).OfType<WorldEvent>().Concat(worldNews).ToList());
         var resultsSection = results.Count == 0 ? null : new EpisodeSection(EpisodeSection.Results, "The fights decided",
             string.Join(" ", results.OrderBy(e => e.Id).Select(e => narrator.Sentence(e))), results[0].Id,
             FaceOffs.OfFight(world, log, results[0]));
@@ -231,7 +238,8 @@ public sealed record Episode(
             return lines.Count == 0 ? s : s with { Text = $"{s.Text} {string.Join(" ", lines)}" };
         }
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
-            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection, primerSection, worldSection, resultsSection));
+            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection, primerSection, worldSection, resultsSection,
+                favouritesSection));
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
@@ -306,9 +314,30 @@ public sealed record Episode(
         return new(EpisodeSection.World, "World events", $"The shadow still lies over the world: {demon.Name} rules{held}.{facing}", saga.RoseEventId);
     }
 
+    /// <summary>
+    /// Where the viewers' favourites stand (the owner, 2026-10-30): for each followed character the episode does not already
+    /// tell of, their weightiest deed of the episode, or that the year passed quietly for them (or that they are gone).
+    /// </summary>
+    private static EpisodeSection? FavouritesSection(World world, TemplateNarrator narrator, IReadOnlyList<WorldEvent> events,
+        IReadOnlySet<EntityRef> followed, IReadOnlyList<WorldEvent> told)
+    {
+        var shown = told.SelectMany(e => e.Actors.Values).ToHashSet();
+        var lines = new List<string>();
+        foreach (var who in followed.Where(r => r.Kind == Character.Kind && !shown.Contains(r)))
+        {
+            if (lines.Count == EpisodeSection.MostFavourites || !world.Characters.TryGetValue(who.Id, out var c)) continue;
+            var deed = events.Where(e => e.Actors.Values.Contains(who)).OrderByDescending(e => e.Importance).ThenBy(e => e.Id).FirstOrDefault();
+            lines.Add(deed is not null ? narrator.Sentence(deed)
+                : c.IsAlive ? $"For {c.Name}, the year passed quietly{(world.Settlements.TryGetValue(c.SettlementId, out var home) ? $" at {home.Name}" : "")}."
+                : $"{c.Name} is no longer among the living.");
+        }
+        return lines.Count == 0 ? null : new EpisodeSection(EpisodeSection.Favourites, "Where are they now", $"And the ones you follow: {string.Join(" ", lines)}");
+    }
+
     private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
         IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff,
-        EpisodeSection? legend = null, EpisodeSection? primer = null, EpisodeSection? worldEvents = null, EpisodeSection? results = null)
+        EpisodeSection? legend = null, EpisodeSection? primer = null, EpisodeSection? worldEvents = null, EpisodeSection? results = null,
+        EpisodeSection? favourites = null)
     {
         var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
         if (legend is not null) sections.Add(legend);
@@ -326,6 +355,7 @@ public sealed record Episode(
             var line = lines[stories[i].EventId];
             sections.Add(new(EpisodeSection.Story, titles[stories[i].EventId], i == 0 ? $"Elsewhere in the chronicle:\n\n{line}" : line, stories[i].EventId));
         }
+        if (favourites is not null) sections.Add(favourites);
         if (comment is not null) sections.Add(new(EpisodeSection.Comment, "The chronicler's view", comment));
         sections.Add(new(EpisodeSection.Closing, "Until tomorrow", signOff));
         return sections;

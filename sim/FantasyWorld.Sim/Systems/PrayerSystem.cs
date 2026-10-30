@@ -9,9 +9,17 @@ namespace FantasyWorld.Sim.Systems;
 /// <summary>The players' answers gathered since the last day (sub-project 13 N5): votes per prayer, and per face-off side.</summary>
 public sealed record Tally(
     IReadOnlyDictionary<long, (int Grant, int Deny)> Prayers,
-    IReadOnlyDictionary<long, (int A, int B)> Blessings)
+    IReadOnlyDictionary<long, (int A, int B)> Blessings,
+    IReadOnlyDictionary<long, int>? Follows = null,
+    IReadOnlyDictionary<long, int>? Views = null)
 {
     public static readonly Tally Empty = new(new Dictionary<long, (int, int)>(), new Dictionary<long, (int, int)>());
+
+    /// <summary>Followers per character (the owner, 2026-10-30: the videos follow the characters viewers like).</summary>
+    public IReadOnlyDictionary<long, int> FollowsOf => Follows ?? new Dictionary<long, int>();
+
+    /// <summary>Visitors who opened each character's page.</summary>
+    public IReadOnlyDictionary<long, int> ViewsOf => Views ?? new Dictionary<long, int>();
 
     /// <summary>The site's tally as JSON: {"prayers": {"12": {"grant": 3, "deny": 1}}, "blessings": {"456": {"a": 2, "b": 0}}}.</summary>
     public static Tally Parse(string json)
@@ -29,7 +37,16 @@ public sealed record Tally(
                         result[id] = (Count(item.Value, first), Count(item.Value, second));
             return result;
         }
-        return new Tally(Read("prayers", "grant", "deny"), Read("blessings", "a", "b"));
+        Dictionary<long, int> Counts(string section)
+        {
+            var result = new Dictionary<long, int>();
+            if (root.TryGetProperty(section, out var items) && items.ValueKind == System.Text.Json.JsonValueKind.Object)
+                foreach (var item in items.EnumerateObject())
+                    if (long.TryParse(item.Name, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) && item.Value.TryGetInt32(out var n))
+                        result[id] = Math.Max(0, n);
+            return result;
+        }
+        return new Tally(Read("prayers", "grant", "deny"), Read("blessings", "a", "b"), Counts("follows"), Counts("views"));
     }
 }
 

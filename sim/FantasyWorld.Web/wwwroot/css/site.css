@@ -215,3 +215,7 @@ p.known { font-style: italic; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
 #panel .chip, .chip { border-bottom: 0; font: 600 12px system-ui, sans-serif; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.06); color: var(--ink); cursor: pointer; text-decoration: none; }
 #panel .chip.on, .chip.on { background: var(--ink); color: var(--card); border-bottom: 0; }
+
+.follow-row { margin: 4px 0 10px; }
+.follow { font: 600 12px system-ui, sans-serif; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+.follow.chosen { background: var(--ink); color: var(--card); }

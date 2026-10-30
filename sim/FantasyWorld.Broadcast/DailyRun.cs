@@ -370,19 +370,19 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
     /// </summary>
     private async Task<Episode> RemakeAsync(PrefixedStore store, Manifest manifest, Episode old, string date, CancellationToken ct)
     {
-        var before = manifest.Episodes.Where(d => string.CompareOrdinal(d.Key, date) < 0 && d.Value.Done(Manifest.EpisodeStep))
-            .Select(d => d.Key).OrderByDescending(d => d, StringComparer.Ordinal).FirstOrDefault();
-        var since = before is null ? 0 : (await StoredEpisodeAsync(store, before, ct).ConfigureAwait(false)).LastEventId;
-        foreach (var still in old.Parts.Select(p => p.Still).OfType<string>().Distinct()) await store.DeleteAsync(still, ct).ConfigureAwait(false);
-        var film = await store.ListAsync($"episodes/{date}/film/", ct).ConfigureAwait(false);
-        foreach (var key in film.Concat([Channels.YouTube.VideoKey(date), Channels.YouTube.ShortVideoKey(date), Channels.YouTube.ThumbnailKey(date),
-                     Channels.YouTube.StateKey(date), Channels.YouTube.ShortStateKey(date), NarrationKey(date), Speech.Chapters.Key(date)]))
-            await store.DeleteAsync(key, ct).ConfigureAwait(false);
-        var day = manifest.Day(date);
-        foreach (var step in new[] { "youtube", "youtube-short", "discord", Manifest.AudioStep }) day.Steps.Remove(step);
-        await SaveAsync(store, manifest, ct).ConfigureAwait(false);
+        // Told from where the day before ended, if that day was of this same world; a day of an earlier world (whose events
+        // are numbered past this one's) never counts, and with none the day is told as the world's first.
+        var since = 0L;
+        foreach (var before in manifest.Episodes.Where(d => string.CompareOrdinal(d.Key, date) < 0 && d.Value.Done(Manifest.EpisodeStep))
+                     .Select(d => d.Key).OrderByDescending(d => d, StringComparer.Ordinal))
+        {
+            var told = await StoredEpisodeAsync(store, before, ct).ConfigureAwait(false);
+            if (told.WorldName == old.WorldName) since = told.LastEventId;
+            break;
+        }
 
         var work = Directory.CreateTempSubdirectory("fw-remake-");
+        Episode episode;
         try
         {
             var worldPath = Path.Combine(work.FullName, "world.fw.db");
@@ -391,15 +391,27 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             var llm = config.Llm;
             Fw("llm", worldPath, "--provider", llm.Narrate ? "anthropic" : "none", "--model", $"narrate={llm.NarrateModel}",
                 "--narrations", llm.NarrationsPerDay.ToString(CultureInfo.InvariantCulture), "--cap", llm.MonthlyCapUsd.ToString(CultureInfo.InvariantCulture));
-            var episode = await TellAsync(store, manifest, date, work, worldPath, ["--since", since.ToString(CultureInfo.InvariantCulture)], ct).ConfigureAwait(false);
-            log.WriteLine($"Remade the episode of {date} (Years {episode.FromYear}–{episode.ToYear}); it is narrated, filmed, uploaded and posted again.");
-            return episode;
+            // The day is told again before anything of the old one is removed: a remake that fails leaves the day as it was.
+            episode = await TellAsync(store, manifest, date, work, worldPath, ["--since", since.ToString(CultureInfo.InvariantCulture)], ct).ConfigureAwait(false);
         }
         finally
         {
             Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
             work.Delete(recursive: true);
         }
+
+        var kept = episode.Parts.Select(p => p.Still).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        foreach (var still in old.Parts.Select(p => p.Still).OfType<string>().Distinct().Where(s => !kept.Contains(s)))
+            await store.DeleteAsync(still, ct).ConfigureAwait(false);
+        var film = await store.ListAsync($"episodes/{date}/film/", ct).ConfigureAwait(false);
+        foreach (var key in film.Concat([Channels.YouTube.VideoKey(date), Channels.YouTube.ShortVideoKey(date), Channels.YouTube.ThumbnailKey(date),
+                     Channels.YouTube.StateKey(date), Channels.YouTube.ShortStateKey(date), NarrationKey(date), Speech.Chapters.Key(date)]))
+            await store.DeleteAsync(key, ct).ConfigureAwait(false);
+        var day = manifest.Day(date);
+        foreach (var step in new[] { "youtube", "youtube-short", "discord", Manifest.AudioStep }) day.Steps.Remove(step);
+        await SaveAsync(store, manifest, ct).ConfigureAwait(false);
+        log.WriteLine($"Remade the episode of {date} ({episode.EventCount} events, Years {episode.FromYear}–{episode.ToYear}); it is narrated, filmed, uploaded and posted again.");
+        return episode;
     }
 
     private async Task<Episode> MakeEpisodeAsync(PrefixedStore store, Manifest manifest, string date, CancellationToken ct)
@@ -516,6 +528,11 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             "--stories", config.Stories.ToString(CultureInfo.InvariantCulture),
             "--max-characters", config.MaxCharacters.ToString(CultureInfo.InvariantCulture), .. llm.Narrate ? ["--narrate", "--recent", recent] : Array.Empty<string>(), .. episodeArgs]);
         var episode = Episode.FromJson(await File.ReadAllTextAsync(Path.Combine(dir, "episode.json"), ct).ConfigureAwait(false));
+        // Checked before anything is stored, painted, spoken or filmed (the owner, 2026-10-30: "make sure it works before render
+        // video"): a day always lives a year, so an episode with nothing in it is a fault, never a quiet year.
+        if (episode.EventCount == 0)
+            throw new InvalidOperationException($"The episode of {date} came out empty (no events, Years {episode.FromYear}–{episode.ToYear}); " +
+                                                "nothing was filmed or posted.");
         await FeedbackAsync(store, date, episode, ct).ConfigureAwait(false);
         if (llm.Narrate && episode.Writer != Episode.ChroniclerWriter)
             log.WriteLine("warning: the chronicler could not write today's script (see the LLM line above); the template script goes out.");

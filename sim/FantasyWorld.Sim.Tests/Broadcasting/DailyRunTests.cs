@@ -412,6 +412,50 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task ARemake_AfterADayOfAnEarlierWorld_StillTellsThisWorldsDay()
+    {
+        // The owner, 2026-10-30: the remade Tallmarch episode came out empty ("no records"): the day before was the old
+        // world's, whose events are numbered past every one of the new world's.
+        await Run(Morning, new RunOptions(Create: true));
+        var first = _discord.Posts.Single();
+        var manifest = Manifest.FromBytes(await Get("live/" + Manifest.Key));
+        var earlier = BroadcastPartsTests.SampleEpisode() with { Date = "2026-10-26", WorldName = "Riasgraeth", FirstEventId = 900_000, LastEventId = 999_999 };
+        await _root.PutAsync("live/" + DailyRun.EpisodeKey("2026-10-26"), Encoding.UTF8.GetBytes(earlier.ToJson()), "application/json");
+        manifest.Record("2026-10-26", earlier);
+        manifest.Day("2026-10-26").Steps[Manifest.EpisodeStep] = Morning.AddDays(-1);
+        await _root.PutAsync("live/" + Manifest.Key, manifest.ToBytes(), "application/json");
+
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(2), new RunOptions(Remake: true)));
+        var again = _discord.Posts[^1];
+        Assert.True(again.EventCount > 0);
+        Assert.Equal((first.FromYear, first.ToYear, first.EventCount, first.FirstEventId, first.LastEventId),
+            (again.FromYear, again.ToYear, again.EventCount, again.FirstEventId, again.LastEventId));
+    }
+
+    [Fact]
+    public async Task AnEmptyEpisode_StopsTheRun_BeforeAnythingIsFilmedOrPosted()
+    {
+        await Run(Morning, new RunOptions(Create: true));
+        var posts = _discord.Posts.Count;
+        var manifest = Manifest.FromBytes(await Get("live/" + Manifest.Key));
+        // Today's episode remade from where it already ended: nothing is in it.
+        var told = await StoredEpisode("live/", "2026-10-27");
+        var poisoned = told with { Date = "2026-10-26" };
+        await _root.PutAsync("live/" + DailyRun.EpisodeKey("2026-10-26"), Encoding.UTF8.GetBytes(poisoned.ToJson()), "application/json");
+        manifest.Record("2026-10-26", poisoned);
+        manifest.Day("2026-10-26").Steps[Manifest.EpisodeStep] = Morning.AddDays(-1);
+        await _root.PutAsync("live/" + Manifest.Key, manifest.ToBytes(), "application/json");
+        var video = await Get("live/" + DailyRun.EpisodeKey("2026-10-27"));
+
+        Assert.Equal(DailyRun.Failed, await Run(Morning.AddHours(2), new RunOptions(Remake: true)));
+        Assert.Contains("came out empty", _log.ToString());
+        Assert.Equal(posts, _discord.Posts.Count);
+        // The day stands as it was.
+        Assert.Equal(video, await Get("live/" + DailyRun.EpisodeKey("2026-10-27")));
+        Assert.True(Manifest.FromBytes(await Get("live/" + Manifest.Key)).Day("2026-10-27").Done(Manifest.DiscordStep));
+    }
+
+    [Fact]
     public void TheRelease_IsTheNextDayAtItsHour_InTheBroadcastsTimeZone()
     {
         var config = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "releaseTime": "10:00" }""");

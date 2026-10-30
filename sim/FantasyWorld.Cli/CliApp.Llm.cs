@@ -91,8 +91,17 @@ public static partial class CliApp
         using var store = OpenExisting(path);
         var (world, log, queue) = store.Load();
         var ctx = new FantasyWorld.Sim.Engine.SimContext(world, log, queue, Rng.ForStream(world.Seed, "answers", world.Date.Day));
-        var told = PrayerSystem.Apply(ctx, Tally.Parse(File.ReadAllText(rest[0])));
+        var tally = Tally.Parse(File.ReadAllText(rest[0]));
+        var told = PrayerSystem.Apply(ctx, tally);
         store.Save(world, log, queue);
+        // The viewers' favourites become the world's followed (the owner, 2026-10-30), when anyone has shown interest.
+        var favourites = FantasyWorld.Sim.Chronicle.Favourites.Of(world, log, tally);
+        if (favourites.Count > 0)
+        {
+            foreach (var old in store.LoadFollowed().Where(r => r.Kind == Character.Kind)) store.Follow(old, follow: false);
+            foreach (var id in favourites) store.Follow(world.Characters[id].Ref);
+            output.WriteLine($"The viewers' favourites: {string.Join(", ", favourites.Select(id => world.Characters[id].Name))}.");
+        }
         output.WriteLine($"The gods answered: {told.Count(e => e.Type == "PrayerAnswered")} prayer(s) granted, "
                          + $"{told.Count(e => e.Type == "PrayerUnheeded")} unheeded, {told.Count(e => e.Type == "GodsBlessed")} side(s) blessed.");
         return 0;

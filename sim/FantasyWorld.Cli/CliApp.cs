@@ -199,6 +199,8 @@ public static partial class CliApp
         // --since <event id>: the episode as if the audience last heard that event (a remade day); 0 is the first episode,
         // which tells the legend in full again.
         var since = Option(rest, "--since") is { } s ? long.Parse(s, CultureInfo.InvariantCulture) : world.LastBroadcastEventId;
+        // A marker past this world's last event was left by an earlier world (or a wrong --since): told as the first episode.
+        if (since > 0 && (log.All.Count == 0 || since > log.All[^1].Id)) since = 0;
         if (since == 0 && world.Legend is { Told: true } toldLegend) world.Legend = toldLegend with { Told = false };
         var episode = Episode.Build(world, log, since, date, store.LoadFollowed(), stories, budget);
         // --narrate: the chronicler (the world's narrate model) writes the script; the template's stands if it cannot.

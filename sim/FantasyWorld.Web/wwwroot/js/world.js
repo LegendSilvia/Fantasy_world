@@ -384,7 +384,12 @@ async function render(kind, key, year) {
     }
     const screen = JSON.parse(await call("Screen", kind, key));
     if (kind === "realm") return realm(screen);
-    if (kind === "character") return character({ ...screen, id: key, timeline: (screen.timeline ?? []).filter(row => row.year <= year && row.year >= world.firstYear) }, JSON.parse(await call("Fighter", key, Y)), await pictures);
+    if (kind === "character") {
+        // Each page opened counts once per visitor (the owner, 2026-10-30: the videos follow the characters viewers like).
+        fetch("api/vote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "view", item: +key, choice: "seen" }) }).catch(() => { });
+        return character({ ...screen, id: key, timeline: (screen.timeline ?? []).filter(row => row.year <= year && row.year >= world.firstYear) }, JSON.parse(await call("Fighter", key, Y)), await pictures)
+            .replace("<!--follow-->", follow(key, (await tally()).follows?.[key] ?? 0));
+    }
     if (kind === "why") return why(screen);
     if (kind === "artifact") return `<div class="kicker">Artifact</div><h2>${esc(screen.name ?? screen.title ?? "")}</h2><p>${esc(screen.lore ?? "")}</p>`;
     throw new Error(kind);
@@ -624,13 +629,37 @@ $("panel-body").addEventListener("click", async e => {
     }
 });
 
+/** The Follow button (the owner, 2026-10-30): the most followed characters get more of each episode. */
+function follow(id, count) {
+    const on = chosen[`follow/${id}`] === "on";
+    return `<p class="follow-row"><button class="follow${on ? " chosen" : ""}" data-follow="${esc(id)}" data-on="${on}">${on ? "★ Following" : "☆ Follow"}</button>`
+        + ` <span class="muted">${count} follower${count === 1 ? "" : "s"} · the most followed get more of each episode</span></p>`;
+}
+
+$("panel-body").addEventListener("click", async e => {
+    const button = e.target.closest("button[data-follow]");
+    if (!button) return;
+    const id = button.dataset.follow, choice = button.dataset.on === "true" ? "off" : "on";
+    button.disabled = true;
+    try {
+        const response = await fetch("api/vote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "follow", item: +id, choice }) });
+        if (!response.ok) throw new Error(`${response.status}`);
+        chosen[`follow/${id}`] = choice;
+        try { localStorage.setItem("fw-votes", JSON.stringify(chosen)); } catch { }
+        button.closest(".follow-row").outerHTML = follow(id, (await tally()).follows?.[id] ?? 0);
+    } catch {
+        button.disabled = false;
+        button.textContent = "Could not follow; try again";
+    }
+});
+
 /** A character class's painted emblem (sub-project 13), with its name as the tooltip; nothing for none. */
 const emblem = k => k ? `<img class="emblem" src="img/emblems/${esc(k.split(":")[0])}.png" alt="" title="${esc(k.includes(":") ? k.split(":")[1] : k[0].toUpperCase() + k.slice(1))}">` : "";
 
 function character(c, f, pics = {}) {
     const me = `char#${c.id ?? ""}`;
     return `<div class="kicker">${esc(c.kicker)}${f ? ` · ${esc(f.title)}${f.awakened ? " (awakened)" : ""}` : ""}</div>`
-        + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2>`
+        + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2><!--follow-->`
         + `<div class="beast-portrait char-portrait${c.alive === false ? " slain" : ""}${unseen(pics, me)}"><img src="${esc(portrait(pics, me))}" alt=""></div>`
         + `<p>${esc(c.line)}</p>`
         + (f?.known?.length ? `<p class="known">Known as ${f.known.map(esc).join(", ")}</p>` : "")
