@@ -23,6 +23,21 @@ async function buildStage() {
     camera.position.set(2.2, 2.4, 2.2);
     controls = new OrbitControls(camera, renderer.domElement);
     Object.assign(controls, { enableDamping: true, minDistance: 0.35, maxDistance: 5.5, maxPolarAngle: Math.PI * 0.45, target: new THREE.Vector3(0, 0, 0) });
+    // Drag to move over the map (the owner, 2026-10-30), as on a map: the left button or one finger slides along the ground,
+    // the right button (or two fingers) turns the view, the wheel or a pinch zooms; the view stays over the block.
+    Object.assign(controls, {
+        screenSpacePanning: false,
+        mouseButtons: { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE },
+        touches: { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE },
+    });
+    controls.addEventListener("change", () => {
+        const t = controls.target, edge = 1.1, x = THREE.MathUtils.clamp(t.x, -edge, edge), z = THREE.MathUtils.clamp(t.z, -edge, edge);
+        if (x !== t.x || z !== t.z) {
+            camera.position.x += x - t.x;
+            camera.position.z += z - t.z;
+            t.set(x, t.y, z);
+        }
+    });
     scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b2a6, 1.5));
     const sun = new THREE.DirectionalLight(0xffffff, 1.6);
     sun.position.set(-2, 3, 1.5);
