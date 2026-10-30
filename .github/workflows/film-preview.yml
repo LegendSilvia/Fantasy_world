@@ -37,8 +37,8 @@ jobs:
       PREFIX: ${{ inputs.prefix }}
       VIDEO: ${{ inputs.video }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '8.0.x'
       - name: Install ffmpeg
@@ -55,7 +55,7 @@ jobs:
           # A frame every six seconds, at half size.
           ffmpeg -loglevel error -i "$RUNNER_TEMP/video.mp4" -vf "fps=1/6,scale=iw/2:-2" "$RUNNER_TEMP/frames/frame-%03d.png"
           ls "$RUNNER_TEMP/frames" | wc -l
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ inputs.video }}-frames-${{ inputs.video-date }}
           path: ${{ runner.temp }}/frames
@@ -66,8 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '8.0.x'
       - name: Install a virtual display and software Vulkan
@@ -148,7 +148,7 @@ jobs:
             --images "$RUNNER_TEMP/images" \
             --from 1 --to 8 --fps 24 --frames "$RUNNER_TEMP/tall" --vertical
           for n in 000016 000029 000040 000100 000118 000164; do cp "$RUNNER_TEMP/tall/frame$n.png" "$RUNNER_TEMP/sample/tall-$n.png"; done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: film-preview

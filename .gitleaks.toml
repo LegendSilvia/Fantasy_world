@@ -1,0 +1,7 @@
+# Secrets scan (ci.yml): gitleaks' own rules, less AWS's published example keys used to test request signing.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "AWS documentation example credentials in the signing test"
+regexes = ['''AKIAIOSFODNN7EXAMPLE''', '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''']

@@ -1,0 +1,11 @@
+# Weekly updates for the NuGet packages and the pinned actions, so a fixed vulnerability is never far away.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /sim
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
