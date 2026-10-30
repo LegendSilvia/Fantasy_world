@@ -34,6 +34,7 @@ public class ProviderTests
         Assert.Contains("\"effort\":\"low\"", json);
         Assert.Contains("\"type\":\"json_schema\"", json);
         Assert.Contains("THE BIBLE", json);
+        Assert.Contains("\"role\":\"user\"", json); // the prompt goes as the user's turn (SDK 13: a UserMessageParam)
         Assert.Contains("\"effort\":\"medium\"", JsonSerializer.Serialize(AnthropicProvider.BuildParams(Decide with { Tier = ModelTier.Narrate }, "claude-opus-5-5")));
     }
 

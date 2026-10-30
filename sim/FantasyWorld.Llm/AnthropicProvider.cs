@@ -30,7 +30,7 @@ public sealed class AnthropicProvider(AnthropicClient? client = null) : ILlmProv
             Effort = request.Tier == ModelTier.Narrate ? Effort.Medium : Effort.Low,
             Format = new JsonOutputFormat { Schema = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(request.Schema)! },
         },
-        Messages = [new() { Role = Role.User, Content = request.Prompt }],
+        Messages = [new UserMessageParam { Content = request.Prompt }],
     };
 
     /// <summary>A game must not stall on one story beat: one retry, a minute at most per attempt.</summary>
