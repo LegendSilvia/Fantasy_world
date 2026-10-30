@@ -15,7 +15,7 @@ namespace FantasyWorld.Sim.Systems;
 /// "carry on"). Risky deeds are encounters resolved by the arbiter; outcomes wound, kill, move
 /// artifacts, tame regions and build renown. Every deed is an event citing its motive.
 /// </summary>
-public sealed class DeedsSystem : ISimSystem
+public sealed partial class DeedsSystem : ISimSystem
 {
     public const double ActPerMonth = 0.04;
 
@@ -70,7 +70,7 @@ public sealed class DeedsSystem : ISimSystem
     /// <summary>The last day of a duel that lasts more than a day: its outcome is applied.</summary>
     public const string DuelEndKind = "duel-end";
 
-    public IEnumerable<string> HandledKinds => new[] { DuelKind, DuelTurnKind, DuelEndKind };
+    public IEnumerable<string> HandledKinds => new[] { DuelKind, DuelTurnKind, DuelEndKind, ExpeditionKind };
 
     /// <summary>The duels declared and not yet fought, or begun and not yet ended, from the queue.</summary>
     public static IEnumerable<ScheduledAction> PendingDuels(EventQueue queue) => queue.Snapshot().Where(a => a.Kind is DuelKind or DuelEndKind);
@@ -79,7 +79,11 @@ public sealed class DeedsSystem : ISimSystem
         PendingDuels(queue).Any(a => a.Data["challenger"] == characterId.ToString(CultureInfo.InvariantCulture)
                                      || a.Data["defender"] == characterId.ToString(CultureInfo.InvariantCulture));
 
-    public void OnYearlyTick(SimContext ctx) => Train(ctx);
+    public void OnYearlyTick(SimContext ctx)
+    {
+        Train(ctx);
+        FormCompanies(ctx);
+    }
 
     public void OnMonthlyTick(SimContext ctx)
     {
@@ -113,7 +117,7 @@ public sealed class DeedsSystem : ISimSystem
         var options = new List<DecisionOption> { new("rest", 30, "carry on as before") };
         var bold = c.Has(Traits.Brave) ? 2.0 : c.Has(Traits.Craven) ? 0.2 : 1.0;
 
-        var beast = world.Monsters.Values.Where(m => m.State == MonsterState.Roaming && nearby.Any(r => r.Id == m.RegionId))
+        var beast = world.Monsters.Values.Where(m => m.State == MonsterState.Roaming && !m.Elder && nearby.Any(r => r.Id == m.RegionId))
             .OrderByDescending(m => m.Notoriety).ThenBy(m => m.Id).FirstOrDefault();
         var lair = nearby.Where(r => r.Danger >= 50).OrderByDescending(r => r.Danger).ThenBy(r => r.Id).FirstOrDefault();
         if (beast is not null)
@@ -125,7 +129,8 @@ public sealed class DeedsSystem : ISimSystem
         // The bottom of a labyrinth, and the secret of the world it keeps, waits for the audience (the owner, 2026-10-29:
         // secrets only from the year the chronicle first airs): before then no delve goes past the level above it.
         var aired = world.LastBroadcastDate is not null;
-        var maze = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0 && nearby.Any(r => r.Id == s.RegionId)
+        var maze = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0 && !s.Great && s.ExpeditionEventId == 0
+                                                      && Levels.MayDelve(c, s) && !InExpedition(ctx.Queue, c.Id) && nearby.Any(r => r.Id == s.RegionId)
                                                       && (aired || s.Depth + 1 < Math.Max(s.Levels, 3)))
             .OrderBy(s => s.Id).FirstOrDefault();
         if (maze is not null)
@@ -206,7 +211,7 @@ public sealed class DeedsSystem : ISimSystem
         {
             case "hunt": Hunt(ctx, c, ctx.World.Regions[target]); break;
             case "delve": Delve(ctx, c, ctx.World.Artifacts[target]); break;
-            case "maze": Maze(ctx, c, ctx.World.Structures[target]); break;
+            case "maze": BeginExpedition(ctx, c, ctx.World.Structures[target]); break;
             case "steal": Steal(ctx, c, ctx.World.Artifacts[target]); break;
             case "study": c.Attributes.Lore = Math.Min(20, c.Attributes.Lore + 1); break;
             case "forge": Forge(ctx, c); break;
@@ -217,7 +222,7 @@ public sealed class DeedsSystem : ISimSystem
 
     private void Hunt(SimContext ctx, Character hunter, Region region)
     {
-        if (ctx.World.Monsters.Values.Where(m => m.State == MonsterState.Roaming && m.RegionId == region.Id).OrderBy(m => m.Id).FirstOrDefault() is { } beast)
+        if (ctx.World.Monsters.Values.Where(m => m.State == MonsterState.Roaming && !m.Elder && m.RegionId == region.Id).OrderBy(m => m.Id).FirstOrDefault() is { } beast)
         {
             HuntBeast(ctx, hunter, region, beast);
             return;
@@ -291,94 +296,6 @@ public sealed class DeedsSystem : ISimSystem
             Glory(ctx, delver, 10);
         }
         Suffer(ctx, delver, outcome.AttackerFate, "a labyrinth's guardians", delve, lostIn: region.Id);
-    }
-
-    /// <summary>
-    /// A delve one level deeper into a labyrinth (the depth reached is shared: the way down is remembered). At the
-    /// deepest level the guardian bars the way; past it lie the relics lost in the land. Slaying the guardian and taking
-    /// the last relic clears the labyrinth: the land grows safer, and it becomes a ruin, or a shrine if a devout hand cleared it.
-    /// </summary>
-    private void Maze(SimContext ctx, Character delver, Structure maze)
-    {
-        var world = ctx.World;
-        var region = world.Regions[maze.RegionId];
-        if (maze.Levels == 0) maze.Levels = 3;
-        var actors = new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["structure"] = maze.Ref };
-        WorldEvent last;
-        if (maze.Depth < maze.Levels)
-        {
-            var level = maze.Depth + 1;
-            var outcome = _arbiter.Resolve(Encounters.DelveLevel(world, delver, region, level), ctx.Rng);
-            using (ctx.Annotate("account", outcome.Account))
-                last = ctx.Emit(new EventDraft(outcome.AttackerWins ? "LabyrinthDelved" : "LabyrinthDelveFailed", Actors: actors, Place: region.Ref,
-                    Payload: new Dictionary<string, string> { ["level"] = level.ToString(CultureInfo.InvariantCulture), ["outcome"] = outcome.Key },
-                    Causes: new[] { new Cause(ctx.Log.Involving(maze.Ref).LastOrDefault()?.Id ?? maze.StartedEventId, CauseKind.Enabler, 0.5) },
-                    Importance: Fates.Importance(delver, outcome.AttackerWins ? 15 + 3 * level : 15), Tags: new[] { "Characters", "Deeds", "Structures" }));
-            Suffer(ctx, delver, outcome.AttackerFate, maze.Name, last, lostIn: region.Id);
-            if (!outcome.AttackerWins || !delver.IsActive) return;
-            maze.Depth = level;
-            Glory(ctx, delver, 2 + level);
-            // What lies on this level is the delver's (sub-project 13).
-            foreach (var found in world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id && a.Level == level)
-                         .OrderByDescending(a => a.Fame).ThenBy(a => a.Id).ToList())
-            {
-                last = ctx.Emit(new EventDraft("ArtifactFound", Actors: new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["artifact"] = found.Ref },
-                    Place: region.Ref, Payload: new Dictionary<string, string> { ["outcome"] = "success", ["level"] = level.ToString(CultureInfo.InvariantCulture) },
-                    Causes: new[] { new Cause(last.Id, CauseKind.Trigger, 0.9) },
-                    Importance: Fates.Importance(delver, (int)(20 + found.Fame / 3)), Tags: new[] { "Characters", "Deeds", "Artifacts" }));
-                Fates.MoveToHolder(found, delver, last.Id, "found");
-                found.Level = 0;
-                Glory(ctx, delver, 5);
-            }
-            if (maze.Depth < maze.Levels) return;
-        }
-        else last = ctx.Log.Involving(maze.Ref).LastOrDefault() ?? ctx.Log.Get(maze.StartedEventId);
-
-        if (world.Monsters.GetValueOrDefault(maze.GuardianId) is { Alive: true } guardian)
-        {
-            var outcome = _arbiter.Resolve(Encounters.HuntBeast(world, delver, guardian), ctx.Rng);
-            using var account = ctx.Annotate("account", outcome.Account);
-            last = ctx.Emit(new EventDraft(outcome.AttackerWins ? "MonsterSlain" : "MonsterHuntFailed",
-                Actors: new Dictionary<string, EntityRef> { ["hunter"] = delver.Ref, ["monster"] = guardian.Ref }, Place: region.Ref,
-                Payload: new Dictionary<string, string> { ["outcome"] = outcome.Key }, Causes: new[] { new Cause(last.Id, CauseKind.Trigger, 0.8) },
-                Importance: Fates.Importance(delver, outcome.AttackerWins ? (int)(30 + guardian.Might / 3) : 18), Tags: new[] { "Characters", "Deeds", "Magic" }));
-            if (!outcome.AttackerWins)
-            {
-                guardian.Notoriety = Math.Min(100, guardian.Notoriety + 8);
-                Suffer(ctx, delver, outcome.AttackerFate, guardian.Name, last, lostIn: region.Id);
-                return;
-            }
-            (guardian.State, guardian.SlainEventId, guardian.SlayerId) = (MonsterState.Slain, last.Id, delver.Id);
-            Glory(ctx, delver, 8 + guardian.Might / 8);
-            Suffer(ctx, delver, outcome.AttackerFate, guardian.Name, last, lostIn: region.Id);
-            if (!delver.IsActive) return;
-        }
-
-        var relic = world.Artifacts.Values.Where(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id && (a.Level == 0 || a.Level <= maze.Depth))
-            .OrderByDescending(a => a.Fame).ThenBy(a => a.Id).FirstOrDefault();
-        if (relic is not null)
-        {
-            last = ctx.Emit(new EventDraft("ArtifactFound", Actors: new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["artifact"] = relic.Ref },
-                Place: region.Ref, Payload: new Dictionary<string, string> { ["outcome"] = "success" }, Causes: new[] { new Cause(last.Id, CauseKind.Enabler, 0.8) },
-                Importance: Fates.Importance(delver, (int)(20 + relic.Fame / 3)), Tags: new[] { "Characters", "Deeds", "Artifacts" }));
-            Fates.MoveToHolder(relic, delver, last.Id, "found");
-            relic.Fame = Math.Min(100, relic.Fame + 5);
-            Glory(ctx, delver, 10);
-        }
-        if (world.Artifacts.Values.Any(a => a.Place == ArtifactPlace.Lost && a.RegionId == region.Id)) return;
-
-        var shrine = delver.Has(Traits.Devout);
-        actors = new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["structure"] = maze.Ref };
-        // What the delver walked away with (the owner, 2026-10-29): the relic found on the way down, if any.
-        var spoils = relic is not null && relic.HolderId == delver.Id ? relic.Name : null;
-        if (spoils is not null) actors["artifact"] = relic!.Ref;
-        maze.ClearedEventId = ctx.Emit(new EventDraft("LabyrinthCleared", Actors: actors, Place: region.Ref,
-            Payload: new Dictionary<string, string> { ["becomes"] = shrine ? "shrine" : "ruin" }, Causes: new[] { new Cause(last.Id, CauseKind.Trigger, 0.9) },
-            Importance: Fates.Importance(delver, 50), Tags: new[] { "Characters", "Deeds", "Structures" })).Id;
-        (maze.Type, maze.State) = shrine ? (StructureKind.Shrine, StructureState.Standing) : (StructureKind.Ruin, StructureState.Ruined);
-        region.Danger = Math.Max(0, region.Danger - 20);
-        Glory(ctx, delver, 10);
-        Reveal(ctx, delver, maze, region, maze.ClearedEventId, spoils is null ? null : relic!.Ref);
     }
 
     /// <summary>
@@ -582,6 +499,11 @@ public sealed class DeedsSystem : ISimSystem
     /// </summary>
     public void OnScheduled(SimContext ctx, ScheduledAction action)
     {
+        if (action.Kind == ExpeditionKind)
+        {
+            Expedition(ctx, action);
+            return;
+        }
         var world = ctx.World;
         long Id(string key) => long.Parse(action.Data[key], CultureInfo.InvariantCulture);
         var declared = Id("declared");

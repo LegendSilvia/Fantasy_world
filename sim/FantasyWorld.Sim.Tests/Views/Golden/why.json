@@ -1,15 +1,15 @@
 {
   "outcome": {
-    "eventId": 308,
-    "year": 20,
+    "eventId": 304,
+    "year": 19,
     "category": "characters",
     "title": {
-      "text": "Rurnmull of Mond died in the Deeps of Taramdale, aged 51.",
+      "text": "Steillmuth of Viallciath was killed by a labyrinth's guardians, aged 75.",
       "links": [
         {
           "start": 0,
-          "length": 16,
-          "entity": "char#35"
+          "length": 24,
+          "entity": "char#12"
         }
       ]
     },
@@ -20,46 +20,26 @@
   "layers": [
     [
       {
-        "eventId": 307,
-        "year": 20,
-        "category": "structures",
-        "title": {
-          "text": "Rurnmull of Mond went down to level two of the Deeps of Taramdale and never returned.",
-          "links": [
-            {
-              "start": 0,
-              "length": 16,
-              "entity": "char#35"
-            },
-            {
-              "start": 43,
-              "length": 22,
-              "entity": "structure#1"
-            }
-          ]
-        },
-        "note": null,
-        "isRoot": false,
-        "hasMore": false
-      }
-    ],
-    [
-      {
-        "eventId": 297,
+        "eventId": 303,
         "year": 19,
-        "category": "structures",
+        "category": "characters",
         "title": {
-          "text": "Rurnmull of Mond could not get past level two of the Deeps of Taramdale.",
+          "text": "Steillmuth of Viallciath sought the Codex of Carn in Vamholt and died there.",
           "links": [
             {
               "start": 0,
-              "length": 16,
-              "entity": "char#35"
+              "length": 24,
+              "entity": "char#12"
             },
             {
-              "start": 49,
-              "length": 22,
-              "entity": "structure#1"
+              "start": 32,
+              "length": 17,
+              "entity": "artifact#3"
+            },
+            {
+              "start": 53,
+              "length": 7,
+              "entity": "region#12"
             }
           ]
         },
@@ -70,138 +50,91 @@
     ],
     [
       {
-        "eventId": 293,
+        "eventId": 287,
         "year": 18,
-        "category": "structures",
+        "category": "characters",
         "title": {
-          "text": "Lond of Cunvei reached level one of the Deeps of Taramdale.",
+          "text": "The Codex of Carn was stolen from Marncall of Liarning in the Theft of The Codex of Carn, by ill fortune alone.",
           "links": [
             {
               "start": 0,
-              "length": 14,
-              "entity": "char#3"
+              "length": 17,
+              "entity": "artifact#3"
             },
             {
-              "start": 36,
-              "length": 22,
-              "entity": "structure#1"
+              "start": 34,
+              "length": 20,
+              "entity": "char#31"
             }
           ]
         },
         "note": null,
-        "isRoot": false,
+        "isRoot": true,
         "hasMore": false
-      }
-    ],
-    [
-      {
-        "eventId": 272,
-        "year": 16,
-        "category": "structures",
-        "title": {
-          "text": "Tind of Kasar was driven back from level one of the Deeps of Taramdale.",
-          "links": [
-            {
-              "start": 0,
-              "length": 13,
-              "entity": "char#22"
-            },
-            {
-              "start": 48,
-              "length": 22,
-              "entity": "structure#1"
-            }
-          ]
-        },
-        "note": null,
-        "isRoot": false,
-        "hasMore": true
       }
     ]
   ],
   "edges": [
     {
-      "from": 307,
-      "to": 308,
+      "from": 303,
+      "to": 304,
       "kind": "trigger",
       "label": "because"
     },
     {
-      "from": 297,
-      "to": 307,
-      "kind": "enabler",
-      "label": "because"
-    },
-    {
-      "from": 293,
-      "to": 297,
-      "kind": "enabler",
-      "label": "because"
-    },
-    {
-      "from": 272,
-      "to": 293,
+      "from": 287,
+      "to": 303,
       "kind": "enabler",
       "label": "because"
     }
   ],
-  "summary": "Traced back four years, and further than this view goes.",
+  "summary": "Traced back one year, through one root cause.",
   "people": [
     {
-      "ref": "char#35",
-      "name": "Rurnmull of Mond"
+      "ref": "char#12",
+      "name": "Steillmuth of Viallciath"
     },
     {
-      "ref": "char#3",
-      "name": "Lond of Cunvei"
-    },
-    {
-      "ref": "char#22",
-      "name": "Tind of Kasar"
+      "ref": "char#31",
+      "name": "Marncall of Liarning"
     }
   ],
   "places": [
     {
-      "ref": "settlement#5",
-      "name": "Kaerhiand"
+      "ref": "settlement#24",
+      "name": "Niar"
     },
     {
-      "ref": "region#2",
-      "name": "Taramdale"
+      "ref": "region#12",
+      "name": "Vamholt"
     }
   ],
   "systems": [
-    "characters",
-    "structures"
+    "characters"
   ],
   "consequences": [],
   "story": {
-    "text": "In Year 16, Tind of Kasar was driven back from level one of the Deeps of Taramdale. In Year 18, Lond of Cunvei reached level one of the Deeps of Taramdale. In Year 19, Rurnmull of Mond could not get past level two of the Deeps of Taramdale. In Year 20, Rurnmull of Mond went down to level two of the Deeps of Taramdale and never returned. And so Rurnmull of Mond died in the Deeps of Taramdale, aged 51.",
+    "text": "In Year 18, the Codex of Carn was stolen from Marncall of Liarning in the Theft of The Codex of Carn, by ill fortune alone. In Year 19, Steillmuth of Viallciath sought the Codex of Carn in Vamholt and died there. And so Steillmuth of Viallciath was killed by a labyrinth's guardians, aged 75.",
     "links": [
       {
-        "start": 12,
-        "length": 13,
-        "entity": "char#22"
+        "start": 46,
+        "length": 20,
+        "entity": "char#31"
       },
       {
-        "start": 60,
-        "length": 22,
-        "entity": "structure#1"
+        "start": 83,
+        "length": 17,
+        "entity": "artifact#3"
       },
       {
-        "start": 96,
-        "length": 14,
-        "entity": "char#3"
+        "start": 136,
+        "length": 24,
+        "entity": "char#12"
       },
       {
-        "start": 145,
-        "length": 9,
-        "entity": "region#2"
-      },
-      {
-        "start": 168,
-        "length": 16,
-        "entity": "char#35"
+        "start": 189,
+        "length": 7,
+        "entity": "region#12"
       }
     ]
   }

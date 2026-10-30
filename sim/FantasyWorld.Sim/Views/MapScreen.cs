@@ -15,7 +15,7 @@ public sealed record MapCard(string Kicker, string Title, string Line);
 
 /// <summary>A settlement pin; Marks are the buildings worth drawing beside it today ("temple", "mage tower").</summary>
 public sealed record MapSettlement(EntityRef Ref, string Name, string Tier, MapPoint? Position, EntityRef? Holder, PinMarker Marker, MapCard Card,
-    IReadOnlyList<string>? Marks = null);
+    IReadOnlyList<string>? Marks = null, int Level = 0);
 
 /// <summary>A structure as it was at the date; Detail says how deep a labyrinth has been delved ("level 2 of 5").</summary>
 public sealed record MapStructure(EntityRef Ref, string Name, string Kind, string State, MapPoint? Position, string? Detail = null);
@@ -102,7 +102,7 @@ public sealed record MapScreen(
             var line = (today ? $"Pop. {s.Population.ToString("N0", CultureInfo.InvariantCulture)} · " : "")
                        + $"{thisYear} event{(thisYear == 1 ? "" : "s")} this year";
             settlements.Add(new MapSettlement(s.Ref, s.Name, s.Tier.ToString(), MapPoint.Of(world, s.Ref), holder?.Ref, marker,
-                new MapCard($"{s.Name} · {s.Tier}", title, line), today ? Marked.Where(s.Buildings.Contains).ToList() : Array.Empty<string>()));
+                new MapCard($"{s.Name} · {s.Tier}", title, line), today ? Marked.Where(s.Buildings.Contains).ToList() : Array.Empty<string>(), Levels.Of(world, s)));
         }
 
         var structures = world.Structures.Values.Where(st => log.TryGet(st.StartedEventId, out var begun) && begun.Date <= date)

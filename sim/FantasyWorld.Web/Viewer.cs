@@ -119,6 +119,8 @@ public static class Viewer
             {
                 @ref = s.Ref.ToString(),
                 name = s.Name,
+                great = s.Great,
+                level = Levels.Required(s),
                 place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
                 levels = s.Levels,
                 depth = s.Depth,
@@ -341,6 +343,8 @@ public static class Viewer
             breed = m.Breed,
             witness,
             legendary = m.Legendary,
+            level = Levels.Of(m),
+            elder = m.Elder,
             might = (int)Math.Round(m.Might),
             notoriety = (int)Math.Round(m.Notoriety),
             state = m.State == MonsterState.Slain && !slain ? "roaming" : m.State.ToString().ToLowerInvariant(),
@@ -556,6 +560,7 @@ public static class Viewer
                     @ref = st.Ref.ToString(),
                     name = st.Name,
                     cleared = st.Detail == "cleared",
+                    great = World.Structures.TryGetValue(st.Ref.Id, out var maze) && maze.Great,
                     at = V(Projection.ToBlock(grid, st.Position!, 0)),
                 }),
             badges = new Dictionary<string, string>

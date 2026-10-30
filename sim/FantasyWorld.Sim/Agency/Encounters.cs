@@ -154,6 +154,32 @@ public static class Encounters
     public static Encounter DelveIn(World world, Character delver, Region region) =>
         Wilds(Delve, world, delver, Math.Max(1, region.Danger / 3), deathShare: 0.3);
 
+    /// <summary>
+    /// A company's strength (the owner, 2026-10-30: many together): the strongest counts whole, each next one a little less,
+    /// so five are far stronger than one but not five times.
+    /// </summary>
+    public static double Party(World world, IEnumerable<Character> members) =>
+        members.Select(m => Strength(world, m)).OrderByDescending(s => s).Select((s, i) => s * Math.Pow(0.8, i)).Sum();
+
+    /// <summary>
+    /// A company against what it came for (a labyrinth's level, its guardian, an elder dragon): the company's strength against
+    /// <paramref name="against"/>, led by <paramref name="leader"/>; a failure is deadlier by <paramref name="deathShare"/>.
+    /// </summary>
+    public static Encounter Company(string kind, World world, Character leader, IReadOnlyList<Character> members, double against, double deathShare)
+    {
+        var a = Party(world, members);
+        var p = a / (a + Math.Max(1, against));
+        var outcomes = new List<EncounterOutcome>
+        {
+            new("success", p * 0.7, true, Fate.Unharmed, Fate.Unharmed),
+            new("success_wounded", p * 0.3, true, Fate.Wounded, Fate.Unharmed),
+            new("failure_wounded", (1 - p) * (1 - deathShare) * 0.7, false, Fate.Wounded, Fate.Unharmed),
+            new("failure_maimed", (1 - p) * (1 - deathShare) * 0.3, false, Fate.Maimed, Fate.Unharmed),
+            new("failure_death", (1 - p) * deathShare, false, Fate.Dead, Fate.Unharmed),
+        };
+        return new Encounter(kind, leader.Id, 0, a, against, true, outcomes);
+    }
+
     private static Encounter Wilds(string kind, World world, Character attacker, double wilds, double deathShare)
     {
         var a = Strength(world, attacker);

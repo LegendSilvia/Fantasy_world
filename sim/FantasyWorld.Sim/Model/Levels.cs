@@ -98,10 +98,15 @@ public static class Levels
             "HeroFell" => 20,
             "ExpeditionEnded" => e.Payload.GetValueOrDefault("outcome") == "cleared" ? 40 : 10,
             "ElderDragonSlain" => 200,
-            "DragonHuntEnded" => 25,
+            "DragonWounded" => 40,
+            "DragonHuntFailed" => 15,
             _ => 0,
         };
     }
+
+    /// <summary>What each character in an event earns from it: the most of the parts they played in it (a leader is also its delver).</summary>
+    public static IEnumerable<(EntityRef Who, double Experience)> Earned(WorldEvent e) =>
+        e.Actors.Where(a => a.Value.Kind == Character.Kind).GroupBy(a => a.Value).Select(g => (g.Key, g.Max(a => For(e, a.Key))));
 
     /// <summary>
     /// Levels for a world made before them (the owner, 2026-10-30: "add some migration"): each character's experience is
@@ -116,8 +121,8 @@ public static class Levels
         if (unlevelled.Count == 0) return 0;
         var earned = unlevelled.Keys.ToDictionary(r => r, _ => 0.0);
         foreach (var e in log.All)
-            foreach (var (role, who) in e.Actors)
-                if (earned.ContainsKey(who)) earned[who] += For(e, role);
+            foreach (var (who, xp) in Earned(e))
+                if (earned.ContainsKey(who)) earned[who] += xp;
         foreach (var (who, c) in unlevelled)
         {
             var end = c.Died ?? world.Date;

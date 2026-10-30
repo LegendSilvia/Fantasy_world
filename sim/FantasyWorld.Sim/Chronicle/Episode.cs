@@ -47,6 +47,8 @@ public sealed record EpisodeSection(string Kind, string Title, string Text, long
     public static readonly IReadOnlySet<string> WorldEvents = new HashSet<string>(StringComparer.Ordinal)
     {
         "DemonLordRose", "ProphecySpoken", "HeroChosen", "DemonLordSlain", "HeroFell", "DemonLordSealed", "DemonLordDriven", "DarkAgeBegan", "SagaEnded",
+        // The great labyrinth, its outbreaks and the elder dragon (the owner, 2026-10-30).
+        "GreatLabyrinthRose", "GreatOutbreak", "GreatOutbreakEnded", "ElderDragonWoke", "DragonWounded", "DragonHuntFailed", "ElderDragonSlain",
     };
 
     /// <summary>The ends of fights, told in the results (the owner, 2026-10-30: "i never heard a fight outcome section").</summary>
@@ -306,12 +308,21 @@ public sealed record Episode(
     {
         if (news.Count > 0)
             return new(EpisodeSection.World, "World events", string.Join(" ", news.Select(e => narrator.Sentence(e))), news.OrderByDescending(e => e.Importance).First().Id);
-        if (Systems.SagaSystem.Active(world) is not { } saga || !world.Characters.TryGetValue(saga.DemonLordId, out var demon)) return null;
-        var dominion = world.Realms.GetValueOrDefault(saga.RealmId);
-        var hero = world.Characters.TryGetValue(saga.HeroId, out var h) && h.IsActive ? h : null;
-        var held = dominion is null ? "" : $" from {dominion.Name}";
-        var facing = hero is not null ? $" {hero.Name}, the hero foretold, has yet to face them." : " No hero has yet risen to face them.";
-        return new(EpisodeSection.World, "World events", $"The shadow still lies over the world: {demon.Name} rules{held}.{facing}", saga.RoseEventId);
+        // How the world events still standing are: the shadow, the great labyrinth, the elder dragon.
+        var standing = new List<(string Text, long EventId)>();
+        if (Systems.SagaSystem.Active(world) is { } saga && world.Characters.TryGetValue(saga.DemonLordId, out var demon))
+        {
+            var dominion = world.Realms.GetValueOrDefault(saga.RealmId);
+            var hero = world.Characters.TryGetValue(saga.HeroId, out var h) && h.IsActive ? h : null;
+            var held = dominion is null ? "" : $" from {dominion.Name}";
+            var facing = hero is not null ? $" {hero.Name}, the hero foretold, has yet to face them." : " No hero has yet risen to face them.";
+            standing.Add(($"The shadow still lies over the world: {demon.Name} rules{held}.{facing}", saga.RoseEventId));
+        }
+        foreach (var maze in world.Structures.Values.Where(s => s.Great && s.ClearedEventId == 0))
+            standing.Add(($"{maze.Name} stands unconquered: companies have gone down {maze.Depth} of its {maze.Levels} levels.", maze.StartedEventId));
+        foreach (var dragon in world.Monsters.Values.Where(m => m.Elder && m.Alive))
+            standing.Add(($"{dragon.Name} still preys on the realms, {(dragon.Vigour >= 100 ? "unwounded" : $"its strength worn to {(int)dragon.Vigour} in a hundred")}.", dragon.RoseEventId));
+        return standing.Count == 0 ? null : new(EpisodeSection.World, "World events", string.Join(" ", standing.Select(s => s.Text)), standing[0].EventId);
     }
 
     /// <summary>

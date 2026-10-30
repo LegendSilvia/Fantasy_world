@@ -122,11 +122,11 @@ async function showYear(year) {
     for (const realm of s.realms) {
         dynamic.add(standard(realm));
         label(`<i style="background:${css(realm.colour)}"></i><span>${esc(realm.name.toUpperCase())}<small>${esc(realm.rank)}</small></span>`,
-            "realm", lift(realm.at, 0.16), 100, () => setHash({ panel: `realm/${id(realm.ref)}` }));
+            "realm", lift(realm.at, 0.16), 100, () => setHash({ panel: `realm/${id(realm.ref)}` }), "realms");
     }
     for (const army of s.armies) {
         dynamic.add(banner(army));
-        label(esc(army.commander ? `${army.name} · ${army.commander}` : army.name), "army", lift(army.at, 0.1), 40, () => {});
+        label(esc(army.commander ? `${army.name} · ${army.commander}` : army.name), "army", lift(army.at, 0.1), 40, () => {}, "armies");
     }
     // Badges: a boss marker over each beast, crossed swords where a fight was or is (a click asks why).
     const badge = (key, size, title) => `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.badges[key])}" style="height:${size}px" alt="" title="${esc(title)}">`;
@@ -135,18 +135,18 @@ async function showYear(year) {
         + `<img src="${esc(pics[beast.ref])}" alt=""></span>`;
     for (const beast of s.beasts)
         label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
-            () => setHash({ panel: `beast/${id(beast.ref)}` }));
+            () => setHash({ panel: `beast/${id(beast.ref)}` }), "beasts");
     for (const maze of s.labyrinths ?? [])
-        label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", 26, `${maze.name}${maze.cleared ? " (cleared)" : ", a labyrinth"}`), "badge",
-            lift(maze.at, 0.02), 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }));
+        label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : 26, `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : ", a labyrinth"}`), "badge",
+            lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
     for (const fight of s.fights)
         // Crossed swords for a duel, crossed banners for a battle between nations; one still raging pulses (the owner, 2026-10-29).
         label((fight.underWay ? `<span class="live">` : "") + badge(fight.badge, fight.kind === "duel" ? 26 : 34, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`)
             + (fight.underWay ? `</span>` : ""), "badge", lift(fight.at, 0.02), fight.underWay ? 90 : 75,
-            () => setHash({ panel: `fight/${fight.eventId}` }));
+            () => setHash({ panel: `fight/${fight.eventId}` }), "fights");
     for (const place of s.settlements)
         label(esc(place.name), place.kind === "Conflict" || place.kind === "RecentEvent" ? "news" : "", lift(place.at, 0.03),
-            10 + place.size * 100, () => setHash({ panel: `settlement/${id(place.ref)}` }));
+            10 + place.size * 100, () => setHash({ panel: `settlement/${id(place.ref)}` }), "towns");
 }
 
 function houses(data) {
@@ -234,13 +234,27 @@ function banner(army) {
 
 // ---------- Names over the land ----------
 
-function label(html, kind, at, priority, onClick) {
+function label(html, kind, at, priority, onClick, layer) {
     const element = document.createElement("div");
     element.className = `label ${kind}`;
     element.innerHTML = html;
     element.addEventListener("click", onClick);
     $("labels").append(element);
-    labels.push({ element, at: new THREE.Vector3(...at), priority, kind });
+    labels.push({ element, at: new THREE.Vector3(...at), priority, kind, layer });
+}
+
+/**
+ * The map's marker filters (the owner, 2026-10-30): each kind of marker (realms, towns, armies, beasts, fights, labyrinths)
+ * can be hidden, remembered in this browser; a hidden marker leaves its room to the others.
+ */
+const hiddenLayers = new Set((() => { try { return JSON.parse(localStorage.getItem("hidden-markers") ?? "[]"); } catch { return []; } })());
+for (const box of document.querySelectorAll("#markers input[data-layer]")) {
+    box.checked = !hiddenLayers.has(box.dataset.layer);
+    box.addEventListener("change", () => {
+        if (box.checked) hiddenLayers.delete(box.dataset.layer); else hiddenLayers.add(box.dataset.layer);
+        try { localStorage.setItem("hidden-markers", JSON.stringify([...hiddenLayers])); } catch { }
+        placeLabels();
+    });
 }
 
 /** Places every name, the most important first, hiding any that would overlap one already placed. */
@@ -248,6 +262,7 @@ function placeLabels() {
     const w = innerWidth, h = innerHeight, taken = [], p = new THREE.Vector3();
     const distance = camera.position.distanceTo(controls.target);
     for (const l of [...labels].sort((a, b) => b.priority - a.priority)) {
+        if (l.layer && hiddenLayers.has(l.layer)) { l.element.style.display = "none"; continue; }
         p.copy(l.at).project(camera);
         // Towns are named only once the camera comes close; realms and hosts always.
         const close = l.kind === "realm" || l.kind === "army" || l.kind === "badge" || l.priority > 60 || distance < 2.2;
@@ -373,6 +388,7 @@ async function render(kind, key, year) {
         const map = JSON.parse(await call("Screen", "map", year === world.year ? "" : String(year)));
         const s = map.settlements.find(x => x.ref === `settlement#${key}`);
         return `<div class="kicker">${esc(s.card.kicker)}</div><h2>${esc(s.name)}</h2><p>${esc(s.card.title)}</p><p class="muted">${esc(s.card.line)}</p>`
+            + (s.level ? `<p><b>Level ${s.level}</b> <span class="muted">· its fortification: ${["open ground", "a palisade", "stone walls", "great walls", "great walls and a fortress"][s.level - 1]}</span></p>` : "")
             + (s.holder ? `<p>Held by ${ref(s.holder, "its lord")}</p>` : "");
     }
     if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
@@ -382,7 +398,8 @@ async function render(kind, key, year) {
     if (kind === "labyrinth") {
         const m = (JSON.parse(await call("Lore", Y)).labyrinths ?? []).find(x => x.ref === `structure#${key}`);
         if (!m) throw new Error(kind);
-        return `<div class="kicker">Labyrinth${m.place ? ` · ${esc(m.place)}` : ""}</div><h2>${esc(m.name)}</h2>`
+        return `<div class="kicker">${m.great ? "The Great Labyrinth · a world event" : "Labyrinth"}${m.place ? ` · ${esc(m.place)}` : ""}</div><h2>${esc(m.name)}</h2>`
+            + `<p><b>Level ${m.level}</b> <span class="muted">· delvers must be level ${Math.max(1, m.level - 1)} or more; the higher, the better their chance${m.great ? ". Only a company of three or more may go down." : ""}</span></p>`
             + (m.cleared
                 ? `<p>Cleared in Year ${m.cleared.year}${m.cleared.by ? ` by ${ref(m.cleared.by.ref, m.cleared.by.name)}` : ""}. ${ref(m.cleared.event, "How it was done")}</p>`
                 : `<p>Unconquered. Delvers have gone down to level ${m.depth} of ${m.levels}; what lies at its heart is still unknown.</p>`)
@@ -527,7 +544,10 @@ function worldEvents(w) {
         + `<ul class="people">${s.events.map(r => `<li><span class="muted">Year ${r.year}</span> ${linked(r.text)} <a data-ref="event#${r.eventId}" title="Why?">why</a></li>`).join("")}</ul></div>`;
     return `<div class="kicker">World events</div><h2>The fate of ${esc(w.world)}</h2>`
         + `<p class="muted">The greatest events of all: a demon lord rising against every realm, and the heroes called to face it.</p>`
-        + (w.sagas.map(saga).join("") || `<p class="muted">No demon lord has risen yet. The world is quiet, for now.</p>`);
+        + (w.sagas.map(saga).join("") || `<p class="muted">No demon lord has risen yet. The world is quiet, for now.</p>`)
+        + ((w.great ?? []).length ? `<h3>The great labyrinth and the elder dragon</h3>` + w.great.map(g => `<div class="prayer"><p><b>${ref(g.subject.ref, g.subject.name)}</b>`
+            + ` <span class="muted">· ${esc(g.kind)}, level ${g.level} · rose Year ${g.roseYear}${g.endedYear ? `, ended Year ${g.endedYear}` : ""}</span></p><p>${esc(g.state)}</p>`
+            + `<ul class="people">${g.events.map(r => `<li><span class="muted">Year ${r.year}</span> ${linked(r.text)} <a data-ref="event#${r.eventId}" title="Why?">why</a></li>`).join("")}</ul></div>`).join("") : "");
 }
 
 /** A fight as a face-off card (the owner, 2026-10-29): both sides' portraits, classes, fates and figures, then the odds or the verdict. */
@@ -576,7 +596,8 @@ function fightCard(f, pics) {
 function beastCard(b, pics) {
     if (!b) return `<p class="muted">No one has lived to tell of it.</p>`;
     const state = b.state === "slain" ? `Slain${b.slayer ? ` by ${ref(b.slayer.ref, b.slayer.name)}` : ""}` : b.state === "slumbering" ? "Asleep in its lair" : "Abroad and hungry";
-    return `<div class="kicker">${b.legendary ? "A legend · " : ""}${esc(b.breed)}</div><h2>${esc(b.name)}</h2>`
+    return `<div class="kicker">${b.elder ? "An elder dragon · a world event · " : b.legendary ? "A legend · " : ""}${esc(b.breed)}</div><h2>${esc(b.name)}</h2>`
+        + (b.level ? `<p class="level-badge">Level ${b.level}</p>` : "")
         + `<div class="beast-portrait ${b.state === "slain" ? "slain" : ""}${unseen(pics, b.ref)}"><img src="${esc(portrait(pics, b.ref))}" alt=""></div>`
         + (b.witness ? `<p class="muted">First seen, and survived, by ${ref(b.witness.ref, b.witness.name)}</p>` : "")
         + `<p class="muted">${state}${b.place ? ` · ${esc(b.place)}` : ""} · might ${b.might} · dread ${b.notoriety}</p>`
@@ -704,6 +725,7 @@ function character(c, f, pics = {}) {
     const me = `char#${c.id ?? ""}`;
     return `<div class="kicker">${esc(c.kicker)}${f ? ` · ${esc(f.title)}${f.awakened ? " (awakened)" : ""}` : ""}</div>`
         + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2><!--follow-->`
+        + (c.level ? `<p class="level-badge" title="Levels run from 1 to 10; most reach 4 or 5 in a life">Level ${c.level}</p>` : "")
         + `<div class="beast-portrait char-portrait${c.alive === false ? " slain" : ""}${unseen(pics, me)}"><img src="${esc(portrait(pics, me))}" alt=""></div>`
         + `<p>${esc(c.line)}</p>`
         + (f?.known?.length ? `<p class="known">Known as ${f.known.map(esc).join(", ")}</p>` : "")

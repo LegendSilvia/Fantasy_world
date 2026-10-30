@@ -37,7 +37,7 @@ public class LevelsTests
         Assert.InRange(lived[lived.Count / 2], 3, 5);
         Assert.True(lived.Count(l => l > Levels.SoftCap) < lived.Count / 5);
         Assert.All(lived, l => Assert.InRange(l, 1, Levels.Max));
-        Assert.All(sim.World.Monsters.Values, m => Assert.InRange(Levels.Of(m), 1, Levels.Max - 1));
+        Assert.All(sim.World.Monsters.Values, m => Assert.InRange(Levels.Of(m), 1, m.Elder ? Levels.Max : Levels.Max - 1));
         Assert.All(sim.World.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth), s => Assert.InRange(Levels.Required(s), 2, 5));
         Assert.All(sim.World.Settlements.Values, s => Assert.InRange(Levels.Of(sim.World, s), 1, Levels.TownMax));
     }

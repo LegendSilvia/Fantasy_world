@@ -166,7 +166,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 135 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#2",
@@ -183,7 +184,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 115 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#3",
@@ -202,7 +204,8 @@
       },
       "marks": [
         "temple"
-      ]
+      ],
+      "level": 2
     },
     {
       "ref": "settlement#4",
@@ -219,7 +222,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 189 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#5",
@@ -236,7 +240,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 443 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#6",
@@ -253,7 +258,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 88 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#7",
@@ -268,9 +274,10 @@
       "card": {
         "kicker": "Brousfiallcross · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 923 · 0 events this year"
+        "line": "Pop. 951 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#8",
@@ -287,7 +294,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 923 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#9",
@@ -304,7 +312,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 816 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#10",
@@ -321,7 +330,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 965 · 2 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#11",
@@ -338,7 +348,8 @@
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 342 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#12",
@@ -355,7 +366,8 @@
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 247 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#13",
@@ -372,7 +384,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 176 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#14",
@@ -389,7 +402,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 237 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#15",
@@ -406,7 +420,8 @@
         "title": "Held by the County of Veirwold since the founding",
         "line": "Pop. 389 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#16",
@@ -425,7 +440,8 @@
       },
       "marks": [
         "temple"
-      ]
+      ],
+      "level": 1
     },
     {
       "ref": "settlement#17",
@@ -442,7 +458,8 @@
         "title": "Held by the County of Veirwold since the founding",
         "line": "Pop. 452 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#18",
@@ -459,7 +476,8 @@
         "title": "Held by the County of Veirwold since the founding",
         "line": "Pop. 644 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#19",
@@ -476,7 +494,8 @@
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 993 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#20",
@@ -493,7 +512,8 @@
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 1,254 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#21",
@@ -510,7 +530,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 263 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#22",
@@ -527,7 +548,8 @@
         "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 148 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#23",
@@ -544,7 +566,8 @@
         "title": "Held by the Duchy of Vamholt since the founding",
         "line": "Pop. 117 · 0 events this year"
       },
-      "marks": []
+      "marks": [],
+      "level": 1
     },
     {
       "ref": "settlement#24",
@@ -559,11 +582,12 @@
       "card": {
         "kicker": "Niar · Town",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 1,840 · 1 event this year"
+        "line": "Pop. 1,737 · 1 event this year"
       },
       "marks": [
         "temple"
-      ]
+      ],
+      "level": 2
     }
   ],
   "structures": [
@@ -576,7 +600,7 @@
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "detail": "level 1 of 3"
+      "detail": "level 2 of 3"
     }
   ],
   "borders": [
@@ -657,7 +681,7 @@
       "from": "settlement#3",
       "to": "settlement#24",
       "state": "open",
-      "volume": 72,
+      "volume": 71,
       "path": [
         {
           "x": 0.3515625,
@@ -703,7 +727,7 @@
       "from": "settlement#16",
       "to": "settlement#24",
       "state": "open",
-      "volume": 74,
+      "volume": 73,
       "path": [
         {
           "x": 0.8828125,

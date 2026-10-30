@@ -22,9 +22,8 @@ public sealed class LevelSystem : ISimSystem
         var since = ctx.Date.Day - Core.WorldDate.DaysPerYear;
         var earned = new Dictionary<long, double>();
         foreach (var e in ctx.Log.All.Where(e => e.Date.Day >= since && e.Date.Day < ctx.Date.Day))
-            foreach (var (role, who) in e.Actors)
-                if (who.Kind == Character.Kind)
-                    earned[who.Id] = earned.GetValueOrDefault(who.Id) + Levels.For(e, role);
+            foreach (var (who, xp) in Levels.Earned(e))
+                earned[who.Id] = earned.GetValueOrDefault(who.Id) + xp;
         foreach (var c in world.ActiveCharacters.OrderBy(c => c.Id).ToList())
         {
             if (c.Stage(ctx.Date) == LifeStage.Child) { c.Level = Math.Max(1, c.Level); continue; }

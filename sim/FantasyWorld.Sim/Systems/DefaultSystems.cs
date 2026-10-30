@@ -33,6 +33,7 @@ public static class DefaultSystems
         new FaithSystem(inventor),
         new MagicSystem(),
         new MonsterSystem(inventor),
+        new GreatEventsSystem(inventor),
         new FamilySystem(decider),
         new RelationsSystem(),
         new DeedsSystem(decider, arbiter, inventor),

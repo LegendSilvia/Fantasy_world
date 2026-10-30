@@ -33,6 +33,17 @@
         <button id="events" class="gods" title="World events: the demon lord, the heroes, and the fate of the world">✹ World events</button>
         <button id="wiki" class="gods" title="How the world works: races, classes, resources and everything else, by category">❖ Wiki</button>
         <label class="toggle"><input id="roads" type="checkbox" checked /> Trade roads</label>
+        <details id="markers" class="markers">
+            <summary title="Choose which markers the map shows">⚑ Markers</summary>
+            <div class="marker-list">
+                <label><input type="checkbox" data-layer="realms" checked /> Realms</label>
+                <label><input type="checkbox" data-layer="towns" checked /> Towns</label>
+                <label><input type="checkbox" data-layer="armies" checked /> Armies</label>
+                <label><input type="checkbox" data-layer="beasts" checked /> Beasts</label>
+                <label><input type="checkbox" data-layer="fights" checked /> Fights</label>
+                <label><input type="checkbox" data-layer="labyrinths" checked /> Labyrinths</label>
+            </div>
+        </details>
         <label class="year">
             <span>Year <b id="year-label">–</b></span>
             <input id="year" type="range" min="1" max="1" value="1" disabled />

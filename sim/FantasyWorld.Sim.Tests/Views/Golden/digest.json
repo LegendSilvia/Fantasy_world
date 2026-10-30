@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 319 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 321 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -34,7 +34,7 @@
         "x": 0.2578125,
         "y": 0.7890625
       },
-      "eventId": 318
+      "eventId": 320
     },
     {
       "number": 4,
@@ -47,14 +47,14 @@
       "eventId": 217
     },
     {
-      "number": 7,
+      "number": 6,
       "place": "region#2",
       "label": "Taramdale",
       "position": {
         "x": 0.4921875,
         "y": 0.4296875
       },
-      "eventId": 317
+      "eventId": 319
     }
   ],
   "headline": {
@@ -138,7 +138,7 @@
           }
         ]
       },
-      "eventId": 318
+      "eventId": 320
     },
     {
       "number": 4,
@@ -182,24 +182,9 @@
     },
     {
       "number": 6,
-      "category": "politics",
-      "text": {
-        "text": "The Kingdom of Thonae grew into a kingdom.",
-        "links": [
-          {
-            "start": 4,
-            "length": 17,
-            "entity": "realm#1"
-          }
-        ]
-      },
-      "eventId": 153
-    },
-    {
-      "number": 7,
       "category": "structures",
       "text": {
-        "text": "Something burst from the depths of the Deeps of Taramdale into Taramdale in the Outbreak of the Deeps of Taramdale, the work of Tind.",
+        "text": "Something burst from the depths of the Deeps of Taramdale into Taramdale in the Outbreak of the Deeps of Taramdale, the work of Lond.",
         "links": [
           {
             "start": 35,
@@ -213,7 +198,22 @@
           }
         ]
       },
-      "eventId": 317
+      "eventId": 319
+    },
+    {
+      "number": 7,
+      "category": "politics",
+      "text": {
+        "text": "The Kingdom of Thonae grew into a kingdom.",
+        "links": [
+          {
+            "start": 4,
+            "length": 17,
+            "entity": "realm#1"
+          }
+        ]
+      },
+      "eventId": 153
     },
     {
       "number": 8,

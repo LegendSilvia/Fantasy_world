@@ -240,7 +240,8 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
                                                                        or "MonsterWoke" or "MonsterSlumbered" or "MonstersMigrated");
         var raid = ctx.Emit(new EventDraft("MonsterRaid", Actors: new Dictionary<string, EntityRef> { ["monster"] = beast.Ref },
             Place: target.Ref, Payload: new Dictionary<string, string> { ["dead"] = dead.ToString(System.Globalization.CultureInfo.InvariantCulture) },
-            Causes: previous is null ? null : new[] { new Cause(previous.Id, CauseKind.Enabler, 0.5) },
+            // A beast that came of a world event (an elder dragon's waking, a great labyrinth's outbreak) raids because of it.
+            Causes: new[] { new Cause(previous?.Id ?? beast.RoseEventId, CauseKind.Enabler, 0.5) },
             Importance: (int)Math.Clamp(25 + beast.Might / 3, 25, 60), Tags: new[] { "Magic" }));
         Befall(ctx, beast, target, raid);
         // Merchants shun a land a beast has raided (the spec's raid that severs a road).
