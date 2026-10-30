@@ -20,6 +20,11 @@
 <body>
     <canvas id="world"></canvas>
     <div id="labels"></div>
+    <div class="turn" title="Turn the view: right-drag, Shift+drag or two fingers do it too">
+        <button id="turn-left" aria-label="Turn left">⟲</button>
+        <button id="turn-home" aria-label="Back to the first view">⌂</button>
+        <button id="turn-right" aria-label="Turn right">⟳</button>
+    </div>
 
     <header id="bar">
         <div class="title">
@@ -34,14 +39,16 @@
         <button id="wiki" class="gods" title="How the world works: races, classes, resources and everything else, by category">❖ Wiki</button>
         <label class="toggle"><input id="roads" type="checkbox" checked /> Trade roads</label>
         <details id="markers" class="markers">
-            <summary title="Choose which markers the map shows">⚑ Markers</summary>
+            <summary class="gods" title="Choose which markers the map shows">⚑ Filters<span id="markers-count"></span></summary>
             <div class="marker-list">
-                <label><input type="checkbox" data-layer="realms" checked /> Realms</label>
-                <label><input type="checkbox" data-layer="towns" checked /> Towns</label>
-                <label><input type="checkbox" data-layer="armies" checked /> Armies</label>
-                <label><input type="checkbox" data-layer="beasts" checked /> Beasts</label>
-                <label><input type="checkbox" data-layer="fights" checked /> Fights</label>
-                <label><input type="checkbox" data-layer="labyrinths" checked /> Labyrinths</label>
+                <div class="marker-row"><label><input type="checkbox" data-layer="realms" checked /> Realms</label><a href="#" data-only="realms" title="Show only realms">only</a></div>
+                <div class="marker-row"><label><input type="checkbox" data-layer="towns" checked /> Towns</label><a href="#" data-only="towns" title="Show only towns">only</a></div>
+                <div class="marker-row"><label><input type="checkbox" data-layer="armies" checked /> Armies</label><a href="#" data-only="armies" title="Show only armies">only</a></div>
+                <div class="marker-row"><label><input type="checkbox" data-layer="characters" checked /> People</label><a href="#" data-only="characters" title="Show only people">only</a></div>
+                <div class="marker-row"><label><input type="checkbox" data-layer="beasts" checked /> Beasts</label><a href="#" data-only="beasts" title="Show only beasts">only</a></div>
+                <div class="marker-row"><label><input type="checkbox" data-layer="labyrinths" checked /> Labyrinths</label><a href="#" data-only="labyrinths" title="Show only labyrinths">only</a></div>
+                <div class="marker-row"><label><input type="checkbox" data-layer="fights" checked /> Fights</label><a href="#" data-only="fights" title="Show only fights">only</a></div>
+                <a href="#" id="markers-all" class="marker-all">Show all</a>
             </div>
         </details>
         <label class="year">

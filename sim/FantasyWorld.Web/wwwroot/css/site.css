@@ -227,6 +227,22 @@ p.known { font-style: italic; }
 .marker-list { position: absolute; top: 28px; left: 0; z-index: 20; display: grid; gap: 6px; padding: 10px 12px; min-width: 140px;
     background: var(--card); border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
 .marker-list label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.markers summary.gods { display: inline-block; }
+.marker-list { min-width: 170px; }
+.marker-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.marker-row a, .marker-all { font-size: 12px; color: var(--muted, #8a8172); text-decoration: none; }
+.marker-row a:hover, .marker-all:hover { color: var(--ink); text-decoration: underline; }
+.marker-all { margin-top: 4px; text-align: center; }
+.turn { position: fixed; right: 16px; bottom: 16px; z-index: 10; display: flex; gap: 6px; }
+.turn button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--ink); color: var(--card); font: 18px system-ui, sans-serif;
+    cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
+.person-pin { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%;
+    border: 2px solid #efe6d2; background: #2d4a5e; color: #efe6d2; overflow: visible; box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: pointer; }
+.person-pin.hero { border-color: #e3b94f; box-shadow: 0 0 0 2px #2d4a5e, 0 2px 8px rgba(227,185,79,.6); }
+.person-pin img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: 50% 20%; }
+.person-pin b { font: 700 14px Georgia, serif; }
+.person-pin i { position: absolute; right: -6px; bottom: -4px; min-width: 15px; height: 15px; border-radius: 8px; background: var(--ink, #1c1c1c);
+    color: #fff; font: 700 10px/15px system-ui, sans-serif; font-style: normal; text-align: center; }
 .marker-list input { accent-color: var(--ink); }
 .level-badge { display: inline-block; margin: 2px 0 8px; padding: 2px 10px; border-radius: 999px; background: var(--ink); color: var(--card);
     font: 700 12px system-ui, sans-serif; letter-spacing: .04em; }

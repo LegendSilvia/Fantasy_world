@@ -30,6 +30,20 @@ async function buildStage() {
         mouseButtons: { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE },
         touches: { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE },
     });
+    // Turning made plain (the owner, 2026-10-30: "I can't rotate"): Shift or Ctrl with the left button turns too (OrbitControls
+    // does that for a panning button), and the buttons over the map turn it an eighth at a time, or bring back the first view.
+    const turn = angle => {
+        const offset = camera.position.clone().sub(controls.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+        camera.position.copy(controls.target).add(offset);
+        controls.update();
+    };
+    $("turn-left").addEventListener("click", () => turn(Math.PI / 4));
+    $("turn-right").addEventListener("click", () => turn(-Math.PI / 4));
+    $("turn-home").addEventListener("click", () => {
+        controls.target.set(0, 0, 0);
+        camera.position.set(2.2, 2.4, 2.2);
+        controls.update();
+    });
     controls.addEventListener("change", () => {
         const t = controls.target, edge = 1.1, x = THREE.MathUtils.clamp(t.x, -edge, edge), z = THREE.MathUtils.clamp(t.z, -edge, edge);
         if (x !== t.x || z !== t.z) {
@@ -151,6 +165,16 @@ async function showYear(year) {
     for (const beast of s.beasts)
         label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
             () => setHash({ panel: `beast/${id(beast.ref)}` }), "beasts");
+    // The notable people where they live (the owner, 2026-10-30): their likeness in a round frame with their level, else their initial.
+    const seen = new Map();
+    for (const person of s.characters ?? []) {
+        const n = seen.get(person.at.join()) ?? 0;
+        seen.set(person.at.join(), n + 1);
+        const at = [person.at[0] + 0.035 * Math.cos(n * 2.1), person.at[1], person.at[2] + 0.035 * Math.sin(n * 2.1)];
+        const face = pics[person.ref] ? `<img src="${esc(pics[person.ref])}" alt="">` : `<b>${esc(person.name.charAt(0))}</b>`;
+        label(`<span class="person-pin${person.hero ? " hero" : ""}" title="${esc(`${person.name}, level ${person.level}`)}">${face}<i>${person.level}</i></span>`, "badge",
+            lift(at, 0.03), 50 + person.renown / 5, () => setHash({ panel: `character/${id(person.ref)}` }), "characters");
+    }
     for (const maze of s.labyrinths ?? [])
         label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : 26, `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : ", a labyrinth"}`), "badge",
             lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
@@ -262,15 +286,32 @@ function label(html, kind, at, priority, onClick, layer) {
  * The map's marker filters (the owner, 2026-10-30): each kind of marker (realms, towns, armies, beasts, fights, labyrinths)
  * can be hidden, remembered in this browser; a hidden marker leaves its room to the others.
  */
-const hiddenLayers = new Set((() => { try { return JSON.parse(localStorage.getItem("hidden-markers") ?? "[]"); } catch { return []; } })());
-for (const box of document.querySelectorAll("#markers input[data-layer]")) {
-    box.checked = !hiddenLayers.has(box.dataset.layer);
+// People are hidden until chosen (the owner, 2026-10-30); "only" shows one kind alone, "all" brings every kind back.
+const markerKey = "hidden-markers-v2";
+const hiddenLayers = new Set((() => { try { return JSON.parse(localStorage.getItem(markerKey) ?? '["characters"]'); } catch { return ["characters"]; } })());
+const markerBoxes = [...document.querySelectorAll("#markers input[data-layer]")];
+function showLayers() {
+    for (const box of markerBoxes) box.checked = !hiddenLayers.has(box.dataset.layer);
+    const shown = markerBoxes.filter(b => b.checked).length;
+    $("markers-count").textContent = shown === markerBoxes.length ? "" : ` ${shown}/${markerBoxes.length}`;
+    try { localStorage.setItem(markerKey, JSON.stringify([...hiddenLayers])); } catch { }
+    if (camera) placeLabels();
+}
+for (const box of markerBoxes)
     box.addEventListener("change", () => {
         if (box.checked) hiddenLayers.delete(box.dataset.layer); else hiddenLayers.add(box.dataset.layer);
-        try { localStorage.setItem("hidden-markers", JSON.stringify([...hiddenLayers])); } catch { }
-        placeLabels();
+        showLayers();
     });
-}
+for (const only of document.querySelectorAll("#markers [data-only]"))
+    only.addEventListener("click", e => {
+        e.preventDefault();
+        hiddenLayers.clear();
+        for (const box of markerBoxes) if (box.dataset.layer !== only.dataset.only) hiddenLayers.add(box.dataset.layer);
+        showLayers();
+    });
+$("markers-all").addEventListener("click", e => { e.preventDefault(); hiddenLayers.clear(); showLayers(); });
+document.addEventListener("click", e => { if (!$("markers").contains(e.target)) $("markers").open = false; });
+queueMicrotask(showLayers);
 
 /** Places every name, the most important first, hiding any that would overlap one already placed. */
 function placeLabels() {

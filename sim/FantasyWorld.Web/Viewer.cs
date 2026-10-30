@@ -398,6 +398,18 @@ public static class Viewer
     }
 
     /// <summary>The map at the end of a year, as the game's history slider shows it (empty or this year: today).</summary>
+    /// <summary>The most notable people alive in a year (renowned, of high level, or of the saga), at most this many.</summary>
+    public const int MostCharactersOnMap = 30;
+
+    private static IEnumerable<Character> Notables(int year)
+    {
+        var end = new WorldDate(Math.Min(World.Date.Day, (long)year * WorldDate.DaysPerYear + WorldDate.DaysPerYear - 1));
+        return World.Characters.Values
+            .Where(c => c.BirthDay <= end.Day && (c.Died is not { } d || d.Day > end.Day) && !c.Faded && World.Settlements.ContainsKey(c.SettlementId)
+                        && (c.Renown >= Levels.KnownAt || Levels.Of(c) >= Levels.SoftCap || World.Sagas.Values.Any(s => s.HeroId == c.Id || s.PartyIds.Contains(c.Id) || s.DemonLordId == c.Id)))
+            .OrderByDescending(c => c.Renown).ThenByDescending(Levels.Of).ThenBy(c => c.Id).Take(MostCharactersOnMap);
+    }
+
     private static MapScreen MapAt(string year) =>
         MapScreen.Build(World, Log, int.TryParse(year, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) && y >= 1 && y < World.Date.Year
             ? new WorldDate((long)Math.Max(y, FirstYear) * WorldDate.DaysPerYear - 1) : null);
@@ -563,6 +575,16 @@ public static class Viewer
                     great = World.Structures.TryGetValue(st.Ref.Id, out var maze) && maze.Great,
                     at = V(Projection.ToBlock(grid, st.Position!, 0)),
                 }),
+            // The world's notable people where they live (the owner, 2026-10-30), alive in the year shown; off unless chosen.
+            characters = Notables(map.Year).Select((c, i) => new
+            {
+                @ref = c.Ref.ToString(),
+                name = FantasyWorld.Sim.Query.Names.Full(World, c),
+                level = Levels.Of(c),
+                renown = (int)c.Renown,
+                hero = World.Sagas.Values.Any(s => s.HeroId == c.Id || s.PartyIds.Contains(c.Id)),
+                at = V(Projection.ToBlock(grid, MapPoint.Of(World, new EntityRef(Settlement.Kind, c.SettlementId))!, 0)),
+            }),
             badges = new Dictionary<string, string>
             {
                 ["labyrinth"] = Badges.Labyrinth(false),
