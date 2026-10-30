@@ -23,7 +23,7 @@ public class ChronicleScreenTests
         var sim = History(12);
         var all = ChronicleScreen.Build(sim.World, sim.Log);
         Assert.Equal((4, 13), (all.FromYear, all.ToYear));
-        Assert.Equal(sim.Log.All.Count(e => e.Date.Year >= 4), all.Total);
+        Assert.Equal(sim.Log.All.Count(e => e.Date.Year >= 4 && !Sim.Model.Bestiary.Hidden(sim.World, e)), all.Total);
         var ids = all.Seasons.SelectMany(s => s.Rows).Select(r => r.EventId).ToList();
         Assert.Equal(ChronicleScreen.PageSize, ids.Count);
         Assert.Equal(ids.OrderByDescending(id => id), ids);

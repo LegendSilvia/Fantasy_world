@@ -27,6 +27,9 @@ public static class CasusBelli
 
     /// <summary>A council that saw a neighbour weakened and chose to strike while it could (the owner, 2026-10-29).</summary>
     public const string Opportunity = "opportunity";
+
+    /// <summary>A neighbour holds the land of one of the world's own treasures (the owner, 2026-10-29).</summary>
+    public const string Covet = "covet";
 }
 
 public sealed class War

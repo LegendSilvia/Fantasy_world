@@ -210,11 +210,13 @@ public sealed class DiplomacySystem : ISimSystem
             // The world's own resources are coveted (the owner, 2026-10-29): a neighbour holding the land of one this realm lacks.
             foreach (var wonder in world.Wonders.Where(w => !w.Hidden && w.FoundEventId != 0 && theirs.Any(r => r.Id == w.RegionId)
                                                             && !Realms.Territory(world, realm).Any(r => r.Id == w.RegionId)))
-                options.Add(new(CasusBelli.ResourceNeed, enemy.Id, wonder.FoundEventId, wonder.RegionId, 0, wonder.Role == WorldResource.Seal ? 10 : 25));
+                options.Add(new(CasusBelli.Covet, enemy.Id, wonder.FoundEventId, wonder.RegionId, 0, wonder.Role == WorldResource.Seal ? 10 : 25));
 
-            var hungry = Realms.Domain(world, realm).Select(r => r.Conditions.GetValueOrDefault(Conditions.Shortage)).FirstOrDefault(id => id != 0);
+            // Hunger drives a realm to its neighbour's fields only in a real famine (the owner, 2026-10-30: wars over food read
+            // oddly): a fresh one, over a good share of its lands. A barren province that has always gone short is no cause.
+            var hungry = Famine(ctx, realm);
             var granary = theirs.Where(r => r.Fertility >= 60 && Touches(world, r, realm)).OrderByDescending(r => r.Fertility).ThenBy(r => r.Id).FirstOrDefault();
-            if (hungry != 0 && granary is not null) options.Add(new(CasusBelli.ResourceNeed, enemy.Id, hungry, granary.Id, 0, 30));
+            if (hungry != 0 && granary is not null) options.Add(new(CasusBelli.ResourceNeed, enemy.Id, hungry, granary.Id, 0, 15));
 
             if (ruler is not null)
             {
@@ -347,6 +349,20 @@ public sealed class DiplomacySystem : ISimSystem
     /// <summary>The enemy's region nearest our territory: an enemy region adjacent to ours, lowest id.</summary>
     public static long Border(World world, Realm ours, Realm theirs) =>
         Realms.Territory(world, theirs).Where(r => Touches(world, r, ours)).Select(r => r.Id).DefaultIfEmpty(world.Settlements[theirs.CapitalId].RegionId).Min();
+
+    /// <summary>How long a famine stays fresh enough to march over, and how much of a realm it must grip.</summary>
+    public const int FamineYears = 2;
+    public const double FamineShare = 0.25;
+
+    /// <summary>The latest food shortage of a realm in famine (fresh, over a share of its lands), else 0.</summary>
+    private static long Famine(SimContext ctx, Realm realm)
+    {
+        var domain = Realms.Domain(ctx.World, realm).ToList();
+        var since = ctx.Date.Day - FamineYears * Core.WorldDate.DaysPerYear;
+        var fresh = domain.Select(r => r.Conditions.GetValueOrDefault(Conditions.Shortage))
+            .Where(id => id != 0 && ctx.Log.TryGet(id, out var began) && began.Date.Day >= since).ToList();
+        return fresh.Count > 0 && fresh.Count >= domain.Count * FamineShare ? fresh.Max() : 0;
+    }
 
     private static bool Touches(World world, Region region, Realm realm) =>
         (world.Geography?.Graph.Neighbours(region.Id) ?? Array.Empty<long>()).Any(n => Realms.SovereignOf(world, world.Regions[n])?.Id == realm.Id);

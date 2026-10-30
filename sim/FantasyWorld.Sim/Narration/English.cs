@@ -73,7 +73,8 @@ public static partial class English
         "holy war" => "in a holy war",
         "revenge" => "for revenge",
         "reconquest" => "to win back lost land",
-        "resource need" => "for want of food",
+        "resource need" => "to take their fields, its own lands starving",
+        "covet" => "to seize a treasure of the world held in their land",
         "artifact recovery" => "to recover a stolen treasure",
         "independence" => "for its freedom",
         "border dispute" => "over a disputed border",
@@ -81,6 +82,7 @@ public static partial class English
         "revolution" => "in revolution, to throw off its rule",
         "ancient hatred" => "out of an ancient hatred between their peoples",
         "dark conquest" => "to swallow the living lands",
+        "opportunity" => "to strike while they were weak",
         _ => $"for {kind}",
     };
 
