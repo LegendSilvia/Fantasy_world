@@ -288,14 +288,14 @@ function label(html, kind, at, priority, onClick, layer) {
  * can be hidden, remembered in this browser; a hidden marker leaves its room to the others.
  */
 // People are hidden until chosen (the owner, 2026-10-30); "only" shows one kind alone, "all" brings every kind back.
-const markerKey = "hidden-markers-v2";
-const hiddenLayers = new Set((() => { try { return JSON.parse(localStorage.getItem(markerKey) ?? '["characters"]'); } catch { return ["characters"]; } })());
+const markerStore = "hidden-markers-v2";
+const hiddenLayers = new Set((() => { try { return JSON.parse(localStorage.getItem(markerStore) ?? '["characters"]'); } catch { return ["characters"]; } })());
 const markerBoxes = [...document.querySelectorAll("#markers input[data-layer]")];
 function showLayers() {
     for (const box of markerBoxes) box.checked = !hiddenLayers.has(box.dataset.layer);
     const shown = markerBoxes.filter(b => b.checked).length;
     $("markers-count").textContent = shown === markerBoxes.length ? "" : ` ${shown}/${markerBoxes.length}`;
-    try { localStorage.setItem(markerKey, JSON.stringify([...hiddenLayers])); } catch { }
+    try { localStorage.setItem(markerStore, JSON.stringify([...hiddenLayers])); } catch { }
     if (camera) placeLabels();
 }
 for (const box of markerBoxes)
