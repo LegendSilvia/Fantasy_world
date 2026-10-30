@@ -43,6 +43,7 @@ public sealed record WebBundle(int Version, WorldSnapshot Snapshot, Geography? G
         foreach (var ev in Events) log.Restore(ev);
         var world = Snapshot.ToWorld();
         world.Geography = Geography;
+        Levels.Backfill(world, log);
         return (world, log);
     }
 }

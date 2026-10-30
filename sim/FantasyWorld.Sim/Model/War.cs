@@ -94,6 +94,9 @@ public sealed class Army
     public int Levies { get; set; }
     public int MenAtArms { get; set; }
     public List<long> Knights { get; init; } = new();
+
+    /// <summary>The characters it hired (the owner, 2026-10-30), three at most; they ride with it like its knights.</summary>
+    public List<long> Mercenaries { get; init; } = new();
     public int Mages { get; set; }
     public double Morale { get; set; } = 70;
     public double Supply { get; set; } = 100;

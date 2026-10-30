@@ -106,6 +106,12 @@ public sealed class Character
     /// <summary>Their own weapon, made by Claude to suit them once the chronicle airs; null: their calling's (a relic outranks both).</summary>
     public Gear? Weapon { get; set; }
 
+    /// <summary>1–10 (<see cref="Levels"/>); 0 until first levelled (a world made before levels is levelled when it loads).</summary>
+    public int Level { get; set; }
+
+    /// <summary>The experience earned by their years and deeds, which their level follows.</summary>
+    public double Experience { get; set; }
+
     /// <summary>0–100. Grows with deeds; raises the importance of their events.</summary>
     public double Renown { get; set; }
 

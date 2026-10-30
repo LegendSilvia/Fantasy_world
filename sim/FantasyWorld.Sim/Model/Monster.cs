@@ -22,6 +22,15 @@ public sealed class Monster
     /// <summary>1–100: how hard it is to kill, and how hard it raids.</summary>
     public double Might { get; set; }
 
+    /// <summary>1–10, set for a beast made with one (an elder dragon); 0: it follows its might (<see cref="Levels.Of(Monster)"/>).</summary>
+    public int Level { get; set; }
+
+    /// <summary>An elder dragon (the owner, 2026-10-30): a world event, slain only by many together, over a long time.</summary>
+    public bool Elder { get; set; }
+
+    /// <summary>For an elder dragon, 0–100: how much of its strength is left; each hunt that wounds it brings it lower.</summary>
+    public double Vigour { get; set; } = 100;
+
     /// <summary>0–100: how widely it is feared; legends lead the digest.</summary>
     public double Notoriety { get; set; }
 

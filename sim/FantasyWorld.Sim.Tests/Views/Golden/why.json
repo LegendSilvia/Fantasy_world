@@ -1,25 +1,15 @@
 {
   "outcome": {
-    "eventId": 398,
-    "year": 19,
+    "eventId": 308,
+    "year": 20,
     "category": "characters",
     "title": {
-      "text": "Liath of Lund fought Brocan of Liarning to the death at Niar. Brocan of Liarning won, and Liath of Lund was maimed.",
+      "text": "Rurnmull of Mond died in the Deeps of Taramdale, aged 51.",
       "links": [
         {
           "start": 0,
-          "length": 13,
-          "entity": "char#32"
-        },
-        {
-          "start": 21,
-          "length": 18,
-          "entity": "char#28"
-        },
-        {
-          "start": 56,
-          "length": 4,
-          "entity": "settlement#24"
+          "length": 16,
+          "entity": "char#35"
         }
       ]
     },
@@ -30,49 +20,21 @@
   "layers": [
     [
       {
-        "eventId": 162,
-        "year": 5,
-        "category": "characters",
+        "eventId": 307,
+        "year": 20,
+        "category": "structures",
         "title": {
-          "text": "Brocan of Liarning and Liath of Lund became rivals over the clash of a craven nature with a brave one.",
+          "text": "Rurnmull of Mond went down to level two of the Deeps of Taramdale and never returned.",
           "links": [
             {
               "start": 0,
-              "length": 18,
-              "entity": "char#28"
+              "length": 16,
+              "entity": "char#35"
             },
             {
-              "start": 23,
-              "length": 13,
-              "entity": "char#32"
-            }
-          ]
-        },
-        "note": null,
-        "isRoot": true,
-        "hasMore": false
-      },
-      {
-        "eventId": 383,
-        "year": 18,
-        "category": "characters",
-        "title": {
-          "text": "Liath of Lund called Brocan of Liarning out (to the death); they will meet at Niar in a year and a day.",
-          "links": [
-            {
-              "start": 0,
-              "length": 13,
-              "entity": "char#32"
-            },
-            {
-              "start": 21,
-              "length": 18,
-              "entity": "char#28"
-            },
-            {
-              "start": 78,
-              "length": 4,
-              "entity": "settlement#24"
+              "start": 43,
+              "length": 22,
+              "entity": "structure#1"
             }
           ]
         },
@@ -80,90 +42,166 @@
         "isRoot": false,
         "hasMore": false
       }
+    ],
+    [
+      {
+        "eventId": 297,
+        "year": 19,
+        "category": "structures",
+        "title": {
+          "text": "Rurnmull of Mond could not get past level two of the Deeps of Taramdale.",
+          "links": [
+            {
+              "start": 0,
+              "length": 16,
+              "entity": "char#35"
+            },
+            {
+              "start": 49,
+              "length": 22,
+              "entity": "structure#1"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      }
+    ],
+    [
+      {
+        "eventId": 293,
+        "year": 18,
+        "category": "structures",
+        "title": {
+          "text": "Lond of Cunvei reached level one of the Deeps of Taramdale.",
+          "links": [
+            {
+              "start": 0,
+              "length": 14,
+              "entity": "char#3"
+            },
+            {
+              "start": 36,
+              "length": 22,
+              "entity": "structure#1"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      }
+    ],
+    [
+      {
+        "eventId": 272,
+        "year": 16,
+        "category": "structures",
+        "title": {
+          "text": "Tind of Kasar was driven back from level one of the Deeps of Taramdale.",
+          "links": [
+            {
+              "start": 0,
+              "length": 13,
+              "entity": "char#22"
+            },
+            {
+              "start": 48,
+              "length": 22,
+              "entity": "structure#1"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": true
+      }
     ]
   ],
   "edges": [
     {
-      "from": 383,
-      "to": 398,
+      "from": 307,
+      "to": 308,
       "kind": "trigger",
-      "label": "because, and"
+      "label": "because"
     },
     {
-      "from": 162,
-      "to": 398,
-      "kind": "motive",
-      "label": "because, and"
+      "from": 297,
+      "to": 307,
+      "kind": "enabler",
+      "label": "because"
     },
     {
-      "from": 162,
-      "to": 383,
-      "kind": "motive",
+      "from": 293,
+      "to": 297,
+      "kind": "enabler",
+      "label": "because"
+    },
+    {
+      "from": 272,
+      "to": 293,
+      "kind": "enabler",
       "label": "because"
     }
   ],
-  "summary": "Traced back 14 years, through one root cause.",
+  "summary": "Traced back four years, and further than this view goes.",
   "people": [
     {
-      "ref": "char#32",
-      "name": "Liath of Lund"
+      "ref": "char#35",
+      "name": "Rurnmull of Mond"
     },
     {
-      "ref": "char#28",
-      "name": "Brocan of Liarning"
+      "ref": "char#3",
+      "name": "Lond of Cunvei"
+    },
+    {
+      "ref": "char#22",
+      "name": "Tind of Kasar"
     }
   ],
   "places": [
     {
-      "ref": "settlement#24",
-      "name": "Niar"
+      "ref": "settlement#5",
+      "name": "Kaerhiand"
+    },
+    {
+      "ref": "region#2",
+      "name": "Taramdale"
     }
   ],
   "systems": [
-    "characters"
+    "characters",
+    "structures"
   ],
-  "consequences": [
-    {
-      "eventId": 399,
-      "year": 19,
-      "category": "characters",
-      "title": {
-        "text": "Facing Brocan of Liarning, Liath of Lund was maimed, and the nerve went out of them: no longer brave, but craven.",
-        "links": [
-          {
-            "start": 7,
-            "length": 18,
-            "entity": "char#28"
-          },
-          {
-            "start": 27,
-            "length": 13,
-            "entity": "char#32"
-          }
-        ]
-      },
-      "note": null,
-      "isRoot": false,
-      "hasMore": false
-    }
-  ],
+  "consequences": [],
   "story": {
-    "text": "In Year 5, Brocan of Liarning and Liath of Lund became rivals over the clash of a craven nature with a brave one. In Year 18, Liath of Lund called Brocan of Liarning out (to the death); they will meet at Niar in a year and a day. And so, in Year 19, Liath of Lund fought Brocan of Liarning to the death at Niar. Brocan of Liarning won, and Liath of Lund was maimed.",
+    "text": "In Year 16, Tind of Kasar was driven back from level one of the Deeps of Taramdale. In Year 18, Lond of Cunvei reached level one of the Deeps of Taramdale. In Year 19, Rurnmull of Mond could not get past level two of the Deeps of Taramdale. In Year 20, Rurnmull of Mond went down to level two of the Deeps of Taramdale and never returned. And so Rurnmull of Mond died in the Deeps of Taramdale, aged 51.",
     "links": [
       {
-        "start": 11,
-        "length": 18,
-        "entity": "char#28"
-      },
-      {
-        "start": 34,
+        "start": 12,
         "length": 13,
-        "entity": "char#32"
+        "entity": "char#22"
       },
       {
-        "start": 204,
-        "length": 4,
-        "entity": "settlement#24"
+        "start": 60,
+        "length": 22,
+        "entity": "structure#1"
+      },
+      {
+        "start": 96,
+        "length": 14,
+        "entity": "char#3"
+      },
+      {
+        "start": 145,
+        "length": 9,
+        "entity": "region#2"
+      },
+      {
+        "start": 168,
+        "length": 16,
+        "entity": "char#35"
       }
     ]
   }

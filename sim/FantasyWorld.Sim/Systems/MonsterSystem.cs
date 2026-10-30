@@ -217,7 +217,17 @@ public sealed class MonsterSystem(IInventor? inventor = null) : ISimSystem
         var target = world.Settlements.Values.Where(s => !s.Abandoned && nearby.Contains(s.RegionId))
             .OrderBy(s => s.RegionId == lair.Id ? 0 : 1).ThenByDescending(s => s.Population).ThenBy(s => s.Id).FirstOrDefault();
         if (target is null) return;
-        var share = beast.Might / 1000.0; // up to a tenth of the people
+        // A town's fortification (its level, the owner, 2026-10-30) keeps a beast out: one well below it is driven off, and
+        // what gets in does less harm the stronger the walls.
+        var guard = Levels.Of(world, target);
+        if (Levels.Of(beast) + Levels.RepelMargin <= guard)
+        {
+            ctx.Emit(new EventDraft("RaidRepelled", Actors: new Dictionary<string, EntityRef> { ["monster"] = beast.Ref }, Place: target.Ref,
+                Payload: new Dictionary<string, string> { ["level"] = guard.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+                Importance: 20, Tags: new[] { "Magic", "Settlements" }));
+            return;
+        }
+        var share = beast.Might / 1000.0 * Levels.Ward(guard); // up to a tenth of the people, less behind walls
         var dead = (int)(target.Adults * share);
         target.Adults -= dead;
         world.Regions[target.RegionId].Food *= 1 - share;

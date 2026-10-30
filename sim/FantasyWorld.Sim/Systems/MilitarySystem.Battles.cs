@@ -55,7 +55,7 @@ public sealed partial class MilitarySystem
     public static double Strength(World world, Army army, Region region)
     {
         var magic = region.LeyPower / 50.0;
-        var troops = army.Levies + army.MenAtArms * 3.0 + army.Knights.Count * 25 + army.Mages * 30 * magic;
+        var troops = army.Levies + army.MenAtArms * 3.0 + (army.Knights.Count + army.Mercenaries.Count) * 25 + army.Mages * 30 * magic;
         return troops * Generalship(world, army) * Heroism(world, army) * Readiness(world, army);
     }
 
@@ -221,7 +221,7 @@ public sealed partial class MilitarySystem
 
     /// <summary>The commanders and knights riding with a host, as fates are dealt.</summary>
     private static IReadOnlyList<long> Notables(World world, Army army) =>
-        army.Knights.Append(army.CommanderId).Where(id => id != 0 && world.Characters.TryGetValue(id, out var c) && c.IsActive).ToList();
+        army.Knights.Concat(army.Mercenaries).Append(army.CommanderId).Where(id => id != 0 && world.Characters.TryGetValue(id, out var c) && c.IsActive).ToList();
 
     private static Dictionary<string, EntityRef> Sides(World world, War war, Army attacker, Army defender)
     {

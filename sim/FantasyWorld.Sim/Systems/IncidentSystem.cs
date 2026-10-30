@@ -537,8 +537,10 @@ public sealed class IncidentSystem(IDecider? decider = null, IInventor? inventor
                     var town = world.Settlements[subjects[0].Id];
                     var realm = world.Realms[world.Regions[town.RegionId].OwnerRealmId];
                     actors["realm"] = realm.Ref;
-                    town.Wealth *= 0.7;
-                    town.Adults -= town.Adults / 20;
+                    // Its fortification (the town's level) keeps the raiders from the worst of it.
+                    var ward = Levels.Ward(Levels.Of(world, town));
+                    town.Wealth *= 1 - 0.3 * ward;
+                    town.Adults -= (int)(town.Adults / 20 * ward);
                     town.Unrest = Math.Min(100, town.Unrest + 20);
                     var ev = Emit("BorderRaided", town.Ref, 50, "War");
                     Keep(ctx, ev, candidate.Kind, choice, realm.Ref.ToString(), "");

@@ -133,6 +133,8 @@ public sealed class WorldStore : IDisposable
                 world.Geography = Packed.Unpack<Geography>(geography);
         }
 
+        // A world made before levels has its characters levelled from their years and deeds (the owner, 2026-10-30).
+        Levels.Backfill(world, log);
         return (world, log, snapshot.ToQueue());
     }
 

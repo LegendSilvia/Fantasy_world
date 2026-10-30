@@ -33,7 +33,11 @@ public sealed partial class MilitarySystem
             var region = world.Regions[army.RegionId];
             if (!Hostile(world, war, realm, region) || Contested(world, war, army)) continue;
             var chief = world.LivingSettlements(region).OrderByDescending(s => s.Tier).ThenByDescending(s => s.Population).ThenBy(s => s.Id).FirstOrDefault();
-            var defense = chief is null ? 0 : chief.Walls * 400 + chief.Garrison * 3 + 50 + (StructureSystem.Fortified(world, chief) ? StructureSystem.FortressDefence : 0);
+            // A fortified town (its level, the owner, 2026-10-30) holds out a tenth longer for each level.
+            var defense = chief is null ? 0 : (chief.Walls * 400 + chief.Garrison * 3 + 50 + (StructureSystem.Fortified(world, chief) ? StructureSystem.FortressDefence : 0))
+                                              * Levels.Power(Levels.Of(world, chief));
+            // A fortified town takes more to break (the owner, 2026-10-30): the host hires mercenaries for it, up to three.
+            if (chief is not null) Hire(ctx, war, army, MercenariesFor(Levels.Of(world, chief)), chief.Ref);
             if (defense <= 150)
             {
                 Occupy(ctx, war, army, region, chief, "RegionOccupied", null);

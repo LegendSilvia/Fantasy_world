@@ -82,7 +82,8 @@ public sealed class FamilySystem : ISimSystem
         var (stays, moves) = a.Role == Role.Lord ? (a, b)
             : b.Role == Role.Lord ? (b, a)
             : CharacterFactory.LineageParent(world, husband, wife) == wife ? (wife, husband) : (husband, wife);
-        moves.SettlementId = stays.SettlementId;
+        // Two lords who wed each keep their own seat.
+        if (moves.Role != Role.Lord) moves.SettlementId = stays.SettlementId;
 
         var wedding = ctx.Emit(new EventDraft("MarriageWed",
             Actors: new Dictionary<string, EntityRef> { ["spouse"] = stays.Ref, ["partner"] = moves.Ref },

@@ -70,6 +70,7 @@ public static class WorldGenerator
         RealmGenerator.Generate(world, Stream("realms"));
         world.Name = new NameGen(Stream("world-name")).Region();
         Systems.Wonders.Generate(world);
+        world.Levelled = true; // made with levels: nothing to fill in from a history (the owner, 2026-10-30)
         return world;
     }
 }

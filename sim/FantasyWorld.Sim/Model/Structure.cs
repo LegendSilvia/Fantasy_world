@@ -38,6 +38,15 @@ public sealed class Structure
     public int Levels { get; set; }
 
     public int Depth { get; set; }
+
+    /// <summary>The level a labyrinth asks of its delvers (<see cref="Levels.Required"/>); 0: it follows its depth.</summary>
+    public int RequiredLevel { get; set; }
+
+    /// <summary>A great labyrinth (the owner, 2026-10-30): a world event, cleared only by a company over a long time.</summary>
+    public bool Great { get; set; }
+
+    /// <summary>The expedition down in it now (its begun event), 0 when none.</summary>
+    public long ExpeditionEventId { get; set; }
     public long GuardianId { get; set; }
     public long ClearedEventId { get; set; }
 

@@ -157,7 +157,8 @@ public static class Fates
         heir.Role = Role.Lord;
         heir.SettlementId = seat.Id;
         seat.LordId = heir.Id;
-        if (world.Characters.TryGetValue(heir.SpouseId, out var consort)) consort.SettlementId = seat.Id;
+        // A consort who rules a seat of their own stays at it.
+        if (world.Characters.TryGetValue(heir.SpouseId, out var consort) && consort.Role != Role.Lord) consort.SettlementId = seat.Id;
         if (world.Houses.TryGetValue(heir.HouseId, out var house)) house.SeatSettlementId = seat.Id;
         var law = world.Realms.Values.Where(r => !r.Destroyed && r.CapitalId == seat.Id).Select(r => r.SuccessionLaw.ToString()).FirstOrDefault();
         foreach (var realm in world.Realms.Values) realm.Council.Where(s => s.Value == heir.Id).Select(s => s.Key).ToList().ForEach(s => realm.Council.Remove(s));

@@ -97,9 +97,9 @@
         "x": 0.6953125,
         "y": 0.4609375
       },
-      "owner": "realm#2",
+      "owner": "realm#3",
       "occupier": null,
-      "colour": "crimson"
+      "colour": "white"
     },
     {
       "ref": "region#9",
@@ -163,8 +163,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Stesford · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 133 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 135 · 0 events this year"
       },
       "marks": []
     },
@@ -180,7 +180,7 @@
       "marker": "realm",
       "card": {
         "kicker": "Thanddind · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
+        "title": "Held by the Kingdom of Thonae since the founding",
         "line": "Pop. 115 · 0 events this year"
       },
       "marks": []
@@ -197,8 +197,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Drerithby · Town",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 2,597 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 2,504 · 0 events this year"
       },
       "marks": [
         "temple"
@@ -216,8 +216,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Wiall · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 187 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 189 · 0 events this year"
       },
       "marks": []
     },
@@ -233,8 +233,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Kaerhiand · Village",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 429 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 443 · 0 events this year"
       },
       "marks": []
     },
@@ -250,8 +250,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Veim · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 85 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 88 · 0 events this year"
       },
       "marks": []
     },
@@ -267,8 +267,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Brousfiallcross · Village",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 929 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 923 · 0 events this year"
       },
       "marks": []
     },
@@ -284,8 +284,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Raembridge · Village",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 902 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 923 · 0 events this year"
       },
       "marks": []
     },
@@ -301,8 +301,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Gresford · Village",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 800 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 816 · 0 events this year"
       },
       "marks": []
     },
@@ -315,11 +315,11 @@
         "y": 0.5703125
       },
       "holder": "realm#1",
-      "marker": "realm",
+      "marker": "recentEvent",
       "card": {
         "kicker": "Gerrouhaven · Village",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 940 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 965 · 2 events this year"
       },
       "marks": []
     },
@@ -336,7 +336,7 @@
       "card": {
         "kicker": "Droumkarnbridge · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 337 · 0 events this year"
+        "line": "Pop. 342 · 0 events this year"
       },
       "marks": []
     },
@@ -353,7 +353,7 @@
       "card": {
         "kicker": "Fouth · Hamlet",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 245 · 0 events this year"
+        "line": "Pop. 247 · 0 events this year"
       },
       "marks": []
     },
@@ -369,8 +369,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Veill · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 169 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 176 · 0 events this year"
       },
       "marks": []
     },
@@ -386,8 +386,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Toth · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 231 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 237 · 0 events this year"
       },
       "marks": []
     },
@@ -399,12 +399,12 @@
         "x": 0.7265625,
         "y": 0.3515625
       },
-      "holder": "realm#2",
+      "holder": "realm#3",
       "marker": "realm",
       "card": {
         "kicker": "Fasthar · Village",
-        "title": "Held by the Duchy of Vamholt since Year 6",
-        "line": "Pop. 375 · 1 event this year"
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 389 · 0 events this year"
       },
       "marks": []
     },
@@ -416,12 +416,12 @@
         "x": 0.8828125,
         "y": 0.4296875
       },
-      "holder": "realm#2",
+      "holder": "realm#3",
       "marker": "realm",
       "card": {
         "kicker": "Greindrondcross · Town",
-        "title": "Held by the Duchy of Vamholt since Year 6",
-        "line": "Pop. 1,645 · 0 events this year"
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 1,820 · 0 events this year"
       },
       "marks": [
         "temple"
@@ -435,12 +435,12 @@
         "x": 0.6953125,
         "y": 0.4609375
       },
-      "holder": "realm#2",
+      "holder": "realm#3",
       "marker": "realm",
       "card": {
         "kicker": "Braestilby · Village",
-        "title": "Held by the Duchy of Vamholt since Year 6",
-        "line": "Pop. 433 · 0 events this year"
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 452 · 0 events this year"
       },
       "marks": []
     },
@@ -452,12 +452,12 @@
         "x": 0.8359375,
         "y": 0.4765625
       },
-      "holder": "realm#2",
+      "holder": "realm#3",
       "marker": "realm",
       "card": {
         "kicker": "Droukolford · Village",
-        "title": "Held by the Duchy of Vamholt since Year 6",
-        "line": "Pop. 617 · 0 events this year"
+        "title": "Held by the County of Veirwold since the founding",
+        "line": "Pop. 644 · 0 events this year"
       },
       "marks": []
     },
@@ -474,7 +474,7 @@
       "card": {
         "kicker": "Heith · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 981 · 0 events this year"
+        "line": "Pop. 993 · 0 events this year"
       },
       "marks": []
     },
@@ -491,7 +491,7 @@
       "card": {
         "kicker": "Outh · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 1,242 · 0 events this year"
+        "line": "Pop. 1,254 · 0 events this year"
       },
       "marks": []
     },
@@ -507,8 +507,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Thurnstead · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 254 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 263 · 0 events this year"
       },
       "marks": []
     },
@@ -524,8 +524,8 @@
       "marker": "realm",
       "card": {
         "kicker": "Caethhouston · Hamlet",
-        "title": "Held by the Duchy of Thonae since the founding",
-        "line": "Pop. 146 · 0 events this year"
+        "title": "Held by the Kingdom of Thonae since the founding",
+        "line": "Pop. 148 · 0 events this year"
       },
       "marks": []
     },
@@ -542,7 +542,7 @@
       "card": {
         "kicker": "Grintiacross · Hamlet",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 112 · 0 events this year"
+        "line": "Pop. 117 · 0 events this year"
       },
       "marks": []
     },
@@ -559,7 +559,7 @@
       "card": {
         "kicker": "Niar · Town",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 1,596 · 2 events this year"
+        "line": "Pop. 1,840 · 1 event this year"
       },
       "marks": [
         "temple"
@@ -569,14 +569,14 @@
   "structures": [
     {
       "ref": "structure#1",
-      "name": "The Deeps of Gisreach",
+      "name": "The Deeps of Taramdale",
       "kind": "Labyrinth",
       "state": "Standing",
       "position": {
-        "x": 0.6796875,
-        "y": 0.1953125
+        "x": 0.4921875,
+        "y": 0.4296875
       },
-      "detail": "level 2 of 3"
+      "detail": "level 1 of 3"
     }
   ],
   "borders": [
@@ -597,8 +597,16 @@
       "b": "region#12"
     },
     {
+      "a": "region#6",
+      "b": "region#8"
+    },
+    {
       "a": "region#7",
       "b": "region#8"
+    },
+    {
+      "a": "region#8",
+      "b": "region#9"
     },
     {
       "a": "region#8",
@@ -609,7 +617,19 @@
       "b": "region#10"
     }
   ],
-  "conflicts": [],
+  "conflicts": [
+    {
+      "war": "war#2",
+      "name": "The War of Thonae's Vengeance",
+      "attackers": [
+        "realm#1"
+      ],
+      "defenders": [
+        "realm#2"
+      ],
+      "occupied": []
+    }
+  ],
   "legend": [
     {
       "label": "Thonae",
@@ -629,21 +649,7 @@
     }
   ],
   "armies": [],
-  "battles": [
-    {
-      "eventId": 404,
-      "year": 20,
-      "position": {
-        "x": 0.2578125,
-        "y": 0.7890625
-      },
-      "victor": "char#32",
-      "vanquished": "char#28",
-      "war": "#0",
-      "kind": "duel",
-      "underWay": true
-    }
-  ],
+  "battles": [],
   "routes": [
     {
       "ref": "route#1",
@@ -651,7 +657,7 @@
       "from": "settlement#3",
       "to": "settlement#24",
       "state": "open",
-      "volume": 53,
+      "volume": 72,
       "path": [
         {
           "x": 0.3515625,
@@ -674,7 +680,7 @@
       "from": "settlement#3",
       "to": "settlement#16",
       "state": "open",
-      "volume": 81,
+      "volume": 99,
       "path": [
         {
           "x": 0.3515625,
@@ -690,6 +696,29 @@
         }
       ],
       "sea": null
+    },
+    {
+      "ref": "route#3",
+      "name": "The Greindrondcross–Niar Road",
+      "from": "settlement#16",
+      "to": "settlement#24",
+      "state": "open",
+      "volume": 74,
+      "path": [
+        {
+          "x": 0.8828125,
+          "y": 0.4296875
+        },
+        {
+          "x": 0.2734375,
+          "y": 0.5546875
+        },
+        {
+          "x": 0.2578125,
+          "y": 0.7890625
+        }
+      ],
+      "sea": null
     }
   ],
   "monsters": [],
@@ -697,14 +726,14 @@
     {
       "ref": "realm#1",
       "name": "Thonae",
-      "rank": "Duchy",
+      "rank": "Kingdom",
       "colour": "white",
       "accent": "azure",
       "position": {
         "x": 0.3515625,
         "y": 0.1953125
       },
-      "regions": 7
+      "regions": 8
     },
     {
       "ref": "realm#2",
@@ -716,7 +745,7 @@
         "x": 0.2578125,
         "y": 0.7890625
       },
-      "regions": 5
+      "regions": 4
     }
   ]
 }

@@ -69,6 +69,12 @@ public sealed class World
     public SortedDictionary<long, Saga> Sagas { get; init; } = new();
     public SortedDictionary<long, Prayer> Prayers { get; init; } = new();
 
+    /// <summary>
+    /// Whether its characters have levels (the owner, 2026-10-30): true for a world made with them; a world made before is
+    /// levelled once from its history when it loads (<see cref="Levels.Backfill"/>).
+    /// </summary>
+    public bool Levelled { get; set; } = true;
+
     /// <summary>The world's legend, once written (<see cref="WorldLegend"/>); null for a world made before it.</summary>
     public WorldLegend? Legend { get; set; }
 

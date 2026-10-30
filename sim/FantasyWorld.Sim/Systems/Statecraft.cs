@@ -108,6 +108,7 @@ public static class Statecraft
         army.Disbanded = true;
         army.Levies = army.MenAtArms = army.Mages = 0;
         army.Knights.Clear();
+        army.Mercenaries.Clear();
         army.CommanderId = 0;
         foreach (var region in world.Regions.Values.Where(r => r.BesiegerArmyId == army.Id))
         {

@@ -24,7 +24,7 @@
     {
       "year": 2,
       "text": {
-        "text": "Fath of Cunvei knighted Ornstiall of Vorn in the service of the Duchy of Thonae.",
+        "text": "Fath of Cunvei knighted Ornstiall of Vorn in the service of the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
@@ -38,7 +38,7 @@
           },
           {
             "start": 64,
-            "length": 15,
+            "length": 17,
             "entity": "realm#1"
           }
         ]
@@ -49,7 +49,7 @@
     {
       "year": 2,
       "text": {
-        "text": "Ciath of Viallciath was knighted by Fath of Cunvei to serve the Duchy of Thonae.",
+        "text": "Ciath of Viallciath was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
@@ -63,7 +63,7 @@
           },
           {
             "start": 64,
-            "length": 15,
+            "length": 17,
             "entity": "realm#1"
           }
         ]
@@ -74,26 +74,21 @@
     {
       "year": 10,
       "text": {
-        "text": "Mathvond of Cunvei was knighted by Fath of Cunvei to serve the Duchy of Thonae.",
+        "text": "The Reliquary of Droll was stolen from Fath of Cunvei in the Theft of The Reliquary of Droll, by ill fortune alone.",
         "links": [
           {
             "start": 0,
-            "length": 18,
-            "entity": "char#4"
+            "length": 22,
+            "entity": "artifact#1"
           },
           {
-            "start": 35,
+            "start": 39,
             "length": 14,
             "entity": "char#1"
-          },
-          {
-            "start": 63,
-            "length": 15,
-            "entity": "realm#1"
           }
         ]
       },
-      "eventId": 279,
+      "eventId": 217,
       "highlight": false
     },
     {
@@ -113,7 +108,7 @@
           }
         ]
       },
-      "eventId": 362,
+      "eventId": 278,
       "highlight": false
     },
     {
@@ -133,27 +128,7 @@
           }
         ]
       },
-      "eventId": 386,
-      "highlight": false
-    },
-    {
-      "year": 19,
-      "text": {
-        "text": "Lond of Cunvei, child of Fath of Cunvei, was taken away in the Taking of Lond, by ill fortune alone.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          },
-          {
-            "start": 25,
-            "length": 14,
-            "entity": "char#1"
-          }
-        ]
-      },
-      "eventId": 390,
+      "eventId": 292,
       "highlight": false
     }
   ],
