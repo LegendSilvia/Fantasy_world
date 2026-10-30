@@ -1,5 +1,5 @@
 In Year 1, Brim of Sind and Braldro of Sind fell out over the clash of a calm nature with a wrathful one.
-In Year 2, at Thaell, Griardrall the Unbowed of Dram and Fome of Dram welcomed Drelma of Dram, lord of the Duchy of Taengriarnwold.
+In Year 2, at Thaell, Griardrall the Unbowed of Dram and Fome of Dram welcomed Mam of Dram, lord of the Duchy of Taengriarnwold.
 In Year 2, the Kingdom of Taengriarnwold lost its stores of timber in the Loss of Taengriarnwold's Timber, by ill fortune alone.
 In Year 2, the Kingdom of Taengriarnwold ran short of timber.
 In Year 2, at Mimton, Brim of Sind sprang an ambush on Braldro of Sind, and they fight to the death; the clash goes on, its end yet to come.
@@ -23,10 +23,10 @@ In Year 5, Mondgril of Dram, child of Griardrall the Unbowed of Dram, was taken 
 In Year 5, Griardrall swore off the life they had lived, and was known from then on as Griardrall the Unbowed.
 In Year 5, with no heir to claim it, the Bone Circlet went to the treasury of Bellkae.
 In Year 5, Griardrall the Unbowed of Dram challenged Sam of Mardareth to a duel (to the death), to be fought at Thaell in a year and a day.
-In Year 6, the Reliquary of Brusreirn was stolen from Aen the Grey of Liangriarn in the Theft of The Reliquary of Brusreirn, by ill fortune alone.
+In Year 6, the Reliquary of Brusreirn was stolen from Aen of Liangriarn in the Theft of The Reliquary of Brusreirn, by ill fortune alone.
 In Year 6, Drollkeil of Drolmirn found the Reliquary of Brusreirn in the depths of Bem.
 In Year 6, Griardrall the Unbowed of Dram fought Sam of Mardareth to the death at Thaell. Sam of Mardareth won; Griardrall the Unbowed of Dram was wounded but escaped.
-In Year 7, Aen the Grey of Liangriarn hunted the monsters of Wan and was driven back.
+In Year 7, Aen of Liangriarn hunted the monsters of Wan and was driven back.
 In Year 7, the Duchy of Bem lost its stores of timber in the Loss of Bem's Timber, by ill fortune alone.
 In Year 7, the Duchy of Bem ran short of timber.
 In Year 7, at Mimton, Braldro of Sind came upon their enemy Brim of Sind, and they fight to first blood; the clash goes on, its end yet to come.
@@ -35,7 +35,7 @@ In Year 7, Drollkeil of Drolmirn cleared Wan of monsters.
 In Year 7, Griardrall the Unbowed of Dram died of an illness at the age of 43.
 In Year 7, Holl of Ein succeeded Griardrall the Unbowed of Dram at Thaell.
 In Year 8, Holl of Ein prayed to Daefal for an heir.
-In Year 8, Fiakon of Liangriarn and Aen the Grey of Liangriarn swore to stand by each other, come what may.
+In Year 8, Fiakon of Liangriarn and Aen of Liangriarn swore to stand by each other, come what may.
 In Year 8, Nightheart, a hunting falcon of the grassland, came to Holl of Ein's side and would not leave it.
 In Year 8, at Mimton, Braldro of Sind met Brim of Sind to first blood. Braldro of Sind yielded, and Brim of Sind won.
 In Year 8, the fields of Taengriarnwold withered in a drought.
@@ -57,12 +57,12 @@ In Year 10, Braldro of Sind fought Brim of Sind to first blood at Mimton. Brim o
 In Year 10, at Deinwick, Drias of Kalorn met Dram of Kalorn to the death. Drias of Kalorn won, and Dram of Kalorn was slain.
 In Year 10, trade on the Kesburg–Mimton Road stopped, cut by war.
 In Year 10, the Kesburg–Thaell Road was cut by war.
-In Year 10, Aelmeill of Liangriarn and Aen the Grey of Liangriarn became rivals over the clash of a diligent nature with a lazy one.
+In Year 10, Ein of Liangriarn and Aen of Liangriarn became rivals over the clash of a diligent nature with a lazy one.
 In Year 11, Holl of Ein prayed to Daefal for an heir.
 In Year 11, the Kingdom of Taengriarnwold lost its stores of timber in the Loss of Taengriarnwold's Timber, by ill fortune alone.
 In Year 11, the Kingdom of Taengriarnwold ran short of timber.
 In Year 11, the Duchy of Bem and the Kingdom of Taengriarnwold declared each other rivals.
-In Year 11, at Kesburg, Aen the Grey of Liangriarn sprang an ambush on Aelmeill of Liangriarn, and they fight to the death; the clash goes on, its end yet to come.
+In Year 11, at Kesburg, Aen of Liangriarn sprang an ambush on Ein of Liangriarn, and they fight to the death; the clash goes on, its end yet to come.
 In Year 11, Holl of Ein died of old age, aged 58.
 In Year 11, at Thaell, Drias of Kalorn took the seat of Holl of Ein.
 In Year 11, the Kingdom of Taengriarnwold had timber enough again.
@@ -79,6 +79,6 @@ In Year 11, Fiakon of Liangriarn won glory in the battle at Bem.
 In Year 11, the ley lines of Ramraemdale surged.
 In Year 11, at Bem, the Kingdom of Taengriarnwold defeated the Duchy of Bem in a battle of the War of Taengriarnwold's Vengeance.
 
-In Year 16, the Duchy of Bem declared war on the Kingdom of Taengriarnwold for revenge, and so began the War of Bem's Vengeance. This happened because in Year 11, the War of Taengriarnwold's Vengeance ended in victory for the Kingdom of Taengriarnwold over the Duchy of Bem: two regions ceded. Earlier still, in Year 11, Sirwick fell to the Host of Taengriarnwold. That came about because in Year 10, the Kingdom of Taengriarnwold went to war against the Duchy of Bem for revenge: the War of Taengriarnwold's Vengeance. Before that, in Year 10, the envoy of the Kingdom of Taengriarnwold was slain at the court of the Duchy of Bem in the Murder of Taengriarnwold's Envoy, by ill fortune alone. And also because in Year 7, Holl of Ein succeeded Griardrall the Unbowed of Dram at Thaell. And also because in Year 11, the Duchy of Bem and the Kingdom of Taengriarnwold declared each other rivals. And also because in Year 15, Staethias passed from the Duchy of Bem to the Kingdom of Taengriarnwold. Earlier still, in Year 15, the War of Bem's Vengeance ended; the Kingdom of Taengriarnwold prevailed over the Duchy of Bem: one region ceded and reparations. That came about because in Year 15, the Host of Taengriarnwold took Viamere. Earlier still, in Year 13, the Duchy of Bem declared war on the Kingdom of Taengriarnwold for revenge, and so began the War of Bem's Vengeance.
+In Year 16, the Duchy of Bem went to war against the Kingdom of Taengriarnwold for revenge: the War of Bem's Vengeance. This happened because in Year 11, the War of Taengriarnwold's Vengeance ended in victory for the Kingdom of Taengriarnwold over the Duchy of Bem: two regions ceded. Earlier still, in Year 11, Sirwick fell to the Host of Taengriarnwold. That came about because in Year 10, the Kingdom of Taengriarnwold went to war against the Duchy of Bem for revenge: the War of Taengriarnwold's Vengeance. Before that, in Year 10, the envoy of the Kingdom of Taengriarnwold was slain at the court of the Duchy of Bem in the Murder of Taengriarnwold's Envoy, by ill fortune alone. And also because in Year 7, Holl of Ein succeeded Griardrall the Unbowed of Dram at Thaell. And also because in Year 11, the Duchy of Bem and the Kingdom of Taengriarnwold declared each other rivals. And also because in Year 15, Staethias passed from the Duchy of Bem to the Kingdom of Taengriarnwold. Before that, in Year 15, the War of Bem's Vengeance ended; the Kingdom of Taengriarnwold prevailed over the Duchy of Bem: one region ceded and reparations. Earlier still, in Year 15, the Host of Taengriarnwold took Viamere. Earlier still, in Year 13, the Duchy of Bem declared war on the Kingdom of Taengriarnwold for revenge, and so began the War of Bem's Vengeance.
 
-In Year 7, Griardrall the Unbowed of Dram died of an illness at the age of 43. That same year, Holl of Ein succeeded Griardrall the Unbowed of Dram at Thaell. In Year 9, the Kingdom of Taengriarnwold kept the Feast of Lanterns: lanterns are set adrift on every river and pool. In Year 10, the envoy of the Kingdom of Taengriarnwold was slain at the court of the Duchy of Bem in the Murder of Taengriarnwold's Envoy, by ill fortune alone. That same year, the Kingdom of Taengriarnwold went to war against the Duchy of Bem for revenge: the War of Taengriarnwold's Vengeance. In Year 11, the Duchy of Bem and the Kingdom of Taengriarnwold declared each other rivals. That same year, Sirwick fell to the Host of Taengriarnwold. That same year, the War of Taengriarnwold's Vengeance ended in victory for the Kingdom of Taengriarnwold over the Duchy of Bem: two regions ceded. That same year, the Kingdom of Taengriarnwold gained Wan from the Duchy of Bem. In Year 13, the Duchy of Bem declared war on the Kingdom of Taengriarnwold for revenge, and so began the War of Bem's Vengeance. In Year 15, the Host of Taengriarnwold took Viamere. That same year, the War of Bem's Vengeance ended; the Kingdom of Taengriarnwold prevailed over the Duchy of Bem: one region ceded and reparations. That same year, Staethias passed from the Duchy of Bem to the Kingdom of Taengriarnwold. And so, in Year 16, the Duchy of Bem declared war on the Kingdom of Taengriarnwold for revenge, and so began the War of Bem's Vengeance.
+In Year 7, Griardrall the Unbowed of Dram died of an illness at the age of 43. That same year, Holl of Ein succeeded Griardrall the Unbowed of Dram at Thaell. In Year 9, the Kingdom of Taengriarnwold kept the Feast of Lanterns: lanterns are set adrift on every river and pool. In Year 10, the envoy of the Kingdom of Taengriarnwold was slain at the court of the Duchy of Bem in the Murder of Taengriarnwold's Envoy, by ill fortune alone. That same year, the Kingdom of Taengriarnwold went to war against the Duchy of Bem for revenge: the War of Taengriarnwold's Vengeance. In Year 11, the Duchy of Bem and the Kingdom of Taengriarnwold declared each other rivals. That same year, Sirwick fell to the Host of Taengriarnwold. That same year, the War of Taengriarnwold's Vengeance ended in victory for the Kingdom of Taengriarnwold over the Duchy of Bem: two regions ceded. That same year, the Kingdom of Taengriarnwold gained Wan from the Duchy of Bem. In Year 13, the Duchy of Bem declared war on the Kingdom of Taengriarnwold for revenge, and so began the War of Bem's Vengeance. In Year 15, the Host of Taengriarnwold took Viamere. That same year, the War of Bem's Vengeance ended; the Kingdom of Taengriarnwold prevailed over the Duchy of Bem: one region ceded and reparations. That same year, Staethias passed from the Duchy of Bem to the Kingdom of Taengriarnwold. And so, in Year 16, the Duchy of Bem went to war against the Kingdom of Taengriarnwold for revenge: the War of Bem's Vengeance.

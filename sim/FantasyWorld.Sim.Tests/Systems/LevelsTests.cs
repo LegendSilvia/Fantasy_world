@@ -106,4 +106,22 @@ public class LevelsTests
         Assert.All(world.ActiveCharacters.Where(c => c.Role != Role.Lord), c =>
             Assert.InRange(MilitarySystem.Toward(world, c, world.Realms.Values.First()), -100, 100));
     }
+
+    [Fact]
+    public void TheLower_AvoidTheHigher_AndSlipAwayWhenTheHigherComeForThem()
+    {
+        // Picking a fight: whole at one's own level or below, half for each level the other stands above.
+        Assert.Equal(1, Levels.Wariness(5, 3));
+        Assert.Equal(1, Levels.Wariness(4, 4));
+        Assert.Equal(0.25, Levels.Wariness(3, 5));
+        // Being sought out by a higher level: a fifth more chance to slip away for each level between, at most four in five.
+        Assert.Equal(0, Levels.EvadeChance(6, 4));
+        Assert.Equal(40, Levels.EvadeChance(3, 5));
+        Assert.Equal(80, Levels.EvadeChance(1, 9));
+
+        var sim = History(120);
+        var avoided = sim.Log.All.Where(e => e.Type == "FightAvoided").ToList();
+        Assert.NotEmpty(avoided);
+        Assert.All(avoided, e => Assert.True(int.Parse(e.Payload["avoider level"]) < int.Parse(e.Payload["seeker level"])));
+    }
 }

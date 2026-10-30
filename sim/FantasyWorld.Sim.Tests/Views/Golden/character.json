@@ -114,32 +114,32 @@
     {
       "year": 18,
       "text": {
-        "text": "Fath of Cunvei knighted Hebiand of Kiangratheth in the service of the Kingdom of Thonae.",
+        "text": "Hebiand of Kiangratheth was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
         "links": [
           {
             "start": 0,
-            "length": 14,
-            "entity": "char#1"
-          },
-          {
-            "start": 24,
             "length": 23,
             "entity": "char#34"
           },
           {
-            "start": 70,
+            "start": 40,
+            "length": 14,
+            "entity": "char#1"
+          },
+          {
+            "start": 68,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 288,
+      "eventId": 287,
       "highlight": false
     },
     {
       "year": 18,
       "text": {
-        "text": "Mathvond of Cunvei and Fath of Cunvei fell out over the clash of a wrathful nature with a calm one.",
+        "text": "Mathvond of Cunvei and Fath of Cunvei became rivals over the clash of a wrathful nature with a calm one.",
         "links": [
           {
             "start": 0,
@@ -153,7 +153,7 @@
           }
         ]
       },
-      "eventId": 295,
+      "eventId": 292,
       "highlight": false
     }
   ],

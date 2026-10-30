@@ -324,11 +324,11 @@
         "y": 0.5703125
       },
       "holder": "realm#1",
-      "marker": "recentEvent",
+      "marker": "realm",
       "card": {
         "kicker": "Gerrouhaven · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 965 · 2 events this year"
+        "line": "Pop. 965 · 0 events this year"
       },
       "marks": [],
       "level": 1

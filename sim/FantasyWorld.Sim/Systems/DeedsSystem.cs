@@ -121,7 +121,8 @@ public sealed partial class DeedsSystem : ISimSystem
             .OrderByDescending(m => m.Notoriety).ThenBy(m => m.Id).FirstOrDefault();
         var lair = nearby.Where(r => r.Danger >= 50).OrderByDescending(r => r.Danger).ThenBy(r => r.Id).FirstOrDefault();
         if (beast is not null)
-            options.Add(new($"hunt:{beast.RegionId}", (c.Ambition == Ambitions.Renown ? 50 : 6) * bold, $"hunt {beast.Name} in {world.Regions[beast.RegionId].Name}"));
+            options.Add(new($"hunt:{beast.RegionId}", (c.Ambition == Ambitions.Renown ? 50 : 6) * bold * Levels.Wariness(Levels.Of(c), Levels.Of(beast)),
+                $"hunt {beast.Name} in {world.Regions[beast.RegionId].Name}"));
         else if (lair is not null)
             options.Add(new($"hunt:{lair.Id}", (c.Ambition == Ambitions.Renown ? 40 : 5) * bold, $"hunt the monsters of {lair.Name}"));
 
@@ -134,7 +135,7 @@ public sealed partial class DeedsSystem : ISimSystem
                                                       && (aired || s.Depth + 1 < Math.Max(s.Levels, 3)))
             .OrderBy(s => s.Id).FirstOrDefault();
         if (maze is not null)
-            options.Add(new($"maze:{maze.Id}", (c.Ambition == Ambitions.Artifact ? 40 : c.Ambition == Ambitions.Renown ? 25 : 2) * bold,
+            options.Add(new($"maze:{maze.Id}", (c.Ambition == Ambitions.Artifact ? 40 : c.Ambition == Ambitions.Renown ? 25 : 2) * bold * Levels.Wariness(Levels.Of(c), Levels.Required(maze)),
                 $"delve into {maze.Name}, level {Math.Min(Math.Max(maze.Levels, 3), maze.Depth + 1)}"));
 
         var mazes = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0).Select(s => s.RegionId).ToHashSet();
@@ -165,7 +166,7 @@ public sealed partial class DeedsSystem : ISimSystem
         {
             // A sworn avenger bides their time until they are a match for their foe, then comes for their life.
             var ready = Encounters.Strength(world, c) >= Encounters.Strength(world, foe) * ReadyForRevenge;
-            options.Add(new($"avenge:{foe.Id}", (ready ? 60 : 8) * bold, $"challenge {foe.Name} to the death"));
+            options.Add(new($"avenge:{foe.Id}", (ready ? 60 : 8) * bold * Levels.Wariness(Levels.Of(c), Levels.Of(foe)), $"challenge {foe.Name} to the death"));
         }
 
         var rival = (neighbours ?? world.PeopleOf(home))
@@ -199,7 +200,7 @@ public sealed partial class DeedsSystem : ISimSystem
         if (free && rival is not null && !Challenged(ctx.Queue, rival.Id) && (notable || c.Has(Traits.Wrathful) || c.Has(Traits.Brave))
             && PendingDuels(ctx.Queue).Count(a => a.Kind == DuelKind) is var open && open < MaxOpenChallenges
             && (open < OrdinaryChallenges || notable))
-            options.Add(new($"duel:{rival.Id}", (notable ? NotableUrge : 10) * bold, $"challenge {rival.Name} to first blood"));
+            options.Add(new($"duel:{rival.Id}", (notable ? NotableUrge : 10) * bold * Levels.Wariness(Levels.Of(c), Levels.Of(rival)), $"challenge {rival.Name} to first blood"));
         return options;
     }
 
@@ -215,6 +216,8 @@ public sealed partial class DeedsSystem : ISimSystem
             case "steal": Steal(ctx, c, ctx.World.Artifacts[target]); break;
             case "study": c.Attributes.Lore = Math.Min(20, c.Attributes.Lore + 1); break;
             case "forge": Forge(ctx, c); break;
+            // One sought out by a higher level may keep out of their way (the owner, 2026-10-30).
+            case "avenge" or "duel" when target != c.Id && Levels.Evades(ctx.World.Characters[target], c, ctx.Date.Day): Avoided(ctx, ctx.World.Characters[target], c); break;
             case "avenge" when target != c.Id: Equip(ctx, c); Equip(ctx, ctx.World.Characters[target]); Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: true); break;
             case "duel" when target != c.Id: Equip(ctx, c); Equip(ctx, ctx.World.Characters[target]); Challenge(ctx, c, ctx.World.Characters[target], toTheDeath: false); break;
         }
@@ -422,6 +425,17 @@ public sealed partial class DeedsSystem : ISimSystem
     /// The challenge (sub-project 8 §4): declared now with the odds as they stand, fought a year and a day later. The
     /// grudge behind it is its motive.
     /// </summary>
+    /// <summary>One of a lower level kept out of the way of a higher one who came looking for a fight: no fight, told in passing.</summary>
+    public static void Avoided(SimContext ctx, Character avoider, Character seeker) =>
+        ctx.Emit(new EventDraft("FightAvoided", Actors: new Dictionary<string, EntityRef> { ["avoider"] = avoider.Ref, ["seeker"] = seeker.Ref },
+            Place: ctx.World.Settlements.TryGetValue(avoider.SettlementId, out var home) ? home.Ref : (EntityRef?)null,
+            Payload: new Dictionary<string, string>
+            {
+                ["avoider level"] = Levels.Of(avoider).ToString(CultureInfo.InvariantCulture),
+                ["seeker level"] = Levels.Of(seeker).ToString(CultureInfo.InvariantCulture),
+            },
+            Importance: Chronicle.Compactor.MinorBelow, Tags: new[] { "Characters" }));
+
     private static void Challenge(SimContext ctx, Character challenger, Character defender, bool toTheDeath)
     {
         var grudge = challenger.Memories.Where(m => m.About == defender.Id).OrderBy(m => m.Feeling).ThenBy(m => m.EventId).FirstOrDefault();

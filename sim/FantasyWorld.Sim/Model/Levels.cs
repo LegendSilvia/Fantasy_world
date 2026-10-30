@@ -67,6 +67,22 @@ public static class Levels
     /// <summary>A beast no higher than a town's level (its walls) is driven off and does no harm; this many levels below suffices.</summary>
     public const int RepelMargin = 0;
 
+    /// <summary>
+    /// How willing one is to pick a fight with what stands above them (the owner, 2026-10-30: the lower avoid the higher): whole
+    /// against their own level or below, half as willing for each level the other stands above them.
+    /// </summary>
+    public static double Wariness(int own, int other) => other > own ? Math.Pow(0.5, other - own) : 1;
+
+    /// <summary>The chance, in a hundred, that one sought out by a higher level slips away from the fight: a fifth for each level between, at most four in five.</summary>
+    public static int EvadeChance(int sought, int seeker) => seeker > sought ? Math.Min(80, 20 * (seeker - sought)) : 0;
+
+    /// <summary>
+    /// Whether one sought out by a higher level avoids the fight (the owner, 2026-10-30: the higher have less chance to fight
+    /// the lower, who avoid them); rolled from the two and the moment, not the world's dice.
+    /// </summary>
+    public static bool Evades(Character sought, Character seeker, long moment) =>
+        Hash.Percent(sought.Id * 7919 + seeker.Id, 7601, moment) < EvadeChance(Of(sought), Of(seeker));
+
     /// <summary>Those whose calling is fighting, who train harder each year.</summary>
     private static bool Armed(Character c) => c.Role is Role.Knight or Role.Adventurer or Role.Lord or Role.Rebel
                                               || c.Class is Classes.Warrior or Classes.Ranger or Classes.Paladin;
