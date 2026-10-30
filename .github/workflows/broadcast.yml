@@ -38,6 +38,10 @@ on:
         description: "Only the release: post what is due and put the latest released day's world on the website (no new episode)"
         type: boolean
         default: false
+      site:
+        description: "Only the website: deploy the viewer as the code has it now, with the world it already shows (nothing made or posted)"
+        type: boolean
+        default: false
 
 # One run at a time, and a run in progress is never cancelled: two runs must not touch the world together.
 concurrency:
@@ -54,12 +58,13 @@ env:
   REPAINT: ${{ inputs.repaint }}
   REMAKE: ${{ inputs.remake }}
   RELEASE: ${{ github.event.schedule == '0 3 * * *' || inputs.release == true }}
+  SITE_ONLY: ${{ inputs.site }}
   REF: ${{ github.ref }}
   DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
 
 jobs:
   prepare:
-    if: github.event.schedule != '0 3 * * *' && inputs.release != true
+    if: github.event.schedule != '0 3 * * *' && inputs.release != true && inputs.site != true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -211,7 +216,7 @@ jobs:
     # With a release time (broadcast.json releaseTime), the public site shows only released days: the release run deploys
     # the latest released day's world, and the morning run leaves it be (a dry run still deploys to staging at once).
     needs: [prepare, release]
-    if: always() && (needs.prepare.result == 'success' || needs.release.result == 'success')
+    if: always() && (needs.prepare.result == 'success' || needs.release.result == 'success' || inputs.site == true)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
@@ -246,7 +251,7 @@ jobs:
             fi
             echo "The website shows the world of $day, the latest released day."
             bundle_key="${prefix}episodes/$day/world.json.gz"; images_key="${prefix}episodes/$day/images.json"
-          elif [ "$DRY_RUN" != "true" ] && [ "$REMAKE" != "true" ] && [ -n "$(jq -r '.releaseTime // empty' broadcast.json)" ]; then
+          elif [ "$DRY_RUN" != "true" ] && [ "$REMAKE" != "true" ] && [ "$SITE_ONLY" != "true" ] && [ -n "$(jq -r '.releaseTime // empty' broadcast.json)" ]; then
             echo "The public website waits for the release, when the day's video goes public."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           dotnet publish sim/FantasyWorld.Web --configuration Release --output "$RUNNER_TEMP/site"
