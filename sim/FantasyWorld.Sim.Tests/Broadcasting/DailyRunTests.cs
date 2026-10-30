@@ -394,6 +394,24 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
+    public async Task ARemake_TellsTheDayAgain_FromTheStoredWorld_AndPostsItAgain()
+    {
+        // The owner, 2026-10-30: "remake the vid and post it".
+        await Run(Morning, new RunOptions(Create: true));
+        var first = _discord.Posts.Single();
+        var world = await Get("live/world.fw.db");
+
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddHours(2), new RunOptions(Remake: true)));
+        Assert.Contains("Remade the episode of 2026-10-27", _log.ToString());
+        Assert.Equal(2, _discord.Posts.Count);
+        var again = _discord.Posts[1];
+        Assert.Equal((first.Date, first.FromYear, first.ToYear, first.FirstEventId, first.LastEventId),
+            (again.Date, again.FromYear, again.ToYear, again.FirstEventId, again.LastEventId));
+        // The world was not lived again: the same history is told.
+        Assert.NotNull(world);
+    }
+
+    [Fact]
     public void TheRelease_IsTheNextDayAtItsHour_InTheBroadcastsTimeZone()
     {
         var config = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "releaseTime": "10:00" }""");

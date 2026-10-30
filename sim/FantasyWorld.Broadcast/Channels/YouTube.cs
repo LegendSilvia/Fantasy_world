@@ -83,7 +83,7 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
     public void Attach(IObjectStore store, TextWriter log, string today) => (_store, _log, _today, _uploads) = (store, log, today, 0);
 
     public static JsonObject Details(Episode episode, BroadcastYouTube settings, Speech.Timeline? timeline = null, string? siteLink = null, bool shortForm = false,
-        DateTimeOffset? publishAt = null)
+        DateTimeOffset? publishAt = null, string? fullVideo = null)
     {
         // A scheduled release (the owner, 2026-10-30): uploaded private, and YouTube makes it public at the hour itself.
         JsonObject Status() => publishAt is { } at
@@ -101,7 +101,9 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             // A Short: its hashtag kept within the title's limit, a few lines and the link to the world.
             const string tag = " #Shorts";
             var shortTitle = ClipChars(Plain(title), MaxTitle - tag.Length) + tag;
-            var lines = (episode.Headline is { } h ? $"{h.Text}.\n\n" : "") + (siteLink is null ? "" : $"Explore the world: {siteLink}\n\n")
+            // The whole episode first (the owner, 2026-10-30: "a button to head to video"), then the world.
+            var lines = (fullVideo is null ? "" : $"Watch the full episode: {fullVideo}\n\n")
+                        + (episode.Headline is { } h ? $"{h.Text}.\n\n" : "") + (siteLink is null ? "" : $"Explore the world: {siteLink}\n\n")
                         + $"The chronicle of {episode.WorldName}, told by {episode.Chronicler}. A new episode every morning. #fantasy #worldbuilding";
             return new JsonObject
             {
@@ -264,7 +266,8 @@ public sealed class YouTube(HttpClient http, YouTubeAccount? account, IVideoMake
             _uploads++;
             var token = await TokenAsync(ct).ConfigureAwait(false);
             var timeline = await Speech.Chapters.LoadAsync(store, day, ct).ConfigureAwait(false);
-            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode), vertical, PublishAt(day))) };
+            using var start = new HttpRequestMessage(HttpMethod.Post, UploadUrl) { Content = JsonContent.Create(Details(episode, settings, timeline, siteLink?.Invoke(episode), vertical, PublishAt(day),
+                vertical ? await WatchUrlAsync(store, day, ct).ConfigureAwait(false) : null)) };
             start.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Type", "video/mp4");
             start.Headers.TryAddWithoutValidation("X-Upload-Content-Length", mp4.Length.ToString(CultureInfo.InvariantCulture));

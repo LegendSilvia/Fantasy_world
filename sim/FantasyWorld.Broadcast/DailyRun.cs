@@ -21,7 +21,7 @@ namespace FantasyWorld.Broadcast;
 /// file for the workflow's film jobs, and post nothing; a later run posts it.
 /// </param>
 public sealed record RunOptions(bool DryRun = false, bool Create = false, bool UploadUnlisted = false, string? PreparePlan = null, bool Repaint = false,
-    bool ReleaseOnly = false);
+    bool ReleaseOnly = false, bool Remake = false);
 
 /// <summary>
 /// One morning's broadcast (spec §3): pull the world, back it up, catch it up, build the episode, push the episode and
@@ -91,7 +91,8 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             {
                 log.WriteLine("Today's episode is already built; the world is not touched again today.");
                 episode = await StoredEpisodeAsync(store, date, ct).ConfigureAwait(false);
-                if (_options.Repaint) episode = await RepaintAsync(store, manifest, episode, date, ct).ConfigureAwait(false);
+                if (_options.Remake) episode = await RemakeAsync(store, manifest, episode, date, ct).ConfigureAwait(false);
+                else if (_options.Repaint) episode = await RepaintAsync(store, manifest, episode, date, ct).ConfigureAwait(false);
             }
             else
                 episode = await MakeEpisodeAsync(store, manifest, date, ct).ConfigureAwait(false);
@@ -362,6 +363,45 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         return episode;
     }
 
+    /// <summary>
+    /// The day made again (the owner, 2026-10-30: "remake the vid and post it"): its episode told afresh from the stored
+    /// world, which is not lived again, as if the audience had last heard the day before's; then narrated, filmed, uploaded
+    /// and posted again. What the day had made before is cleared; videos already on YouTube are left there.
+    /// </summary>
+    private async Task<Episode> RemakeAsync(PrefixedStore store, Manifest manifest, Episode old, string date, CancellationToken ct)
+    {
+        var before = manifest.Episodes.Where(d => string.CompareOrdinal(d.Key, date) < 0 && d.Value.Done(Manifest.EpisodeStep))
+            .Select(d => d.Key).OrderByDescending(d => d, StringComparer.Ordinal).FirstOrDefault();
+        var since = before is null ? 0 : (await StoredEpisodeAsync(store, before, ct).ConfigureAwait(false)).LastEventId;
+        foreach (var still in old.Parts.Select(p => p.Still).OfType<string>().Distinct()) await store.DeleteAsync(still, ct).ConfigureAwait(false);
+        var film = await store.ListAsync($"episodes/{date}/film/", ct).ConfigureAwait(false);
+        foreach (var key in film.Concat([Channels.YouTube.VideoKey(date), Channels.YouTube.ShortVideoKey(date), Channels.YouTube.ThumbnailKey(date),
+                     Channels.YouTube.StateKey(date), Channels.YouTube.ShortStateKey(date), NarrationKey(date), Speech.Chapters.Key(date)]))
+            await store.DeleteAsync(key, ct).ConfigureAwait(false);
+        var day = manifest.Day(date);
+        foreach (var step in new[] { "youtube", "youtube-short", "discord", Manifest.AudioStep }) day.Steps.Remove(step);
+        await SaveAsync(store, manifest, ct).ConfigureAwait(false);
+
+        var work = Directory.CreateTempSubdirectory("fw-remake-");
+        try
+        {
+            var worldPath = Path.Combine(work.FullName, "world.fw.db");
+            await File.WriteAllBytesAsync(worldPath, await store.GetAsync(config.WorldKey, ct).ConfigureAwait(false)
+                                                     ?? throw new InvalidOperationException($"No world is stored at {store.Prefix}{config.WorldKey}."), ct).ConfigureAwait(false);
+            var llm = config.Llm;
+            Fw("llm", worldPath, "--provider", llm.Narrate ? "anthropic" : "none", "--model", $"narrate={llm.NarrateModel}",
+                "--narrations", llm.NarrationsPerDay.ToString(CultureInfo.InvariantCulture), "--cap", llm.MonthlyCapUsd.ToString(CultureInfo.InvariantCulture));
+            var episode = await TellAsync(store, manifest, date, work, worldPath, ["--since", since.ToString(CultureInfo.InvariantCulture)], ct).ConfigureAwait(false);
+            log.WriteLine($"Remade the episode of {date} (Years {episode.FromYear}–{episode.ToYear}); it is narrated, filmed, uploaded and posted again.");
+            return episode;
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            work.Delete(recursive: true);
+        }
+    }
+
     private async Task<Episode> MakeEpisodeAsync(PrefixedStore store, Manifest manifest, string date, CancellationToken ct)
     {
         var work = Directory.CreateTempSubdirectory("fw-broadcast-");
@@ -450,63 +490,77 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
             }
             // Each day's run is one year of the world (the owner, 2026-10-30).
             Fw("catchup", worldPath, "--quiet", "--year");
-            var dir = Path.Combine(work.FullName, "episode");
-            // The recent episodes as the audience heard them, for the editor's pass (the owner, 2026-10-29).
-            var recent = Path.Combine(work.FullName, "recent.txt");
-            await File.WriteAllTextAsync(recent, await RecentScriptsAsync(store, manifest, date, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
-            Fw(["episode", worldPath, "--out", dir, "--date", date,
-                "--stories", config.Stories.ToString(CultureInfo.InvariantCulture),
-                "--max-characters", config.MaxCharacters.ToString(CultureInfo.InvariantCulture), .. llm.Narrate ? ["--narrate", "--recent", recent] : Array.Empty<string>()]);
-            var episode = Episode.FromJson(await File.ReadAllTextAsync(Path.Combine(dir, "episode.json"), ct).ConfigureAwait(false));
-            await FeedbackAsync(store, date, episode, ct).ConfigureAwait(false);
-            if (llm.Narrate && episode.Writer != Episode.ChroniclerWriter)
-                log.WriteLine("warning: the chronicler could not write today's script (see the LLM line above); the template script goes out.");
-            var snapshot = Path.Combine(work.FullName, "upload.fw.db");
-            Fw("snapshot", worldPath, snapshot);
-
-            (_todaysMap, var shots) = PaintMap(snapshot, episode);
-            episode = await FaceOffImagesAsync(store, snapshot, episode, date, ct).ConfigureAwait(false);
-            await StoreMapAsync(store, date, ct).ConfigureAwait(false);
-            try
-            {
-                await Shots.SaveAsync(store, date, shots, ct).ConfigureAwait(false);
-            }
-            catch (IOException e)
-            {
-                log.WriteLine($"warning: the shot list could not be stored ({e.Message}); the video holds the whole map.");
-            }
-
-            // The episode first, then the world that holds its marker: a world in the store always has its episode.
-            await store.PutAsync(EpisodeKey(date), Encoding.UTF8.GetBytes(episode.ToJson()), "application/json", ct).ConfigureAwait(false);
-            await store.PutAsync(ScriptKey(date), Encoding.UTF8.GetBytes(episode.Script), "text/plain; charset=utf-8", ct).ConfigureAwait(false);
-            await store.PutAsync(config.WorldKey, await File.ReadAllBytesAsync(snapshot, ct).ConfigureAwait(false), "application/octet-stream", ct).ConfigureAwait(false);
-            _worldSaved = true;
-            log.WriteLine($"Saved the world and the episode to {store.Prefix}.");
-            try
-            {
-                // The browser's copy of the day; a failure costs only the website's update.
-                var web = Path.Combine(work.FullName, "world.json.gz");
-                Fw("export-web", snapshot, web);
-                var bundle = await File.ReadAllBytesAsync(web, ct).ConfigureAwait(false);
-                await store.PutAsync(WebBundleKeyOf(date), bundle, "application/gzip", ct).ConfigureAwait(false);
-                await store.PutAsync(WebBundleKey, bundle, "application/gzip", ct).ConfigureAwait(false);
-            }
-            catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException)
-            {
-                log.WriteLine($"warning: the web bundle could not be stored ({e.Message}); the website keeps yesterday's world.");
-            }
-            await WebImagesAsync(store, snapshot, date, ct).ConfigureAwait(false);
-
-            manifest.Record(date, episode);
-            manifest.Day(date).Steps[Manifest.EpisodeStep] = clock();
-            await SaveAsync(store, manifest, ct).ConfigureAwait(false);
-            return episode;
+            return await TellAsync(store, manifest, date, work, worldPath, [], ct).ConfigureAwait(false);
         }
         finally
         {
             Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
             work.Delete(recursive: true);
         }
+    }
+
+    /// <summary>
+    /// The day's episode told from the world at <paramref name="worldPath"/> (already lived to today): written, painted,
+    /// stored with the world, and marked in the manifest. <paramref name="episodeArgs"/> go to `fw episode` (a remade
+    /// day's --since).
+    /// </summary>
+    private async Task<Episode> TellAsync(PrefixedStore store, Manifest manifest, string date, DirectoryInfo work, string worldPath, string[] episodeArgs,
+        CancellationToken ct)
+    {
+        var llm = config.Llm;
+        var dir = Path.Combine(work.FullName, "episode");
+        // The recent episodes as the audience heard them, for the editor's pass (the owner, 2026-10-29).
+        var recent = Path.Combine(work.FullName, "recent.txt");
+        await File.WriteAllTextAsync(recent, await RecentScriptsAsync(store, manifest, date, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+        Fw(["episode", worldPath, "--out", dir, "--date", date,
+            "--stories", config.Stories.ToString(CultureInfo.InvariantCulture),
+            "--max-characters", config.MaxCharacters.ToString(CultureInfo.InvariantCulture), .. llm.Narrate ? ["--narrate", "--recent", recent] : Array.Empty<string>(), .. episodeArgs]);
+        var episode = Episode.FromJson(await File.ReadAllTextAsync(Path.Combine(dir, "episode.json"), ct).ConfigureAwait(false));
+        await FeedbackAsync(store, date, episode, ct).ConfigureAwait(false);
+        if (llm.Narrate && episode.Writer != Episode.ChroniclerWriter)
+            log.WriteLine("warning: the chronicler could not write today's script (see the LLM line above); the template script goes out.");
+        var snapshot = Path.Combine(work.FullName, "upload.fw.db");
+        Fw("snapshot", worldPath, snapshot);
+
+        // The images the video must have first (nations, revealed beasts, duellists), then the episode's own: its face-offs'
+        // portraits and banners, and last its stills, which alone may go without.
+        await WebImagesAsync(store, snapshot, date, ct).ConfigureAwait(false);
+        (_todaysMap, var shots) = PaintMap(snapshot, episode);
+        episode = await FaceOffImagesAsync(store, snapshot, episode, date, ct).ConfigureAwait(false);
+        await StoreMapAsync(store, date, ct).ConfigureAwait(false);
+        try
+        {
+            await Shots.SaveAsync(store, date, shots, ct).ConfigureAwait(false);
+        }
+        catch (IOException e)
+        {
+            log.WriteLine($"warning: the shot list could not be stored ({e.Message}); the video holds the whole map.");
+        }
+
+        // The episode first, then the world that holds its marker: a world in the store always has its episode.
+        await store.PutAsync(EpisodeKey(date), Encoding.UTF8.GetBytes(episode.ToJson()), "application/json", ct).ConfigureAwait(false);
+        await store.PutAsync(ScriptKey(date), Encoding.UTF8.GetBytes(episode.Script), "text/plain; charset=utf-8", ct).ConfigureAwait(false);
+        await store.PutAsync(config.WorldKey, await File.ReadAllBytesAsync(snapshot, ct).ConfigureAwait(false), "application/octet-stream", ct).ConfigureAwait(false);
+        _worldSaved = true;
+        log.WriteLine($"Saved the world and the episode to {store.Prefix}.");
+        try
+        {
+            // The browser's copy of the day; a failure costs only the website's update.
+            var web = Path.Combine(work.FullName, "world.json.gz");
+            Fw("export-web", snapshot, web);
+            var bundle = await File.ReadAllBytesAsync(web, ct).ConfigureAwait(false);
+            await store.PutAsync(WebBundleKeyOf(date), bundle, "application/gzip", ct).ConfigureAwait(false);
+            await store.PutAsync(WebBundleKey, bundle, "application/gzip", ct).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or HttpRequestException)
+        {
+            log.WriteLine($"warning: the web bundle could not be stored ({e.Message}); the website keeps yesterday's world.");
+        }
+
+        manifest.Record(date, episode);
+        manifest.Day(date).Steps[Manifest.EpisodeStep] = clock();
+        await SaveAsync(store, manifest, ct).ConfigureAwait(false);
+        return episode;
     }
 
     private static async Task<Episode> StoredEpisodeAsync(PrefixedStore store, string date, CancellationToken ct) =>
@@ -644,10 +698,11 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
     }
 
     /// <summary>
-    /// New images painted for the website alone: none (the owner, 2026-10-29: paint only what appears in the videos). The
-    /// site shows the pictures the episodes' face-offs and stills already have.
+    /// New images painted for the website (the owner, 2026-10-30: "don't cap, let it hit the ceiling"): every nation, every
+    /// beast someone has faced and lived to tell of, and every duellist the video shows is painted, until the image API's
+    /// daily budget says no. Only the stories' stills are optional, so these are painted before them.
     /// </summary>
-    public const int NewWebImagesPerDay = 0;
+    public const int NewWebImagesPerDay = int.MaxValue;
 
     /// <summary>
     /// The website's images (the owner, 2026-10-29): the realms' banners for the flags, the beasts for their badges and cards,

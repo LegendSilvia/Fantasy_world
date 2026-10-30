@@ -17,7 +17,9 @@ public class EpisodeTests
     {
         var world = Aged.World;
         var episode = Episode.Build(world, Aged.Log, 0, "2026-10-27");
-        Assert.StartsWith($"The chronicle of {world.Name} begins in Year {world.Date.Year}", episode.ColdOpen);
+        // A world on the first day of a year has told the year before.
+        var told = world.Date.Day % FantasyWorld.Sim.Core.WorldDate.DaysPerYear == 0 ? world.Date.Year - 1 : world.Date.Year;
+        Assert.StartsWith($"The chronicle of {world.Name} begins in Year {told}", episode.ColdOpen);
         Assert.All(episode.Stories, s => Assert.True(s.Year >= world.Date.Year - 1));
         Assert.True(episode.EventCount < Aged.Log.Count);
         Assert.Equal(Aged.Log.NextId - 1, episode.LastEventId);
@@ -41,7 +43,7 @@ public class EpisodeTests
         var since = Aged.Log.All.Last(e => e.Date.Year == Aged.World.Date.Year - 4).Id;
         var episode = Episode.Build(Aged.World, Aged.Log, since, "2026-10-27");
         Assert.All(episode.Stories, s => Assert.True(s.EventId > since));
-        Assert.StartsWith("Four years have passed", episode.ColdOpen);
+        Assert.StartsWith("Three years have passed", episode.ColdOpen); // from Year -4 to the year before the one it stands on
         Assert.Contains("In Year ", episode.Script);
         Assert.Equal(Aged.Log.All.Count(e => e.Id > since), episode.EventCount);
     }

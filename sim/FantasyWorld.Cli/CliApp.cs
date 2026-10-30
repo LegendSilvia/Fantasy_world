@@ -25,7 +25,7 @@ public static partial class CliApp
           fw answer <world-file> <tally.json>      the players' answers to prayers and blessings of face-offs
           fw advance <world-file> <duration> [--quiet]  e.g. 30d, 4mo, 7y (debug fast-forward; --quiet lists no events)
           fw catchup <world-file> [--quiet] [--year] simulate the real time that has passed (--year: on to the next year), then the digest (--quiet: none)
-          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--recent <file>] [--keep-marker]   the broadcast's episode since it last aired
+          fw episode <world-file> --out <dir> [--date <yyyy-mm-dd>] [--stories <n>] [--max-characters <n>] [--narrate] [--recent <file>] [--keep-marker] [--since <event id>]   the broadcast's episode since it last aired
           fw snapshot <world-file> <copy>           a consistent single-file copy (safe to upload)
           fw live <world-file> [--minutes <n>]      keep the world running in real time (default 60; Ctrl+C stops)
           fw digest <world-file> [--since <event-id>] [--take <n>]   headlines since you last looked
@@ -196,7 +196,11 @@ public static partial class CliApp
         using var store = OpenExisting(path);
         var (sim, gateway) = LoadLive(store, providers);
         var (world, log, queue) = (sim.World, sim.Log, sim.Queue);
-        var episode = Episode.Build(world, log, world.LastBroadcastEventId, date, store.LoadFollowed(), stories, budget);
+        // --since <event id>: the episode as if the audience last heard that event (a remade day); 0 is the first episode,
+        // which tells the legend in full again.
+        var since = Option(rest, "--since") is { } s ? long.Parse(s, CultureInfo.InvariantCulture) : world.LastBroadcastEventId;
+        if (since == 0 && world.Legend is { Told: true } toldLegend) world.Legend = toldLegend with { Told = false };
+        var episode = Episode.Build(world, log, since, date, store.LoadFollowed(), stories, budget);
         // --narrate: the chronicler (the world's narrate model) writes the script; the template's stands if it cannot.
         // --recent <file>: the recent episodes' transcripts, for the editor's pass (what the audience has already heard).
         var recent = Option(rest, "--recent") is { } recentFile && File.Exists(recentFile) ? File.ReadAllText(recentFile) : null;

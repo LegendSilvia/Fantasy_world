@@ -30,6 +30,10 @@ on:
         description: 'With dry-run: upload the staging video to YouTube as unlisted (a link to share, not listed on the channel)'
         type: boolean
         default: false
+      remake:
+        description: "Today's episode, already out: tell it again from the stored world, then narrate, film, upload and post it again, at once"
+        type: boolean
+        default: false
       release:
         description: "Only the release: post what is due and put the latest released day's world on the website (no new episode)"
         type: boolean
@@ -48,6 +52,7 @@ env:
   CREATE: ${{ inputs.create }}
   UPLOAD_UNLISTED: ${{ inputs.upload-unlisted }}
   REPAINT: ${{ inputs.repaint }}
+  REMAKE: ${{ inputs.remake }}
   RELEASE: ${{ github.event.schedule == '0 3 * * *' || inputs.release == true }}
   REF: ${{ github.ref }}
   DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
@@ -94,6 +99,7 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ "$CREATE" = "true" ]; then args+=(--create); fi
           if [ "$REPAINT" = "true" ]; then args+=(--repaint); fi
+          if [ "$REMAKE" = "true" ]; then args+=(--remake); fi
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
       - name: Hand the plan to the film jobs
         id: plan
@@ -240,7 +246,7 @@ jobs:
             fi
             echo "The website shows the world of $day, the latest released day."
             bundle_key="${prefix}episodes/$day/world.json.gz"; images_key="${prefix}episodes/$day/images.json"
-          elif [ "$DRY_RUN" != "true" ] && [ -n "$(jq -r '.releaseTime // empty' broadcast.json)" ]; then
+          elif [ "$DRY_RUN" != "true" ] && [ "$REMAKE" != "true" ] && [ -n "$(jq -r '.releaseTime // empty' broadcast.json)" ]; then
             echo "The public website waits for the release, when the day's video goes public."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           dotnet publish sim/FantasyWorld.Web --configuration Release --output "$RUNNER_TEMP/site"
@@ -390,6 +396,7 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ "$DRY_RUN" = "true" ] && [ "$UPLOAD_UNLISTED" = "true" ]; then args+=(--upload-unlisted); fi
           if [ "$CREATE" = "true" ]; then args+=(--create); fi
+          if [ "$REMAKE" = "true" ]; then args+=(--now); fi
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
       - name: Report what the day came to
         # The day read back from the bucket (the owner, 2026-10-29): what was made, uploaded and posted, and what fell

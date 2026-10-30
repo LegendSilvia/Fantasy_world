@@ -107,7 +107,9 @@ public sealed record Episode(
         var first = sinceEventId == 0;
         var events = log.Since(sinceEventId).Where(e => (!first || e.Date.Day > world.Date.Day - WorldDate.DaysPerYear) && !Bestiary.Hidden(world, e)).ToList();
         var fromYear = log.TryGet(sinceEventId, out var last) ? last.Date.Year : events.Count > 0 ? events[0].Date.Year : world.Date.Year;
-        var toYear = world.Date.Year;
+        // A world that stopped on the first day of a year has told the year before (the owner, 2026-10-30: a run of Year 101
+        // was titled "Year 102"); the turning of the year closes it.
+        var toYear = world.Date.Day % WorldDate.DaysPerYear == 0 && world.Date.Year > fromYear ? world.Date.Year - 1 : world.Date.Year;
         // A clearing that revealed a secret is told by the secret's story, which says who cleared it and what they took.
         var told = events.Where(e => e.Type == "SecretRevealed").SelectMany(e => e.Causes.Select(c => c.EventId)).ToHashSet();
         // A character changed by a deed is told right after the deed, in its section (the owner, 2026-10-29), never on its own
