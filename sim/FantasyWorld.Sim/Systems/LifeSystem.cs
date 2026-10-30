@@ -21,7 +21,7 @@ public sealed class LifeSystem : ISimSystem
     /// <summary>The faded age and die off-stage, without events: they left the story when they faded.</summary>
     public void OnYearlyTick(SimContext ctx)
     {
-        foreach (var c in ctx.World.Characters.Values.Where(c => c.Faded && c.IsAlive))
+        foreach (var c in ctx.World.Characters.Values.Where(c => c.Faded && c.IsAlive && !SagaSystem.Undying(ctx.World, c)))
             if (ctx.Rng.Chance(BaseMortality(Aged(c.Age(ctx.Date), Peoples.SpanOf(ctx.World, c)))))
             {
                 c.Died = ctx.Date;
@@ -39,12 +39,14 @@ public sealed class LifeSystem : ISimSystem
             if (!c.IsActive) continue;
             var region = world.Regions[world.Settlements[c.SettlementId].RegionId];
             // A demon lord does not age (sub-project 13).
-            var risks = Risks(c, region, ctx.Date, SagaSystem.IsDemonLord(world, c) ? 100 : Peoples.SpanOf(world, c));
+            var risks = Risks(c, region, ctx.Date, SagaSystem.Undying(world, c) ? 100 : Peoples.SpanOf(world, c));
             var total = risks.Sum(r => r.PerYear);
             // Where the world's own healing resource is held, sickness and age come gentler (the owner, 2026-10-29).
             if (world.Wonders.Count > 0 && Realms.SovereignOf(world, region) is { } home && Wonders.Holds(world, home, WorldResource.Life)) total *= Wonders.LifeMortality;
+            // Nor does plague or famine take one (the owner, 2026-10-30): only a blade or a sealing ends a demon lord.
+            if (SagaSystem.Undying(world, c)) total = 0;
             // At their people's limit, none lives another month (the owner, 2026-10-29).
-            var spent = !SagaSystem.IsDemonLord(world, c) && Aged(c.Age(ctx.Date), Peoples.SpanOf(world, c)) >= Peoples.CommonLimit;
+            var spent = !SagaSystem.Undying(world, c) && Aged(c.Age(ctx.Date), Peoples.SpanOf(world, c)) >= Peoples.CommonLimit;
             if (spent)
             {
                 Fates.Die(ctx, c, "old age", Array.Empty<Cause>());
@@ -57,7 +59,7 @@ public sealed class LifeSystem : ISimSystem
                 continue;
             }
             // Past their people's old age, the old fall ill (the owner, 2026-10-29); the sickness stays, and may carry them off.
-            if (!c.Wounds.Contains(Sickness) && !SagaSystem.IsDemonLord(world, c) && Aged(c.Age(ctx.Date), Peoples.SpanOf(world, c)) >= Peoples.CommonOld
+            if (!c.Wounds.Contains(Sickness) && !SagaSystem.Undying(world, c) && Aged(c.Age(ctx.Date), Peoples.SpanOf(world, c)) >= Peoples.CommonOld
                 && ctx.Rng.Chance(SickenPerYear / 12))
             {
                 c.Wounds.Add(Sickness);

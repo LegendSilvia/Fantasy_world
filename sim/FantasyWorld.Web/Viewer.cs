@@ -268,6 +268,14 @@ public static class Viewer
         }, Json);
     }
 
+    /// <summary>The world's wiki (the owner, 2026-10-30): how each part of the world works, by category, as of the year shown.</summary>
+    [JSInvokable]
+    public static string Wiki(string year = "") => ViewJson.Serialize(WikiScreen.Build(World, Log, Until(year)));
+
+    /// <summary>The world events (the owner, 2026-10-30): the sagas of the demon lord and the heroes, as of the year shown.</summary>
+    [JSInvokable]
+    public static string WorldEvents(string year = "") => ViewJson.Serialize(WorldEventsScreen.Build(World, Log, Until(year)));
+
     [JSInvokable]
     public static string Screen(string kind, string arg)
     {

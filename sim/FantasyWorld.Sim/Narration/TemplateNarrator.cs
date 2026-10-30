@@ -439,7 +439,27 @@ public sealed partial class TemplateNarrator(World world) : INarrator
         if (template is not null && ev.Actors.Values.Any(r => r.Kind == Monster.Kind && world.Monsters.TryGetValue(r.Id, out var m) && !m.Revealed))
             template = template.Replace(", {=a:breed},", "", StringComparison.Ordinal);
         var sentence = template is not null && Fill(template, ev) is { } filled ? filled : Generic(ev);
-        return English.Capitalise(sentence);
+        // A fought duel always says who won and how the loser fared (the owner, 2026-10-30: the outcome was never heard).
+        return English.Capitalise(sentence + Result(ev));
+    }
+
+    /// <summary>A duel's outcome as a sentence of its own, by who won and the loser's fate.</summary>
+    private static string? Outcome(string outcome)
+    {
+        if (outcome == "both_die") return "Neither won: both were slain.";
+        var (w, l) = outcome.StartsWith("attacker", StringComparison.Ordinal) ? ("{challenger}", "{defender}")
+            : outcome.StartsWith("defender", StringComparison.Ordinal) ? ("{defender}", "{challenger}") : (null, null);
+        if (w is null) return null;
+        return outcome[(outcome.IndexOf('_') + 1)..] switch
+        {
+            "kills" => $"{w} won, and {l} was slain.",
+            "maims" => $"{w} won, and {l} was maimed.",
+            "wounds" => $"{w} won, but both came away wounded.",
+            "escaped" => $"{w} won; {l} was wounded but escaped.",
+            "first_blood" => $"{w} drew first blood and won.",
+            "yields_win" => $"{l} yielded, and {w} won.",
+            _ => $"{w} won.",
+        };
     }
 
     /// <summary>Whether the event type has a headline title of its own (the kinds of news that lead a broadcast).</summary>
@@ -497,9 +517,13 @@ public sealed partial class TemplateNarrator(World world) : INarrator
 
     /// <summary>The event as a clause to follow "In Year 12," or "And so": names keep their case, other openings lower theirs.</summary>
     public string Clause(WorldEvent ev) =>
-        TemplateFor(ev) is { } template && Fill(template, ev) is { } filled
+        (TemplateFor(ev) is { } template && Fill(template, ev) is { } filled
             ? template.StartsWith('{') ? filled : LowerFirst(filled)
-            : LowerFirst(Generic(ev));
+            : LowerFirst(Generic(ev))) + Result(ev);
+
+    private string Result(WorldEvent ev) =>
+        ev.Type == "DuelFought" && Outcome(ev.Payload.GetValueOrDefault("outcome") ?? "") is { } told && Fill(told, ev) is { } result
+            ? $" {English.Capitalise(result)}" : "";
 
     public string Narrate(WorldEvent ev)
     {

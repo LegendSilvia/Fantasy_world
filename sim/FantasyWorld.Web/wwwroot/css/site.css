@@ -211,3 +211,7 @@ p.known { font-style: italic; }
 #panel .bond { display: inline-block; min-width: 1.6em; font-size: 12px; color: var(--muted); }
 #panel .bond.warm { color: #c0504d; }
 #panel .bond.hostile { color: #5a5a5a; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+#panel .chip, .chip { border-bottom: 0; font: 600 12px system-ui, sans-serif; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.06); color: var(--ink); cursor: pointer; text-decoration: none; }
+#panel .chip.on, .chip.on { background: var(--ink); color: var(--card); border-bottom: 0; }

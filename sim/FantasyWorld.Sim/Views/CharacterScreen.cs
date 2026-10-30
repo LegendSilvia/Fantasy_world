@@ -62,7 +62,7 @@ public sealed record CharacterScreen(
 
         Place? location = home is null ? null
             : new Place(home.Ref, c.IsActive ? $"Now at {home.Name}" : $"Last at {home.Name}", MapPoint.Of(world, home.Ref));
-        return new CharacterScreen(c.Ref, Names.Full(world, c), house?.Ref, house is null ? "Character" : $"Character · House {house.Name}",
+        return new CharacterScreen(c.Ref, Names.Full(world, c), house?.Ref, house is null ? Kind(world, c) : $"{Kind(world, c)} · House {house.Name}",
             string.Join(" · ", line), c.Traits.ToList(), AmbitionText(world, c), location, timeline, life.Count - notable.Count, earlier,
             TiesOf(world, c), followed,
             world.Faiths.TryGetValue(c.FaithId, out var faith) ? new Mention(faith.Ref, faith.Name) : null, c.SaintEventId != 0,
@@ -138,6 +138,21 @@ public sealed record CharacterScreen(
 
         // Kin are neutral unless love or hate has grown between them.
         Tone ToneOf2(Character? other) => other is null ? Tone.Neutral : ToneOf(other);
+    }
+    /// <summary>
+    /// What a character is, at the head of their page: "Character", or "Demon Lord" with its fate (the owner, 2026-10-30:
+    /// "there are no title of demonlord").
+    /// </summary>
+    private static string Kind(World world, Character c)
+    {
+        var saga = world.Sagas.Values.Where(s => s.DemonLordId == c.Id).OrderByDescending(s => s.Id).FirstOrDefault();
+        return saga is null ? "Character" : saga.Outcome switch
+        {
+            Saga.Sealed => "Demon Lord (sealed)",
+            Saga.Driven => "Demon Lord (driven into the dark)",
+            Saga.Slain => "Demon Lord (slain)",
+            _ => "Demon Lord",
+        };
     }
 }
 

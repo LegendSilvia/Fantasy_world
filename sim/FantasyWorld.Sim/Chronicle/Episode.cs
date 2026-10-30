@@ -32,6 +32,24 @@ public sealed record EpisodeSection(string Kind, string Title, string Text, long
     public const string Opening = "opening", Headline = "headline", Challenge = "faceoff", Story = "story", Why = "why", Comment = "comment", Closing = "closing";
 
     /// <summary>
+    /// World: the world events of the episode (the owner, 2026-10-30: the demon lord and the heroes are world events, with a
+    /// section of their own), or how the struggle stands while one goes on. Results: every fight that ended in the episode.
+    /// </summary>
+    public const string World = "world", Results = "results";
+
+    /// <summary>The world events: the demon lord's rise and end, the prophecy, the heroes and their fights with it.</summary>
+    public static readonly IReadOnlySet<string> WorldEvents = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "DemonLordRose", "ProphecySpoken", "HeroChosen", "DemonLordSlain", "HeroFell", "DemonLordSealed", "DemonLordDriven", "DarkAgeBegan", "SagaEnded",
+    };
+
+    /// <summary>The ends of fights, told in the results (the owner, 2026-10-30: "i never heard a fight outcome section").</summary>
+    public static readonly IReadOnlySet<string> FightEnds = new HashSet<string>(StringComparer.Ordinal) { "DuelFought", "BattleFought", "DuelCalledOff", "BattleBrokenOff" };
+
+    /// <summary>The most fights the results tell by name.</summary>
+    public const int MostResults = 6;
+
+    /// <summary>
     /// The prayers and the gods' answers (sub-project 13 N5), never told in an episode (the owner, 2026-10-29): the players
     /// find and answer them on the website.
     /// </summary>
@@ -97,8 +115,11 @@ public sealed record Episode(
         var inWindow = events.Select(e => e.Id).ToHashSet();
         var changes = events.Where(e => e.Type == "CharacterTransformed").ToList();
         var changedBy = changes.Where(e => e.Causes.Any(c => inWindow.Contains(c.EventId))).Select(e => e.Id).ToHashSet();
+        // The world events have a section of their own (the owner, 2026-10-30), never told among the stories.
+        var worldNews = events.Where(e => EpisodeSection.WorldEvents.Contains(e.Type)).ToList();
+        var apart = worldNews.Select(e => e.Id).ToHashSet();
         var ranked = events.Where(e => !EpisodeSection.PrayerEvents.Contains(e.Type) && !(e.Type == "LabyrinthCleared" && told.Contains(e.Id))
-                                       && !changedBy.Contains(e.Id)).Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
+                                       && !changedBy.Contains(e.Id) && !apart.Contains(e.Id)).Select(e => (Event: e, Score: Importance.Score(e, world, followed)))
             .OrderByDescending(x => x.Score).ThenBy(x => x.Event.Id).Select(x => x.Event).ToList();
         // News that shapes the world leads (a war, a fall, a legend), however famous the people in smaller stories are.
         // The engine's own weight decides among them, so a realm's fall outranks a famous lord's death.
@@ -125,6 +146,13 @@ public sealed record Episode(
             chosen.Add(ev);
         }
 
+        // Every fight that ended is heard (the owner, 2026-10-30): those not told as a story of their own are told in the results.
+        // A war's many battles are told by its weightiest one.
+        var results = events.Where(e => EpisodeSection.FightEnds.Contains(e.Type) && !fights.Contains(Fights.RootOf(log, e)) && e != top)
+            .OrderByDescending(e => e.Importance).ThenBy(e => e.Id)
+            .DistinctBy(e => e.Actors.TryGetValue("war", out var war) && e.Type == "BattleFought" ? $"war{war.Id}" : $"event{e.Id}")
+            .Take(EpisodeSection.MostResults).ToList();
+
         EpisodeStory Story(WorldEvent ev) => new(ev.Id, ev.Date.Year, Categories.Label(Categories.Of(ev)), narrator.Sentence(ev));
         var headline = top is null ? null : new EpisodeStory(top.Id, top.Date.Year, Categories.Label(Categories.Of(top)), narrator.Title(top));
         var others = chosen.OrderBy(e => e.Id).Select(Story).ToList();
@@ -143,6 +171,10 @@ public sealed record Episode(
         // Who is who and why they fight, where the legend is told in full (or in a world's first episode).
         var primerSection = (fullLegend || sinceEventId == 0) && Primer.Of(world, log) is { } primer ? new EpisodeSection(EpisodeSection.Primer, "The world today", primer) : null;
         var signOff = SignOffFor(chronicler, name);
+        var worldSection = WorldSection(world, narrator, worldNews);
+        var resultsSection = results.Count == 0 ? null : new EpisodeSection(EpisodeSection.Results, "The fights decided",
+            string.Join(" ", results.OrderBy(e => e.Id).Select(e => narrator.Sentence(e))), results[0].Id,
+            FaceOffs.OfFight(world, log, results[0]));
 
         // The template script: drop the least important stories, then the chronicler's view, until it fits the budget.
         // Within a year the stories need no dates; across years each says when.
@@ -197,7 +229,7 @@ public sealed record Episode(
             return lines.Count == 0 ? s : s with { Text = $"{s.Text} {string.Join(" ", lines)}" };
         }
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
-            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection, primerSection));
+            WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection, primerSection, worldSection, resultsSection));
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
@@ -256,15 +288,35 @@ public sealed record Episode(
     private static string Title(TemplateNarrator narrator, WorldEvent ev) =>
         narrator.PlaceOf(ev) is { } place ? $"{Views.Categories.Kicker(ev)} at {English.Capitalise(place)}" : Views.Categories.Kicker(ev);
 
+    /// <summary>
+    /// The world events section: the episode's world events in order, or while a demon lord is abroad and none happened, how
+    /// the struggle stands. No section in a world at peace with no world event.
+    /// </summary>
+    private static EpisodeSection? WorldSection(World world, TemplateNarrator narrator, IReadOnlyList<WorldEvent> news)
+    {
+        if (news.Count > 0)
+            return new(EpisodeSection.World, "World events", string.Join(" ", news.Select(e => narrator.Sentence(e))), news.OrderByDescending(e => e.Importance).First().Id);
+        if (Systems.SagaSystem.Active(world) is not { } saga || !world.Characters.TryGetValue(saga.DemonLordId, out var demon)) return null;
+        var dominion = world.Realms.GetValueOrDefault(saga.RealmId);
+        var hero = world.Characters.TryGetValue(saga.HeroId, out var h) && h.IsActive ? h : null;
+        var held = dominion is null ? "" : $" from {dominion.Name}";
+        var facing = hero is not null ? $" {hero.Name}, the hero foretold, has yet to face them." : " No hero has yet risen to face them.";
+        return new(EpisodeSection.World, "World events", $"The shadow still lies over the world: {demon.Name} rules{held}.{facing}", saga.RoseEventId);
+    }
+
     private static IReadOnlyList<EpisodeSection> Compose(string world, string coldOpen, EpisodeStory? headline, string body,
         IReadOnlyList<EpisodeSection> challenges, IReadOnlyList<EpisodeStory> stories, IReadOnlyDictionary<long, string> lines, IReadOnlyDictionary<long, string> titles, string? comment, string signOff,
-        EpisodeSection? legend = null, EpisodeSection? primer = null)
+        EpisodeSection? legend = null, EpisodeSection? primer = null, EpisodeSection? worldEvents = null, EpisodeSection? results = null)
     {
         var sections = new List<EpisodeSection> { new(EpisodeSection.Opening, world, coldOpen) };
         if (legend is not null) sections.Add(legend);
         if (primer is not null) sections.Add(primer);
+        // The world events come first of the news: they are the world's own story.
+        if (worldEvents is not null) sections.Add(worldEvents);
         if (headline is not null)
             sections.Add(new(EpisodeSection.Headline, headline.Text, body.Length > 0 ? $"{headline.Text}.\n\n{body}" : $"{headline.Text}.", headline.EventId));
+        // What was decided, then what is coming.
+        if (results is not null) sections.Add(results);
         // The challenges follow the headline: what is coming, before the news of what was.
         sections.AddRange(challenges);
         for (var i = 0; i < stories.Count; i++)

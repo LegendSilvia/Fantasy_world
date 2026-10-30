@@ -99,6 +99,53 @@ public class SagaTests
     }
 
     [Fact]
+    public void ASealedDemonLord_NeverDiesOfAge_AndIsCalledDemonLord_WithItsFate()
+    {
+        var (ctx, system, saga) = Risen(fight: "defender_kills", choice: "seal");
+        var sage = ctx.World.ActiveCharacters.First(c => c.Role is not Role.Lord);
+        sage.Role = Role.Mage;
+        sage.Attributes.Lore = 20;
+        ctx.World.Wonders.Clear();
+        Years(ctx, system, 40);
+        Assert.Equal(Saga.Sealed, saga.Outcome);
+
+        // The owner, 2026-10-30: "demon lord die of old age".
+        var demon = ctx.World.Characters[saga.DemonLordId];
+        var life = new LifeSystem();
+        for (var year = 0; year < 500; year++)
+        {
+            ctx.World.Date = ctx.World.Date.AddDays(WorldDate.DaysPerYear);
+            life.OnYearlyTick(ctx);
+        }
+        Assert.True(demon.IsAlive);
+        Assert.True(SagaSystem.Undying(ctx.World, demon));
+        Assert.StartsWith("Demon Lord (sealed)", Sim.Views.CharacterScreen.Build(ctx.World, ctx.Log, demon.Id).Kicker);
+
+        // The world events tab tells the saga from its rise to its sealing.
+        var events = Sim.Views.WorldEventsScreen.Build(ctx.World, ctx.Log).Sagas.Single();
+        Assert.False(events.Active);
+        Assert.Contains("sealed", events.State);
+        Assert.Equal(("DemonLordRose", "SagaEnded"), (ctx.Log.Get(events.Events[0].EventId).Type, ctx.Log.Get(events.Events[^1].EventId).Type));
+        Assert.Contains(events.Events, r => ctx.Log.Get(r.EventId).Type == "DemonLordSealed");
+    }
+
+    [Fact]
+    public void AnEpisode_TellsTheWorldEvents_InASectionOfTheirOwn_AndHowTheStruggleStands()
+    {
+        var (ctx, system, saga) = Risen();
+        var risen = Sim.Chronicle.Episode.Build(ctx.World, ctx.Log, 0, "2026-10-30");
+        var world = risen.Parts.Single(p => p.Kind == Sim.Chronicle.EpisodeSection.World);
+        Assert.Contains(ctx.World.Characters[saga.DemonLordId].Name, world.Text);
+        Assert.DoesNotContain(risen.Parts, p => p.Kind == Sim.Chronicle.EpisodeSection.Story && Sim.Chronicle.EpisodeSection.WorldEvents.Contains(ctx.Log.Get(p.EventId).Type));
+
+        // A year with no world event still says how it stands while the demon lord is abroad.
+        var last = ctx.Log.All[^1].Id;
+        ctx.Log.Append(ctx.World.Date, new EventDraft("FestivalHeld", Importance: 1, Tags: ["Culture"]));
+        var quiet = Sim.Chronicle.Episode.Build(ctx.World, ctx.Log, last, "2026-10-31");
+        Assert.Contains("The shadow still lies over the world", quiet.Parts.Single(p => p.Kind == Sim.Chronicle.EpisodeSection.World).Text);
+    }
+
+    [Fact]
     public void AWorldsOwnSeal_MustBeFound_BeforeAnySageCanSealTheDemonLord()
     {
         var (ctx, system, saga) = Risen(fight: "defender_kills", choice: "seal");

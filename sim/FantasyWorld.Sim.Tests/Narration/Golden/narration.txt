@@ -13,11 +13,11 @@ In Year 2, the fields of Bem withered in a drought.
 In Year 2, Hiamiarn of Graenow came back from it with a new hunger: a wish to live for those they love while they still can.
 In Year 2, Keirn of Grirnen found the Bone Circlet in the depths of Wan.
 In Year 3, a sickness came to Kesburg in the Sickness of Kesburg, by ill fortune alone; 97 died of it.
-In Year 3, Brim of Sind fought Braldro of Sind to the death at Mimton.
+In Year 3, Brim of Sind fought Braldro of Sind to the death at Mimton. Braldro of Sind won, and Brim of Sind was maimed.
 In Year 3, Brim of Sind escaped Braldro of Sind with their life and swore to return for revenge.
 In Year 3, Sam of Mardareth called Griardrall the Unbowed of Dram out (to first blood); they will meet at Thaell in a year and a day.
 In Year 4, a sickness came to Thaell in the Sickness of Thaell, by ill fortune alone; 133 died of it.
-In Year 4, Sam of Mardareth fought Griardrall the Unbowed of Dram to first blood at Thaell.
+In Year 4, Sam of Mardareth fought Griardrall the Unbowed of Dram to first blood at Thaell. Griardrall the Unbowed of Dram yielded, and Sam of Mardareth won.
 In Year 4, from it Griardrall the Unbowed of Dram made an art of fighting all their own, the Broken Guard: a stroke that comes when the foe believes them beaten.
 In Year 5, Mondgril of Dram, child of Griardrall the Unbowed of Dram, was taken away in the Taking of Mondgril, the work of Sam.
 In Year 5, Griardrall swore off the life they had lived, and was known from then on as Griardrall the Unbowed.
@@ -25,7 +25,7 @@ In Year 5, with no heir to claim it, the Bone Circlet went to the treasury of Be
 In Year 5, Griardrall the Unbowed of Dram challenged Sam of Mardareth to a duel (to the death), to be fought at Thaell in a year and a day.
 In Year 6, the Reliquary of Brusreirn was stolen from Aen the Grey of Liangriarn in the Theft of The Reliquary of Brusreirn, by ill fortune alone.
 In Year 6, Drollkeil of Drolmirn found the Reliquary of Brusreirn in the depths of Bem.
-In Year 6, Griardrall the Unbowed of Dram fought Sam of Mardareth to the death at Thaell.
+In Year 6, Griardrall the Unbowed of Dram fought Sam of Mardareth to the death at Thaell. Sam of Mardareth won; Griardrall the Unbowed of Dram was wounded but escaped.
 In Year 7, Aen the Grey of Liangriarn hunted the monsters of Wan and was driven back.
 In Year 7, the Duchy of Bem lost its stores of timber in the Loss of Bem's Timber, by ill fortune alone.
 In Year 7, the Duchy of Bem ran short of timber.
@@ -37,7 +37,7 @@ In Year 7, Holl of Ein succeeded Griardrall the Unbowed of Dram at Thaell.
 In Year 8, Holl of Ein prayed to Daefal for an heir.
 In Year 8, Fiakon of Liangriarn and Aen the Grey of Liangriarn swore to stand by each other, come what may.
 In Year 8, Nightheart, a hunting falcon of the grassland, came to Holl of Ein's side and would not leave it.
-In Year 8, at Mimton, Braldro of Sind met Brim of Sind to first blood.
+In Year 8, at Mimton, Braldro of Sind met Brim of Sind to first blood. Braldro of Sind yielded, and Brim of Sind won.
 In Year 8, the fields of Taengriarnwold withered in a drought.
 In Year 8, drought parched Staethias.
 In Year 8, sickness swept through Bem.
@@ -53,8 +53,8 @@ In Year 10, the plot of Braldro of Sind against Brim of Sind was uncovered and f
 In Year 10, the envoy of the Kingdom of Taengriarnwold was slain at the court of the Duchy of Bem in the Murder of Taengriarnwold's Envoy, by ill fortune alone.
 In Year 10, the Kingdom of Taengriarnwold went to war against the Duchy of Bem for revenge: the War of Taengriarnwold's Vengeance.
 In Year 10, facing Braldro of Sind, Brim of Sind lost their calm at the sight of the one they had sworn to destroy: no longer calm, but wrathful.
-In Year 10, Braldro of Sind fought Brim of Sind to first blood at Mimton.
-In Year 10, at Deinwick, Drias of Kalorn met Dram of Kalorn to the death.
+In Year 10, Braldro of Sind fought Brim of Sind to first blood at Mimton. Brim of Sind drew first blood and won.
+In Year 10, at Deinwick, Drias of Kalorn met Dram of Kalorn to the death. Drias of Kalorn won, and Dram of Kalorn was slain.
 In Year 10, trade on the Kesburg–Mimton Road stopped, cut by war.
 In Year 10, the Kesburg–Thaell Road was cut by war.
 In Year 10, Aelmeill of Liangriarn and Aen the Grey of Liangriarn became rivals over the clash of a diligent nature with a lazy one.

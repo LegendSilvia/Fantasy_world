@@ -58,6 +58,12 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
     /// <summary>Whether a character is a demon lord of a saga under way (they do not age or die of years).</summary>
     public static bool IsDemonLord(World world, Character c) => world.Sagas.Values.Any(s => s.Active && s.DemonLordId == c.Id);
 
+    /// <summary>
+    /// One who was ever a demon lord (the owner, 2026-10-30: a demon lord does not die of old age): sealed, driven into the
+    /// dark or ruling, it neither ages nor sickens; only a blade or a sealing ends it.
+    /// </summary>
+    public static bool Undying(World world, Character c) => world.Sagas.Values.Any(s => s.DemonLordId == c.Id);
+
     /// <summary>The darkest land with a town: the most dangerous and ley-charged, never a realm's seat.</summary>
     public static Region? Darkest(World world)
     {

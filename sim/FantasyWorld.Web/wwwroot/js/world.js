@@ -374,6 +374,8 @@ async function render(kind, key, year) {
     }
     if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
     if (kind === "lore") return lore(JSON.parse(await call("Lore", Y)));
+    if (kind === "wiki") return wiki(JSON.parse(await call("Wiki", Y)), key);
+    if (kind === "events") return worldEvents(JSON.parse(await call("WorldEvents", Y)));
     if (kind === "people") return people(JSON.parse(await call("People", Y)));
     if (kind === "beast") return beastCard(JSON.parse(await call("Beast", key, Y)), await pictures);
     if (kind === "fight") {
@@ -444,6 +446,40 @@ function gods(open, counts) {
 $("gods").addEventListener("click", () => setHash({ panel: "gods/today" }));
 $("lore").addEventListener("click", () => setHash({ panel: "lore/world" }));
 $("people").addEventListener("click", () => setHash({ panel: "people/all" }));
+$("wiki").addEventListener("click", () => setHash({ panel: "wiki/races" }));
+$("events").addEventListener("click", () => setHash({ panel: "events/all" }));
+
+/**
+ * The wiki (the owner, 2026-10-30): a tab per category, then how that part of the world works and its articles, each with
+ * the people, realms and beasts it names.
+ */
+function wiki(w, key) {
+    const shown = w.categories.find(c => c.key === key) ?? w.categories[0];
+    const tabs = w.categories.map(c => `<a class="chip${c.key === shown.key ? " on" : ""}" data-wiki="${esc(c.key)}">${esc(c.title)}</a>`).join("");
+    const entry = e => `<div class="prayer"><p><b>${esc(e.name)}</b></p><p>${esc(e.text)}</p>`
+        + (e.facts.length ? `<p class="muted">${e.facts.map(esc).join(" · ")}</p>` : "")
+        + (e.links.length ? `<p class="muted">${e.links.map(m => ref(m.ref, m.name)).join(", ")}</p>` : "") + `</div>`;
+    return `<div class="kicker">The wiki of ${esc(w.world)}</div><h2>${esc(shown.title)}</h2>`
+        + `<div class="chips">${tabs}</div><p>${esc(shown.intro)}</p>`
+        + (shown.entries.map(entry).join("") || `<p class="muted">Nothing of this kind has come to light yet.</p>`);
+}
+
+$("panel-body").addEventListener("click", e => {
+    const tab = e.target.closest("[data-wiki]");
+    if (tab) { e.preventDefault(); setHash({ panel: `wiki/${tab.dataset.wiki}` }); }
+});
+
+/** The world events (the owner, 2026-10-30): each saga of the demon lord, how it stands, and its course. */
+function worldEvents(w) {
+    const saga = s => `<div class="prayer"><p><b>${s.demonLord ? ref(s.demonLord.ref, s.demonLord.name) : "The demon lord"}</b>`
+        + ` <span class="muted">· rose Year ${s.roseYear}${s.endedYear ? `, ended Year ${s.endedYear}` : ", still abroad"}</span></p>`
+        + `<p>${esc(s.state)}</p>`
+        + (s.dominion ? `<p class="muted">Its realm: ${ref(s.dominion.ref, s.dominion.name)}${s.hero ? ` · the hero: ${ref(s.hero.ref, s.hero.name)}` : ""}</p>` : "")
+        + `<ul class="people">${s.events.map(r => `<li><span class="muted">Year ${r.year}</span> ${linked(r.text)} <a data-ref="event#${r.eventId}" title="Why?">why</a></li>`).join("")}</ul></div>`;
+    return `<div class="kicker">World events</div><h2>The fate of ${esc(w.world)}</h2>`
+        + `<p class="muted">The greatest events of all: a demon lord rising against every realm, and the heroes called to face it.</p>`
+        + (w.sagas.map(saga).join("") || `<p class="muted">No demon lord has risen yet. The world is quiet, for now.</p>`);
+}
 
 /** A fight as a face-off card (the owner, 2026-10-29): both sides' portraits, classes, fates and figures, then the odds or the verdict. */
 /**
