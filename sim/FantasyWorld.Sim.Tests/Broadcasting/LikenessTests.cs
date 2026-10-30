@@ -48,7 +48,7 @@ public class LikenessTests
         Assert.All(portraits, r => Assert.Equal(("hand-painted", true), (r.Style, r.Transparent)));
         Assert.Equal([strong.Id, sly.Id], portraits.Select(r => r.Seed));
         Assert.All(maker.Asked, r => Assert.DoesNotMatch("(?i)background|transparen|frame|portrait of", r.Prompt));
-        Assert.Contains("man in his thirties", portraits[0].Prompt);
+        Assert.Contains("a man in the prime of life", portraits[0].Prompt);
 
         // The next time these two are shown, nothing is made again; the index says when each was last used.
         var asked = maker.Asked.Count;
@@ -257,14 +257,14 @@ public class LikenessTests
     }
 
     [Fact]
-    public void APortrait_IsDrawnAnew_EachDecade_AndOnMajorChanges_NotEachYear()
+    public void APortrait_IsDrawnAnew_AsTheyVisiblyAge_AndOnMajorChanges_NotEachYear()
     {
         var world = TestPeople.World();
         var at31 = TestPeople.Add(world, 1, 31);
         var at38 = TestPeople.Add(world, 1, 38);
         var at41 = TestPeople.Add(world, 1, 41);
         string Picture(Character c) => Likenesses.Ask(world, c.Ref.ToString(), "hand-painted")!.Prompt;
-        // The same kind of person: one picture through a decade, a new one in the next.
+        // The same kind of person: one picture while they look the same age, a new one once they look older.
         Assert.Equal(Picture(at31), Picture(at38));
         Assert.NotEqual(Picture(at38), Picture(at41));
 
@@ -275,7 +275,15 @@ public class LikenessTests
         Assert.NotEqual(key, scarred);
         at31.Role = Role.Knight;
         Assert.NotEqual(scarred, Likenesses.KeyFor(world, at31.Ref.ToString()));
-        Assert.Equal("in great old age", Likenesses.Decade(84));
+        // How old they look is told in words for their people, never in years (the owner, 2026-10-30): one of a people living four
+        // common lives is in their prime at a hundred, while a common person of that age is bent with it.
+        Assert.DoesNotMatch("[0-9]", Likenesses.Ask(world, at31.Ref.ToString(), "")!.Prompt);
+        var hundred = TestPeople.Add(world, 1, 100);
+        Assert.StartsWith("a very old man", Likenesses.Ask(world, hundred.Ref.ToString(), "")!.Prompt);
+        var race = new Race { Id = world.Ids.Take(Race.Kind), Name = "Longfolk", Span = 4 };
+        world.Races[race.Id] = race;
+        world.Cultures[hundred.CultureId].RaceId = race.Id;
+        Assert.StartsWith("a man in the prime of life", Peoples.Looks(world, hundred));
     }
 
     [Fact]

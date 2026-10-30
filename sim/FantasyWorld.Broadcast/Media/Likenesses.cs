@@ -130,15 +130,6 @@ public static class Likenesses
         return hash.ToString("x8", CultureInfo.InvariantCulture);
     }
 
-    /// <summary>A person's age as a painter needs it: the decade, not the year.</summary>
-    public static string Decade(int age) => age switch
-    {
-        < 13 => "a child",
-        < 20 => "in their teens",
-        < 80 => $"in their {(age / 10) switch { 2 => "twenties", 3 => "thirties", 4 => "forties", 5 => "fifties", 6 => "sixties", _ => "seventies" }}",
-        _ => "in great old age",
-    };
-
     public static async Task<Dictionary<string, Likeness>> IndexAsync(IObjectStore store, CancellationToken ct = default)
     {
         if (await store.GetAsync(IndexKey, ct).ConfigureAwait(false) is not { } bytes) return new();
@@ -356,13 +347,13 @@ public static class Likenesses
                 Role.Rebel => "rebel",
                 _ => "commoner",
             };
-            var (who, dress) = (c.Sex == Sex.Female ? "woman" : "man",
-                world.Realms.Values.FirstOrDefault(r => Realms.RulerOf(world, r)?.HouseId == c.HouseId && c.HouseId != 0) is { } realm
-                    ? $"{realm.Colors[0]} and {realm.Colors.ElementAtOrDefault(1) ?? "white"}" : "earthy brown and grey");
+            var dress = world.Realms.Values.FirstOrDefault(r => Realms.RulerOf(world, r)?.HouseId == c.HouseId && c.HouseId != 0) is { } realm
+                    ? $"{realm.Colors[0]} and {realm.Colors.ElementAtOrDefault(1) ?? "white"}" : "earthy brown and grey";
             var gear = c.Attributes.Prowess >= 14 || c.Role is Role.Knight ? "in battle-worn armour with a sword" : c.Role == Role.Mage ? "in robes with a staff" : "with a sword at the hip";
             var traits = c.Traits.Count > 0 ? $", {string.Join(", ", c.Traits.Take(3))} in bearing" : "";
             var scars = c.Wounds.Count > 0 ? ", scarred from old wounds" : "";
-            return new ImageRequest($"a {who} {Decade(c.Age(world.Date)).Replace("their", c.Sex == Sex.Female ? "her" : "his")}, a {role}{culture}, {gear}, clothes in {dress}{traits}{scars}, medieval fantasy duellist",
+            // How old they look is said in words for their own people, never in years (the races age differently).
+            return new ImageRequest($"{Peoples.Looks(world, c)}, a {role}{culture}, {gear}, clothes in {dress}{traits}{scars}, medieval fantasy duellist",
                 "character", style, true, id);
         }
         if (kind == Monster.Kind && world.Monsters.TryGetValue(id, out var beast))

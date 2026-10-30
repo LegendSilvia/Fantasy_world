@@ -47,7 +47,7 @@ public class BriefTests
         var brief = Briefs.Character(story, hero);
 
         Assert.Contains(Names.Full(world, hero), brief);
-        Assert.Contains("aged 30, knight", brief);
+        Assert.Contains("aged 30 (looks: a man in the prime of life for their people; describe them so, not by their years), knight", brief);
         Assert.Contains("brave, wrathful", brief);
         Assert.Contains($"bitterly: {Names.Full(world, rival)}, duel fought (year 1)", brief);
     }

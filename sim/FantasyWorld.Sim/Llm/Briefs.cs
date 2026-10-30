@@ -23,7 +23,7 @@ public static class Briefs
         var today = world.Date;
         var lines = new List<string>
         {
-            $"{PromptText.Data(Names.Full(world, c))}, {c.Sex.ToString().ToLowerInvariant()}, aged {c.Age(today)}, {Role(c)}"
+            $"{PromptText.Data(Names.Full(world, c))}, {c.Sex.ToString().ToLowerInvariant()}, aged {c.Age(today)} (looks: {Peoples.Looks(world, c)} for their people; describe them so, not by their years), {Role(c)}"
                 + (world.Settlements.TryGetValue(c.SettlementId, out var home) ? $" of {PromptText.Data(home.Name)}" : ""),
             $"Culture: {Named(world.Cultures.GetValueOrDefault(c.CultureId)?.Name)}"
                 + (Peoples.Of(world, c) is { } race ? $" ({PromptText.Data(race.Name)})" : "")

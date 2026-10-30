@@ -21,6 +21,28 @@ public static class Peoples
     /// <summary>How long a character's people live against the common span.</summary>
     public static double SpanOf(World world, Character c) => Of(world, c)?.Span ?? 1;
 
+    /// <summary>
+    /// How old a character looks, in words and never in years (the owner, 2026-10-30: the races live to different ages, so a
+    /// painter told "a hundred and forty" would paint an elf in their prime as ancient): their body's age among their own
+    /// people, as a common life would show it. One who never ages (a demon lord) is ageless.
+    /// </summary>
+    public static string Looks(World world, Character c)
+    {
+        var (man, woman) = c.Sex == Sex.Female ? ("woman", "girl") : ("man", "boy");
+        if (Systems.SagaSystem.Undying(world, c)) return $"an ageless {man}";
+        return Systems.LifeSystem.Aged(c.Age(world.Date), SpanOf(world, c)) switch
+        {
+            < 13 => $"a young {woman}",
+            < 18 => $"a teenage {woman}",
+            < 26 => $"a young {man}",
+            < 40 => $"a {man} in the prime of life",
+            < 55 => $"a middle-aged {man}",
+            < 70 => $"a greying, ageing {man}",
+            < 85 => $"an old {man}",
+            _ => $"a very old {man}, bent with great age",
+        };
+    }
+
     /// <summary>A common lifetime's age range: the old begin to sicken from the first, and none outlive the second.</summary>
     public const int CommonOld = 70, CommonLimit = 95;
 
