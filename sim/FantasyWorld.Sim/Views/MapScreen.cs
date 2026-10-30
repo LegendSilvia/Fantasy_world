@@ -32,7 +32,8 @@ public sealed record LegendEntry(string Label, string Colour);
 /// </summary>
 public sealed record MapArmy(
     EntityRef Ref, string Name, EntityRef Realm, string Colour, EntityRef War, string Side, Mention? Commander, IReadOnlyList<Mention> Knights,
-    int Soldiers, string Objective, bool Besieging, MapPoint Position, IReadOnlyList<MapPoint> Route);
+    int Soldiers, string Objective, bool Besieging, MapPoint Position, IReadOnlyList<MapPoint> Route,
+    IReadOnlyList<Mention>? Mercenaries = null, string WarName = "", string Where = "", string RealmName = "");
 
 /// <summary>A trade road on the map: its markets, the way it runs (market, regions between, market) and its state.</summary>
 /// <summary>A trade route on the map; <c>Sea</c> marks each leg (Path[i] to Path[i+1]) sailed rather than walked.</summary>
@@ -168,7 +169,9 @@ public sealed record MapScreen(
             route.AddRange(army.Path.Select(At).OfType<MapPoint>());
             armies.Add(new MapArmy(army.Ref, army.Name, realm.Ref, realm.Colors[0], war.Ref, war.IsAttacker(realm.Id) ? "attacker" : "defender",
                 Of(army.CommanderId), army.Knights.Select(Of).OfType<Mention>().ToList(), army.Soldiers, army.Objective.ToString().ToLowerInvariant(),
-                world.Regions[army.RegionId].BesiegerArmyId == army.Id, here, route));
+                world.Regions[army.RegionId].BesiegerArmyId == army.Id, here, route,
+                // What its card shows (the owner, 2026-10-30: armies can be inspected): its hired swords, its war, where it stands.
+                army.Mercenaries.Select(Of).OfType<Mention>().ToList(), war.Name, world.Regions[army.RegionId].Name, Statecraft.Title(realm)));
         }
         return armies;
     }

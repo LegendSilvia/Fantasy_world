@@ -155,7 +155,8 @@ async function showYear(year) {
     }
     for (const army of s.armies) {
         dynamic.add(banner(army));
-        label(esc(army.commander ? `${army.name} · ${army.commander}` : army.name), "army", lift(army.at, 0.1), 40, () => {}, "armies");
+        label(esc(army.commander ? `${army.name} · ${army.commander}` : army.name), "army", lift(army.at, 0.1), 40,
+            () => setHash({ panel: `army/${id(army.ref)}` }), "armies");
     }
     // Badges: a boss marker over each beast, crossed swords where a fight was or is (a click asks why).
     const badge = (key, size, title) => `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.badges[key])}" style="height:${size}px" alt="" title="${esc(title)}">`;
@@ -446,6 +447,21 @@ async function render(kind, key, year) {
         return `<div class="kicker">${esc(s.card.kicker)}</div><h2>${esc(s.name)}</h2><p>${esc(s.card.title)}</p><p class="muted">${esc(s.card.line)}</p>`
             + (s.level ? `<p><b>Level ${s.level}</b> <span class="muted">· its fortification: ${["open ground", "a palisade", "stone walls", "great walls", "great walls and a fortress"][s.level - 1]}</span></p>` : "")
             + (s.holder ? `<p>Held by ${ref(s.holder, "its lord")}</p>` : "");
+    }
+    // A host's card (the owner, 2026-10-30): whose it is, its war, who leads it, its knights and hired swords, its strength and aim.
+    if (kind === "army") {
+        const map = JSON.parse(await call("Screen", "map", ""));
+        const a = (map.armies ?? []).find(x => x.ref === `army#${key}`);
+        if (!a) return `<h2>That host is gone</h2><p class="muted">It has disbanded or been destroyed; the war's story is in the chronicle.</p>`;
+        const aims = { defend: "to defend its lands", siege: "to lay siege", return: "to march home" };
+        const people = (list) => list.map(m => ref(m.ref, m.name)).join(", ");
+        return `<div class="kicker">Host · ${esc(a.side === "attacker" ? "on the attack" : "defending")}</div><h2>${esc(a.name)}</h2>`
+            + `<p>Of the ${ref(a.realm, a.realmName || "realm")}, in ${esc(a.warName || "a war")}.</p>`
+            + `<p><b>${a.soldiers.toLocaleString()}</b> soldiers${a.where ? ` · at ${esc(a.where)}` : ""}${a.besieging ? " · <b>besieging</b>" : ""}</p>`
+            + `<p class="muted">Its aim: ${esc(aims[a.objective] ?? a.objective)}.</p>`
+            + (a.commander ? `<p>Led by ${ref(a.commander.ref, a.commander.name)}</p>` : "")
+            + (a.knights?.length ? `<p>Knights: ${people(a.knights)}</p>` : "")
+            + (a.mercenaries?.length ? `<p>Mercenaries: ${people(a.mercenaries)}</p>` : "");
     }
     if (kind === "gods") return gods(JSON.parse(await call("Prayers")), await tally());
     if (kind === "lore") return lore(JSON.parse(await call("Lore", Y)));

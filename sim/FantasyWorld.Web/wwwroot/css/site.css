@@ -233,7 +233,7 @@ p.known { font-style: italic; }
 .marker-row a, .marker-all { font-size: 12px; color: var(--muted, #8a8172); text-decoration: none; }
 .marker-row a:hover, .marker-all:hover { color: var(--ink); text-decoration: underline; }
 .marker-all { margin-top: 4px; text-align: center; }
-.turn { position: fixed; right: 16px; bottom: 16px; z-index: 10; display: flex; gap: 6px; }
+.turn { position: fixed; left: 16px; bottom: 16px; z-index: 10; display: flex; gap: 6px; }
 .turn button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--ink); color: var(--card); font: 18px system-ui, sans-serif;
     cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
 .person-pin { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%;
