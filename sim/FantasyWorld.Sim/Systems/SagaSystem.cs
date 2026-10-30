@@ -47,8 +47,11 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
         var demon = world.Characters[saga.DemonLordId];
         if (dominion.Destroyed || !demon.IsActive) { Driven(ctx, saga, demon, dominion); return; }
         if (Realms.Territory(world, dominion).Count() >= world.Regions.Count * DarkAgeShare) { DarkAge(ctx, saga, dominion); return; }
+        // A demon lord risen before levels were counted stands at the summit too.
+        if (demon.Level < Levels.Max) (demon.Level, demon.Experience) = (Levels.Max, Math.Max(demon.Experience, Levels.NeededFor(Levels.Max)));
         Hunger(ctx, dominion);
         ChooseHero(ctx, saga, demon);
+        GatherParty(ctx, saga, demon);
         if (Confront(ctx, saga, demon, dominion)) return;
         ConsiderSealing(ctx, saga, demon, dominion);
     }
@@ -89,6 +92,9 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
         demon.Traits.Clear();
         demon.Traits.AddRange([Traits.Cruel, Traits.Wrathful, Traits.Ambitious]);
         demon.Renown = 80;
+        // A demon lord stands at the summit of levels (the owner, 2026-10-30).
+        demon.Level = Levels.Max;
+        demon.Experience = Levels.NeededFor(Levels.Max);
         // A dread weapon in its hand (sub-project 13): the hero must be ready to face it.
         var weapon = ArtifactForge.Create(ctx.Rng, world.Ids, new NameGen(ctx.Rng), ctx.Log.NextId, fame: 70); // born with the rising, the next event
         world.Artifacts[weapon.Id] = weapon;
@@ -201,7 +207,51 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
             Importance: 75, Tags: new[] { "Characters", "Magic" }));
     }
 
-    /// <summary>The hero seeks out the demon lord: a fight to the death that Claude decides. True if the saga ended.</summary>
+    /// <summary>The chance each year that one more joins the hero's party, in a hundred.</summary>
+    public const int JoinChance = 50;
+
+    /// <summary>The least level of one who may stand with the hero.</summary>
+    public const int PartyLevel = 3;
+
+    /// <summary>The hero's party, as it stands: those still alive and able, in the order they joined.</summary>
+    public static IReadOnlyList<Character> Party(World world, Saga saga) =>
+        saga.PartyIds.Select(id => world.Characters.GetValueOrDefault(id)).OfType<Character>().Where(c => c.IsActive).ToList();
+
+    /// <summary>
+    /// The hero gathers a party (the owner, 2026-10-30): each year, perhaps, one more of level three or more beyond the
+    /// Dominion who thinks well enough of the hero (their sworn companion first, then their master or apprentices, then the
+    /// mightiest willing), up to three beside the hero.
+    /// </summary>
+    private static void GatherParty(SimContext ctx, Saga saga, Character demon)
+    {
+        var world = ctx.World;
+        saga.PartyIds.RemoveAll(id => !world.Characters.TryGetValue(id, out var m) || !m.IsActive);
+        if (!world.Characters.TryGetValue(saga.HeroId, out var hero) || !hero.IsActive) return;
+        if (saga.PartyIds.Count >= Saga.PartySize || Hash.Percent(hero.Id, 7901, ctx.Date.Year) >= JoinChance) return;
+        var dark = Realms.Territory(world, world.Realms[saga.RealmId]).Select(r => r.Id).ToHashSet();
+        int Closeness(Character c) =>
+            hero.Companion is { Kind: Companion.Sworn } k && k.CharacterId == c.Id ? 3 : Relations.Bound(hero, c) ? 2 : Relations.Opinion(c, hero) >= Relations.FriendAt ? 1 : 0;
+        var joining = world.ActiveCharacters
+            .Where(c => c.Id != hero.Id && c.Id != demon.Id && !saga.PartyIds.Contains(c.Id) && c.Role is not Role.Lord
+                        && c.Stage(ctx.Date) == LifeStage.Adult && Levels.Of(c) >= PartyLevel && Relations.Opinion(c, hero) >= 0
+                        && !dark.Contains(world.Settlements[c.SettlementId].RegionId))
+            .OrderByDescending(Closeness).ThenByDescending(Levels.Of).ThenByDescending(c => Encounters.Strength(world, c)).ThenBy(c => c.Id)
+            .FirstOrDefault();
+        if (joining is null) return;
+        saga.PartyIds.Add(joining.Id);
+        var joined = ctx.Emit(new EventDraft("HeroPartyJoined",
+            Actors: new Dictionary<string, EntityRef> { ["member"] = joining.Ref, ["hero"] = hero.Ref, ["demon lord"] = demon.Ref },
+            Place: world.Settlements[joining.SettlementId].Ref,
+            Causes: ctx.Log.Involving(hero.Ref).LastOrDefault(e => e.Type == "HeroChosen") is { } chosen ? new[] { new Cause(chosen.Id, CauseKind.Trigger, 0.8) } : null,
+            Importance: Math.Max(40, Fates.Importance(joining, 40)), Tags: new[] { "Characters", "Magic" }));
+        Fates.Remember(joining, joined.Id, hero.Id, 30, 60);
+        Fates.Remember(hero, joined.Id, joining.Id, 30, 60);
+    }
+
+    /// <summary>
+    /// The hero seeks out the demon lord, with their party or alone: a fight to the death that Claude decides, the party's
+    /// fates with it. True if the saga ended.
+    /// </summary>
     private bool Confront(SimContext ctx, Saga saga, Character demon, Realm dominion)
     {
         var world = ctx.World;
@@ -209,16 +259,25 @@ public sealed class SagaSystem(IDecider? decider = null, IArbiter? arbiter = nul
         var chosen = ctx.Log.Involving(hero.Ref).LastOrDefault(e => e.Type == "HeroChosen");
         var ready = hero.Renown >= ReadyRenown && chosen is not null && ctx.Date.Year - chosen.Date.Year >= ReadyYears;
         if (!ready || !ctx.Rng.Chance(ConfrontPerYear)) return false;
-        var outcome = _arbiter.Resolve(Encounters.DuelBetween(world, hero, demon, toTheDeath: true), ctx.Rng);
+        var party = Party(world, saga);
+        var encounter = Encounters.DuelBetween(world, hero, demon, toTheDeath: true, party: party);
+        var outcome = _arbiter.Resolve(encounter, ctx.Rng);
+        var actors = new Dictionary<string, EntityRef> { ["hero"] = hero.Ref, ["demon lord"] = demon.Ref };
+        for (var i = 0; i < party.Count; i++) actors[$"companion {i + 1}"] = party[i].Ref;
         WorldEvent fight;
         using (ctx.Annotate("account", outcome.Account))
             fight = ctx.Emit(new EventDraft(outcome.AttackerWins ? "DemonLordSlain" : "HeroFell",
-                Actors: new Dictionary<string, EntityRef> { ["hero"] = hero.Ref, ["demon lord"] = demon.Ref },
-                Place: world.Settlements[dominion.CapitalId].Ref, Payload: new Dictionary<string, string> { ["outcome"] = outcome.Key },
+                Actors: actors,
+                Place: world.Settlements[dominion.CapitalId].Ref,
+                Payload: new Dictionary<string, string> { ["outcome"] = outcome.Key, ["party"] = party.Count.ToString(CultureInfo.InvariantCulture) },
                 Causes: new[] { new Cause(ctx.Log.Involving(hero.Ref).LastOrDefault(e => e.Type == "HeroChosen")?.Id ?? saga.RoseEventId, CauseKind.Trigger, 1.0) },
                 Importance: outcome.AttackerWins ? 98 : 80, Tags: new[] { "Characters", "Deeds", "Magic" }));
+        // The party fares as the fight decides: even in victory, some may not come home.
+        foreach (var gone in Fellows.Apply(ctx, encounter.Fellows, outcome, deadly: true, fight, _ => demon))
+            saga.PartyIds.Remove(gone.CharacterId);
         if (!outcome.AttackerWins)
         {
+            saga.PartyIds.Clear(); // a fallen hero's party scatters
             if (outcome.AttackerFate == Fate.Dead) Fates.Die(ctx, hero, "the demon lord", new[] { new Cause(fight.Id, CauseKind.Trigger, 1.0) }, demon);
             else Fates.Remember(hero, fight.Id, demon.Id, -100, 100);
             saga.HeroId = 0;

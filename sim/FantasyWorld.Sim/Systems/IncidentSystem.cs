@@ -134,7 +134,7 @@ public sealed class IncidentSystem(IDecider? decider = null, IInventor? inventor
                 thieves = adults.Where(c => c.Id != holder.Id && Classes.Base(c.Class) == Classes.Rogue && c.SettlementId == holder.SettlementId).Take(2)
                     .Select(c => new IncidentSuspect(c.Ref.ToString(), $"{c.Name}, a rogue of {world.Settlements[c.SettlementId].Name}")).ToList();
             found.Add((Incident.Theft, $"{artifact.Name}, held by {holder.Name}, may be stolen", thieves, artifact.OriginEventId,
-                $"The Theft of {artifact.Name}", artifact.Id + 500_000, artifact.Ref.ToString()));
+                $"The Theft of {Lower(artifact.Name)}", artifact.Id + 500_000, artifact.Ref.ToString()));
         }
         foreach (var realm in independent)
         {

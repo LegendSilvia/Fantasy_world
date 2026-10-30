@@ -230,7 +230,8 @@ public sealed partial class DeedsSystem : ISimSystem
             HuntBeast(ctx, hunter, region, beast);
             return;
         }
-        var outcome = _arbiter.Resolve(Encounters.HuntIn(ctx.World, hunter, region), ctx.Rng);
+        var encounter = Encounters.HuntIn(ctx.World, hunter, region);
+        var outcome = _arbiter.Resolve(encounter, ctx.Rng);
         using var account = ctx.Annotate("account", outcome.Account);
         var hunt = ctx.Emit(new EventDraft(outcome.AttackerWins ? "MonstersSlain" : "MonsterHuntFailed",
             Actors: new Dictionary<string, EntityRef> { ["hunter"] = hunter.Ref },
@@ -244,6 +245,7 @@ public sealed partial class DeedsSystem : ISimSystem
             Glory(ctx, hunter, 8);
         }
         Suffer(ctx, hunter, outcome.AttackerFate, "monsters", hunt, lostIn: region.Id);
+        Fellows.Apply(ctx, encounter.Fellows, outcome, deadly: true, hunt);
     }
 
     /// <summary>
@@ -253,7 +255,8 @@ public sealed partial class DeedsSystem : ISimSystem
     private void HuntBeast(SimContext ctx, Character hunter, Region region, Monster beast)
     {
         var world = ctx.World;
-        var outcome = _arbiter.Resolve(Encounters.HuntBeast(world, hunter, beast), ctx.Rng);
+        var encounter = Encounters.HuntBeast(world, hunter, beast);
+        var outcome = _arbiter.Resolve(encounter, ctx.Rng);
         using var account = ctx.Annotate("account", outcome.Account);
         var hunt = ctx.Emit(new EventDraft(outcome.AttackerWins ? "MonsterSlain" : "MonsterHuntFailed",
             Actors: new Dictionary<string, EntityRef> { ["hunter"] = hunter.Ref, ["monster"] = beast.Ref },
@@ -278,12 +281,14 @@ public sealed partial class DeedsSystem : ISimSystem
         }
         else beast.Notoriety = Math.Min(100, beast.Notoriety + 8);
         Suffer(ctx, hunter, outcome.AttackerFate, beast.Name, hunt, lostIn: region.Id);
+        Fellows.Apply(ctx, encounter.Fellows, outcome, deadly: true, hunt);
     }
 
     private void Delve(SimContext ctx, Character delver, Artifact artifact)
     {
         var region = ctx.World.Regions[artifact.RegionId];
-        var outcome = _arbiter.Resolve(Encounters.DelveIn(ctx.World, delver, region), ctx.Rng);
+        var encounter = Encounters.DelveIn(ctx.World, delver, region);
+        var outcome = _arbiter.Resolve(encounter, ctx.Rng);
         using var account = ctx.Annotate("account", outcome.Account);
         var delve = ctx.Emit(new EventDraft(outcome.AttackerWins ? "ArtifactFound" : "DelveFailed",
             Actors: new Dictionary<string, EntityRef> { ["delver"] = delver.Ref, ["artifact"] = artifact.Ref },
@@ -299,6 +304,7 @@ public sealed partial class DeedsSystem : ISimSystem
             Glory(ctx, delver, 10);
         }
         Suffer(ctx, delver, outcome.AttackerFate, "a labyrinth's guardians", delve, lostIn: region.Id);
+        Fellows.Apply(ctx, encounter.Fellows, outcome, deadly: true, delve);
     }
 
     /// <summary>
@@ -557,7 +563,11 @@ public sealed partial class DeedsSystem : ISimSystem
                 {
                     // The outcome Claude chose, among the same outcomes as on the first day (the stakes fix them).
                     var encounter = Encounters.DuelBetween(world, challenger, defender, toTheDeath, edge: Edge(how));
-                    var outcome = encounter.Outcomes.First(o => o.Key == action.Data["outcome"]) with { Account = action.Data.GetValueOrDefault("account") };
+                    var outcome = encounter.Outcomes.First(o => o.Key == action.Data["outcome"]) with
+                    {
+                        Account = action.Data.GetValueOrDefault("account"),
+                        FellowFates = Fellows.Decode(action.Data.GetValueOrDefault("fellows")),
+                    };
                     Conclude(ctx, challenger, defender, toTheDeath, declared, outcome, begun, int.Parse(action.Data["days"], CultureInfo.InvariantCulture), how);
                     return;
                 }
@@ -641,6 +651,7 @@ public sealed partial class DeedsSystem : ISimSystem
         }
         var end = DataOf(days);
         end["outcome"] = outcome.Key;
+        if (outcome.FellowFates.Count > 0) end["fellows"] = Fellows.Encode(outcome.FellowFates);
         if (FightChapter.On(chapters, days) is { } last) end["account"] = last;
         ctx.Queue.Schedule(ctx.Date.AddDays(days - 1), DuelEndKind, end);
     }
@@ -681,6 +692,8 @@ public sealed partial class DeedsSystem : ISimSystem
             challenger.Ambition = CharacterFactory.ChooseAmbition(challenger, ctx.Rng);
         Suffer(ctx, challenger, outcome.AttackerFate, "a duel", duel, outcome.AttackerFate == Fate.Dead ? defender : null);
         Suffer(ctx, defender, outcome.DefenderFate, "a duel", duel, outcome.DefenderFate == Fate.Dead ? challenger : null);
+        // Those at their sides fare as the fight decides (the owner, 2026-10-30), slain if it comes to that by the other side.
+        Fellows.Apply(ctx, Fellows.In(ctx.World, challenger, defender), outcome, toTheDeath, duel, f => f.WithAttacker ? defender : challenger);
         // What the fight leaves in them (the owner, 2026-10-29: more than courage): a cruel victor may spare the beaten and be
         // changed by it; a brave one maimed may lose their nerve; a lazy one beaten may be shaken into discipline; a content
         // victor may get a taste for more.

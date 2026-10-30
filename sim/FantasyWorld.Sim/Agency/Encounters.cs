@@ -19,6 +19,9 @@ public sealed record EncounterOutcome(string Key, double Probability, bool Attac
     /// <summary>How it happened, when an LLM arbitrated (spec §8.3): stored as the event's account.</summary>
     public string? Account { get; init; }
 
+    /// <summary>What becomes of each one at the fighters' sides, by <see cref="Fellow.Key"/>, when Claude chose it (the rest are rolled).</summary>
+    public IReadOnlyDictionary<string, FellowFate> FellowFates { get; init; } = new Dictionary<string, FellowFate>();
+
     /// <summary>How many days the fight lasts, its outcome applied on the last; the rules settle every fight in one.</summary>
     public int Days { get; init; } = 1;
 
@@ -45,6 +48,9 @@ public sealed record Encounter(
 
     /// <summary>Outcomes below this base probability are implausible; the LLM arbiter (Plan 5) may not choose them.</summary>
     public const double PlausibilityFloor = 0.05;
+
+    /// <summary>Those at the fighters' sides (companions, a hero's party), whose fates the fight decides too.</summary>
+    public IReadOnlyList<Fellow> Fellows { get; init; } = [];
 
     public double AttackerOdds => AttackerStrength / (AttackerStrength + DefenderStrength);
 
@@ -93,22 +99,27 @@ public static class Encounters
         strength -= 2 * Math.Min(3, c.Wounds.Count);
         var age = c.Age(world.Date);
         if (age < 18) strength -= 4;
-        if (age >= 55) strength -= (age - 50) / 5;
+        // Years weaken the old, but not one who never ages (a demon lord, centuries old).
+        if (age >= 55 && !Systems.SagaSystem.Undying(world, c)) strength -= (age - 50) / 5;
         // A higher level fights harder (the owner, 2026-10-30): a tenth more for each level above the first.
-        return Math.Max(1, strength) * Levels.Power(Levels.Of(c)) * (Systems.PrayerSystem.Favoured(world, c.Ref) ? Systems.PrayerSystem.FavourStrength : 1) * Arms.Edge(c);
+        // A demon lord's dread might (the owner, 2026-10-30): no one stands against it alone and lightly.
+        if (Systems.SagaSystem.Undying(world, c)) strength *= Dread;
+        return Math.Max(1, strength) * Levels.Power(Levels.Of(c)) * (Systems.PrayerSystem.Favoured(world, c.Ref) ? Systems.PrayerSystem.FavourStrength : 1) * Arms.Edge(world, c);
     }
 
     /// <summary>
     /// A duel. <paramref name="surged"/> is a fighter whose hidden awakening breaks out mid-fight (the owner, 2026-10-29): they
     /// already fight in their new calling, and should they still lose a fight to the death, they far more often escape it.
     /// </summary>
-    public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath, long surged = 0, double edge = 1)
+    public static Encounter DuelBetween(World world, Character attacker, Character defender, bool toTheDeath, long surged = 0, double edge = 1,
+        IReadOnlyList<Character>? party = null)
     {
         // A calling that counters the other's fights 15% stronger (the owner, 2026-10-28); one who strikes from ambush or by
         // a planned attack has the edge of surprise (DeedsSystem.Edge).
         var (ka, kd) = (Classes.Of(world, attacker), Classes.Of(world, defender));
         var a = Strength(world, attacker) * Classes.Edge(ka, kd) * edge;
         var d = Strength(world, defender) * Classes.Edge(kd, ka);
+        if (party is not null) a = HeroMight(world, a, party);
         var p = a / (a + d);
         var outcomes = toTheDeath
             ? new List<EncounterOutcome>
@@ -132,7 +143,7 @@ public static class Encounters
                 new("defender_first_blood", (1 - p) * 0.8, false, Fate.Wounded, Fate.Unharmed),
                 new("defender_yields_win", (1 - p) * 0.2, false, Fate.Unharmed, Fate.Unharmed),
             };
-        return new Encounter(Duel, attacker.Id, defender.Id, a, d, toTheDeath, outcomes, surged);
+        return new Encounter(Duel, attacker.Id, defender.Id, a, d, toTheDeath, outcomes, surged) { Fellows = Fellows.In(world, attacker, defender, party) };
         // The loser's death and escape: a fighter surging with a new power slips death far more often.
         double Kill(Character loser) => loser.Id == surged ? 0.15 : 0.45;
         double Escape(Character loser) => loser.Id == surged ? 0.5 : 0.2;
@@ -180,6 +191,22 @@ public static class Encounters
         return new Encounter(kind, leader.Id, 0, a, against, true, outcomes);
     }
 
+    /// <summary>The hero foretold fights the demon lord with the prophecy behind them: this much stronger.</summary>
+    public const double Chosen = 1.15;
+
+    /// <summary>A demon lord fights this much stronger than its arms and level alone.</summary>
+    public const double Dread = 2.1;
+
+    /// <summary>Each one who stands with the hero against the demon lord lifts the whole party by this much.</summary>
+    public const double Fellowship = 0.85;
+
+    /// <summary>
+    /// The hero foretold and their party against the demon lord (the owner, 2026-10-30): the hero's strength, made greater by the
+    /// prophecy, and each member's whole, all lifted by their standing together; a hero may go alone.
+    /// </summary>
+    public static double HeroMight(World world, double hero, IReadOnlyList<Character> party) =>
+        (hero * Chosen + party.Sum(m => Strength(world, m))) * (1 + Fellowship * party.Count);
+
     private static Encounter Wilds(string kind, World world, Character attacker, double wilds, double deathShare)
     {
         var a = Strength(world, attacker);
@@ -192,6 +219,6 @@ public static class Encounters
             new("failure_maimed", (1 - p) * (1 - deathShare) * 0.3, false, Fate.Maimed, Fate.Unharmed),
             new("failure_death", (1 - p) * deathShare, false, Fate.Dead, Fate.Unharmed),
         };
-        return new Encounter(kind, attacker.Id, 0, a, wilds, true, outcomes);
+        return new Encounter(kind, attacker.Id, 0, a, wilds, true, outcomes) { Fellows = Fellows.In(world, attacker, null) };
     }
 }

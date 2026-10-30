@@ -8,8 +8,11 @@ namespace FantasyWorld.Sim.Model;
 /// <summary>A fighter's own weapon, as Claude made it to suit them: a name if it has one, what it is, and its story.</summary>
 public sealed record Gear(string Name, string What, string Lore);
 
-public sealed record Companion(string Name, string Kind, string What, string Lore, long CharacterId, long EventId, long Day)
+public sealed record Companion(string Name, string Kind, string What, string Lore, long CharacterId, long EventId, long Day,
+    long OutUntil = 0, bool Lame = false)
 {
+    // OutUntil: laid up after a fight until this day (the owner, 2026-10-30); Lame: a beast lamed for good, half the help it was.
+
     public const string Beast = "beast", Sworn = "sworn";
 }
 
@@ -52,7 +55,9 @@ public static class Arms
     /// <summary>A beast companion fights at their side: this much stronger.</summary>
     public const double BeastEdge = 1.08;
 
-    public static double Edge(Character c) => c.Companion is { Kind: Companion.Beast } ? BeastEdge : 1;
+    /// <summary>The help of a companion at their side today (a beast, or a sworn friend with them); a lamed beast helps half as much.</summary>
+    public static double Edge(World world, Character c) =>
+        !Agency.Fellows.Present(world, c) ? 1 : c.Companion!.Lame ? 1 + (BeastEdge - 1) / 2 : BeastEdge;
 
     /// <summary>The weapon and companion as a brief reads them, for the arbiter and the chronicler.</summary>
     public static string Brief(World world, Character c)

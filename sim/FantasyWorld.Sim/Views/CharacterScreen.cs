@@ -129,6 +129,15 @@ public sealed record CharacterScreen(
             Add(child, "Child", "", ToneOf2(child));
         foreach (var sibling in Fates.Siblings(world, c))
             Add(sibling, "Sibling", "", ToneOf2(sibling));
+        // The hero's party (the owner, 2026-10-30): the hero and those who stand with them.
+        foreach (var saga in world.Sagas.Values.Where(s => s.Active))
+        {
+            if (saga.HeroId == c.Id)
+                foreach (var member in saga.PartyIds.Select(id => world.Characters.GetValueOrDefault(id)).OfType<Character>())
+                    Add(member, "Hero's party", "", Tone.Warm);
+            else if (saga.PartyIds.Contains(c.Id))
+                Add(world.Characters.GetValueOrDefault(saga.HeroId), "Hero", "their party's", Tone.Warm);
+        }
         // Master and apprentices (the owner, 2026-10-30): estranged once they fell out.
         if (world.Characters.GetValueOrDefault(c.MasterId) is { } master)
             Add(master, "Master", c.Estranged ? "estranged" : "", c.Estranged ? Tone.Hostile : ToneOf(master));

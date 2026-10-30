@@ -75,14 +75,37 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
             brief += $"\nIn the middle of this fight, a power hidden within {PromptText.Data(surging.Name)} breaks out: they awaken as a "
                      + $"{PromptText.Data(power.Name)} ({PromptText.Data(power.Origin, 300)} It {PromptText.Data(power.Does, 200)}; but {PromptText.Data(power.Condition, 200)}). "
                      + "Make it the fight's turning point: it turns the tide, or, if they still lose, it is how they escape with their life.\n";
+        // Those at their sides (the owner, 2026-10-30): Claude decides what becomes of each.
+        var fellows = encounter.Fellows;
+        if (fellows.Count > 0)
+            brief += "\nAt their sides:\n" + string.Join("\n", fellows.Select(f =>
+                $"- {f.Key}: {PromptText.Data(f.Name)}, {PromptText.Data(f.What, 200)} (with the {(f.WithAttacker ? "attacker" : "defender")})")) + "\n";
+        var fellowKeys = fellows.Select(f => f.Key).ToList();
+        var fates = Enum.GetValues<FellowFate>().Select(Fellows.Word).ToArray();
+        var fellowAsk = fellows.Count == 0 ? ""
+            : " Decide too what becomes of each one at their sides: unharmed, injured, incapacitated (out of the fight for a long while), "
+              + "disabled (lasting harm), separated (lost from their side) or dead; those on the losing side fare worse, and none is safe.";
         var longest = DuelDays(attacker, defender);
         var prompt = PromptText.Section("brief", brief)
             + (tight ? "\n\nUpsets have been frequent of late; let the likelier outcome stand unless the brief makes it ring false." : "")
             + (whole
                 ? $"\n\nDecide {name}'s duel whole: which of the possible outcomes it comes to, and how. {FightAnswer.Instructions(longest, odds)}"
-                : $"\n\nDecide how {name}'s {encounter.Kind} ends. Name its turning point and give a short account (two or three sentences).");
-        var schema = JsonSerializer.Serialize(whole
-            ? new
+                : $"\n\nDecide how {name}'s {encounter.Kind} ends. Name its turning point and give a short account (two or three sentences).")
+            + fellowAsk;
+        var fellowSchema = new
+        {
+            type = "array",
+            items = new
+            {
+                type = "object",
+                properties = new { key = new { type = "string", @enum = fellowKeys }, fate = new { type = "string", @enum = fates } },
+                required = new[] { "key", "fate" },
+                additionalProperties = false,
+            },
+        };
+        var schema = JsonSerializer.Serialize((whole, fellows.Count > 0) switch
+        {
+            (true, false) => new
             {
                 type = "object",
                 properties = (object)new
@@ -93,8 +116,21 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
                 },
                 required = new[] { "outcome", "days", "chapters" },
                 additionalProperties = false,
-            }
-            : new
+            },
+            (true, true) => new
+            {
+                type = "object",
+                properties = (object)new
+                {
+                    outcome = new { type = "string", @enum = keys },
+                    days = FightAnswer.DaysSchema,
+                    chapters = FightAnswer.ChaptersSchema,
+                    fellows = fellowSchema,
+                },
+                required = new[] { "outcome", "days", "chapters", "fellows" },
+                additionalProperties = false,
+            },
+            (false, false) => new
             {
                 type = "object",
                 properties = (object)new
@@ -105,7 +141,21 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
                 },
                 required = new[] { "outcome", "turning_point", "account" },
                 additionalProperties = false,
-            });
+            },
+            _ => new
+            {
+                type = "object",
+                properties = (object)new
+                {
+                    outcome = new { type = "string", @enum = keys },
+                    turning_point = new { type = "string" },
+                    account = new { type = "string" },
+                    fellows = fellowSchema,
+                },
+                required = new[] { "outcome", "turning_point", "account", "fellows" },
+                additionalProperties = false,
+            },
+        });
         var request = new LlmRequest(ModelTier.Arbitrate, key, story.Bible, prompt, schema);
 
         bool Upset(EncounterOutcome o) => o.AttackerWins != (odds >= 0.5);
@@ -114,15 +164,17 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
         var json = story.Gateway.Ask(request, day, answer => Problems(answer, keys, whole, brief, odds, AttackerWins, longest).Count == 0,
             answer => Upset(allowed.First(o => o.Key == Parse(answer, keys)!.Outcome)) ? "upset" : "", Why);
         if (json is null || Parse(json, keys) is not { } chosen) return fallback;
+        var fellowFates = FellowFates(json, fellowKeys);
         if (chosen.Chapters.Count > 0)
             return allowed.First(o => o.Key == chosen.Outcome) with
             {
                 Days = Math.Clamp(chosen.Days, 1, longest),
                 Chapters = chosen.Chapters,
                 Account = PromptText.Data(string.Join(" ", chosen.Chapters.Select(c => c.Text)), 1500),
+                FellowFates = fellowFates,
             };
         var account = string.IsNullOrWhiteSpace(chosen.TurningPoint) ? chosen.Account : $"{chosen.Account} Turning point: {chosen.TurningPoint}";
-        return allowed.First(o => o.Key == chosen.Outcome) with { Account = PromptText.Data(account, 500) };
+        return allowed.First(o => o.Key == chosen.Outcome) with { Account = PromptText.Data(account, 500), FellowFates = fellowFates };
     }
 
     /// <summary>Underdog wins among the latest answered arbitrations, read from the journal so it survives reloads.</summary>
@@ -142,6 +194,26 @@ public sealed partial class LlmArbiter(StoryContext story, IArbiter? rules = nul
         var problems = FightAnswer.Problems(doc.RootElement, longest, brief).ToList();
         if (FightAnswer.Swift(doc.RootElement, odds, attackerWins(answer.Outcome)) is { } slow) problems.Add(slow);
         return problems;
+    }
+
+    /// <summary>The fates Claude chose for those at the fighters' sides; any it left out, or named wrongly, the rules roll.</summary>
+    private static IReadOnlyDictionary<string, FellowFate> FellowFates(string json, IReadOnlyList<string> keys)
+    {
+        var fates = new Dictionary<string, FellowFate>(StringComparer.Ordinal);
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("fellows", out var list) || list.ValueKind != JsonValueKind.Array)
+                return fates;
+            foreach (var item in list.EnumerateArray())
+                if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty("key", out var k) && k.ValueKind == JsonValueKind.String && keys.Contains(k.GetString()!)
+                    && item.TryGetProperty("fate", out var f) && f.ValueKind == JsonValueKind.String && Fellows.Parse(f.GetString()!) is { } fate)
+                    fates.TryAdd(k.GetString()!, fate);
+        }
+        catch (JsonException)
+        {
+        }
+        return fates;
     }
 
     /// <summary>The answer as it is applied; lenient, so answers journaled before fights had a length still replay.</summary>

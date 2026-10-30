@@ -1,15 +1,25 @@
 {
   "outcome": {
-    "eventId": 304,
+    "eventId": 314,
     "year": 19,
     "category": "characters",
     "title": {
-      "text": "Steillmuth of Viallciath was killed by a labyrinth's guardians, aged 75.",
+      "text": "Marncall of Liarning fought Tinki of Kiangratheth to the death at Gerrouhaven. Marncall of Liarning won, and Tinki of Kiangratheth was maimed.",
       "links": [
         {
           "start": 0,
-          "length": 24,
-          "entity": "char#12"
+          "length": 20,
+          "entity": "char#31"
+        },
+        {
+          "start": 28,
+          "length": 21,
+          "entity": "char#19"
+        },
+        {
+          "start": 66,
+          "length": 11,
+          "entity": "settlement#10"
         }
       ]
     },
@@ -20,26 +30,44 @@
   "layers": [
     [
       {
-        "eventId": 303,
-        "year": 19,
+        "eventId": 259,
+        "year": 15,
         "category": "characters",
         "title": {
-          "text": "Steillmuth of Viallciath sought the Codex of Carn in Vamholt and died there.",
+          "text": "The truth of the Plot against Brocan came out at last: Tinki of Kiangratheth was behind it.",
+          "links": [
+            {
+              "start": 55,
+              "length": 21,
+              "entity": "char#19"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      },
+      {
+        "eventId": 302,
+        "year": 18,
+        "category": "characters",
+        "title": {
+          "text": "Marncall of Liarning challenged Tinki of Kiangratheth to a duel (to the death), to be fought at Gerrouhaven in a year and a day.",
           "links": [
             {
               "start": 0,
-              "length": 24,
-              "entity": "char#12"
+              "length": 20,
+              "entity": "char#31"
             },
             {
               "start": 32,
-              "length": 17,
-              "entity": "artifact#3"
+              "length": 21,
+              "entity": "char#19"
             },
             {
-              "start": 53,
-              "length": 7,
-              "entity": "region#12"
+              "start": 96,
+              "length": 11,
+              "entity": "settlement#10"
             }
           ]
         },
@@ -50,21 +78,66 @@
     ],
     [
       {
-        "eventId": 287,
-        "year": 18,
+        "eventId": 248,
+        "year": 14,
         "category": "characters",
         "title": {
-          "text": "The Codex of Carn was stolen from Marncall of Liarning in the Theft of The Codex of Carn, by ill fortune alone.",
+          "text": "A plot was laid against the life of Brocan of Liarning, the Plot against Brocan, the work of a hand no one could name.",
+          "links": [
+            {
+              "start": 36,
+              "length": 18,
+              "entity": "char#28"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      }
+    ],
+    [
+      {
+        "eventId": 113,
+        "year": 4,
+        "category": "characters",
+        "title": {
+          "text": "Ten of Kiangratheth was killed by slain at a feast under the guest-right at the age of 48.",
           "links": [
             {
               "start": 0,
-              "length": 17,
-              "entity": "artifact#3"
+              "length": 19,
+              "entity": "char#18"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      }
+    ],
+    [
+      {
+        "eventId": 112,
+        "year": 4,
+        "category": "politics",
+        "title": {
+          "text": "At Niar, Brocan of Liarning feasted Ten of Kiangratheth as a guest, and had them slain at the table: the Feast of Niar.",
+          "links": [
+            {
+              "start": 3,
+              "length": 4,
+              "entity": "settlement#24"
             },
             {
-              "start": 34,
-              "length": 20,
-              "entity": "char#31"
+              "start": 9,
+              "length": 18,
+              "entity": "char#28"
+            },
+            {
+              "start": 36,
+              "length": 19,
+              "entity": "char#18"
             }
           ]
         },
@@ -76,65 +149,136 @@
   ],
   "edges": [
     {
-      "from": 303,
-      "to": 304,
+      "from": 302,
+      "to": 314,
+      "kind": "trigger",
+      "label": "because, and"
+    },
+    {
+      "from": 259,
+      "to": 314,
+      "kind": "motive",
+      "label": "because, and"
+    },
+    {
+      "from": 259,
+      "to": 302,
+      "kind": "motive",
+      "label": "because"
+    },
+    {
+      "from": 248,
+      "to": 259,
       "kind": "trigger",
       "label": "because"
     },
     {
-      "from": 287,
-      "to": 303,
-      "kind": "enabler",
+      "from": 113,
+      "to": 248,
+      "kind": "motive",
+      "label": "because"
+    },
+    {
+      "from": 112,
+      "to": 113,
+      "kind": "trigger",
       "label": "because"
     }
   ],
-  "summary": "Traced back one year, through one root cause.",
+  "summary": "Traced back 15 years, through one root cause.",
   "people": [
-    {
-      "ref": "char#12",
-      "name": "Steillmuth of Viallciath"
-    },
     {
       "ref": "char#31",
       "name": "Marncall of Liarning"
+    },
+    {
+      "ref": "char#19",
+      "name": "Tinki of Kiangratheth"
+    },
+    {
+      "ref": "char#28",
+      "name": "Brocan of Liarning"
+    },
+    {
+      "ref": "char#18",
+      "name": "Ten of Kiangratheth"
     }
   ],
   "places": [
+    {
+      "ref": "settlement#10",
+      "name": "Gerrouhaven"
+    },
     {
       "ref": "settlement#24",
       "name": "Niar"
     },
     {
-      "ref": "region#12",
-      "name": "Vamholt"
+      "ref": "settlement#16",
+      "name": "Greindrondcross"
     }
   ],
   "systems": [
+    "politics",
     "characters"
   ],
-  "consequences": [],
+  "consequences": [
+    {
+      "eventId": 315,
+      "year": 19,
+      "category": "characters",
+      "title": {
+        "text": "Tinki of Kiangratheth escaped Marncall of Liarning with their life and swore to return for revenge.",
+        "links": [
+          {
+            "start": 0,
+            "length": 21,
+            "entity": "char#19"
+          },
+          {
+            "start": 30,
+            "length": 20,
+            "entity": "char#31"
+          }
+        ]
+      },
+      "note": null,
+      "isRoot": false,
+      "hasMore": false
+    }
+  ],
   "story": {
-    "text": "In Year 18, the Codex of Carn was stolen from Marncall of Liarning in the Theft of The Codex of Carn, by ill fortune alone. In Year 19, Steillmuth of Viallciath sought the Codex of Carn in Vamholt and died there. And so Steillmuth of Viallciath was killed by a labyrinth's guardians, aged 75.",
+    "text": "In Year 4, at Niar, Brocan of Liarning feasted Ten of Kiangratheth as a guest, and had them slain at the table: the Feast of Niar. That same year, Ten of Kiangratheth was killed by slain at a feast under the guest-right at the age of 48. In Year 14, a plot was laid against the life of Brocan of Liarning, the Plot against Brocan, the work of a hand no one could name. In Year 15, the truth of the Plot against Brocan came out at last: Tinki of Kiangratheth was behind it. In Year 18, Marncall of Liarning challenged Tinki of Kiangratheth to a duel (to the death), to be fought at Gerrouhaven in a year and a day. And so, in Year 19, Marncall of Liarning fought Tinki of Kiangratheth to the death at Gerrouhaven. Marncall of Liarning won, and Tinki of Kiangratheth was maimed.",
     "links": [
       {
-        "start": 46,
+        "start": 14,
+        "length": 4,
+        "entity": "settlement#24"
+      },
+      {
+        "start": 20,
+        "length": 18,
+        "entity": "char#28"
+      },
+      {
+        "start": 47,
+        "length": 19,
+        "entity": "char#18"
+      },
+      {
+        "start": 436,
+        "length": 21,
+        "entity": "char#19"
+      },
+      {
+        "start": 485,
         "length": 20,
         "entity": "char#31"
       },
       {
-        "start": 83,
-        "length": 17,
-        "entity": "artifact#3"
-      },
-      {
-        "start": 136,
-        "length": 24,
-        "entity": "char#12"
-      },
-      {
-        "start": 189,
-        "length": 7,
-        "entity": "region#12"
+        "start": 581,
+        "length": 11,
+        "entity": "settlement#10"
       }
     ]
   }

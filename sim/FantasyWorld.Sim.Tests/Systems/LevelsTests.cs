@@ -159,4 +159,21 @@ public class LevelsTests
         Assert.All(fell.Select(e => world.Characters[Of(e, "apprentice").Id]).Where(a => a.IsActive && world.Characters[a.MasterId].IsActive),
             a => Assert.False(Relations.Bound(a, world.Characters[a.MasterId])));
     }
+
+    [Fact]
+    public void CompanionsInFights_CanBeHurt_LaidUp_Lamed_Parted_OrKilled()
+    {
+        var sim = History(120);
+        var fates = sim.Log.All.Where(e => e.Type == "FellowFate").ToList();
+        Assert.NotEmpty(fates);
+        Assert.All(fates, e => Assert.Contains(e.Payload["fate"], new[] { "injured", "incapacitated", "disabled", "separated", "dead" }));
+        Assert.True(fates.Select(e => e.Payload["fate"]).Distinct().Count() >= 3);
+        // A beast dead or parted is no longer at its keeper's side.
+        foreach (var e in fates.Where(e => e.Payload["fate"] is "dead" or "separated" && !e.Actors.ContainsKey("fellow")))
+            Assert.NotEqual(e.Payload["name"], sim.World.Characters[e.Actors["who"].Id].Companion?.Name);
+        // Rolled by the rules, the losing side fares worse than the winning.
+        var f = new FantasyWorld.Sim.Agency.Fellow("a1", true, 1, 0, "Grey", "a wolf");
+        int Harmed(bool won) => Enumerable.Range(0, 2000).Count(m => FantasyWorld.Sim.Agency.Fellows.Roll(f, won, true, m) != FantasyWorld.Sim.Agency.FellowFate.Unharmed);
+        Assert.True(Harmed(false) > Harmed(true) * 2);
+    }
 }

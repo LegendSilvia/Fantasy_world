@@ -272,7 +272,7 @@ public sealed partial class DeedsSystem
         var region = world.Regions[dragon.RegionId];
         var leader = company[0];
         var against = dragon.Might * Math.Max(0.3, dragon.Vigour / 100) * Levels.Power(Levels.Of(dragon));
-        var outcome = _arbiter.Resolve(Encounters.Company(Encounters.Hunt, world, leader, company, against, 0.35), ctx.Rng);
+        var outcome = _arbiter.Resolve(Encounters.Company(Encounters.Hunt, world, leader, company, against, 0.25), ctx.Rng);
         var actors = Actors(company, dragon.Ref);
         actors["hunter"] = leader.Ref;
         WorldEvent bout;

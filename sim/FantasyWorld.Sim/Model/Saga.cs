@@ -18,6 +18,12 @@ public sealed class Saga
     public long RoseEventId { get; init; }
     public long ProphecyEventId { get; set; }
     public long HeroId { get; set; }
+
+    /// <summary>The hero's party (the owner, 2026-10-30): those sworn to stand with the hero against the demon lord, at most <see cref="PartySize"/>.</summary>
+    public List<long> PartyIds { get; init; } = new();
+
+    /// <summary>Those who may stand with the hero; with the hero, a full party of four.</summary>
+    public const int PartySize = 3;
     public long EndedEventId { get; set; }
     public string Outcome { get; set; } = "";
 
