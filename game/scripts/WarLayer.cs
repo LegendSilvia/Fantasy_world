@@ -20,14 +20,25 @@ public partial class WarLayer : Node3D
     /// <summary>Banners and battle marks grow with the camera's distance so they read at any zoom (1 at region zoom).</summary>
     public static float ScaleFor(float distance) => Math.Clamp(distance / 1.4f, 0.55f, 2.2f);
 
+    /// <summary>
+    /// The layer's own clock, in seconds: the sum of its frames' time. A film is recorded at a fixed rate, each frame one
+    /// twenty-fourth of a second however long it takes to draw, so a pulse timed by this clock beats evenly on screen; timed
+    /// by the computer's clock it jumped from frame to frame (the owner, 2026-10-31: the icons pulsed weirdly in the video).
+    /// </summary>
+    private double _clock;
+
+    /// <summary>A pulsing mark's size against its rest, at a moment of the layer's clock: a gentle beat of about 1.6 seconds.</summary>
+    public static float Pulse(double seconds) => 1 + 0.12f * Mathf.Sin((float)(seconds * Math.Tau / 1.6));
+
     public override void _Process(double delta)
     {
+        _clock += delta;
         if (GetViewport()?.GetCamera3D() is not { } camera) return;
         foreach (var node in Banners.GetChildren().OfType<Node3D>().Concat(Battles.GetChildren().OfType<Node3D>()))
         {
             if (node.HasMeta("growing")) continue;
             var s = ScaleFor(camera.GlobalPosition.DistanceTo(node.GlobalPosition));
-            node.Scale = Vector3.One * (node.HasMeta("pulse") ? s * (1 + 0.18f * Mathf.Sin((float)Time.GetTicksMsec() / 260f)) : s);
+            node.Scale = Vector3.One * (node.HasMeta("pulse") ? s * Pulse(_clock) : s);
         }
     }
     public const double MarchSeconds = 2.5;
