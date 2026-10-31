@@ -26,6 +26,20 @@ public class FightSectionTests
     }
 
     [Fact]
+    public void AFightOfOneDay_IsToldByHowItWasFought_NotOnlyItsOutcome()
+    {
+        // The owner, 2026-10-31: a duel of one day was told only by who won.
+        var (world, log, strong, sly, declared) = FaceOffTests.ADuelDeclared();
+        var fought = log.Append(world.Date, new EventDraft("DuelFought",
+            Actors: new Dictionary<string, EntityRef> { ["challenger"] = strong.Ref, ["defender"] = sly.Ref }, Place: declared.Place,
+            Payload: new Dictionary<string, string> { ["account"] = "The axe bit the shield in two, and the elder fell back bleeding.", ["stakes"] = "first blood", ["victor"] = "1" },
+            Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 1.0) }, Importance: 45, Tags: new[] { "Characters", "Deeds" }));
+        Assert.Single(Fights.Beats(log, fought));
+        var episode = Episode.Build(world, log, 0, "2026-10-28", stories: 8);
+        Assert.Contains(episode.Parts, p => p.Text.Contains("The axe bit the shield in two", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void AFightOfDays_IsOneStory_ToldDayByDay()
     {
         var (world, log, fought) = AThreeDayDuel();
@@ -52,7 +66,7 @@ public class FightSectionTests
         var story = new StoryContext(world, log, new LlmGateway(fake, new LlmSettings { Provider = "fake" }, new LlmJournal()));
         var written = new LlmNarrator(story).EpisodeScript(episode, 20_000);
         var prompt = fake.Requests.First(r => r.Key.StartsWith("narrate|episode-sections", StringComparison.Ordinal)).Prompt;
-        Assert.Contains("The fight, day by day:", prompt);
+        Assert.Contains("How the fight was fought; tell its blows, not only its outcome:", prompt);
         Assert.Contains("Day 2: On the second morning", prompt);
         Assert.Contains("blow by blow", prompt);
         Assert.NotNull(written.Parts.Single(p => p.Beats is not null).Beats);

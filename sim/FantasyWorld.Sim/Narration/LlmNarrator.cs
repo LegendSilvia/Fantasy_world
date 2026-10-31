@@ -64,7 +64,8 @@ public sealed class LlmNarrator(StoryContext story) : INarrator
                 : ""));
         string Figures(EpisodeSection p) => (p.FaceOff is { } f ? $"\n(Face-off figures:\n{PromptText.Data(f.Figures() + Fighters(f), 2000)})" : "")
                                             + (p.Moves is { Count: > 0 } m ? $"\n(The war's marches:\n{PromptText.Data(Campaign.Brief(m), 1600)})" : "")
-                                            + (p.Beats is { Count: > 1 } b ? $"\n(The fight, day by day:\n{PromptText.Data(Fights.Brief(b), 2400)})" : "");
+                                            // A fight is told by how it was fought, blow by blow, not only by who won (the owner, 2026-10-31).
+                                            + (p.Beats is { Count: > 0 } b ? $"\n(How the fight was fought; tell its blows, not only its outcome:\n{PromptText.Data(Fights.Brief(b), 2400)})" : "");
         // A scene to paint is marked with the template's picture of it, for the chronicler's own (the episode's stills).
         string Paint(EpisodeSection p) => p.Scene is { } scene ? $"\n(A scene to paint; as the facts show it: {PromptText.Data(scene, Stills.MaxCharacters)})" : "";
         var brief = string.Join("\n\n", parts.Select((p, i) => $"[{i + 1}] "

@@ -196,19 +196,27 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
-    public async Task SpeechThatFails_LeavesTheTextAndMapPost_AndIsMadeUpNextRun()
+    public async Task SpeechThatFails_HoldsTheEpisode_AndTheWorldWaits_UntilItIsMadeWhole()
     {
+        // The owner, 2026-10-31: an episode whose narration failed is posted nowhere, and no new year is lived until it is out.
         var speech = new PronouncerTests.FakeSpeech { Fails = true };
         Assert.Equal(DailyRun.Partial, await Run(Morning, new RunOptions(Create: true), speech: speech));
-        Assert.Null(_discord.Audio.Single());
-        Assert.NotNull(_discord.Maps.Single());
+        Assert.Empty(_discord.Posts);
         Assert.Contains("could not be narrated", _log.ToString());
+        Assert.Contains("The episode of 2026-10-27 is held: its narration was not made", _log.ToString());
+        var world = await Get("live/world.fw.db");
 
         speech.Fails = false;
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1), speech: speech));
-        Assert.Equal(2, speech.Spoken.Count(Opens)); // yesterday's narration, then today's
-        Assert.NotNull(await Get("live/" + DailyRun.NarrationKey("2026-10-27")));
-        Assert.NotNull(_discord.Audio[1]);
+        Assert.Contains("the world waits", _log.ToString());
+        Assert.Equal(world, await Get("live/world.fw.db")); // no year was lived while it was held
+        Assert.False(Manifest.FromBytes(await Get("live/" + Manifest.Key)).Day("2026-10-28").Done(Manifest.EpisodeStep));
+        Assert.Equal(new[] { "2026-10-27" }, _discord.Posts.Select(p => p.Date));
+        Assert.NotNull(_discord.Audio.Single());
+
+        // Out whole at last, the next morning lives the next year.
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(2), speech: speech));
+        Assert.Equal(new[] { "2026-10-27", "2026-10-29" }, _discord.Posts.Select(p => p.Date));
     }
 
     [Fact]
@@ -308,12 +316,13 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
-    public async Task ASpeechServiceThatAnswersNonsense_NeverStopsThePost()
+    public async Task ASpeechServiceThatAnswersNonsense_HoldsTheEpisode_WithoutCrashing()
     {
         var garbled = new GarbledSpeech();
         Assert.Equal(DailyRun.Partial, await Run(Morning, new RunOptions(Create: true), speech: garbled));
-        Assert.Single(_discord.Posts);
+        Assert.Empty(_discord.Posts);
         Assert.Contains("could not be narrated", _log.ToString());
+        Assert.Contains("is held", _log.ToString());
     }
 
     private sealed class GarbledSpeech : ISpeech
@@ -343,16 +352,19 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
-    public async Task TheMonthlyBudget_StopsSpeech_AndNoKeyMeansNoNarration()
+    public async Task TheMonthlyBudget_StopsSpeech_AndHoldsTheEpisode_AndNoKeyMeansNoNarration()
     {
         var tight = BroadcastConfig.Parse("""{ "seed": 3, "size": "tiny", "voice": { "monthlyCharacterBudget": 100 } }""");
         var speech = new PronouncerTests.FakeSpeech();
-        Assert.Equal(DailyRun.Ok, await Run(Morning, new RunOptions(Create: true), speech: speech, config: tight));
+        Assert.Equal(DailyRun.Partial, await Run(Morning, new RunOptions(Create: true), speech: speech, config: tight));
         Assert.Empty(speech.Spoken);
         Assert.Contains("speech budget", _log.ToString());
+        Assert.Empty(_discord.Posts); // unspoken, it is held
 
+        // With no ElevenLabs key at all the broadcast has no voice, and the held episode goes out as it is.
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1)));
         Assert.Contains("ELEVENLABS_API_KEY is not set", _log.ToString());
+        Assert.Equal(new[] { "2026-10-27" }, _discord.Posts.Select(p => p.Date));
     }
 
     [Fact]
@@ -522,16 +534,18 @@ public class DailyRunTests : IDisposable
     }
 
     [Fact]
-    public async Task AMissedPost_IsMadeTheNextMorning_BeforeThatMorningsOwn()
+    public async Task AMissedPost_IsMadeTheNextMorning_AndTheWorldWaitsForIt()
     {
         _discord.Fails = true;
         Assert.Equal(DailyRun.Partial, await Run(Morning, new RunOptions(Create: true)));
         _discord.Fails = false;
+        // The next morning posts the held episode, and lives no new year (the owner, 2026-10-31).
         Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1)));
-        Assert.Equal(new[] { "2026-10-27", "2026-10-28" }, _discord.Posts.Select(p => p.Date));
-        Assert.Contains("posted the missed episode of 2026-10-27", _log.ToString());
-        Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(1).AddHours(1)));
-        Assert.Equal(2, _discord.Posts.Count);
+        Assert.Equal(new[] { "2026-10-27" }, _discord.Posts.Select(p => p.Date));
+        Assert.Contains("The episode of 2026-10-27 is held", _log.ToString());
+        // Out whole, the world goes on: the next run lives the year it waited for.
+        Assert.Equal(DailyRun.Ok, await Run(Morning.AddDays(2)));
+        Assert.Equal(new[] { "2026-10-27", "2026-10-29" }, _discord.Posts.Select(p => p.Date));
     }
 
     [Fact]

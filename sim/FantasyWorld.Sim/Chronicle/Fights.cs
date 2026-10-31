@@ -54,7 +54,7 @@ public static class Fights
     /// <summary>A few of the fight's days as the template reads them: the first, the last, and the one between if there are more.</summary>
     public static string Tell(IReadOnlyList<FightBeat> beats)
     {
-        if (beats.Count < 2) return "";
+        if (beats.Count == 0) return "";
         var told = beats.Count <= BeatsTold ? beats : [beats[0], beats[beats.Count / 2], beats[^1]];
         return "How it went: " + string.Join(" ", told.Select(b => b.Text));
     }

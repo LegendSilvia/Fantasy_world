@@ -184,8 +184,9 @@ public sealed record Episode(
         var worldSection = WorldSection(world, narrator, worldNews);
         var favouritesSection = FavouritesSection(world, narrator, events, followed, chosen.Append(top).OfType<WorldEvent>().Concat(worldNews).ToList());
         var resultsSection = results.Count == 0 ? null : new EpisodeSection(EpisodeSection.Results, "The fights decided",
-            string.Join(" ", results.OrderBy(e => e.Id).Select(e => narrator.Sentence(e))), results[0].Id,
-            FaceOffs.OfFight(world, log, results[0]));
+            // Each with how it was fought, not only who won (the owner, 2026-10-31).
+            string.Join(" ", results.OrderBy(e => e.Id).Select(e => narrator.Sentence(e) + (Fights.Beats(log, e) is { Count: > 0 } course ? $" {Fights.Tell(course)}" : ""))),
+            results[0].Id, FaceOffs.OfFight(world, log, results[0]));
 
         // The template script: drop the least important stories, then the chronicler's view, until it fits the budget.
         // Within a year the stories need no dates; across years each says when.
@@ -221,11 +222,12 @@ public sealed record Episode(
             var latest = events.LastOrDefault(e => FaceOffs.Fights.Contains(e.Type) && Fights.RootOf(log, e) == root) ?? ev;
             return FaceOffs.OfFight(world, log, latest) is { } f ? s with { FaceOff = f } : s;
         }
-        // A fight's section carries its days; a few are read aloud (never one its text already gives).
+        // A fight's section carries its days, even a fight of one day (the owner, 2026-10-31: the fight was told only by its
+        // outcome); a few are read aloud (never one its text already gives).
         EpisodeSection WithBeats(EpisodeSection s)
         {
             if (s.Kind is not (EpisodeSection.Headline or EpisodeSection.Story) || s.EventId == 0 || !log.TryGet(s.EventId, out var ev)
-                || Fights.Beats(log, ev) is not { Count: > 1 } beats) return s;
+                || Fights.Beats(log, ev) is not { Count: > 0 } beats) return s;
             var fresh = beats.Where(b => !s.Text.Contains(b.Text, StringComparison.Ordinal)).ToList();
             return s with { Text = Fights.Tell(fresh) is { Length: > 0 } told ? $"{s.Text}\n\n{told}" : s.Text, Beats = beats };
         }

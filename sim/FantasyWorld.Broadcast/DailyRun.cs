@@ -94,6 +94,14 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 if (_options.Remake) episode = await RemakeAsync(store, manifest, episode, date, ct).ConfigureAwait(false);
                 else if (_options.Repaint) episode = await RepaintAsync(store, manifest, episode, date, ct).ConfigureAwait(false);
             }
+            else if (Held(manifest, date) is { } held)
+            {
+                // The world waits for a held episode (the owner, 2026-10-31): no new year is lived until it is out whole. Its
+                // narration, film and video are tried again.
+                log.WriteLine($"The episode of {held} is held ({HeldWhy(manifest, held) ?? "it is not posted everywhere"}); the world waits, and it is made again today.");
+                date = held;
+                episode = await StoredEpisodeAsync(store, date, ct).ConfigureAwait(false);
+            }
             else
                 episode = await MakeEpisodeAsync(store, manifest, date, ct).ConfigureAwait(false);
         }
@@ -124,8 +132,17 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
         }
         foreach (var stateful in channels.OfType<IStatefulChannel>()) stateful.Attach(store, log, date);
         if (channels.Count == 0) log.WriteLine("No channel is configured: the episode is stored but posted nowhere.");
-        foreach (var channel in channels)
-            foreach (var day in dates)
+        foreach (var day in dates)
+        {
+            // The guard (the owner, 2026-10-31): an episode whose narration, script or video failed is posted nowhere, not as
+            // text and map alone; it is held, and the world with it, until it is made whole.
+            if (HeldWhy(manifest, day) is { } missing)
+            {
+                log.WriteLine($"The episode of {day} is held: {missing}. Nothing of it is posted; the next run makes it again before the world goes on.");
+                if (result == Ok) result = Partial;
+                continue;
+            }
+            foreach (var channel in channels)
             {
                 if (manifest.Day(day).Done(channel.Name))
                 {
@@ -144,12 +161,19 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 catch (ChannelWaitingException e)
                 {
                     log.WriteLine($"{channel.Name}: the episode of {day} is not posted yet: {e.Message}");
+                    // A video still waiting holds the posts after it (the owner, 2026-10-31): Discord never goes out without it.
+                    if (channel is Channels.YouTube) break;
                     continue;
                 }
                 catch (Exception e) when (e is ChannelException or IOException or InvalidOperationException && !ct.IsCancellationRequested)
                 {
                     log.WriteLine($"{channel.Name}: the episode of {day} was not posted: {e.Message} It will be tried again on the next run.");
                     result = Partial;
+                    if (channel is Channels.YouTube)
+                    {
+                        log.WriteLine($"The episode of {day} is held: its video failed. Nothing more of it is posted.");
+                        break;
+                    }
                     continue;
                 }
                 manifest.Day(day).Steps[channel.Name] = clock();
@@ -164,11 +188,39 @@ public sealed class DailyRun(BroadcastConfig config, IObjectStore root, IReadOnl
                 }
                 log.WriteLine(day == date ? $"{channel.Name}: posted." : $"{channel.Name}: posted the missed episode of {day}.");
             }
+        }
 
         await PublishFeedAsync(store, manifest, ct).ConfigureAwait(false);
         await PruneBackupsAsync(store, date, ct).ConfigureAwait(false);
         await KeepUnderLimitAsync(store, date, ct).ConfigureAwait(false);
         return result;
+    }
+
+    /// <summary>
+    /// What an episode still lacks to go out whole (the owner, 2026-10-31: "if ElevenLabs failed or anything involved in the
+    /// video failed, that video must not upload"): its narration, when the episode is spoken (with ElevenLabs set up). Null
+    /// when nothing is missing. The film and the video are the YouTube channel's to wait for, and a video not made holds the rest.
+    /// </summary>
+    private string? HeldWhy(Manifest manifest, string day)
+    {
+        var missing = new List<string>();
+        // (A run with no ElevenLabs key at all is one without a voice, not one whose voice failed.)
+        if (config.Voice.Speak && speech is not null && !manifest.Day(day).Done(Manifest.AudioStep)) missing.Add("its narration was not made");
+        return missing.Count == 0 ? null : string.Join("; ", missing);
+    }
+
+    /// <summary>
+    /// The latest earlier episode not yet out whole (made, but some channel not posted), within the days still made up for;
+    /// while one is held the world does not live another year. Null when none is.
+    /// </summary>
+    private string? Held(Manifest manifest, string date)
+    {
+        if (channels.Count == 0) return null;
+        var earliest = DateOnly.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture).AddDays(-MissedDays).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return manifest.Episodes
+            .Where(d => string.CompareOrdinal(d.Key, date) < 0 && string.CompareOrdinal(d.Key, earliest) >= 0 && d.Value.Done(Manifest.EpisodeStep)
+                        && channels.Any(c => !d.Value.Done(c.Name)))
+            .Select(d => d.Key).OrderBy(d => d, StringComparer.Ordinal).LastOrDefault();
     }
 
     /// <summary>
