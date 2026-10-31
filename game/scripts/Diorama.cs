@@ -329,8 +329,15 @@ public partial class Diorama : Node3D
     }
 
     /// <summary>
-    /// A beast in its lair: a boss marker floating above it (the owner, 2026-10-28), a horned skull on a shield, larger
-    /// the mightier the beast; legends wear gold, sleepers are grey.
+    /// The beasts' paintings, by the beast's id, when the film was given them (the owner, 2026-10-31: the video showed no
+    /// images where the website shows each beast painted in its frame); the game, without them, draws the boss marker.
+    /// </summary>
+    public static IReadOnlyDictionary<long, Image> BeastPictures { get; set; } = new Dictionary<long, Image>();
+
+    /// <summary>
+    /// A beast in its lair: its painting in a frame when there is one, as the website shows it, else a boss marker floating
+    /// above it (the owner, 2026-10-28), a horned skull on a shield; larger the mightier the beast; legends wear gold,
+    /// sleepers are grey.
     /// </summary>
     private static Node3D BeastNode(MapMonster beast, Geography geography)
     {
@@ -339,7 +346,10 @@ public partial class Diorama : Node3D
             Name = $"monster{beast.Ref.Id}",
             Position = ToGodot(Client.Projection.ToBlock(geography.Terrain, beast.Position, 0)) + new Vector3(-0.03f, 0.012f, 0.02f),
         };
-        node.AddChild(Badge.Sprite(Client.Badges.Boss(beast.Legendary, beast.Slumbering), 0.04f + 0.02f * beast.Might / 100f, "Badge"));
+        var height = 0.04f + 0.02f * beast.Might / 100f;
+        node.AddChild(BeastPictures.TryGetValue(beast.Ref.Id, out var picture)
+            ? Badge.Sprite(Badge.Framed(picture, beast.Legendary, beast.Slumbering), height * 1.2f, "Badge")
+            : Badge.Sprite(Client.Badges.Boss(beast.Legendary, beast.Slumbering), height, "Badge"));
         return node;
     }
 

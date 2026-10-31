@@ -169,6 +169,19 @@ jobs:
           for key in $(jq -r '[.[] | (.faceOff // empty | .a.image, .b.image), .still] | map(select(. != null)) | unique | .[]' "$RUNNER_TEMP/shots.json"); do
             fw get "$prefix$key" "$RUNNER_TEMP/images/$(basename "$key")" || echo "warning: $key could not be fetched."
           done
+          # The beasts' paintings, as the website shows them on the map (the owner, 2026-10-31): listed in beasts.json by id.
+          echo '{}' > "$RUNNER_TEMP/images/beasts.json"
+          if fw get "${prefix}episodes/$date/images.json" "$RUNNER_TEMP/pictures.json"; then
+            for ref in $(jq -r 'keys[] | select(startswith("monster#"))' "$RUNNER_TEMP/pictures.json"); do
+              key=$(jq -r --arg r "$ref" '.[$r]' "$RUNNER_TEMP/pictures.json"); file=$(basename "$key")
+              if fw get "$prefix$key" "$RUNNER_TEMP/images/$file"; then
+                jq --arg id "${ref#monster#}" --arg f "$file" '.[$id] = $f' "$RUNNER_TEMP/images/beasts.json" > "$RUNNER_TEMP/b.json" \
+                  && mv "$RUNNER_TEMP/b.json" "$RUNNER_TEMP/images/beasts.json"
+              fi
+            done
+          else
+            echo "No pictures listed for the day: the beasts are shown by their markers."
+          fi
       - name: Film the stretch on the diorama
         timeout-minutes: 25
         run: |

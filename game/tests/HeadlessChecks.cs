@@ -98,6 +98,12 @@ public partial class HeadlessChecks : Node
         Check(tag is not null && tag.Army.Ref == armyRef, "the host is named on the map");
         Check(main.Diorama.Monsters.Count == 1 && main.Diorama.StructureLayer.GetNodeOrNull("monster" + main.Diorama.Monsters[0].Ref.Id) is not null,
             "a beast stands in its lair");
+        // A beast's painting is shown in its frame, as on the website (the owner, 2026-10-31): any picture fits the frame whole.
+        var painting = Image.CreateEmpty(90, 140, false, Image.Format.Rgb8);
+        painting.Fill(Colors.DarkOliveGreen);
+        var framed = Badge.Framed(painting, legendary: true, asleep: true);
+        Check(framed.GetWidth() == 168 && framed.GetHeight() == 200 && framed.GetImage().GetPixel(2, 2).IsEqualApprox(new Color("#e3b94f")),
+            "a beast's painting is framed, a legend's frame gold");
         await Shot("war");
         var banner = war.BannerAt(armyRef)!.Value;
         var screen = main.Diorama.Camera.UnprojectPosition(banner + new Godot.Vector3(0, WarLayer.BannerHeight * 0.7f, 0));

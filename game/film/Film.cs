@@ -157,6 +157,15 @@ public partial class Film : Node
         if (shots.Count == 0 || to <= from) throw new ArgumentException("film: no shots, or an empty stretch.");
         System.IO.Directory.CreateDirectory(framesDir);
 
+        // The beasts' paintings, as the website shows them (beasts.json: the beast's id to its image's file), before the map is built.
+        if (_imagesDir is not null && System.IO.File.Exists(System.IO.Path.Combine(_imagesDir, "beasts.json")))
+        {
+            var files = JsonSerializer.Deserialize<Dictionary<string, string>>(System.IO.File.ReadAllText(System.IO.Path.Combine(_imagesDir, "beasts.json"))) ?? [];
+            Diorama.BeastPictures = files
+                .Select(f => (Id: long.TryParse(f.Key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ? id : 0, Image: Load(f.Value)))
+                .Where(p => p.Id != 0 && p.Image is not null).ToDictionary(p => p.Id, p => p.Image!);
+        }
+
         // The world as stored: its clock stands at its own last moment, so catch-up finds nothing to simulate.
         var now = DateTimeOffset.MinValue;
         var session = await Task.Run(() => Session.Open(worldPath, () => now, _ => null, rotate: false));
