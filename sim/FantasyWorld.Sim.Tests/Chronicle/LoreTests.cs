@@ -50,14 +50,18 @@ public class LoreTests
         var sim = Aged(120, WorldSize.Medium, 11, aired: true);
         var cleared = sim.Log.All.Where(e => e.Type == "LabyrinthCleared").ToList();
         Assert.NotEmpty(cleared);
-        var revealed = sim.Log.All.Where(e => e.Type == "SecretRevealed").ToList();
+        var all = sim.Log.All.Where(e => e.Type == "SecretRevealed").ToList();
+        // A secret comes from a labyrinth's bottom or, since 2026-10-31, from a Ponegralyph found in the wild.
+        var found = sim.Log.All.Where(e => e.Type == "PonegralyphFound").Select(e => e.Id).ToHashSet();
+        Assert.All(all, r => Assert.Contains(r.Causes, c => cleared.Any(e => e.Id == c.EventId) || found.Contains(c.EventId)));
+        var revealed = all.Where(r => r.Causes.Any(c => cleared.Any(e => e.Id == c.EventId))).ToList();
+        Assert.NotEmpty(revealed);
         // Without an inventor, each of the rules' secrets is told once at most: never the same truth twice.
-        Assert.Equal(Math.Min(cleared.Count, 6), revealed.Count);
-        Assert.Equal(revealed.Count, sim.World.Secrets.Select(s => s.Text).Distinct().Count());
-        Assert.All(revealed, r => Assert.Contains(r.Causes, c => cleared.Any(e => e.Id == c.EventId)));
-        Assert.Equal(revealed.Select(r => r.Id), sim.World.Secrets.Select(s => s.EventId));
+        Assert.True(all.Count <= 6 + found.Count);
+        Assert.Equal(all.Count, sim.World.Secrets.Select(s => s.Text).Distinct().Count());
+        Assert.Equal(all.Select(r => r.Id), sim.World.Secrets.Select(s => s.EventId));
         Assert.Equal(sim.World.Secrets.Count, sim.World.Secrets.Select(s => s.Title).Distinct().Count());
-        var told = new FantasyWorld.Sim.Narration.TemplateNarrator(sim.World).Sentence(revealed[0]);
+        var told = new FantasyWorld.Sim.Narration.TemplateNarrator(sim.World).Sentence(all[0]);
         Assert.Contains(sim.World.Secrets[0].Title, told, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(sim.World.Secrets[0].Text, told);
 

@@ -1,6 +1,6 @@
 {
   "worldName": "Dromothholt",
-  "summary": "Two realms, 24 settlements, one open labyrinth.",
+  "summary": "Two realms, 24 settlements, two open labyrinths.",
   "year": 21,
   "firstYear": 1,
   "historical": true,
@@ -196,11 +196,11 @@
         "y": 0.1953125
       },
       "holder": "realm#1",
-      "marker": "realm",
+      "marker": "recentEvent",
       "card": {
         "kicker": "Drerithby · Town",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 2,504 · 0 events this year"
+        "line": "Pop. 2,662 · 1 event this year"
       },
       "marks": [
         "temple"
@@ -234,11 +234,11 @@
         "y": 0.3671875
       },
       "holder": "realm#1",
-      "marker": "realm",
+      "marker": "recentEvent",
       "card": {
         "kicker": "Kaerhiand · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 443 · 0 events this year"
+        "line": "Pop. 443 · 2 events this year"
       },
       "marks": [],
       "level": 1
@@ -324,11 +324,11 @@
         "y": 0.5703125
       },
       "holder": "realm#1",
-      "marker": "recentEvent",
+      "marker": "realm",
       "card": {
         "kicker": "Gerrouhaven · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 965 · 2 events this year"
+        "line": "Pop. 966 · 0 events this year"
       },
       "marks": [],
       "level": 1
@@ -346,7 +346,7 @@
       "card": {
         "kicker": "Droumkarnbridge · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 342 · 0 events this year"
+        "line": "Pop. 339 · 0 events this year"
       },
       "marks": [],
       "level": 1
@@ -492,7 +492,7 @@
       "card": {
         "kicker": "Heith · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 993 · 0 events this year"
+        "line": "Pop. 995 · 0 events this year"
       },
       "marks": [],
       "level": 1
@@ -578,11 +578,11 @@
         "y": 0.7890625
       },
       "holder": "realm#2",
-      "marker": "recentEvent",
+      "marker": "realm",
       "card": {
         "kicker": "Niar · Town",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 1,737 · 1 event this year"
+        "line": "Pop. 1,964 · 0 events this year"
       },
       "marks": [
         "temple"
@@ -593,6 +593,28 @@
   "structures": [
     {
       "ref": "structure#1",
+      "name": "The Golem's Den of Gisreach",
+      "kind": "Ruin",
+      "state": "Ruined",
+      "position": {
+        "x": 0.6796875,
+        "y": 0.1953125
+      },
+      "detail": "cleared"
+    },
+    {
+      "ref": "structure#2",
+      "name": "The Minotaur's Den of Taramdale",
+      "kind": "Ruin",
+      "state": "Ruined",
+      "position": {
+        "x": 0.4921875,
+        "y": 0.4296875
+      },
+      "detail": "cleared"
+    },
+    {
+      "ref": "structure#3",
       "name": "The Deeps of Taramdale",
       "kind": "Labyrinth",
       "state": "Standing",
@@ -601,6 +623,17 @@
         "y": 0.4296875
       },
       "detail": "level 2 of 3"
+    },
+    {
+      "ref": "structure#4",
+      "name": "The Dragon's Den of Drannias",
+      "kind": "Labyrinth",
+      "state": "Standing",
+      "position": {
+        "x": 0.0859375,
+        "y": 0.4609375
+      },
+      "detail": "level 3 of 3"
     }
   ],
   "borders": [
@@ -641,19 +674,7 @@
       "b": "region#10"
     }
   ],
-  "conflicts": [
-    {
-      "war": "war#2",
-      "name": "The War of Thonae's Vengeance",
-      "attackers": [
-        "realm#1"
-      ],
-      "defenders": [
-        "realm#2"
-      ],
-      "occupied": []
-    }
-  ],
+  "conflicts": [],
   "legend": [
     {
       "label": "Thonae",
@@ -681,7 +702,7 @@
       "from": "settlement#3",
       "to": "settlement#24",
       "state": "open",
-      "volume": 71,
+      "volume": 75,
       "path": [
         {
           "x": 0.3515625,
@@ -727,7 +748,7 @@
       "from": "settlement#16",
       "to": "settlement#24",
       "state": "open",
-      "volume": 73,
+      "volume": 77,
       "path": [
         {
           "x": 0.8828125,
@@ -745,7 +766,22 @@
       "sea": null
     }
   ],
-  "monsters": [],
+  "monsters": [
+    {
+      "ref": "monster#4",
+      "name": "The Dragon of the Dragon's Den of Drannias",
+      "breed": "dragon",
+      "might": 27,
+      "legendary": false,
+      "slumbering": false,
+      "position": {
+        "x": 0.0859375,
+        "y": 0.4609375
+      },
+      "roseEventId": 330,
+      "guarding": true
+    }
+  ],
   "realms": [
     {
       "ref": "realm#1",

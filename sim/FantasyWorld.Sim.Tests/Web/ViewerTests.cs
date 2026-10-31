@@ -70,4 +70,25 @@ public class ViewerTests
         Assert.All(wars.RootElement.GetProperty("seasons").EnumerateArray().SelectMany(s => s.GetProperty("rows").EnumerateArray()),
             r => Assert.Equal("war", r.GetProperty("category").GetString()));
     }
+
+    [Fact]
+    public void TheViewer_TellsWhatIsUnderWay_WhereExperienceCameFrom_AndThePopulation()
+    {
+        var bytes = Bundle();
+        var (world, _) = WebBundle.FromGzip(bytes).Load();
+        Viewer.Load(bytes);
+        // The owner, 2026-10-31: wars and expeditions under way, a character's experience and latest deed, the population map.
+        using var under = JsonDocument.Parse(Viewer.UnderWay());
+        Assert.Equal(JsonValueKind.Array, under.RootElement.GetProperty("wars").ValueKind);
+        Assert.Equal(JsonValueKind.Array, under.RootElement.GetProperty("expeditions").ValueKind);
+        var hero = world.ActiveCharacters.OrderByDescending(c => c.Experience).First();
+        using var fighter = JsonDocument.Parse(Viewer.Fighter(hero.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        var progress = fighter.RootElement.GetProperty("progress");
+        Assert.True(progress.GetProperty("fromDeeds").GetDouble() + progress.GetProperty("fromYears").GetDouble() >= progress.GetProperty("experience").GetDouble() - 1);
+        Assert.Equal(JsonValueKind.Object, fighter.RootElement.GetProperty("last").ValueKind);
+        using var scene = JsonDocument.Parse(Viewer.Scene(""));
+        Assert.Contains(scene.RootElement.GetProperty("settlements").EnumerateArray(), t => t.GetProperty("population").GetInt32() > 0);
+        using var lore = JsonDocument.Parse(Viewer.Lore());
+        Assert.Equal(JsonValueKind.Array, lore.RootElement.GetProperty("glyphs").ValueKind);
+    }
 }

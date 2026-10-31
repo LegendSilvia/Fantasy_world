@@ -38,7 +38,7 @@ public class LevelsTests
         Assert.True(lived.Count(l => l > Levels.SoftCap) < lived.Count / 5);
         Assert.All(lived, l => Assert.InRange(l, 1, Levels.Max));
         Assert.All(sim.World.Monsters.Values, m => Assert.InRange(Levels.Of(m), 1, m.Elder ? Levels.Max : Levels.Max - 1));
-        Assert.All(sim.World.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth), s => Assert.InRange(Levels.Required(s), 2, 5));
+        Assert.All(sim.World.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && !s.Lair), s => Assert.InRange(Levels.Required(s), 2, 5));
         Assert.All(sim.World.Settlements.Values, s => Assert.InRange(Levels.Of(sim.World, s), 1, Levels.TownMax));
     }
 
@@ -169,11 +169,42 @@ public class LevelsTests
         Assert.All(fates, e => Assert.Contains(e.Payload["fate"], new[] { "injured", "incapacitated", "disabled", "separated", "dead" }));
         Assert.True(fates.Select(e => e.Payload["fate"]).Distinct().Count() >= 3);
         // A beast dead or parted is no longer at its keeper's side.
+        // (A beast that comes to them later may share the name; it joined after the loss.)
         foreach (var e in fates.Where(e => e.Payload["fate"] is "dead" or "separated" && !e.Actors.ContainsKey("fellow")))
-            Assert.NotEqual(e.Payload["name"], sim.World.Characters[e.Actors["who"].Id].Companion?.Name);
+            Assert.True(sim.World.Characters[e.Actors["who"].Id].Companion is not { } now || now.Name != e.Payload["name"] || now.EventId > e.Id);
         // Rolled by the rules, the losing side fares worse than the winning.
         var f = new FantasyWorld.Sim.Agency.Fellow("a1", true, 1, 0, "Grey", "a wolf");
         int Harmed(bool won) => Enumerable.Range(0, 2000).Count(m => FantasyWorld.Sim.Agency.Fellows.Roll(f, won, true, m) != FantasyWorld.Sim.Agency.FellowFate.Unharmed);
         Assert.True(Harmed(false) > Harmed(true) * 2);
+    }
+
+    [Fact]
+    public void Lairs_AreEasierDungeons_WithoutSecrets_AndPonegralyphs_TellSecrets_KeepingTheirFinders()
+    {
+        var world = WorldGenerator.Generate(new WorldGenOptions(11, WorldSize.Medium), DateTimeOffset.UnixEpoch);
+        world.LastBroadcastDate = "2026-10-31"; // the chronicle airs: secrets may come to light
+        var sim = new Simulator(world, new EventLog(), new EventQueue(), DefaultSystems.Create());
+        sim.AdvanceDays(360 * 120);
+        var log = sim.Log;
+        // Lairs (the owner, 2026-10-31): dungeons that ask little of their delvers, with lesser guardians.
+        var lairs = world.Structures.Values.Where(s => s.Lair).ToList();
+        Assert.NotEmpty(lairs);
+        Assert.All(lairs, l => Assert.Equal(1, Levels.Required(l)));
+        Assert.All(lairs.Where(l => world.Monsters.ContainsKey(l.GuardianId)), l => Assert.True(world.Monsters[l.GuardianId].Might < 40));
+        var cleared = log.All.Where(e => e.Type == "LabyrinthCleared" && e.Payload.GetValueOrDefault("lair") == "yes").ToList();
+        Assert.NotEmpty(cleared);
+        Assert.DoesNotContain(log.All, e => e.Type == "SecretRevealed" && e.Causes.Any(c => cleared.Any(x => x.Id == c.EventId)));
+        // Ponegralyphs: found on a deed, each telling a secret, the finder kept; a few to a world, one to a land.
+        var glyphs = world.Structures.Values.Where(s => s.Glyph).ToList();
+        Assert.NotEmpty(glyphs);
+        Assert.True(glyphs.Count <= GlyphSystem.Cap(world));
+        Assert.Equal(glyphs.Count, glyphs.Select(g => g.RegionId).Distinct().Count());
+        Assert.All(glyphs, g =>
+        {
+            Assert.True(world.Characters.ContainsKey(g.FinderId));
+            Assert.Equal("PonegralyphFound", log.Get(g.CompletedEventId).Type);
+            Assert.Equal(g.FinderId, log.Get(g.CompletedEventId).Actors["finder"].Id);
+        });
+        Assert.Contains(log.All, e => e.Type == "SecretRevealed" && e.Causes.Any(c => glyphs.Any(g => g.CompletedEventId == c.EventId)));
     }
 }

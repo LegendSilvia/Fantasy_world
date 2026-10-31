@@ -1,3 +1,4 @@
+using FantasyWorld.Sim.Core;
 using FantasyWorld.Sim.Agency;
 using FantasyWorld.Sim.Chronicle;
 using FantasyWorld.Sim.Engine;
@@ -125,6 +126,7 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
         Fortify(ctx);
         Restore(ctx);
         OpenLabyrinths(ctx);
+        OpenLairs(ctx);
     }
 
     /// <summary>A standing fortress guards the town.</summary>
@@ -326,10 +328,11 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
     private void OpenLabyrinths(SimContext ctx)
     {
         var world = ctx.World;
-        var labyrinths = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth).ToList();
+        // (Lairs are dungeons of their own, counted apart: a lair never keeps a labyrinth from opening.)
+        var labyrinths = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && !s.Lair).ToList();
         if (labyrinths.Count >= LabyrinthCap(world)) return;
         // A land whose labyrinth was cleared does not open another.
-        var haunted = labyrinths.Select(s => s.RegionId).Concat(world.Structures.Values.Where(s => s.GuardianId != 0).Select(s => s.RegionId)).ToHashSet();
+        var haunted = labyrinths.Select(s => s.RegionId).Concat(world.Structures.Values.Where(s => s.GuardianId != 0 && !s.Lair).Select(s => s.RegionId)).ToHashSet();
         foreach (var region in world.Regions.Values.Where(r => r.LeyPower >= LabyrinthLey && r.Danger >= LabyrinthDanger && !haunted.Contains(r.Id)).ToList())
         {
             if (!ctx.Rng.Chance(LabyrinthPerYear)) continue;
@@ -382,6 +385,66 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 Fates.Lose(treasure, region.Id, opened.Id, 0);
                 treasure.Level = level == levels ? 0 : level;
             }
+            return; // at most one a year
+        }
+    }
+
+    /// <summary>Lairs open in dangerous land more readily than labyrinths, a few at a time (the owner, 2026-10-31).</summary>
+    public const double LairPerYear = 0.04, LairDanger = 25;
+
+    public static int LairCap(World world) => Math.Max(2, world.Regions.Count / 8);
+
+    /// <summary>
+    /// A dungeon, a monster's lair (the owner, 2026-10-31): in a dangerous land with no labyrinth or lair, a beast makes its
+    /// den in a few levels of caves; delvers of the first levels may go down, and its guardian is lesser than a labyrinth's.
+    /// </summary>
+    private void OpenLairs(SimContext ctx)
+    {
+        var world = ctx.World;
+        if (world.Structures.Values.Count(s => s.Lair && s.Type == StructureKind.Labyrinth) >= LairCap(world)) return;
+        var taken = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth || s.Lair).Select(s => s.RegionId).ToHashSet();
+        foreach (var region in world.Regions.Values.Where(r => r.Danger >= LairDanger && !taken.Contains(r.Id)).OrderBy(r => r.Id).ToList())
+        {
+            if (Hash.Percent(region.Id, 8101, ctx.Date.Year) >= LairPerYear * 100) continue;
+            var id = world.Ids.Take(Structure.Kind);
+            var guardianId = world.Ids.Take(Monster.Kind);
+            var breed = Monster.GuardianBreeds[Hash.Percent(region.Id, 8102, ctx.Date.Year) % Monster.GuardianBreeds.Count];
+            var invention = _inventor.Invent(new InventionBrief("monster lair", $"{Structure.Kind}#{id}",
+                $"A dungeon, the lair of a {breed}, found in the dangerous land of {region.Name} in year {ctx.Date.Year}: a few levels of caves.",
+                $"The {char.ToUpperInvariant(breed[0])}{breed[1..]}'s Den of {region.Name}"));
+            using var lore = ctx.Annotate("lore", invention.Lore);
+            var opened = ctx.Emit(new EventDraft("LairOpened",
+                Actors: new Dictionary<string, EntityRef> { ["structure"] = new(Structure.Kind, id), ["guardian"] = new(Monster.Kind, guardianId) },
+                Place: region.Ref, Payload: new Dictionary<string, string> { ["name"] = invention.Name },
+                Causes: Conditions.Cite(region.Conditions, (Conditions.Dangerous, CauseKind.Enabler, 0.6)),
+                Importance: 25, Tags: new[] { "Structures", "Magic" }));
+            world.Structures[id] = new Structure
+            {
+                Id = id,
+                Name = invention.Name,
+                Type = StructureKind.Labyrinth,
+                Lair = true,
+                RegionId = region.Id,
+                StartedEventId = opened.Id,
+                CompletedEventId = opened.Id,
+                Progress = 100,
+                State = StructureState.Standing,
+                Levels = 3,
+                RequiredLevel = 1,
+                GuardianId = guardianId,
+            };
+            world.Monsters[guardianId] = new Monster
+            {
+                Id = guardianId,
+                Name = $"The {char.ToUpperInvariant(breed[0])}{breed[1..]} of {Narration.English.InProse(invention.Name)}",
+                Breed = breed,
+                RegionId = region.Id,
+                Might = 18 + Hash.Percent(region.Id, 8103, ctx.Date.Year) % 15,
+                BornDay = ctx.Date.Day,
+                State = MonsterState.Lairing,
+                RoseEventId = opened.Id,
+                LairStructureId = id,
+            };
             return; // at most one a year
         }
     }

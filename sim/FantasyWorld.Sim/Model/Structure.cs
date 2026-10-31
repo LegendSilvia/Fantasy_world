@@ -45,6 +45,20 @@ public sealed class Structure
     /// <summary>A great labyrinth (the owner, 2026-10-30): a world event, cleared only by a company over a long time.</summary>
     public bool Great { get; set; }
 
+    /// <summary>
+    /// A dungeon, a monster's lair (the owner, 2026-10-31): a labyrinth of a few levels, easier than the deeps, with a lesser
+    /// guardian and no secret of the world at its bottom.
+    /// </summary>
+    public bool Lair { get; set; }
+
+    /// <summary>
+    /// A Ponegralyph (the owner, 2026-10-31): a carved stone found in the wild that tells a secret of the world, and the one
+    /// who found it. Found, never built.
+    /// </summary>
+    public bool Glyph { get; set; }
+
+    public long FinderId { get; set; }
+
     /// <summary>The expedition down in it now (its begun event), 0 when none.</summary>
     public long ExpeditionEventId { get; set; }
     public long GuardianId { get; set; }

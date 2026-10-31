@@ -72,26 +72,6 @@
       "highlight": false
     },
     {
-      "year": 10,
-      "text": {
-        "text": "The Reliquary of Droll was stolen from Fath of Cunvei in the Theft of the Reliquary of Droll, by ill fortune alone.",
-        "links": [
-          {
-            "start": 0,
-            "length": 22,
-            "entity": "artifact#1"
-          },
-          {
-            "start": 39,
-            "length": 14,
-            "entity": "char#1"
-          }
-        ]
-      },
-      "eventId": 219,
-      "highlight": false
-    },
-    {
       "year": 16,
       "text": {
         "text": "Fath of Cunvei and Lond of Cunvei fell out over the clash of a calm nature with a wrathful one.",
@@ -108,53 +88,93 @@
           }
         ]
       },
-      "eventId": 287,
+      "eventId": 313,
       "highlight": false
     },
     {
       "year": 18,
       "text": {
-        "text": "Fath of Cunvei knighted Hebiand of Kiangratheth in the service of the Kingdom of Thonae.",
+        "text": "The Reliquary of Droll was stolen from Fath of Cunvei in the Theft of the Reliquary of Droll, by ill fortune alone.",
         "links": [
           {
             "start": 0,
+            "length": 22,
+            "entity": "artifact#1"
+          },
+          {
+            "start": 39,
+            "length": 14,
+            "entity": "char#1"
+          }
+        ]
+      },
+      "eventId": 328,
+      "highlight": false
+    },
+    {
+      "year": 18,
+      "text": {
+        "text": "Bin of Kiangratheth was knighted by Fath of Cunvei to serve the Kingdom of Thonae.",
+        "links": [
+          {
+            "start": 0,
+            "length": 19,
+            "entity": "char#34"
+          },
+          {
+            "start": 36,
             "length": 14,
             "entity": "char#1"
           },
           {
-            "start": 24,
-            "length": 23,
-            "entity": "char#34"
-          },
-          {
-            "start": 70,
+            "start": 64,
             "length": 17,
             "entity": "realm#1"
           }
         ]
       },
-      "eventId": 298,
+      "eventId": 329,
       "highlight": false
     },
     {
       "year": 18,
       "text": {
-        "text": "Mathvond of Cunvei and Fath of Cunvei became rivals over the clash of a wrathful nature with a calm one.",
+        "text": "Meill of Cunvei and Fath of Cunvei fell out over the clash of a wrathful nature with a calm one.",
         "links": [
           {
             "start": 0,
-            "length": 18,
+            "length": 15,
             "entity": "char#4"
           },
           {
-            "start": 23,
+            "start": 20,
             "length": 14,
             "entity": "char#1"
           }
         ]
       },
-      "eventId": 304,
+      "eventId": 337,
       "highlight": false
+    },
+    {
+      "year": 21,
+      "text": {
+        "text": "A friendship grew between Farnfand of Cunvei and Fath of Cunvei.",
+        "links": [
+          {
+            "start": 26,
+            "length": 18,
+            "entity": "char#2"
+          },
+          {
+            "start": 49,
+            "length": 14,
+            "entity": "char#1"
+          }
+        ]
+      },
+      "eventId": 377,
+      "highlight": true
     }
   ],
   "folded": 0,
@@ -166,23 +186,23 @@
       "relation": "Spouse",
       "qualifier": "",
       "tone": "warm",
-      "bond": 35
+      "bond": 16
     },
     {
       "ref": "char#3",
       "name": "Lond of Cunvei",
       "relation": "Child",
       "qualifier": "",
-      "tone": "hostile",
-      "bond": -54
+      "tone": "neutral",
+      "bond": 3
     },
     {
       "ref": "char#4",
-      "name": "Mathvond of Cunvei",
+      "name": "Meill of Cunvei",
       "relation": "Child",
       "qualifier": "",
       "tone": "neutral",
-      "bond": -3
+      "bond": 15
     }
   ],
   "followed": false,

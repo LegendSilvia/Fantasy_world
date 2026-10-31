@@ -50,7 +50,7 @@ public class StructureSystemTests
         Assert.Equal(wild.Ref, opened.Place);
         Assert.True(wild.Danger >= 65);
         // Its treasures (sub-project 13): one every other level, the greatest at the bottom (level 0), deeper ones more famous.
-        var maze = world.Structures.Values.Single(st => st.Type == StructureKind.Labyrinth);
+        var maze = world.Structures.Values.Single(st => st.Type == StructureKind.Labyrinth && !st.Lair);
         var treasures = world.Artifacts.Values.Where(a => a.OriginEventId == opened.Id).ToList();
         Assert.Equal(Enumerable.Range(1, maze.Levels).Count(l => l == maze.Levels || l % 2 == 0), treasures.Count);
         Assert.All(treasures, t => Assert.Equal((ArtifactPlace.Lost, wild.Id), (t.Place, t.RegionId)));

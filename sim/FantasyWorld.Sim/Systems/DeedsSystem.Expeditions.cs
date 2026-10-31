@@ -18,6 +18,12 @@ public sealed partial class DeedsSystem
 {
     public const string ExpeditionKind = "expedition";
 
+    /// <summary>A lair is this much easier to delve than a labyrinth of its depth (the owner, 2026-10-31).</summary>
+    public const double LairHardness = 0.55;
+
+    /// <summary>A failure in a lair kills less often: its share of deaths among failures.</summary>
+    public const double LairDeathShare = 0.1;
+
     /// <summary>The most who go together: a leader and four.</summary>
     public const int MostInCompany = 5;
 
@@ -154,13 +160,13 @@ public sealed partial class DeedsSystem
         var region = world.Regions[maze.RegionId];
         if (maze.Levels == 0) maze.Levels = 3;
         var leader = company[0];
-        var hardness = Levels.Power(Levels.Required(maze)) * (maze.Great ? GreatHardness : 1);
+        var hardness = Levels.Power(Levels.Required(maze)) * (maze.Great ? GreatHardness : maze.Lair ? LairHardness : 1);
         WorldEvent last;
         if (maze.Depth < maze.Levels)
         {
             var level = maze.Depth + 1;
             var against = (region.Danger / 3.0 + level * 2) * hardness;
-            var outcome = _arbiter.Resolve(Encounters.Company(Encounters.Delve, world, leader, company, against, 0.3), ctx.Rng);
+            var outcome = _arbiter.Resolve(Encounters.Company(Encounters.Delve, world, leader, company, against, maze.Lair ? LairDeathShare : 0.3), ctx.Rng);
             var actors = Actors(company, maze.Ref);
             actors["delver"] = leader.Ref;
             using (ctx.Annotate("account", outcome.Account))
@@ -192,7 +198,7 @@ public sealed partial class DeedsSystem
             var aired = world.LastBroadcastDate is not null;
             if (maze.Depth < maze.Levels)
             {
-                if (step >= steps || !aired && maze.Depth + 1 >= maze.Levels)
+                if (step >= steps || !aired && !maze.Lair && maze.Depth + 1 >= maze.Levels)
                     End(ctx, company, maze.Ref, begun, last.Id, "came back up");
                 else Schedule(ctx, company.Select(c => c.Id), maze.Ref, begun, step + 1, steps, StepDays(maze.Depth + 1));
                 return;
@@ -202,7 +208,7 @@ public sealed partial class DeedsSystem
 
         if (world.Monsters.GetValueOrDefault(maze.GuardianId) is { Alive: true } guardian)
         {
-            var outcome = _arbiter.Resolve(Encounters.Company(Encounters.Hunt, world, leader, company, guardian.Might / 2.0 * hardness, 0.25), ctx.Rng);
+            var outcome = _arbiter.Resolve(Encounters.Company(Encounters.Hunt, world, leader, company, guardian.Might / 2.0 * hardness, maze.Lair ? LairDeathShare : 0.25), ctx.Rng);
             var actors = Actors(company, maze.Ref);
             actors.Remove("structure");
             actors["hunter"] = leader.Ref;
@@ -247,13 +253,16 @@ public sealed partial class DeedsSystem
         maze.ClearedEventId = ctx.Emit(new EventDraft("LabyrinthCleared", Actors: cleared, Place: region.Ref,
             Payload: maze.Great
                 ? new Dictionary<string, string> { ["becomes"] = shrine ? "shrine" : "ruin", ["great"] = "yes" }
+                : maze.Lair ? new Dictionary<string, string> { ["becomes"] = "ruin", ["lair"] = "yes" }
                 : new Dictionary<string, string> { ["becomes"] = shrine ? "shrine" : "ruin" },
             Causes: new[] { new Cause(last.Id, CauseKind.Trigger, 0.9) },
-            Importance: Math.Max(maze.Great ? 85 : 50, Fates.Importance(leader, 50)), Tags: new[] { "Characters", "Deeds", "Structures" })).Id;
+            Importance: Math.Max(maze.Great ? 85 : maze.Lair ? 25 : 50, Fates.Importance(leader, maze.Lair ? 25 : 50)), Tags: new[] { "Characters", "Deeds", "Structures" })).Id;
+        if (maze.Lair) shrine = false;
         (maze.Type, maze.State) = shrine ? (StructureKind.Shrine, StructureState.Standing) : (StructureKind.Ruin, StructureState.Ruined);
-        region.Danger = Math.Max(0, region.Danger - (maze.Great ? 40 : 20));
-        foreach (var c in company) Glory(ctx, c, maze.Great ? 25 : 10);
-        Reveal(ctx, leader, maze, region, maze.ClearedEventId, spoils is null ? null : relic!.Ref);
+        region.Danger = Math.Max(0, region.Danger - (maze.Great ? 40 : maze.Lair ? 8 : 20));
+        foreach (var c in company) Glory(ctx, c, maze.Great ? 25 : maze.Lair ? 4 : 10);
+        // A lair keeps no secret of the world; a labyrinth's deepest level does.
+        if (!maze.Lair) Reveal(ctx, leader, maze, region, maze.ClearedEventId, spoils is null ? null : relic!.Ref);
         End(ctx, company, maze.Ref, begun, maze.ClearedEventId, "cleared");
     }
 

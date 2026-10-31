@@ -132,7 +132,7 @@ public sealed partial class DeedsSystem : ISimSystem
         var aired = world.LastBroadcastDate is not null;
         var maze = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth && s.ClearedEventId == 0 && !s.Great && s.ExpeditionEventId == 0
                                                       && Levels.MayDelve(c, s) && !InExpedition(ctx.Queue, c.Id) && nearby.Any(r => r.Id == s.RegionId)
-                                                      && (aired || s.Depth + 1 < Math.Max(s.Levels, 3)))
+                                                      && (aired || s.Lair || s.Depth + 1 < Math.Max(s.Levels, 3)))
             .OrderBy(s => s.Id).FirstOrDefault();
         if (maze is not null)
             options.Add(new($"maze:{maze.Id}", (c.Ambition == Ambitions.Artifact ? 40 : c.Ambition == Ambitions.Renown ? 25 : 2) * bold * Levels.Wariness(Levels.Of(c), Levels.Required(maze)),
@@ -311,7 +311,11 @@ public sealed partial class DeedsSystem : ISimSystem
     /// At the bottom of a cleared labyrinth lies a secret of the world (the owner, 2026-10-29): a truth the legend never
     /// told, written by Claude where it may, kept on the world and told as news.
     /// </summary>
-    private void Reveal(SimContext ctx, Character delver, Structure maze, Region region, long clearedEventId, EntityRef? spoils)
+    private void Reveal(SimContext ctx, Character delver, Structure maze, Region region, long clearedEventId, EntityRef? spoils) =>
+        RevealSecret(ctx, _inventor, delver, maze, region, clearedEventId, spoils);
+
+    /// <summary>A secret of the world told where it was found (a labyrinth's bottom, a Ponegralyph), by the one who found it.</summary>
+    internal static void RevealSecret(SimContext ctx, IInventor inventor, Character delver, Structure maze, Region region, long clearedEventId, EntityRef? spoils)
     {
         var world = ctx.World;
         // What the songs forgot is found again first (the owner, 2026-10-29): the oldest forgotten tale, as a secret.
@@ -323,7 +327,7 @@ public sealed partial class DeedsSystem : ISimSystem
             return;
         }
         var rules = Legends.RulesSecret(world, maze.Name);
-        var invention = _inventor.Invent(new InventionBrief("secret of the world", $"{maze.Ref}|secret",
+        var invention = inventor.Invent(new InventionBrief("secret of the world", $"{maze.Ref}|secret",
             Legends.SecretFacts(world, $"{maze.Name} in {region.Name}", delver.Name), rules?.Title ?? $"The Secret of {Narration.English.InProse(maze.Name)}"));
         string title, text;
         if (invention.Lore is { Length: > 0 } lore) (title, text) = (invention.Name, lore.Length <= Legends.MaxSecret ? lore : lore[..Legends.MaxSecret]);

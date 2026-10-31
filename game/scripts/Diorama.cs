@@ -172,7 +172,7 @@ public partial class Diorama : Node3D
         });
         foreach (var marker in _markers.Where(m => m.Shape != MarkerShape.Settlement)) StructureLayer.AddChild(MarkerNode(marker));
         Monsters = map.Monsters ?? Array.Empty<MapMonster>();
-        foreach (var beast in Monsters) StructureLayer.AddChild(BeastNode(beast, _geography));
+        foreach (var beast in Monsters.Where(m => ShowsBeast?.Invoke(m) ?? true)) StructureLayer.AddChild(BeastNode(beast, _geography));
         // Borders thinner too (the owner, 2026-10-29: the thick dashed lines read as roads): half the width, a slimmer halo.
         BorderLines.Mesh = DashedRibbons(FantasyWorld.Client.Markers.BorderLines(map, _geography), Palette.Ink, width: 0.0008f, halo: 0.0018f);
         War.Show(map, _geography);
@@ -333,6 +333,9 @@ public partial class Diorama : Node3D
     /// images where the website shows each beast painted in its frame); the game, without them, draws the boss marker.
     /// </summary>
     public static IReadOnlyDictionary<long, Image> BeastPictures { get; set; } = new Dictionary<long, Image>();
+
+    /// <summary>Which beasts the map shows; the film shows only those of the last two episodes (the owner, 2026-10-31), the game all.</summary>
+    public static Func<MapMonster, bool>? ShowsBeast { get; set; }
 
     /// <summary>
     /// A beast in its lair: its painting in a frame when there is one, as the website shows it, else a boss marker floating

@@ -37,6 +37,7 @@ public static class DefaultSystems
         new FamilySystem(decider),
         new RelationsSystem(),
         new DeedsSystem(decider, arbiter, inventor),
+        new GlyphSystem(inventor),
         new ClashSystem(),
         new TransformSystem(inventor),
         new IdentitySystem(inventor),

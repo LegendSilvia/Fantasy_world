@@ -182,7 +182,6 @@ public sealed record Episode(
         var primerSection = (fullLegend || sinceEventId == 0) && Primer.Of(world, log) is { } primer ? new EpisodeSection(EpisodeSection.Primer, "The world today", primer) : null;
         var signOff = SignOffFor(chronicler, name);
         var worldSection = WorldSection(world, narrator, worldNews);
-        var favouritesSection = FavouritesSection(world, narrator, events, followed, chosen.Append(top).OfType<WorldEvent>().Concat(worldNews).ToList());
         var resultsSection = results.Count == 0 ? null : new EpisodeSection(EpisodeSection.Results, "The fights decided",
             // Each with how it was fought, not only who won (the owner, 2026-10-31).
             string.Join(" ", results.OrderBy(e => e.Id).Select(e => narrator.Sentence(e) + (Fights.Beats(log, e) is { Count: > 0 } course ? $" {Fights.Tell(course)}" : ""))),
@@ -241,9 +240,11 @@ public sealed record Episode(
             var lines = changes.Where(t => t.Causes.Any(c => Mine(c.EventId))).Select(narrator.Sentence).ToList();
             return lines.Count == 0 ? s : s with { Text = $"{s.Text} {string.Join(" ", lines)}" };
         }
+        // The favourites are judged against the stories kept, not those chosen (one cut for length no longer tells them).
         IReadOnlyList<EpisodeSection> Write(IReadOnlyList<EpisodeStory> told, string? view) =>
             WithMoves(Compose(name, coldOpen, headline, body, challenges, told, lines, titles, view, signOff, legendSection, primerSection, worldSection, resultsSection,
-                favouritesSection));
+                FavouritesSection(world, narrator, events, followed,
+                    told.Select(t => log.TryGet(t.EventId, out var e) ? e : null).Append(top).OfType<WorldEvent>().Concat(worldNews).ToList())));
         var keep = others.ToList();
         var sections = Write(keep, comment);
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
@@ -334,13 +335,16 @@ public sealed record Episode(
     private static EpisodeSection? FavouritesSection(World world, TemplateNarrator narrator, IReadOnlyList<WorldEvent> events,
         IReadOnlySet<EntityRef> followed, IReadOnlyList<WorldEvent> told)
     {
-        var shown = told.SelectMany(e => e.Actors.Values).ToHashSet();
+        // Shown only if a told story names them (a part in an event its sentence leaves unsaid is not being shown).
+        var said = told.Select(narrator.Sentence).ToList();
         var lines = new List<string>();
-        foreach (var who in followed.Where(r => r.Kind == Character.Kind && !shown.Contains(r)))
+        foreach (var who in followed.Where(r => r.Kind == Character.Kind))
         {
             if (lines.Count == EpisodeSection.MostFavourites || !world.Characters.TryGetValue(who.Id, out var c)) continue;
+            if (told.Any(e => e.Actors.Values.Contains(who)) && said.Any(t => t.Contains(c.Name, StringComparison.Ordinal))) continue;
             var deed = events.Where(e => e.Actors.Values.Contains(who)).OrderByDescending(e => e.Importance).ThenBy(e => e.Id).FirstOrDefault();
-            lines.Add(deed is not null ? narrator.Sentence(deed)
+            // A deed whose sentence leaves them unnamed (one of a company) says they were there.
+            lines.Add(deed is not null ? narrator.Sentence(deed) is var line && line.Contains(c.Name, StringComparison.Ordinal) ? line : $"{line} {c.Name} was among them."
                 : c.IsAlive ? $"For {c.Name}, the year passed quietly{(world.Settlements.TryGetValue(c.SettlementId, out var home) ? $" at {home.Name}" : "")}."
                 : $"{c.Name} is no longer among the living.");
         }

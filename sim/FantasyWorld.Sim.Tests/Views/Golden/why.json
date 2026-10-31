@@ -1,25 +1,15 @@
 {
   "outcome": {
-    "eventId": 314,
-    "year": 19,
+    "eventId": 365,
+    "year": 20,
     "category": "characters",
     "title": {
-      "text": "Marncall of Liarning fought Tinki of Kiangratheth to the death at Gerrouhaven. Marncall of Liarning won, and Tinki of Kiangratheth was maimed.",
+      "text": "Liath of Lund was killed by monsters at the age of 73.",
       "links": [
         {
           "start": 0,
-          "length": 20,
-          "entity": "char#31"
-        },
-        {
-          "start": 28,
-          "length": 21,
-          "entity": "char#19"
-        },
-        {
-          "start": 66,
-          "length": 11,
-          "entity": "settlement#10"
+          "length": 13,
+          "entity": "char#32"
         }
       ]
     },
@@ -30,114 +20,21 @@
   "layers": [
     [
       {
-        "eventId": 259,
-        "year": 15,
+        "eventId": 364,
+        "year": 20,
         "category": "characters",
         "title": {
-          "text": "The truth of the Plot against Brocan came out at last: Tinki of Kiangratheth was behind it.",
-          "links": [
-            {
-              "start": 55,
-              "length": 21,
-              "entity": "char#19"
-            }
-          ]
-        },
-        "note": null,
-        "isRoot": false,
-        "hasMore": false
-      },
-      {
-        "eventId": 302,
-        "year": 18,
-        "category": "characters",
-        "title": {
-          "text": "Marncall of Liarning challenged Tinki of Kiangratheth to a duel (to the death), to be fought at Gerrouhaven in a year and a day.",
+          "text": "Liath of Lund hunted the monsters of Gisreach and was killed.",
           "links": [
             {
               "start": 0,
-              "length": 20,
-              "entity": "char#31"
+              "length": 13,
+              "entity": "char#32"
             },
             {
-              "start": 32,
-              "length": 21,
-              "entity": "char#19"
-            },
-            {
-              "start": 96,
-              "length": 11,
-              "entity": "settlement#10"
-            }
-          ]
-        },
-        "note": null,
-        "isRoot": false,
-        "hasMore": false
-      }
-    ],
-    [
-      {
-        "eventId": 248,
-        "year": 14,
-        "category": "characters",
-        "title": {
-          "text": "A plot was laid against the life of Brocan of Liarning, the Plot against Brocan, the work of a hand no one could name.",
-          "links": [
-            {
-              "start": 36,
-              "length": 18,
-              "entity": "char#28"
-            }
-          ]
-        },
-        "note": null,
-        "isRoot": false,
-        "hasMore": false
-      }
-    ],
-    [
-      {
-        "eventId": 113,
-        "year": 4,
-        "category": "characters",
-        "title": {
-          "text": "Ten of Kiangratheth was killed by slain at a feast under the guest-right at the age of 48.",
-          "links": [
-            {
-              "start": 0,
-              "length": 19,
-              "entity": "char#18"
-            }
-          ]
-        },
-        "note": null,
-        "isRoot": false,
-        "hasMore": false
-      }
-    ],
-    [
-      {
-        "eventId": 112,
-        "year": 4,
-        "category": "politics",
-        "title": {
-          "text": "At Niar, Brocan of Liarning feasted Ten of Kiangratheth as a guest, and had them slain at the table: the Feast of Niar.",
-          "links": [
-            {
-              "start": 3,
-              "length": 4,
-              "entity": "settlement#24"
-            },
-            {
-              "start": 9,
-              "length": 18,
-              "entity": "char#28"
-            },
-            {
-              "start": 36,
-              "length": 19,
-              "entity": "char#18"
+              "start": 37,
+              "length": 8,
+              "entity": "region#7"
             }
           ]
         },
@@ -149,136 +46,45 @@
   ],
   "edges": [
     {
-      "from": 302,
-      "to": 314,
-      "kind": "trigger",
-      "label": "because, and"
-    },
-    {
-      "from": 259,
-      "to": 314,
-      "kind": "motive",
-      "label": "because, and"
-    },
-    {
-      "from": 259,
-      "to": 302,
-      "kind": "motive",
-      "label": "because"
-    },
-    {
-      "from": 248,
-      "to": 259,
-      "kind": "trigger",
-      "label": "because"
-    },
-    {
-      "from": 113,
-      "to": 248,
-      "kind": "motive",
-      "label": "because"
-    },
-    {
-      "from": 112,
-      "to": 113,
+      "from": 364,
+      "to": 365,
       "kind": "trigger",
       "label": "because"
     }
   ],
-  "summary": "Traced back 15 years, through one root cause.",
+  "summary": "Traced back within the year, through one root cause.",
   "people": [
     {
-      "ref": "char#31",
-      "name": "Marncall of Liarning"
-    },
-    {
-      "ref": "char#19",
-      "name": "Tinki of Kiangratheth"
-    },
-    {
-      "ref": "char#28",
-      "name": "Brocan of Liarning"
-    },
-    {
-      "ref": "char#18",
-      "name": "Ten of Kiangratheth"
+      "ref": "char#32",
+      "name": "Liath of Lund"
     }
   ],
   "places": [
     {
-      "ref": "settlement#10",
-      "name": "Gerrouhaven"
+      "ref": "settlement#5",
+      "name": "Kaerhiand"
     },
     {
-      "ref": "settlement#24",
-      "name": "Niar"
-    },
-    {
-      "ref": "settlement#16",
-      "name": "Greindrondcross"
+      "ref": "region#7",
+      "name": "Gisreach"
     }
   ],
   "systems": [
-    "politics",
     "characters"
   ],
-  "consequences": [
-    {
-      "eventId": 315,
-      "year": 19,
-      "category": "characters",
-      "title": {
-        "text": "Tinki of Kiangratheth escaped Marncall of Liarning with their life and swore to return for revenge.",
-        "links": [
-          {
-            "start": 0,
-            "length": 21,
-            "entity": "char#19"
-          },
-          {
-            "start": 30,
-            "length": 20,
-            "entity": "char#31"
-          }
-        ]
-      },
-      "note": null,
-      "isRoot": false,
-      "hasMore": false
-    }
-  ],
+  "consequences": [],
   "story": {
-    "text": "In Year 4, at Niar, Brocan of Liarning feasted Ten of Kiangratheth as a guest, and had them slain at the table: the Feast of Niar. That same year, Ten of Kiangratheth was killed by slain at a feast under the guest-right at the age of 48. In Year 14, a plot was laid against the life of Brocan of Liarning, the Plot against Brocan, the work of a hand no one could name. In Year 15, the truth of the Plot against Brocan came out at last: Tinki of Kiangratheth was behind it. In Year 18, Marncall of Liarning challenged Tinki of Kiangratheth to a duel (to the death), to be fought at Gerrouhaven in a year and a day. And so, in Year 19, Marncall of Liarning fought Tinki of Kiangratheth to the death at Gerrouhaven. Marncall of Liarning won, and Tinki of Kiangratheth was maimed.",
+    "text": "In Year 20, Liath of Lund hunted the monsters of Gisreach and was killed. And so Liath of Lund was killed by monsters at the age of 73.",
     "links": [
       {
-        "start": 14,
-        "length": 4,
-        "entity": "settlement#24"
+        "start": 12,
+        "length": 13,
+        "entity": "char#32"
       },
       {
-        "start": 20,
-        "length": 18,
-        "entity": "char#28"
-      },
-      {
-        "start": 47,
-        "length": 19,
-        "entity": "char#18"
-      },
-      {
-        "start": 436,
-        "length": 21,
-        "entity": "char#19"
-      },
-      {
-        "start": 485,
-        "length": 20,
-        "entity": "char#31"
-      },
-      {
-        "start": 581,
-        "length": 11,
-        "entity": "settlement#10"
+        "start": 49,
+        "length": 8,
+        "entity": "region#7"
       }
     ]
   }

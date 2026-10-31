@@ -170,6 +170,14 @@ public partial class Film : Node
         var now = DateTimeOffset.MinValue;
         var session = await Task.Run(() => Session.Open(worldPath, () => now, _ => null, rotate: false));
         now = session.Read((w, _) => w.LastRealUtc);
+        // The video shows what was done in the last two episodes (the owner, 2026-10-31): each episode tells a year, so a beast
+        // is on the map only if it rose, raided, fought or was hunted in the last two years.
+        var recent = session.Read((w, log) =>
+        {
+            var since = w.Date.Day - 2L * FantasyWorld.Sim.Core.WorldDate.DaysPerYear;
+            return log.All.Where(e => e.Date.Day >= since).SelectMany(e => e.Actors.Values).Where(a => a.Kind == Monster.Kind).Select(a => a.Id).ToHashSet();
+        });
+        Diorama.ShowsBeast = m => recent.Contains(m.Ref.Id);
         var main = GD.Load<PackedScene>("res://scenes/Main.tscn").Instantiate<Main>();
         main.Use(session);
         AddChild(main);

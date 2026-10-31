@@ -176,6 +176,15 @@ async function showYear(year) {
         label(`<span class="person-pin${person.hero ? " hero" : ""}" title="${esc(`${person.name}, level ${person.level}`)}">${face}<i>${person.level}</i></span>`, "badge",
             lift(at, 0.03), 50 + person.renown / 5, () => setHash({ panel: `character/${id(person.ref)}` }), "characters");
     }
+    // The Ponegralyphs found, and who found them (the owner, 2026-10-31).
+    for (const g of s.glyphs ?? [])
+        label(`<span class="glyph-pin" title="${esc(g.name)}">ᛟ</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: "lore/all" }), "glyphs");
+    // The population map (the owner, 2026-10-31): each town a disc sized by its people, its number beside it.
+    for (const t of s.settlements ?? []) if (t.population > 0) {
+        const d = Math.round(8 + Math.sqrt(t.population) / 4);
+        label(`<span class="pop" style="width:${d}px;height:${d}px" title="${esc(t.name)}: ${t.population.toLocaleString()} people"></span><b class="pop-n">${t.population >= 1000 ? (t.population / 1000).toFixed(1) + "k" : t.population}</b>`,
+            "badge", lift(t.at, 0.02), 30 + Math.min(40, t.population / 500), () => setHash({ panel: `settlement/${id(t.ref)}` }), "population");
+    }
     for (const maze of s.labyrinths ?? [])
         label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : 26, `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : ", a labyrinth"}`), "badge",
             lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
@@ -288,8 +297,8 @@ function label(html, kind, at, priority, onClick, layer) {
  * can be hidden, remembered in this browser; a hidden marker leaves its room to the others.
  */
 // People are hidden until chosen (the owner, 2026-10-30); "only" shows one kind alone, "all" brings every kind back.
-const markerStore = "hidden-markers-v2";
-const hiddenLayers = new Set((() => { try { return JSON.parse(localStorage.getItem(markerStore) ?? '["characters"]'); } catch { return ["characters"]; } })());
+const markerStore = "hidden-markers-v3";
+const hiddenLayers = new Set((() => { try { return JSON.parse(localStorage.getItem(markerStore) ?? '["characters","population"]'); } catch { return ["characters", "population"]; } })());
 const markerBoxes = [...document.querySelectorAll("#markers input[data-layer]")];
 function showLayers() {
     for (const box of markerBoxes) box.checked = !hiddenLayers.has(box.dataset.layer);
@@ -434,7 +443,7 @@ $("panel-body").addEventListener("click", e => {
     if (!link) return;
     e.preventDefault();
     const [kind, number] = link.dataset.ref.split("#");
-    const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement" }[kind];
+    const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth" }[kind];
     if (panel) setHash({ panel: `${panel}/${number}` });
 });
 
@@ -467,15 +476,21 @@ async function render(kind, key, year) {
     if (kind === "lore") return lore(JSON.parse(await call("Lore", Y)));
     if (kind === "wiki") return wiki(JSON.parse(await call("Wiki", Y)), key);
     if (kind === "events") return worldEvents(JSON.parse(await call("WorldEvents", Y)));
+    if (kind === "underway") return underWay(JSON.parse(await call("UnderWay", Y)));
     if (kind === "labyrinth") {
         const m = (JSON.parse(await call("Lore", Y)).labyrinths ?? []).find(x => x.ref === `structure#${key}`);
         if (!m) throw new Error(kind);
-        return `<div class="kicker">${m.great ? "The Great Labyrinth · a world event" : "Labyrinth"}${m.place ? ` · ${esc(m.place)}` : ""}</div><h2>${esc(m.name)}</h2>`
+        const party = (JSON.parse(await call("UnderWay", Y)).expeditions ?? []).filter(x => x.target?.ref === m.ref);
+        return `<div class="kicker">${m.great ? "The Great Labyrinth · a world event" : m.lair ? "Dungeon · a monster's lair" : "Labyrinth"}${m.place ? ` · ${esc(m.place)}` : ""}</div><h2>${esc(m.name)}</h2>`
+            + (m.guardian ? `<p class="muted">Its guardian: ${esc(m.guardian.name)}, level ${m.guardian.level}${m.guardian.slain ? " (slain)" : ""}</p>` : "")
+            + party.map(x => `<p class="now"><b>Down there now:</b> ${x.party.map(c => ref(c.ref, c.name)).join(", ")} <span class="muted">· since Year ${x.since}</span></p>`).join("")
             + `<p><b>Level ${m.level}</b> <span class="muted">· delvers must be level ${Math.max(1, m.level - 1)} or more; the higher, the better their chance${m.great ? ". Only a company of three or more may go down." : ""}</span></p>`
             + (m.cleared
                 ? `<p>Cleared in Year ${m.cleared.year}${m.cleared.by ? ` by ${ref(m.cleared.by.ref, m.cleared.by.name)}` : ""}. ${ref(m.cleared.event, "How it was done")}</p>`
                 : `<p>Unconquered. Delvers have gone down to level ${m.depth} of ${m.levels}; what lies at its heart is still unknown.</p>`)
-            + `<p class="muted">Labyrinths keep the world's secrets, its relics and the beasts that guard them. The one who reaches the bottom brings a secret back.</p>`;
+            + (m.lair ? `<p class="muted">A lair is shallower than a labyrinth and easier: delvers of the first levels may go down. It keeps no secret of the world.</p>`
+                : `<p class="muted">Labyrinths keep the world's secrets, its relics and the beasts that guard them. The one who reaches the bottom brings a secret back.</p>`)
+            + list("Its history", m.history, h => `<span class="muted">Year ${h.year}</span> ${esc(h.text)} · ${ref(h.event, "why")}`);
     }
     if (kind === "chronicle") {
         const [only, page] = (key ?? "all-1").split("-");
@@ -558,6 +573,7 @@ $("lore").addEventListener("click", () => setHash({ panel: "lore/world" }));
 $("people").addEventListener("click", () => setHash({ panel: "people/all" }));
 $("wiki").addEventListener("click", () => setHash({ panel: "wiki/races" }));
 $("events").addEventListener("click", () => setHash({ panel: "events/all" }));
+$("underway").addEventListener("click", () => setHash({ panel: "underway/all" }));
 $("chronicle").addEventListener("click", () => setHash({ panel: "chronicle/all-1" }));
 
 /** The kinds of event the chronicle can be narrowed to, with the labels shown. */
@@ -714,9 +730,12 @@ function lore(l) {
     const gods = list(l.gods, g => `<li><b>${esc(g.deity)}</b>, worshipped by the ${esc(g.faith)} <span class="muted">· ${g.tenets.map(esc).join(", ")}</span></li>`);
     const realms = list(l.realms, r => `<li>${ref(r.ref, r.title)} <span class="muted">· ${r.lands} land${r.lands === 1 ? "" : "s"}</span>`
         + `${r.ruler ? ` · ruled by ${ref(r.ruler.ref, r.ruler.name)}` : ""}${r.festival ? `<br><span class="muted">Keeps ${esc(r.festival.name)}: ${esc(r.festival.rite)}</span>` : ""}</li>`);
-    const mazes = list(l.labyrinths, m => `<li><b>${esc(m.name)}</b>${m.place ? ` <span class="muted">· ${esc(m.place)}</span>` : ""} · `
+    const mazes = list(l.labyrinths, m => `<li><a data-ref="${esc(m.ref)}" class="maze-link">${esc(m.name)}</a>${m.lair ? ` <span class="muted">(lair)</span>` : ""}${m.place ? ` <span class="muted">· ${esc(m.place)}</span>` : ""} · `
         + (m.cleared ? `cleared in Year ${m.cleared.year}${m.cleared.by ? ` by ${ref(m.cleared.by.ref, m.cleared.by.name)}` : ""} · ${ref(m.cleared.event, "how")}`
                      : `<span class="muted">unconquered; explored to level ${m.depth} of ${m.levels}</span>`) + `</li>`);
+    // The Ponegralyphs found (the owner, 2026-10-31): where, by whom, and the secret each told.
+    const glyphs = list(l.glyphs, g => `<li><b>${esc(g.name)}</b> <span class="muted">· found in Year ${g.year}</span>${g.finder ? ` by ${ref(g.finder.ref, g.finder.name)}` : ""}`
+        + (g.secret ? `<br><b>${esc(g.secret.title)}</b> <span class="muted">${esc(g.secret.text)}</span>` : "") + `</li>`);
     const relics = list(l.relics, a => `<li>${ref(a.ref, a.name)} <span class="muted">· ${a.holder ? `held by ${esc(a.holder.name)}` : esc(a.where)}</span>${a.lore ? `<br><span class="muted">${esc(a.lore)}</span>` : ""}</li>`);
     const shadow = l.shadow ? `<p>${l.shadow.demon ? ref(l.shadow.demon.ref, l.shadow.demon.name) : "The demon lord"} `
         + (l.shadow.active ? `has risen, and the world waits for a hero.` : `was ${esc(l.shadow.outcome || "ended")}${l.shadow.hero ? ` by ${ref(l.shadow.hero.ref, l.shadow.hero.name)}` : ""}.`) + `</p>`
@@ -745,6 +764,7 @@ function lore(l) {
             && `<ul class="people">${list(l.companions ?? [], k => `<li><b>${esc(k.name)}</b>, ${esc(k.what)}, with ${ref(k.of.ref, k.of.name)}${k.lore ? `<br><span class="muted">${esc(k.lore)}</span>` : ""}</li>`)}</ul>`)
         + part("The shadow", shadow)
         + part("The labyrinths", mazes && `<ul class="people">${mazes}</ul>`)
+        + part("The Ponegralyphs", glyphs && `<ul class="people">${glyphs}</ul>`)
         + part("Landmarks of the towns", landmarks && `<ul class="people">${landmarks}</ul>`)
         + part("Relics of renown", relics && `<ul class="people">${relics}</ul>`);
 }
@@ -800,6 +820,8 @@ function character(c, f, pics = {}) {
         + (c.level ? `<p class="level-badge" title="Levels run from 1 to 10; most reach 4 or 5 in a life">Level ${c.level}</p>` : "")
         + `<div class="beast-portrait char-portrait${c.alive === false ? " slain" : ""}${unseen(pics, me)}"><img src="${esc(portrait(pics, me))}" alt=""></div>`
         + `<p>${esc(c.line)}</p>`
+        // What they did last, or are doing now (the owner, 2026-10-31).
+        + (f?.last ? `<p class="now"><b>Lately:</b> ${esc(f.last.text)} <span class="muted">· Year ${f.last.year}</span> · ${ref(f.last.event, "why")}</p>` : "")
         + (f?.known?.length ? `<p class="known">Known as ${f.known.map(esc).join(", ")}</p>` : "")
         + (f?.calling ? `<div class="prayer"><p><b>Awakened: ${esc(f.calling.name)}</b></p><p>${esc(f.calling.origin)}</p>`
             + `<p><b>Power:</b> ${esc(f.calling.does)}. <b>Condition:</b> ${esc(f.calling.condition)}.</p></div>` : "")
@@ -813,9 +835,40 @@ function character(c, f, pics = {}) {
             + (f.companion.lore ? `<br><span class="muted">${esc(f.companion.lore)}</span>` : "") + `</p>` : "")
         + (f ? `<h3>In a fight</h3><p class="muted">${f.talents.map(t => `<b>${esc(t.name)}</b>: ${esc(t.shows)}`).join(" · ") || "No gift above the common."}</p>`
             + `<ul>${f.abilities.map(a => `<li><b>${esc(a.name)}</b> <span class="muted">${esc(a.text)}</span>${a.event ? ` · ${ref(a.event, "how")}` : ""}</li>`).join("")}</ul>` : "")
+        + (f?.progress ? experience(f.progress) : "")
         + list("Connections", c.ties, t => `<span class="bond ${esc(t.tone ?? "").toLowerCase()}" title="Bond ${t.bond ?? 0}">${bond(t.bond)}</span> `
             + `${esc(t.relation)}: ${ref(t.ref, t.name)}${t.qualifier ? ` <span class="muted">${esc(t.qualifier)}</span>` : ""}`)
         + list("Life", c.timeline, row => `<span class="muted">Year ${row.year}</span> ${linked(row.text)} <a data-ref="event#${row.eventId}" title="Why?">why</a>`);
+}
+
+/** Where a character's experience came from (the owner, 2026-10-31): their deeds, newest first, and their years besides. */
+function experience(p) {
+    const bar = p.next ? Math.min(100, Math.round(100 * p.experience / p.next)) : 100;
+    return `<h3>Experience</h3><p><b>${p.experience}</b>${p.next ? ` of ${p.next} for level ${p.level + 1}` : " · the summit"} `
+        + `<span class="xp-bar"><i style="width:${bar}%"></i></span></p>`
+        + `<p class="muted">${p.fromDeeds} from deeds · ${p.fromYears} from years of training and teaching</p>`
+        + (p.sources?.length ? `<details class="xp-sources"><summary>From which deeds</summary><ul>`
+            + p.sources.map(s => `<li><b>+${s.xp}</b> <span class="muted">Year ${s.year}</span> ${esc(s.text)} · ${ref(s.event, "why")}</li>`).join("")
+            + `</ul></details>` : "");
+}
+
+/**
+ * What is under way (the owner, 2026-10-31): the wars between nations with their hosts and hired swords, and the
+ * companies down the labyrinths with who goes with them.
+ */
+function underWay(u) {
+    const who = m => m ? `${ref(m.ref, m.name)}${m.level ? ` <span class="muted">(level ${m.level})</span>` : ""}` : "";
+    const wars = (u.wars ?? []).map(w => `<div class="prayer"><p><b>${esc(w.name)}</b> <span class="muted">· since Year ${w.since}${w.why ? ` · ${esc(w.why)}` : ""}${w.battles ? ` · ${w.battles} battle${w.battles === 1 ? "" : "s"}` : ""}</span> · ${ref(w.declared, "why")}</p>`
+        + `<p>${w.attackers.map(r => ref(r.ref, r.name)).join(", ")} <span class="muted">against</span> ${w.defenders.map(r => ref(r.ref, r.name)).join(", ")}</p>`
+        + (w.hosts?.length ? `<ul>${w.hosts.map(h => `<li>${ref(h.ref, h.name)} <span class="muted">· ${h.soldiers.toLocaleString()} · ${esc(h.realm.name)}</span>`
+            + (h.commander ? `<br>Led by ${who(h.commander)}` : "") + (h.mercenaries.length ? `<br>Mercenaries: ${h.mercenaries.map(who).join(", ")}` : "") + `</li>`).join("")}</ul>` : "")
+        + (w.mercenaries?.length ? `<p class="muted">Hired: ${w.mercenaries.map(m => `${who(m.who)}${m.for ? ` for ${esc(m.for.name)}` : ""} (Year ${m.year})`).join("; ")}</p>` : "")
+        + `</div>`).join("");
+    const companies = (u.expeditions ?? []).map(x => `<li>${x.target ? ref(x.target.ref, x.target.name) : "A company"} <span class="muted">· since Year ${x.since}</span>`
+        + `<br>${x.party.map(who).join(", ")} · ${ref(x.event, "why")}</li>`).join("");
+    return `<div class="kicker">Under way</div><h2>Wars and expeditions</h2>`
+        + `<h3>Wars between nations</h3>` + (wars || `<p class="muted">No nation is at war.</p>`)
+        + `<h3>Down the labyrinths</h3>` + (companies ? `<ul class="people">${companies}</ul>` : `<p class="muted">No company is down a labyrinth.</p>`);
 }
 
 function why(w) {
@@ -876,7 +929,7 @@ async function boot() {
             e.preventDefault();
             stopPlaying();
             const [kind, number] = link.dataset.ref.split("#");
-            const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement" }[kind];
+            const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth" }[kind];
             if (panel) setHash({ panel: `${panel}/${number}` });
         });
         $("roads").addEventListener("change", () => dynamic.children.filter(c => c.userData.layer === "roads").forEach(c => { c.visible = $("roads").checked; }));

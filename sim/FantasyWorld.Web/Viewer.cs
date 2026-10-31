@@ -36,6 +36,7 @@ public static class Viewer
     public static string Load(byte[] gzip)
     {
         (_world, _log) = WebBundle.FromGzip(gzip).Load();
+        (_narrator, _reputation) = (null, null);
         return JsonSerializer.Serialize(new { name = DigestScreen.DisplayName(World), year = World.Date.Year, firstYear = FirstYear, today = World.Date.ToString() }, Json);
     }
 
@@ -126,7 +127,23 @@ public static class Viewer
                 depth = s.Depth,
                 cleared = s.ClearedEventId != 0 && Log.TryGet(s.ClearedEventId, out var c) && By(until, c.Date.Day)
                     ? new { year = c.Date.Year, by = c.Actors.TryGetValue("delver", out var d) ? Who(d.Id) : null, @event = $"event#{c.Id}" } : null,
+                lair = s.Lair,
+                guardian = World.Monsters.GetValueOrDefault(s.GuardianId) is { } g ? new { name = g.Name, level = Levels.Of(g), slain = !g.Alive } : null,
+                // Its history (the owner, 2026-10-31): who went down, how deep, who fell back, newest first.
+                history = Log.Involving(s.Ref).Where(e => By(until, e.Date.Day)).Reverse().Take(25)
+                    .Select(e => new { year = e.Date.Year, text = Narrate(e), @event = $"event#{e.Id}" }),
             });
+        // The Ponegralyphs found (the owner, 2026-10-31): where, by whom, and the secret each told.
+        var glyphs = World.Structures.Values.Where(s => s.Glyph && EventBy(until, s.CompletedEventId)).OrderBy(s => s.CompletedEventId).Select(s => new
+        {
+            @ref = s.Ref.ToString(),
+            name = s.Name,
+            place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
+            finder = Who(s.FinderId),
+            year = Log.TryGet(s.CompletedEventId, out var f) ? f.Date.Year : 0,
+            secret = Log.All.FirstOrDefault(e => e.Type == "SecretRevealed" && e.Causes.Any(c => c.EventId == s.CompletedEventId)) is { } told
+                ? new { title = told.Payload.GetValueOrDefault("title"), text = told.Payload.GetValueOrDefault("text") } : null,
+        });
         var relics = World.Artifacts.Values.Where(a => a.Place != ArtifactPlace.Destroyed).OrderByDescending(a => a.Fame).ThenBy(a => a.Id).Take(15).Select(a => new
         {
             @ref = a.Ref.ToString(),
@@ -199,6 +216,7 @@ public static class Viewer
             gods,
             realms,
             labyrinths,
+            glyphs,
             relics,
             shadow,
             callings,
@@ -311,7 +329,102 @@ public static class Viewer
                 : null,
             calling = awoken is { } k && EventBy(until, k.EventId)
                 ? new { name = k.Name, origin = k.Origin, does = k.Does, condition = k.Condition } : null,
+            progress = Progress(c, until),
+            last = LastDeed(c, until),
         }, Json);
+    }
+
+    /// <summary>
+    /// Where a character's experience came from (the owner, 2026-10-31: track the source of experience): each deed that
+    /// earned some, newest first, and what years of training and teaching gave besides; their level and the next one's need.
+    /// </summary>
+    private static object Progress(Character c, long? until)
+    {
+        var deeds = Log.Involving(c.Ref).Where(e => By(until, e.Date.Day))
+            .Select(e => (Event: e, Xp: Levels.Earned(e).Where(x => x.Who == c.Ref).Select(x => x.Experience).DefaultIfEmpty(0).Max()))
+            .Where(x => x.Xp > 0).ToList();
+        var fromDeeds = deeds.Sum(d => d.Xp);
+        var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
+        var level = Levels.Of(c);
+        return new
+        {
+            level,
+            experience = Math.Round(c.Experience),
+            next = level < Levels.Max ? Levels.NeededFor(level + 1) : (double?)null,
+            fromDeeds = Math.Round(fromDeeds),
+            fromYears = Math.Round(Math.Max(0, c.Experience - fromDeeds)),
+            sources = deeds.OrderByDescending(d => d.Event.Id).Take(40)
+                .Select(d => new { year = d.Event.Date.Year, xp = Math.Round(d.Xp), text = narrator.Sentence(d.Event), @event = $"event#{d.Event.Id}" }),
+        };
+    }
+
+    /// <summary>What a character did last, or is doing (the owner, 2026-10-31): their latest deed the chronicle knows.</summary>
+    private static object? LastDeed(Character c, long? until)
+    {
+        var narrator = new FantasyWorld.Sim.Narration.TemplateNarrator(World);
+        return Log.Involving(c.Ref).LastOrDefault(e => By(until, e.Date.Day) && e.Importance >= 10) is { } e
+            ? new { year = e.Date.Year, text = narrator.Sentence(e), @event = $"event#{e.Id}" } : null;
+    }
+
+    /// <summary>
+    /// What is under way in the year shown (the owner, 2026-10-31): the wars between nations, each side's hosts with their
+    /// commanders, knights and hired swords; and the companies down the labyrinths, with who goes with them.
+    /// </summary>
+    [JSInvokable]
+    public static string UnderWay(string year = "")
+    {
+        var until = Until(year);
+        var day = until ?? World.Date.Day;
+        object? Who(long id) => World.Characters.TryGetValue(id, out var c) ? new { @ref = c.Ref.ToString(), name = c.Name, level = Levels.Of(c) } : null;
+        object Realm(long id) => World.Realms.TryGetValue(id, out var r) ? new { @ref = r.Ref.ToString(), name = Statecraft.Title(r) } : new { @ref = "", name = "" };
+        var wars = World.Wars.Values
+            .Where(w => w.StartDay <= day && (!w.Ended || Log.TryGet(w.EndedEventId, out var end) && end.Date.Day > day))
+            .OrderBy(w => w.StartDay).Select(w =>
+            {
+                var hired = Log.All.Where(e => e.Type == "MercenaryHired" && e.Date.Day <= day && e.Actors.TryGetValue("war", out var x) && x.Id == w.Id)
+                    .Select(e => new
+                    {
+                        year = e.Date.Year,
+                        who = e.Actors.Values.FirstOrDefault(a => a.Kind == Character.Kind) is { } m ? Who(m.Id) : null,
+                        @for = e.Actors.Values.FirstOrDefault(a => a.Kind == FantasyWorld.Sim.Model.Realm.Kind) is { } r ? Realm(r.Id) : null,
+                        @event = $"event#{e.Id}",
+                    }).ToList();
+                return new
+                {
+                    @ref = w.Ref.ToString(),
+                    name = w.Name,
+                    since = new WorldDate(w.StartDay).Year,
+                    why = w.CasusBelli,
+                    attackers = w.Attackers.Select(Realm),
+                    defenders = w.Defenders.Select(Realm),
+                    battles = w.Battles,
+                    hosts = until is null
+                        ? World.Armies.Values.Where(a => !a.Disbanded && a.WarId == w.Id).Select(a => new
+                        {
+                            @ref = a.Ref.ToString(),
+                            name = a.Name,
+                            soldiers = a.Soldiers,
+                            realm = Realm(a.RealmId),
+                            commander = Who(a.CommanderId),
+                            knights = a.Knights.Select(Who).OfType<object>(),
+                            mercenaries = a.Mercenaries.Select(Who).OfType<object>(),
+                        }).ToList<object>()
+                        : [],
+                    mercenaries = hired,
+                    declared = $"event#{w.DeclaredEventId}",
+                };
+            }).ToList();
+        // A company is down a labyrinth from its setting out until its return.
+        var expeditions = Log.All.Where(e => e.Type == "ExpeditionBegun" && e.Date.Day <= day)
+            .Where(e => !Log.All.Any(x => x.Type == "ExpeditionEnded" && x.Date.Day <= day && x.Causes.Any(c => c.EventId == e.Id)))
+            .Select(e => new
+            {
+                since = e.Date.Year,
+                target = e.Actors.TryGetValue("target", out var t) ? new { @ref = t.ToString(), name = FantasyWorld.Sim.Query.Names.Of(World)(t) } : null,
+                party = e.Actors.Where(a => a.Value.Kind == Character.Kind).Select(a => Who(a.Value.Id)).OfType<object>().Distinct(),
+                @event = $"event#{e.Id}",
+            }).ToList();
+        return JsonSerializer.Serialize(new { wars, expeditions }, Json);
     }
 
     private static FantasyWorld.Sim.Chronicle.Reputation? _reputation;
@@ -447,6 +560,10 @@ public static class Viewer
         return log;
     }
 
+    private static FantasyWorld.Sim.Narration.TemplateNarrator? _narrator;
+
+    private static string Narrate(WorldEvent e) => (_narrator ??= new FantasyWorld.Sim.Narration.TemplateNarrator(World)).Sentence(e);
+
     private static bool By(long? until, long day) => until is not { } u || day <= u;
 
     private static bool EventBy(long? until, long eventId) => until is null || eventId == 0 || Log.TryGet(eventId, out var e) && e.Date.Day <= until;
@@ -519,7 +636,16 @@ public static class Viewer
             houses = markers.Where(m => m.Shape == MarkerShape.Settlement).SelectMany(m => Scatter.Houses(m, grid))
                 .SelectMany(h => new[] { h.Position.X, h.Position.Y, h.Position.Z, h.Size, h.Yaw, h.Roof.X, h.Roof.Y, h.Roof.Z, h.Tower ? 1f : 0f }).ToArray(),
             settlements = markers.Where(m => m.Shape == MarkerShape.Settlement)
-                .Select(m => new { @ref = m.Ref.ToString(), name = m.Name, at = V(m.Position), size = m.Size, kind = m.Kind.ToString() }),
+                .Select(m => new
+                {
+                    @ref = m.Ref.ToString(),
+                    name = m.Name,
+                    at = V(m.Position),
+                    size = m.Size,
+                    kind = m.Kind.ToString(),
+                    // The population map (the owner, 2026-10-31).
+                    population = World.Settlements.TryGetValue(m.Ref.Id, out var town) ? town.Population : 0,
+                }),
             structures = markers.Where(m => m.Shape != MarkerShape.Settlement)
                 .Select(m => new { @ref = m.Ref.ToString(), name = m.Name, shape = m.Shape.ToString(), at = V(m.Position), size = m.Size, colour = V(m.Colour) }),
             borders = Markers.BorderLines(map, geography).Select(line => line.SelectMany(V).ToArray()),
@@ -585,6 +711,8 @@ public static class Viewer
                 hero = World.Sagas.Values.Any(s => s.HeroId == c.Id || s.PartyIds.Contains(c.Id)),
                 at = V(Projection.ToBlock(grid, MapPoint.Of(World, new EntityRef(Settlement.Kind, c.SettlementId))!, 0)),
             }),
+            glyphs = World.Structures.Values.Where(s => s.Glyph && EventBy(Until(year), s.CompletedEventId) && World.Regions.ContainsKey(s.RegionId))
+                .Select(s => new { @ref = s.Ref.ToString(), name = s.Name, at = V(Projection.ToBlock(grid, MapPoint.Of(World, World.Regions[s.RegionId].Ref)!, 0)) }),
             badges = new Dictionary<string, string>
             {
                 ["labyrinth"] = Badges.Labyrinth(false),

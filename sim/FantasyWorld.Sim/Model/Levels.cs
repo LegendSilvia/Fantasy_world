@@ -45,7 +45,8 @@ public static class Levels
     /// <summary>
     /// The level a labyrinth asks of those who delve it: deeper ones ask more (a great labyrinth sets its own).
     /// </summary>
-    public static int Required(Structure maze) => maze.RequiredLevel > 0 ? maze.RequiredLevel : Math.Clamp((Math.Max(maze.Levels, 3) + 1) / 2, 2, 5);
+    public static int Required(Structure maze) => maze.RequiredLevel > 0 ? maze.RequiredLevel
+        : maze.Lair ? 1 : Math.Clamp((Math.Max(maze.Levels, 3) + 1) / 2, 2, 5);
 
     /// <summary>Whether a character may go down into a labyrinth: no more than one level short of what it asks.</summary>
     public static bool MayDelve(Character c, Structure maze) => Of(c) >= Required(maze) - 1;
@@ -117,7 +118,7 @@ public static class Levels
             "MonsterHuntFailed" => 5,
             "LabyrinthDelved" => 8 + 2 * (int.TryParse(e.Payload.GetValueOrDefault("level"), out var l) ? l : 1),
             "LabyrinthDelveFailed" or "DelveFailed" => 4,
-            "LabyrinthCleared" => 40,
+            "LabyrinthCleared" => e.Payload.GetValueOrDefault("great") == "yes" ? 150 : e.Payload.GetValueOrDefault("lair") == "yes" ? 15 : 40,
             "ArtifactFound" => 10,
             "BattleFought" => role.Contains("commander", StringComparison.Ordinal) ? 20 : role.Contains("knight", StringComparison.Ordinal) ? 14 : 0,
             "WoundedInBattle" => 6,

@@ -69,7 +69,7 @@ public class SuccessCriteriaTests(PrehistoricWorld fixture) : IClassFixture<Preh
         Assert.NotEmpty(raids);
         // A beast of a world event (the owner, 2026-10-30) leads back to it: an elder dragon's waking, a great labyrinth's rising.
         Assert.All(raids, r => Assert.Contains(query.RootCauses(r.Id), root => root.Type is "MonsterRose" or "LeySurge" or "DangerRose" or "LabyrinthOpened"
-            or "ElderDragonWoke" or "GreatLabyrinthRose"));
+            or "ElderDragonWoke" or "GreatLabyrinthRose" or "LairOpened"));
         // Holy wars are checked on a longer history in MythHealthTests (a century may have none).
         Assert.All(fixture.Sim.Log.All.Where(e => e.Type == "HolyWarProclaimed"), h => Assert.NotEmpty(h.Causes));
     }
