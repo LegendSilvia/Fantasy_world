@@ -11,6 +11,7 @@ const say = text => { $("loading-text").textContent = text; };
 const PLASTER = new THREE.Color(0xf1ebde), STONE = new THREE.Color(0xb9b1a2), INK = 0x1a1a18;
 
 let world, scene, camera, renderer, controls, dynamic, labels = [];
+let heatPoints = [], heatDrawn = ""; // the population heatmap's towns, and the view it was last drawn for
 
 // ---------- The stage: what never changes (the block, the sea, the woods) ----------
 
@@ -179,12 +180,9 @@ async function showYear(year) {
     // The Ponegralyphs found, and who found them (the owner, 2026-10-31).
     for (const g of s.glyphs ?? [])
         label(`<span class="glyph-pin" title="${esc(g.name)}">ᛟ</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: "lore/all" }), "glyphs");
-    // The population map (the owner, 2026-10-31): each town a disc sized by its people, its number beside it.
-    for (const t of s.settlements ?? []) if (t.population > 0) {
-        const d = Math.round(8 + Math.sqrt(t.population) / 4);
-        label(`<span class="pop" style="width:${d}px;height:${d}px" title="${esc(t.name)}: ${t.population.toLocaleString()} people"></span><b class="pop-n">${t.population >= 1000 ? (t.population / 1000).toFixed(1) + "k" : t.population}</b>`,
-            "badge", lift(t.at, 0.02), 30 + Math.min(40, t.population / 500), () => setHash({ panel: `settlement/${id(t.ref)}` }), "population");
-    }
+    // The population map (the owner, 2026-10-31; a heatmap, 2026-11-01): each town's people glow on the land.
+    heatPoints = (s.settlements ?? []).filter(t => t.population > 0).map(t => ({ at: new THREE.Vector3(...t.at), people: t.population }));
+    heatDrawn = "";
     for (const maze of s.labyrinths ?? [])
         label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : 26, `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : ", a labyrinth"}`), "badge",
             lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
@@ -348,6 +346,58 @@ function frame(time) {
     for (const g of dynamic.children) if (g.userData.flag) g.userData.flag.rotation.y = Math.sin(time / 700 + g.position.x * 9) * 0.15;
     renderer.render(scene, camera);
     placeLabels();
+    drawHeat();
+}
+
+/**
+ * The population heatmap (the owner, 2026-11-01): every town's people summed as soft glows where it stands on screen, then
+ * coloured from cool blue (few) through green and yellow to red (crowded). Drawn small and stretched, and only again when
+ * the view or the year changes.
+ */
+const HEAT = [[40, 90, 200], [40, 170, 120], [230, 210, 60], [235, 120, 40], [200, 30, 30]];
+function drawHeat() {
+    const canvas = $("heat");
+    const shown = !hiddenLayers.has("population") && heatPoints.length > 0;
+    canvas.hidden = !shown;
+    $("heat-legend").hidden = !shown;
+    if (!shown) { heatDrawn = ""; return; }
+    const key = camera.matrixWorld.elements.map(v => v.toFixed(4)).join() + innerWidth + "x" + innerHeight + heatPoints.length;
+    if (key === heatDrawn) return;
+    heatDrawn = key;
+    const scale = 4, w = Math.ceil(innerWidth / scale), h = Math.ceil(innerHeight / scale);
+    if (canvas.width !== w || canvas.height !== h) [canvas.width, canvas.height] = [w, h];
+    const g = canvas.getContext("2d", { willReadFrequently: true });
+    g.clearRect(0, 0, w, h);
+    g.globalCompositeOperation = "lighter";
+    const zoom = 2.6 / Math.max(0.3, camera.position.distanceTo(controls.target)), p = new THREE.Vector3();
+    const most = Math.max(...heatPoints.map(t => t.people));
+    for (const t of heatPoints) {
+        p.copy(t.at).project(camera);
+        if (p.z > 1) continue;
+        const x = (p.x + 1) / 2 * w, y = (1 - p.y) / 2 * h;
+        const share = Math.sqrt(t.people / most);
+        const r = (3 + 9 * share) * zoom * (innerHeight / 900) * (4 / scale);
+        const a = 0.04 + 0.3 * share;
+        const glow = g.createRadialGradient(x, y, 0, x, y, r);
+        glow.addColorStop(0, `rgba(255,255,255,${a})`);
+        glow.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = glow;
+        g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    const image = g.getImageData(0, 0, w, h), px = image.data;
+    // Coloured against the busiest spot in view, so the crowded glow red and the empty stay clear.
+    let peak = 1;
+    // (The glows are white, so how much of them a pixel holds is its opacity.)
+    for (let i = 3; i < px.length; i += 4) peak = Math.max(peak, px[i]);
+    for (let i = 0; i < px.length; i += 4) {
+        const v = px[i + 3] / peak;
+        if (v < 0.04) { px[i + 3] = 0; continue; }
+        const f = v * (HEAT.length - 1), k = Math.min(HEAT.length - 2, Math.floor(f)), t = f - k;
+        for (let c = 0; c < 3; c++) px[i + c] = HEAT[k][c] + (HEAT[k + 1][c] - HEAT[k][c]) * t;
+        px[i + 3] = Math.round(255 * Math.min(0.75, 0.1 + v * 0.75));
+    }
+    g.globalCompositeOperation = "source-over";
+    g.putImageData(image, 0, 0);
 }
 
 function resize() {
@@ -663,7 +713,10 @@ function fightCard(f, pics) {
             + (x.fate ? `<span class="fo-stamp ${/Victor/.test(x.fate) ? "win" : /Slain|Defeated/.test(x.fate) ? "loss" : ""}">${esc(x.fate)}</span>` : "") + `</div>` : "")
         + `<div class="fo-name"><i style="background:${css(x.colour)}"></i>${emblem(x.class)}${x.ref.startsWith("char#") || x.ref.startsWith("realm#") ? ref(x.ref, x.name) : esc(x.name)}</div>`
         + `<div class="muted">${esc([x.class && x.class[0].toUpperCase() + x.class.slice(1), ...x.notes].filter(Boolean).join(" · "))}</div>`
-        + (!pics[x.ref] && !x.ref.startsWith("char#") && x.fate ? `<div class="fo-stamp-inline">${esc(x.fate)}</div>` : "") + `</div>`;
+        + (!pics[x.ref] && !x.ref.startsWith("char#") && x.fate ? `<div class="fo-stamp-inline">${esc(x.fate)}</div>` : "")
+        // The hired swords who fought for this side (the owner, 2026-11-01).
+        + (x.mercenaries?.length ? `<div class="fo-mercs"><b>Mercenaries</b><br>${x.mercenaries.map(m => `${ref(m.ref, m.name)} <span class="muted">(level ${m.level}${m.alive ? "" : ", fallen"})</span>`).join("<br>")}</div>` : "")
+        + `</div>`;
     const rows = f.a.stats.map((x, i) => {
         const y = f.b.stats[i];
         if (!y) return "";
@@ -673,6 +726,7 @@ function fightCard(f, pics) {
     }).join("");
     const odds = `<div class="fo-odds"><b style="width:${f.odds}%;background:${css(f.a.colour)}"></b><b style="width:${100 - f.odds}%;background:${css(f.b.colour)}"></b></div>`;
     return `<div class="kicker">${moment} · ${esc(f.stakes)}</div>`
+        + (f.war ? `<p class="${f.war.ongoing ? "now" : "muted"}">${esc(f.war.name)}${f.war.ongoing ? " · <b>the war goes on</b>" : " · ended"}</p>` : "")
         + `<div class="fo-sides">${side(f.a, false)}<img class="fo-vs" src="img/emblems/versus.png" alt="VS">${side(f.b, true)}</div>`
         + `<div class="fo-rows">${rows}</div>`
         + `<p class="kicker">${f.stage === "fought" ? "Victory" : "Who will prevail?"}</p>${odds}`

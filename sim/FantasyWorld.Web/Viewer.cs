@@ -276,8 +276,21 @@ public static class Viewer
         if (!Log.TryGet(id, out var ev)) return "null";
         var f = FantasyWorld.Sim.Chronicle.FaceOffs.OfFight(World, Log, ev) ?? FantasyWorld.Sim.Chronicle.FaceOffs.For(World, ev);
         if (f is null) return "null";
+        // The hired swords on each side of a war's battle (the owner, 2026-11-01), hired by the battle's day.
+        var war = ev.Actors.TryGetValue("war", out var w) ? World.Wars.GetValueOrDefault(w.Id) : null;
+        object[] Hired(FantasyWorld.Sim.Chronicle.FaceOffSide side)
+        {
+            if (war is null || !side.Ref.StartsWith("realm#", StringComparison.Ordinal)
+                || !long.TryParse(side.Ref.AsSpan(6), NumberStyles.Integer, CultureInfo.InvariantCulture, out var realm) || !war.Involves(realm)) return [];
+            var allies = war.IsAttacker(realm) ? war.Attackers : war.Defenders;
+            return Log.All.Where(e => e.Type == "MercenaryHired" && e.Date.Day <= ev.Date.Day && e.Actors.TryGetValue("war", out var x) && x.Id == war.Id
+                                      && e.Actors.TryGetValue("realm", out var r) && allies.Contains(r.Id) && e.Actors.TryGetValue("mercenary", out _))
+                .Select(e => World.Characters.GetValueOrDefault(e.Actors["mercenary"].Id)).OfType<Character>().DistinctBy(c => c.Id)
+                .Select(c => (object)new { @ref = c.Ref.ToString(), name = c.Name, level = Levels.Of(c), alive = c.IsAlive }).ToArray();
+        }
         object Side(FantasyWorld.Sim.Chronicle.FaceOffSide side) => new
         {
+            mercenaries = Hired(side),
             @ref = side.Ref,
             name = side.Name,
             colour = V3(WarLayout.Colour(side.Colour)),
@@ -294,6 +307,7 @@ public static class Viewer
             odds = f.OddsA,
             result = f.Result,
             words = f.Odds(),
+            war = war is null ? null : new { name = war.Name, ongoing = !war.Ended },
             a = Side(f.A),
             b = Side(f.B),
         }, Json);
@@ -511,6 +525,14 @@ public static class Viewer
     }
 
     /// <summary>The map at the end of a year, as the game's history slider shows it (empty or this year: today).</summary>
+    /// <summary>Whether the war a battle belongs to was still being fought at the end of the year shown.</summary>
+    private static bool WarGoesOn(long eventId, int year)
+    {
+        if (!Log.TryGet(eventId, out var e) || !e.Actors.TryGetValue("war", out var w) || !World.Wars.TryGetValue(w.Id, out var war)) return false;
+        var end = Math.Min(World.Date.Day, (long)year * WorldDate.DaysPerYear + WorldDate.DaysPerYear - 1);
+        return !war.Ended || Log.TryGet(war.EndedEventId, out var ended) && ended.Date.Day > end;
+    }
+
     /// <summary>The most notable people alive in a year (renowned, of high level, or of the saga), at most this many.</summary>
     public const int MostCharactersOnMap = 30;
 
@@ -682,13 +704,14 @@ public static class Viewer
                 eventId = m.RoseEventId,
                 badge = m.Slumbering ? "asleep" : m.Legendary ? "legend" : "boss",
             }),
-            fights = (map.Battles ?? []).Select(b => new
+            fights = (map.Battles ?? []).Select(b => (Battle: b, Live: b.UnderWay || b.Kind != MapBattle.Duel && WarGoesOn(b.EventId, map.Year))).Select(x => new
             {
-                kind = b.Kind,
-                underWay = b.UnderWay,
-                at = V(Projection.ToBlock(grid, b.Position, 0)),
-                eventId = b.EventId,
-                badge = (b.Kind == MapBattle.Duel ? "" : "battle-") + (b.UnderWay ? "underway" : "fought"),
+                kind = x.Battle.Kind,
+                // A battle of a war still being fought pulses too (the owner, 2026-11-01), as a fight under way does.
+                underWay = x.Live,
+                at = V(Projection.ToBlock(grid, x.Battle.Position, 0)),
+                eventId = x.Battle.EventId,
+                badge = (x.Battle.Kind == MapBattle.Duel ? "" : "battle-") + (x.Live ? "underway" : "fought"),
             }),
             // The labyrinths (the owner, 2026-10-30), open or cleared by the year shown; a click opens its card.
             labyrinths = (map.Structures ?? []).Where(st => st.Position is not null

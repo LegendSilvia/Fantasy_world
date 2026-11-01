@@ -256,3 +256,9 @@ p.known { font-style: italic; }
 .pop-n { font: 700 10px system-ui, sans-serif; color: #5a2216; margin-left: 2px; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
 .glyph-pin { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 28px; border-radius: 6px 6px 10px 10px;
     background: #3c4a52; color: #9fe3ff; font: 700 15px Georgia, serif; border: 2px solid #c9d7de; box-shadow: 0 0 8px rgba(120, 210, 255, .6); cursor: pointer; }
+.fo-mercs { margin-top: 6px; font-size: 13px; line-height: 1.5; }
+#heat { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: auto; filter: blur(2px); }
+.heat-legend { position: fixed; left: 170px; bottom: 26px; z-index: 10; display: flex; gap: 8px; align-items: center; font: 12px system-ui, sans-serif;
+    background: var(--card); padding: 6px 10px; border-radius: 999px; box-shadow: 0 3px 10px rgba(0,0,0,.15); }
+.heat-legend i { display: inline-block; width: 120px; height: 8px; border-radius: 4px;
+    background: linear-gradient(90deg, rgb(40,90,200), rgb(40,170,120), rgb(230,210,60), rgb(235,120,40), rgb(200,30,30)); }
