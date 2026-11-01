@@ -52,11 +52,26 @@ public static class Fights
         : 1;
 
     /// <summary>A few of the fight's days as the template reads them: the first, the last, and the one between if there are more.</summary>
-    public static string Tell(IReadOnlyList<FightBeat> beats)
+    public static string Tell(IReadOnlyList<FightBeat> beats, int perBeat = MaxToldBeat)
     {
         if (beats.Count == 0) return "";
         var told = beats.Count <= BeatsTold ? beats : [beats[0], beats[beats.Count / 2], beats[^1]];
-        return "How it went: " + string.Join(" ", told.Select(b => b.Text));
+        return "How it went: " + string.Join(" ", told.Select(b => Short(b.Text, perBeat)));
+    }
+
+    /// <summary>
+    /// The most of a day's account the template reads aloud (the owner, 2026-11-01: a script of eleven minutes, every fight's
+    /// whole account read out); the chronicler is given them whole.
+    /// </summary>
+    public const int MaxToldBeat = 280;
+
+    /// <summary>An account cut at its last whole sentence within the length (or the length itself, with an ellipsis).</summary>
+    public static string Short(string text, int most)
+    {
+        if (text.Length <= most) return text;
+        var cut = text[..most];
+        var end = cut.LastIndexOfAny(['.', '!', '?']);
+        return end >= most / 3 ? cut[..(end + 1)] : cut.TrimEnd() + "…";
     }
 
     /// <summary>The fight's days as a brief lists them, one a line.</summary>

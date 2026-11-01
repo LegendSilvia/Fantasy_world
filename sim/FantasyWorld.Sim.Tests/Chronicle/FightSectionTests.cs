@@ -40,6 +40,23 @@ public class FightSectionTests
     }
 
     [Fact]
+    public void LongFightAccounts_NeverStretchTheScript_PastItsLength()
+    {
+        // The owner, 2026-11-01: every fight's whole account read out made an eleven-minute episode.
+        var (world, log, strong, sly, declared) = FaceOffTests.ADuelDeclared();
+        var account = string.Concat(Enumerable.Repeat("The axe rose and fell, and the shield split, and still they fought on in the mud. ", 25));
+        for (var i = 0; i < 6; i++)
+            log.Append(world.Date, new EventDraft("DuelFought",
+                Actors: new Dictionary<string, EntityRef> { ["challenger"] = strong.Ref, ["defender"] = sly.Ref }, Place: declared.Place,
+                Payload: new Dictionary<string, string> { ["account"] = account, ["stakes"] = "first blood", ["victor"] = "1" },
+                Causes: new[] { new Cause(declared.Id, CauseKind.Trigger, 1.0) }, Importance: 40 + i, Tags: new[] { "Characters", "Deeds" }));
+        var episode = Episode.Build(world, log, 0, "2026-10-28", stories: 8, maxCharacters: 3600);
+        Assert.True(episode.Script.Length <= 3600 + 400, $"{episode.Script.Length} characters");
+        // At most the headline's own fight is told whole; the roundup reads each other fight's decisive day in brief.
+        Assert.True(episode.Script.Split(account.Trim()).Length - 1 <= 1);
+    }
+
+    [Fact]
     public void AFightOfDays_IsOneStory_ToldDayByDay()
     {
         var (world, log, fought) = AThreeDayDuel();

@@ -182,10 +182,13 @@ public sealed record Episode(
         var primerSection = (fullLegend || sinceEventId == 0) && Primer.Of(world, log) is { } primer ? new EpisodeSection(EpisodeSection.Primer, "The world today", primer) : null;
         var signOff = SignOffFor(chronicler, name);
         var worldSection = WorldSection(world, narrator, worldNews);
-        var resultsSection = results.Count == 0 ? null : new EpisodeSection(EpisodeSection.Results, "The fights decided",
-            // Each with how it was fought, not only who won (the owner, 2026-10-31).
-            string.Join(" ", results.OrderBy(e => e.Id).Select(e => narrator.Sentence(e) + (Fights.Beats(log, e) is { Count: > 0 } course ? $" {Fights.Tell(course)}" : ""))),
+        // Each with how it was fought, not only who won (the owner, 2026-10-31): its decisive day, in brief; dropped if the
+        // script is still too long (the owner, 2026-11-01: an eleven-minute episode).
+        EpisodeSection? Results(bool courses) => results.Count == 0 ? null : new EpisodeSection(EpisodeSection.Results, "The fights decided",
+            string.Join(" ", results.OrderBy(e => e.Id).Select(e => narrator.Sentence(e)
+                + (courses && Fights.Beats(log, e) is { Count: > 0 } course ? $" {Fights.Tell([course[^1]], ResultBeat)}" : ""))),
             results[0].Id, FaceOffs.OfFight(world, log, results[0]));
+        var resultsSection = Results(courses: true);
 
         // The template script: drop the least important stories, then the chronicler's view, until it fits the budget.
         // Within a year the stories need no dates; across years each says when.
@@ -247,6 +250,12 @@ public sealed record Episode(
                     told.Select(t => log.TryGet(t.EventId, out var e) ? e : null).Append(top).OfType<WorldEvent>().Concat(worldNews).ToList())));
         var keep = others.ToList();
         var sections = Write(keep, comment);
+        // Too long: the fights' courses go before any story does.
+        if (ScriptOf(sections).Length > maxCharacters && resultsSection is not null)
+        {
+            resultsSection = Results(courses: false);
+            sections = Write(keep, comment);
+        }
         while (ScriptOf(sections).Length > maxCharacters && keep.Count > 0)
         {
             var weakest = keep.OrderBy(s => chosen.FindIndex(e => e.Id == s.EventId)).Last();
@@ -255,6 +264,7 @@ public sealed record Episode(
         }
         if (ScriptOf(sections).Length > maxCharacters && comment is not null) sections = Write(keep, null);
 
+
         sections = Stills.Mark(world, log, sections);
         return new Episode(date, name, chronicler.Name, fromYear, toYear, events.Count, events.Count > 0 ? events[0].Id : 0,
             events.Count > 0 ? events[^1].Id : sinceEventId, coldOpen, headline, body, keep, why, signOff, ScriptOf(sections),
@@ -262,6 +272,9 @@ public sealed record Episode(
     }
 
     public const int WhySteps = 5;
+
+    /// <summary>The most of a fight's decisive day the fights' roundup reads out.</summary>
+    public const int ResultBeat = 200;
 
     /// <summary>
     /// The headline's strongest thread of causes: the outcome, then up to <paramref name="steps"/> causes behind it, each

@@ -414,7 +414,8 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           if [ "$DRY_RUN" = "true" ] && [ "$UPLOAD_UNLISTED" = "true" ]; then args+=(--upload-unlisted); fi
           if [ "$CREATE" = "true" ]; then args+=(--create); fi
-          if [ "$REMAKE" = "true" ]; then args+=(--now); fi
+          # A remake keeps the day's release time when it is still ahead (the owner, 2026-10-30: videos wait for 10:00 so they
+          # can be checked first); past it, the video and the posts go out at once.
           dotnet run --no-build --configuration Release --project sim/FantasyWorld.Broadcast -- "${args[@]}"
       - name: Report what the day came to
         # The day read back from the bucket (the owner, 2026-10-29): what was made, uploaded and posted, and what fell
@@ -468,19 +469,15 @@ jobs:
     if: always() && github.event_name == 'schedule' && github.event.schedule != '0 3 * * *'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Monthly heartbeat
+      # The branch rules keep every push to main behind review (the owner, 2026-10-30), so the heartbeat is no commit:
+      # enabling the workflow again counts as activity and resets the 60-day clock, and touches nothing in the repository.
+      - name: Heartbeat
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          month="$(TZ=Asia/Bangkok date +%Y-%m)"
-          if [ "$(jq -r .keepAlive broadcast.json)" != "true" ] || [ "$(cat .github/broadcast-heartbeat 2>/dev/null)" = "$month" ]; then
-            echo "No heartbeat needed."
-            exit 0
-          fi
-          echo "$month" > .github/broadcast-heartbeat
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/broadcast-heartbeat
-          git commit -m "chore: broadcast keep-alive [skip ci]" || exit 0
-          git push || (git pull --rebase -q && git push)
+          if [ "$(jq -r .keepAlive broadcast.json)" != "true" ]; then echo "No heartbeat wanted."; exit 0; fi
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/broadcast.yml/enable" && echo "The broadcast's schedule is kept alive."
