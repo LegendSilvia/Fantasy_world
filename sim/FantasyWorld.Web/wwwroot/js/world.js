@@ -152,21 +152,21 @@ async function showYear(year) {
 
     for (const realm of s.realms) {
         dynamic.add(standard(realm));
-        label(`<i style="background:${css(realm.colour)}"></i><span>${esc(realm.name.toUpperCase())}<small>${esc(realm.rank)}</small></span>`,
+        label(`<i style="background:${css(realm.colour)}"></i>${marker("realm", 20, realm.rank)}<span>${esc(realm.name.toUpperCase())}<small>${esc(realm.rank)}</small></span>`,
             "realm", lift(realm.at, 0.16), 100, () => setHash({ panel: `realm/${id(realm.ref)}` }), "realms");
     }
     for (const army of s.armies) {
         dynamic.add(banner(army));
-        label(esc(army.commander ? `${army.name} · ${army.commander}` : army.name), "army", lift(army.at, 0.1), 40,
+        label(marker("army", 16, "An army in the field") + esc(army.commander ? `${army.name} · ${army.commander}` : army.name), "army", lift(army.at, 0.1), 40,
             () => setHash({ panel: `army/${id(army.ref)}` }), "armies");
     }
     // Badges: a boss marker over each beast, crossed swords where a fight was or is (a click asks why).
-    const badge = (key, size, title) => `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.badges[key])}" style="height:${size}px" alt="" title="${esc(title)}">`;
     // A painted beast stands in its frame (the owner, 2026-10-29); a click opens its card, a fight's its face-off.
+    // The frame was remade (the owner, 2026-11-02): an arched gold frame with horns, glowing embers for a legend.
     const framed = (beast, size) => `<span class="beast-frame ${beast.badge}" style="width:${Math.round(size * 0.84)}px;height:${Math.round(size)}px" title="${esc(`${beast.name}, ${beast.breed}`)}">`
         + `<img src="${esc(pics[beast.ref])}" alt=""></span>`;
     for (const beast of s.beasts)
-        label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : badge(beast.badge, 30 + beast.might / 8, `${beast.name}, ${beast.breed}`), "badge", lift(beast.at, 0.025), 70,
+        label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : `<span class="beast-mark ${beast.badge}">${marker("beast", 28 + beast.might / 8, `${beast.name}, ${beast.breed}`)}</span>`, "badge", lift(beast.at, 0.025), 70,
             () => setHash({ panel: `beast/${id(beast.ref)}` }), "beasts");
     // The notable people where they live (the owner, 2026-10-30): their likeness in a round frame with their level, else their initial.
     const seen = new Map();
@@ -174,32 +174,34 @@ async function showYear(year) {
         const n = seen.get(person.at.join()) ?? 0;
         seen.set(person.at.join(), n + 1);
         const at = [person.at[0] + 0.035 * Math.cos(n * 2.1), person.at[1], person.at[2] + 0.035 * Math.sin(n * 2.1)];
-        const face = pics[person.ref] ? `<img src="${esc(pics[person.ref])}" alt="">` : `<b>${esc(person.name.charAt(0))}</b>`;
-        label(`<span class="person-pin${person.hero ? " hero" : ""}" title="${esc(`${person.name}, level ${person.level}`)}">${face}<i>${person.level}</i></span>`, "badge",
+        const face = pics[person.ref] ? `<img src="${esc(pics[person.ref])}" alt="">` : `<img class="no-face" src="img/markers/person.png" alt="">`;
+        // Each level has its own frame (the owner, 2026-11-02), from plain wood at 1 to a living prism at 10.
+        const lv = Math.max(1, Math.min(10, person.level || 1));
+        label(`<span class="person-pin lv-${lv}${person.hero ? " hero" : ""}" title="${esc(`${person.name}, level ${person.level}`)}">${face}<i>${person.level}</i></span>`, "badge",
             lift(at, 0.03), 50 + person.renown / 5, () => setHash({ panel: `character/${id(person.ref)}` }), "characters");
     }
     // The natural wonders discovered (the owner, 2026-11-02): only once someone has found them.
     for (const w of s.wonders ?? [])
-        label(`<span class="wonder-pin" title="${esc(w.name)}">✦</span>`, "badge", lift(w.at, 0.035), 68, () => setHash({ panel: `wonder/${id(w.ref)}` }), "wonders");
+        label(`<span class="wonder-pin">${marker("wonder", 34, `${w.name}, ${w.kind}`)}</span>`, "badge", lift(w.at, 0.035), 68, () => setHash({ panel: `wonder/${id(w.ref)}` }), "wonders");
     // The Ponegralyphs found, and who found them (the owner, 2026-10-31).
     for (const g of s.glyphs ?? [])
-        label(`<span class="glyph-pin" title="${esc(g.name)}">ᛟ</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: `glyph/${id(g.ref)}` }), "glyphs");
+        label(`<span class="glyph-pin">${marker("glyph", 30, g.name)}</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: `glyph/${id(g.ref)}` }), "glyphs");
     // The population map (the owner, 2026-10-31; a heatmap, 2026-11-01): each town's people glow on the land.
     heatPoints = (s.settlements ?? []).filter(t => t.population > 0).map(t => ({ at: new THREE.Vector3(...t.at), people: t.population }));
     townAt = new Map((s.settlements ?? []).map(t => [t.ref, t.at]));
     heatDrawn = "";
     for (const maze of s.labyrinths ?? [])
         // A dungeon, a monster's lair (the owner, 2026-11-02), is marked smaller and in green, apart from the labyrinths.
-        label((maze.lair ? `<span class="lair-badge">` : "") + badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : maze.lair ? 20 : 26,
-            `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : maze.lair ? ", a dungeon (a monster's lair)" : ", a labyrinth"}`) + (maze.lair ? `</span>` : ""), "badge",
+        label(marker(maze.cleared ? "cleared" : maze.great ? "great" : maze.lair ? "dungeon" : "labyrinth", maze.great ? 46 : maze.lair ? 28 : 32,
+            `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : maze.lair ? ", a dungeon (a monster's lair)" : ", a labyrinth"}`), "badge",
             lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
     for (const fight of s.fights)
         // Crossed swords for a duel, crossed banners for a battle between nations; one still raging pulses (the owner, 2026-10-29).
-        label((fight.underWay ? `<span class="live">` : "") + badge(fight.badge, fight.kind === "duel" ? 26 : 34, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`)
-            + (fight.underWay ? `</span>` : ""), "badge", lift(fight.at, 0.02), fight.underWay ? 90 : 75,
+        label(`<span class="${fight.underWay ? "live" : "past"}">` + marker(fight.kind === "duel" ? "duel" : "battle", fight.kind === "duel" ? 30 : 38, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`)
+            + `</span>`, "badge", lift(fight.at, 0.02), fight.underWay ? 90 : 75,
             () => setHash({ panel: `fight/${fight.eventId}` }), "fights");
     for (const place of s.settlements)
-        label(esc(place.name), place.kind === "Conflict" || place.kind === "RecentEvent" ? "news" : "", lift(place.at, 0.03),
+        label(fort(place.level) + esc(place.name), place.kind === "Conflict" || place.kind === "RecentEvent" ? "news" : "", lift(place.at, 0.03),
             10 + place.size * 100, () => setHash({ panel: `settlement/${id(place.ref)}` }), "towns");
 }
 
@@ -287,6 +289,14 @@ function banner(army) {
 }
 
 // ---------- Names over the land ----------
+
+/** A marker's painted icon (the owner, 2026-11-02: every kind of marker its own, painted with FLUX). */
+const marker = (kind, size, title) => `<img class="mk" src="img/markers/${kind}.png" style="width:${Math.round(size)}px;height:${Math.round(size)}px" alt="" title="${esc(title)}">`;
+
+/** A town's fortification in front of its name, in the frame of its level (the owner, 2026-11-02). */
+const FORTS = ["", "Stockade", "Timber walls", "Stone walls", "Castle", "Citadel"];
+const fort = level => level > 0
+    ? `<span class="fort f${level}" title="Fortification level ${level} of 5: ${FORTS[level]}"><img src="img/markers/fort-${level}.png" alt=""><b>${level}</b></span>` : "";
 
 function label(html, kind, at, priority, onClick, layer) {
     const element = document.createElement("div");
@@ -927,7 +937,7 @@ function character(c, f, pics = {}) {
     const me = `char#${c.id ?? ""}`;
     return `<div class="kicker">${esc(c.kicker)}${f ? ` · ${esc(f.title)}${f.awakened ? " (awakened)" : ""}` : ""}</div>`
         + `<h2>${emblem(f?.class ?? c.class)}${esc(c.name)}</h2><!--follow-->`
-        + (c.level ? `<p class="level-badge" title="Levels run from 1 to 10; most reach 4 or 5 in a life">Level ${c.level}</p>` : "")
+        + (c.level ? `<p class="level-badge lv-${Math.max(1, Math.min(10, c.level))}" title="Levels run from 1 to 10; most reach 4 or 5 in a life">Level ${c.level}</p>` : "")
         + `<div class="beast-portrait char-portrait${c.alive === false ? " slain" : ""}${unseen(pics, me)}"><img src="${esc(portrait(pics, me))}" alt=""></div>`
         + `<p>${esc(c.line)}</p>`
         // What they did last, or are doing now (the owner, 2026-10-31).

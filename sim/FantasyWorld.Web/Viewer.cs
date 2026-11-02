@@ -685,6 +685,8 @@ public static class Viewer
                     kind = m.Kind.ToString(),
                     // The population map (the owner, 2026-10-31).
                     population = World.Settlements.TryGetValue(m.Ref.Id, out var town) ? town.Population : 0,
+                    // Its fortification, shown in front of its name (the owner, 2026-11-02).
+                    level = town is null ? 0 : Levels.Of(World, town),
                 }),
             structures = markers.Where(m => m.Shape != MarkerShape.Settlement)
                 .Select(m => new { @ref = m.Ref.ToString(), name = m.Name, shape = m.Shape.ToString(), at = V(m.Position), size = m.Size, colour = V(m.Colour) }),
