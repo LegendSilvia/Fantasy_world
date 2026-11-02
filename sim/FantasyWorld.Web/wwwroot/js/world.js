@@ -11,6 +11,7 @@ const say = text => { $("loading-text").textContent = text; };
 const PLASTER = new THREE.Color(0xf1ebde), STONE = new THREE.Color(0xb9b1a2), INK = 0x1a1a18;
 
 let world, scene, camera, renderer, controls, dynamic, labels = [];
+let townAt = new Map(); // where each town stands, to find a character on the map
 let heatPoints = [], heatDrawn = ""; // the population heatmap's towns, and the view it was last drawn for
 
 // ---------- The stage: what never changes (the block, the sea, the woods) ----------
@@ -182,6 +183,7 @@ async function showYear(year) {
         label(`<span class="glyph-pin" title="${esc(g.name)}">ᛟ</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: `glyph/${id(g.ref)}` }), "glyphs");
     // The population map (the owner, 2026-10-31; a heatmap, 2026-11-01): each town's people glow on the land.
     heatPoints = (s.settlements ?? []).filter(t => t.population > 0).map(t => ({ at: new THREE.Vector3(...t.at), people: t.population }));
+    townAt = new Map((s.settlements ?? []).map(t => [t.ref, t.at]));
     heatDrawn = "";
     for (const maze of s.labyrinths ?? [])
         label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : 26, `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : ", a labyrinth"}`), "badge",
@@ -488,7 +490,32 @@ async function route() {
     }
 }
 
+/** Moves the view to a place over most of a second, and marks it with a pulsing pin for a while (the owner, 2026-11-02). */
+let seekPin = null;
+function seek(ref, name) {
+    const at = townAt.get(ref);
+    if (!at) return;
+    const target = new THREE.Vector3(at[0], 0, at[2]);
+    const offset = camera.position.clone().sub(controls.target).setLength(1.3);
+    const [fromTarget, fromCamera, toCamera] = [controls.target.clone(), camera.position.clone(), target.clone().add(offset)];
+    const start = performance.now();
+    (function step(now) {
+        const t = Math.min(1, (now - start) / 900), e = t * t * (3 - 2 * t);
+        controls.target.lerpVectors(fromTarget, target, e);
+        camera.position.lerpVectors(fromCamera, toCamera, e);
+        controls.update();
+        if (t < 1) requestAnimationFrame(step);
+    })(start);
+    if (seekPin) { seekPin.element.remove(); labels.splice(labels.indexOf(seekPin), 1); }
+    label(`<span class="seek-pin"><span class="live">📍</span><b>${esc(name)}</b></span>`, "badge", lift(at, 0.06), 200, () => {});
+    seekPin = labels[labels.length - 1];
+    const mine = seekPin;
+    setTimeout(() => { if (seekPin === mine) { mine.element.remove(); labels.splice(labels.indexOf(mine), 1); seekPin = null; } }, 8000);
+}
+
 $("panel-body").addEventListener("click", e => {
+    const button = e.target.closest("button[data-seek]");
+    if (button) { seek(button.dataset.seek, button.dataset.name); return; }
     const link = e.target.closest("a[data-ref]");
     if (!link) return;
     e.preventDefault();
@@ -891,6 +918,8 @@ function character(c, f, pics = {}) {
         + `<div class="tags">${(c.traits ?? []).map(t => `<span>${esc(t)}</span>`).join("")}</div>`
         + (c.formerNames?.length ? `<p class="muted">Once known as ${c.formerNames.map(esc).join(", then ")}</p>` : "")
         + `<p class="muted">${ambition(c)}${c.location ? ` · ${place(c.location)}` : ""}${c.faith ? ` · ${mention(c.faith)}` : ""}</p>`
+        // Where they are (the owner, 2026-11-02): the camera goes to their town, and a pin marks it.
+        + (c.location?.ref && townAt.has(c.location.ref) ? `<p><button class="gods seek" data-seek="${esc(c.location.ref)}" data-name="${esc(c.name)}">📍 Show on map</button></p>` : "")
         + (f?.weapon ? `<p><b>Wields</b> ${f.weapon.name ? (f.weapon.ref ? ref(f.weapon.ref, f.weapon.name) : esc(f.weapon.name)) + ", " : ""}${esc(f.weapon.what)}`
             + (f.weapon.lore ? `<br><span class="muted">${esc(f.weapon.lore)}</span>` : "") + `</p>` : "")
         + (f?.companion ? `<p><b>${f.companion.kind === "beast" ? "At their side" : "Sworn companion"}</b> `

@@ -262,3 +262,6 @@ p.known { font-style: italic; }
     background: var(--card); padding: 6px 10px; border-radius: 999px; box-shadow: 0 3px 10px rgba(0,0,0,.15); }
 .heat-legend i { display: inline-block; width: 120px; height: 8px; border-radius: 4px;
     background: linear-gradient(90deg, rgb(40,90,200), rgb(40,170,120), rgb(230,210,60), rgb(235,120,40), rgb(200,30,30)); }
+.seek-pin { display: inline-flex; flex-direction: column; align-items: center; font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+.seek-pin b { font: 700 12px system-ui, sans-serif; background: var(--ink); color: var(--card); padding: 2px 8px; border-radius: 999px; margin-top: 2px; }
+.heat-legend[hidden], #heat[hidden] { display: none; }
