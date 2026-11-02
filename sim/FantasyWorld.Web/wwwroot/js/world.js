@@ -163,12 +163,13 @@ async function showYear(year) {
     // Badges: a boss marker over each beast, crossed swords where a fight was or is (a click asks why).
     // A painted beast stands in its frame (the owner, 2026-10-29); a click opens its card, a fight's its face-off.
     // The frame was remade (the owner, 2026-11-02): an arched gold frame with horns, glowing embers for a legend.
-    const framed = (beast, size) => `<span class="beast-frame ${beast.badge}" style="width:${Math.round(size * 0.84)}px;height:${Math.round(size)}px" title="${esc(`${beast.name}, ${beast.breed}`)}">`
-        + `<img src="${esc(pics[beast.ref])}" alt="">${lvChip(beast.level)}</span>`;
+    const framed = (beast, size) => `<span class="beast-frame ${beast.badge}" style="width:${Math.round(size)}px;height:${Math.round(size)}px" title="${esc(`${beast.name}, ${beast.breed}${beast.level ? `, level ${beast.level}` : ""}`)}">`
+        + (pics[beast.ref] ? `<img class="pic" src="${esc(pics[beast.ref])}" alt="">` : `<img class="pic icon" src="img/markers/beast.png" alt="">`)
+        + `<img class="bones" src="img/frames/frame-beast.png" alt="">${lvChip(beast.level)}</span>`;
     // A beast's level on its corner (the owner, 2026-11-02), coloured as a person's of that level.
     const lvChip = level => level ? `<i class="lv-chip lv-${Math.min(10, level)}" title="Level ${level}">${level}</i>` : "";
     for (const beast of s.beasts)
-        label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : `<span class="beast-mark ${beast.badge}">${marker("beast", 28 + beast.might / 8, `${beast.name}, ${beast.breed}${beast.level ? `, level ${beast.level}` : ""}`)}${lvChip(beast.level)}</span>`, "badge", lift(beast.at, 0.025), 70,
+        label(framed(beast, 40 + beast.might / 6), "badge", lift(beast.at, 0.025), 70,
             () => setHash({ panel: `beast/${id(beast.ref)}` }), "beasts");
     // The notable people where they live (the owner, 2026-10-30): their likeness in a round frame with their level, else their initial.
     const seen = new Map();
@@ -179,7 +180,7 @@ async function showYear(year) {
         const face = pics[person.ref] ? `<img src="${esc(pics[person.ref])}" alt="">` : `<img class="no-face" src="img/markers/person.png" alt="">`;
         // Each level has its own frame (the owner, 2026-11-02), from plain wood at 1 to a living prism at 10.
         const lv = Math.max(1, Math.min(10, person.level || 1));
-        label(`<span class="person-pin lv-${lv}${person.hero ? " hero" : ""}" title="${esc(`${person.name}, level ${person.level}`)}">${face}<i>${person.level}</i></span>`, "badge",
+        label(`<span class="person-pin lv-${lv}${person.hero ? " hero" : ""}" title="${esc(`${person.name}, level ${person.level}`)}">${face}<img class="ring" src="img/frames/frame-lv-${lv}.png" alt=""><i>${person.level}</i></span>`, "badge",
             lift(at, 0.03), 50 + person.renown / 5, () => setHash({ panel: `character/${id(person.ref)}` }), "characters");
     }
     // The natural wonders discovered (the owner, 2026-11-02): only once someone has found them.
