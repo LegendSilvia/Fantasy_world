@@ -133,6 +133,23 @@ public static class Viewer
                 history = Log.Involving(s.Ref).Where(e => By(until, e.Date.Day)).Reverse().Take(25)
                     .Select(e => new { year = e.Date.Year, text = Narrate(e), @event = $"event#{e.Id}" }),
             });
+        // The natural wonders discovered (the owner, 2026-11-02): what each is, who found it, and what it keeps.
+        var naturalWonders = World.Structures.Values.Where(s => s.Type == StructureKind.Wonder && s.FinderId != 0 && EventBy(until, s.CompletedEventId))
+            .OrderBy(s => s.CompletedEventId).Select(s => new
+            {
+                @ref = s.Ref.ToString(),
+                name = s.Name,
+                kind = s.Purpose,
+                place = World.Regions.GetValueOrDefault(s.RegionId)?.Name,
+                lore = Log.TryGet(s.CompletedEventId, out var d) ? Narrate(d) : "",
+                finder = Who(s.FinderId),
+                year = Log.TryGet(s.CompletedEventId, out var f) ? f.Date.Year : 0,
+                treasure = s.Treasure.Length > 0 ? s.Treasure : null,
+                guardian = World.Monsters.GetValueOrDefault(s.GuardianId) is { } g
+                    ? new { @ref = g.Ref.ToString(), name = g.Name, level = Levels.Of(g), slain = !g.Alive && (until is null || g.SlainEventId != 0 && EventBy(until, g.SlainEventId)) } : null,
+                taken = s.TreasureArtifactId != 0 && World.Artifacts.TryGetValue(s.TreasureArtifactId, out var a) && EventBy(until, a.OriginEventId)
+                    ? new { @ref = a.Ref.ToString(), name = a.Name, by = a.Place == ArtifactPlace.Held ? Who(a.HolderId) : null } : null,
+            });
         // The Ponegralyphs found (the owner, 2026-10-31): where, by whom, and the secret each told.
         var glyphs = World.Structures.Values.Where(s => s.Glyph && EventBy(until, s.CompletedEventId)).OrderBy(s => s.CompletedEventId).Select(s => new
         {
@@ -216,6 +233,7 @@ public static class Viewer
             gods,
             realms,
             labyrinths,
+            naturalWonders,
             glyphs,
             relics,
             shadow,
@@ -735,6 +753,8 @@ public static class Viewer
                 hero = World.Sagas.Values.Any(s => s.HeroId == c.Id || s.PartyIds.Contains(c.Id)),
                 at = V(Projection.ToBlock(grid, MapPoint.Of(World, new EntityRef(Settlement.Kind, c.SettlementId))!, 0)),
             }),
+            wonders = World.Structures.Values.Where(s => s.Type == StructureKind.Wonder && s.FinderId != 0 && EventBy(Until(year), s.CompletedEventId))
+                .Select(s => new { @ref = s.Ref.ToString(), name = s.Name, kind = s.Purpose, at = V(Projection.ToBlock(grid, MapPoint.Of(World, World.Regions[s.RegionId].Ref)!, 0)) }),
             glyphs = World.Structures.Values.Where(s => s.Glyph && EventBy(Until(year), s.CompletedEventId) && World.Regions.ContainsKey(s.RegionId))
                 .Select(s => new { @ref = s.Ref.ToString(), name = s.Name, at = V(Projection.ToBlock(grid, MapPoint.Of(World, World.Regions[s.RegionId].Ref)!, 0)) }),
             badges = new Dictionary<string, string>

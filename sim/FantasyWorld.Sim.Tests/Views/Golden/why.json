@@ -1,25 +1,25 @@
 {
   "outcome": {
-    "eventId": 534,
+    "eventId": 551,
     "year": 20,
     "category": "characters",
     "title": {
-      "text": "Vund of Viallciath fought Lond of Cunvei to first blood at Drerithby. Vund of Viallciath drew first blood and won.",
+      "text": "At Greindrondcross, Hebiand of Kiangratheth met Tath of Gelheil to first blood. Tath of Gelheil drew first blood and won.",
       "links": [
         {
-          "start": 0,
-          "length": 18,
-          "entity": "char#12"
+          "start": 3,
+          "length": 15,
+          "entity": "settlement#16"
         },
         {
-          "start": 26,
-          "length": 14,
-          "entity": "char#3"
+          "start": 20,
+          "length": 23,
+          "entity": "char#34"
         },
         {
-          "start": 59,
-          "length": 9,
-          "entity": "settlement#3"
+          "start": 48,
+          "length": 15,
+          "entity": "char#39"
         }
       ]
     },
@@ -30,26 +30,16 @@
   "layers": [
     [
       {
-        "eventId": 503,
-        "year": 19,
+        "eventId": 338,
+        "year": 12,
         "category": "characters",
         "title": {
-          "text": "At Drerithby, Vund of Viallciath met Lond of Cunvei to first blood. Lond of Cunvei drew first blood and won.",
+          "text": "Tinki of Kiangratheth was killed in a duel, aged 51.",
           "links": [
             {
-              "start": 3,
-              "length": 9,
-              "entity": "settlement#3"
-            },
-            {
-              "start": 14,
-              "length": 18,
-              "entity": "char#12"
-            },
-            {
-              "start": 37,
-              "length": 14,
-              "entity": "char#3"
+              "start": 0,
+              "length": 21,
+              "entity": "char#19"
             }
           ]
         },
@@ -58,26 +48,26 @@
         "hasMore": false
       },
       {
-        "eventId": 515,
+        "eventId": 535,
         "year": 19,
         "category": "characters",
         "title": {
-          "text": "Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day.",
+          "text": "Hebiand of Kiangratheth called Tath of Gelheil out (to first blood); they will meet at Greindrondcross in a year and a day.",
           "links": [
             {
               "start": 0,
-              "length": 18,
-              "entity": "char#12"
+              "length": 23,
+              "entity": "char#34"
             },
             {
-              "start": 26,
-              "length": 14,
-              "entity": "char#3"
+              "start": 31,
+              "length": 15,
+              "entity": "char#39"
             },
             {
-              "start": 81,
-              "length": 9,
-              "entity": "settlement#3"
+              "start": 87,
+              "length": 15,
+              "entity": "settlement#16"
             }
           ]
         },
@@ -88,136 +78,179 @@
     ],
     [
       {
-        "eventId": 471,
-        "year": 18,
+        "eventId": 337,
+        "year": 12,
         "category": "characters",
         "title": {
-          "text": "Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day.",
+          "text": "At Greindrondcross, Tath of Gelheil met Tinki of Kiangratheth to the death. Tath of Gelheil won, and Tinki of Kiangratheth was slain.",
+          "links": [
+            {
+              "start": 3,
+              "length": 15,
+              "entity": "settlement#16"
+            },
+            {
+              "start": 20,
+              "length": 15,
+              "entity": "char#39"
+            },
+            {
+              "start": 40,
+              "length": 21,
+              "entity": "char#19"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      }
+    ],
+    [
+      {
+        "eventId": 231,
+        "year": 6,
+        "category": "characters",
+        "title": {
+          "text": "Tinki of Kiangratheth and Tath of Gelheil fell out over the clash of a cruel nature with a kind one.",
           "links": [
             {
               "start": 0,
-              "length": 18,
-              "entity": "char#12"
+              "length": 21,
+              "entity": "char#19"
             },
             {
               "start": 26,
-              "length": 14,
-              "entity": "char#3"
-            },
-            {
-              "start": 81,
-              "length": 9,
-              "entity": "settlement#3"
+              "length": 15,
+              "entity": "char#39"
             }
           ]
         },
         "note": null,
         "isRoot": true,
         "hasMore": false
+      },
+      {
+        "eventId": 311,
+        "year": 11,
+        "category": "characters",
+        "title": {
+          "text": "At Greindrondcross, Tath of Gelheil sprang an ambush on Tinki of Kiangratheth, and they fight to the death; the clash goes on, its end yet to come.",
+          "links": [
+            {
+              "start": 3,
+              "length": 15,
+              "entity": "settlement#16"
+            },
+            {
+              "start": 20,
+              "length": 15,
+              "entity": "char#39"
+            },
+            {
+              "start": 56,
+              "length": 21,
+              "entity": "char#19"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
       }
     ]
   ],
   "edges": [
     {
-      "from": 515,
-      "to": 534,
+      "from": 535,
+      "to": 551,
       "kind": "trigger",
       "label": "because, and"
     },
     {
-      "from": 503,
-      "to": 534,
+      "from": 338,
+      "to": 551,
       "kind": "motive",
       "label": "because, and"
     },
     {
-      "from": 503,
-      "to": 515,
+      "from": 338,
+      "to": 535,
       "kind": "motive",
       "label": "because"
     },
     {
-      "from": 471,
-      "to": 503,
+      "from": 337,
+      "to": 338,
       "kind": "trigger",
+      "label": "because"
+    },
+    {
+      "from": 311,
+      "to": 337,
+      "kind": "trigger",
+      "label": "because, and"
+    },
+    {
+      "from": 231,
+      "to": 337,
+      "kind": "motive",
+      "label": "because, and"
+    },
+    {
+      "from": 231,
+      "to": 311,
+      "kind": "motive",
       "label": "because"
     }
   ],
-  "summary": "Traced back two years, through one root cause.",
+  "summary": "Traced back 14 years, through one root cause.",
   "people": [
     {
-      "ref": "char#12",
-      "name": "Vund of Viallciath"
+      "ref": "char#34",
+      "name": "Hebiand of Kiangratheth"
     },
     {
-      "ref": "char#3",
-      "name": "Lond of Cunvei"
+      "ref": "char#39",
+      "name": "Tath of Gelheil"
+    },
+    {
+      "ref": "char#19",
+      "name": "Tinki of Kiangratheth"
     }
   ],
   "places": [
     {
-      "ref": "settlement#3",
-      "name": "Drerithby"
+      "ref": "settlement#16",
+      "name": "Greindrondcross"
     }
   ],
   "systems": [
     "characters"
   ],
-  "consequences": [
-    {
-      "eventId": 535,
-      "year": 20,
-      "category": "characters",
-      "title": {
-        "text": "Oldwing, at the side of Lond of Cunvei, was hurt in the fight.",
-        "links": [
-          {
-            "start": 24,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "note": null,
-      "isRoot": false,
-      "hasMore": false
-    },
-    {
-      "eventId": 536,
-      "year": 20,
-      "category": "characters",
-      "title": {
-        "text": "Lond of Cunvei came back from it with a new hunger: a resolve never to be poor or powerless again.",
-        "links": [
-          {
-            "start": 0,
-            "length": 14,
-            "entity": "char#3"
-          }
-        ]
-      },
-      "note": null,
-      "isRoot": false,
-      "hasMore": false
-    }
-  ],
+  "consequences": [],
   "story": {
-    "text": "In Year 18, Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day. In Year 19, at Drerithby, Vund of Viallciath met Lond of Cunvei to first blood. Lond of Cunvei drew first blood and won. That same year, Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day. And so, in Year 20, Vund of Viallciath fought Lond of Cunvei to first blood at Drerithby. Vund of Viallciath drew first blood and won.",
+    "text": "In Year 6, Tinki of Kiangratheth and Tath of Gelheil fell out over the clash of a cruel nature with a kind one. In Year 11, at Greindrondcross, Tath of Gelheil sprang an ambush on Tinki of Kiangratheth, and they fight to the death; the clash goes on, its end yet to come. In Year 12, at Greindrondcross, Tath of Gelheil met Tinki of Kiangratheth to the death. Tath of Gelheil won, and Tinki of Kiangratheth was slain. That same year, Tinki of Kiangratheth was killed in a duel, aged 51. In Year 19, Hebiand of Kiangratheth called Tath of Gelheil out (to first blood); they will meet at Greindrondcross in a year and a day. And so, in Year 20, at Greindrondcross, Hebiand of Kiangratheth met Tath of Gelheil to first blood. Tath of Gelheil drew first blood and won.",
     "links": [
       {
-        "start": 12,
-        "length": 18,
-        "entity": "char#12"
+        "start": 11,
+        "length": 21,
+        "entity": "char#19"
       },
       {
-        "start": 38,
-        "length": 14,
-        "entity": "char#3"
+        "start": 37,
+        "length": 15,
+        "entity": "char#39"
       },
       {
-        "start": 93,
-        "length": 9,
-        "entity": "settlement#3"
+        "start": 127,
+        "length": 15,
+        "entity": "settlement#16"
+      },
+      {
+        "start": 499,
+        "length": 23,
+        "entity": "char#34"
       }
     ]
   }

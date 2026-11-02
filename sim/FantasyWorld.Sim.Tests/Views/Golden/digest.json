@@ -2,7 +2,7 @@
   "worldName": "Dromothholt",
   "year": 21,
   "title": "Year 21.",
-  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 543 events were recorded.",
+  "subtitle": "While you were away, 20 years passed in Dromothholt. The seasons turned, and 563 events were recorded.",
   "elapsedDays": 7200,
   "status": "Caught up · Year 21, day 1",
   "pins": [
@@ -28,23 +28,13 @@
     },
     {
       "number": 4,
-      "place": "region#3",
-      "label": "Thonae",
+      "place": "settlement#3",
+      "label": "Drerithby",
       "position": {
-        "x": 0.3203125,
-        "y": 0.3515625
+        "x": 0.3515625,
+        "y": 0.1953125
       },
-      "eventId": 496
-    },
-    {
-      "number": 5,
-      "place": "settlement#10",
-      "label": "Gerrouhaven",
-      "position": {
-        "x": 0.2421875,
-        "y": 0.5703125
-      },
-      "eventId": 526
+      "eventId": 555
     },
     {
       "number": 7,
@@ -55,6 +45,16 @@
         "y": 0.4296875
       },
       "eventId": 182
+    },
+    {
+      "number": 8,
+      "place": "settlement#24",
+      "label": "Niar",
+      "position": {
+        "x": 0.2578125,
+        "y": 0.7890625
+      },
+      "eventId": 386
     }
   ],
   "headline": {
@@ -92,7 +92,7 @@
         {
           "start": 174,
           "length": 31,
-          "entity": "structure#3"
+          "entity": "structure#5"
         },
         {
           "start": 209,
@@ -154,41 +154,47 @@
       "number": 4,
       "category": "characters",
       "text": {
-        "text": "Lond of Cunvei found the Reliquary of Droll in the depths of Thonae.",
+        "text": "At Drerithby, Steillmuth of Viallciath sprang an ambush on Lond of Cunvei, and they fight to the death; the clash goes on, its end yet to come.",
         "links": [
           {
-            "start": 0,
+            "start": 3,
+            "length": 9,
+            "entity": "settlement#3"
+          },
+          {
+            "start": 14,
+            "length": 24,
+            "entity": "char#12"
+          },
+          {
+            "start": 59,
             "length": 14,
             "entity": "char#3"
-          },
-          {
-            "start": 21,
-            "length": 22,
-            "entity": "artifact#1"
-          },
-          {
-            "start": 61,
-            "length": 6,
-            "entity": "region#3"
           }
         ]
       },
-      "eventId": 496
+      "eventId": 555
     },
     {
       "number": 5,
       "category": "characters",
       "text": {
-        "text": "Steillmuth woke from it with no memory of who they had been, and was known from then on as Vund.",
-        "links": []
+        "text": "From it Mathvond of Cunvei made an art of fighting all their own, the Broken Guard: a stroke that comes when the foe believes them beaten.",
+        "links": [
+          {
+            "start": 8,
+            "length": 18,
+            "entity": "char#4"
+          }
+        ]
       },
-      "eventId": 526
+      "eventId": 385
     },
     {
       "number": 6,
       "category": "characters",
       "text": {
-        "text": "Lond of Cunvei had won what they sought, renown, and set their heart on a great treasure.",
+        "text": "Lond of Cunvei had won what they sought, a great treasure, and set their heart on renown.",
         "links": [
           {
             "start": 0,
@@ -197,7 +203,7 @@
           }
         ]
       },
-      "eventId": 527
+      "eventId": 559
     },
     {
       "number": 7,
@@ -228,21 +234,16 @@
       "number": 8,
       "category": "characters",
       "text": {
-        "text": "Mathvond of Cunvei and Fath of Cunvei fell out over the clash of a cynical nature with a devout one.",
+        "text": "The Duchy of Vamholt kept the Dawn Chorus: songs are sung at dawn from the walls and towers.",
         "links": [
           {
-            "start": 0,
-            "length": 18,
-            "entity": "char#4"
-          },
-          {
-            "start": 23,
-            "length": 14,
-            "entity": "char#1"
+            "start": 4,
+            "length": 16,
+            "entity": "realm#2"
           }
         ]
       },
-      "eventId": 495
+      "eventId": 386
     }
   ]
 }

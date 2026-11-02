@@ -3,7 +3,7 @@ using FantasyWorld.Sim.Events;
 
 namespace FantasyWorld.Sim.Model;
 
-public enum StructureKind { Landmark, Fortification, Labyrinth, Ruin, Shrine }
+public enum StructureKind { Landmark, Fortification, Labyrinth, Ruin, Shrine, Wonder }
 
 public enum StructureState { Building, Standing, Ruined }
 
@@ -59,6 +59,14 @@ public sealed class Structure
 
     public long FinderId { get; set; }
 
+    /// <summary>
+    /// A natural wonder's treasure (the owner, 2026-11-02: an artifact made of the place itself, guarded by a beast): what
+    /// it would be, and the artifact once its guardian is slain and it is taken.
+    /// </summary>
+    public string Treasure { get; set; } = "";
+
+    public long TreasureArtifactId { get; set; }
+
     /// <summary>The expedition down in it now (its begun event), 0 when none.</summary>
     public long ExpeditionEventId { get; set; }
     public long GuardianId { get; set; }
@@ -67,7 +75,8 @@ public sealed class Structure
     /// <summary>The event (war, plague, famine) holding the work up, 0 when it goes on.</summary>
     public long DelayedByEventId { get; set; }
 
-    public long StartedEventId { get; init; }
+    // Set later only for a natural wonder, which enters the record when it is discovered (2026-11-02).
+    public long StartedEventId { get; set; }
 
     /// <summary>What a landmark is for (the owner, 2026-10-29): a war memorial, a temple, a wonder for visitors, or beauty; empty for other works.</summary>
     public string Purpose { get; init; } = "";

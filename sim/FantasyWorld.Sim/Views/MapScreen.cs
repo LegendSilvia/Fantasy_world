@@ -109,7 +109,7 @@ public sealed record MapScreen(
         var structures = world.Structures.Values.Where(st => log.TryGet(st.StartedEventId, out var begun) && begun.Date <= date)
             .Select(st => Cleared(log, st, date)
                 ? new MapStructure(st.Ref, st.Name, st.Type.ToString(), st.State.ToString(), MapPoint.Of(world, st.Ref), "cleared")
-                : st.GuardianId != 0 || st.Type == StructureKind.Labyrinth
+                : st.Type != StructureKind.Wonder && (st.GuardianId != 0 || st.Type == StructureKind.Labyrinth)
                     ? new MapStructure(st.Ref, st.Name, nameof(StructureKind.Labyrinth), nameof(Model.StructureState.Standing), MapPoint.Of(world, st.Ref),
                         today && st.Levels > 0 ? $"level {st.Depth} of {st.Levels}" : null)
                     : new MapStructure(st.Ref, st.Name, st.Type.ToString(), StructureState(world, log, st, date), MapPoint.Of(world, st.Ref)))

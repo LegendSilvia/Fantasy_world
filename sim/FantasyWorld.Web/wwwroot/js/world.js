@@ -178,6 +178,9 @@ async function showYear(year) {
         label(`<span class="person-pin${person.hero ? " hero" : ""}" title="${esc(`${person.name}, level ${person.level}`)}">${face}<i>${person.level}</i></span>`, "badge",
             lift(at, 0.03), 50 + person.renown / 5, () => setHash({ panel: `character/${id(person.ref)}` }), "characters");
     }
+    // The natural wonders discovered (the owner, 2026-11-02): only once someone has found them.
+    for (const w of s.wonders ?? [])
+        label(`<span class="wonder-pin" title="${esc(w.name)}">✦</span>`, "badge", lift(w.at, 0.035), 68, () => setHash({ panel: `wonder/${id(w.ref)}` }), "wonders");
     // The Ponegralyphs found, and who found them (the owner, 2026-10-31).
     for (const g of s.glyphs ?? [])
         label(`<span class="glyph-pin" title="${esc(g.name)}">ᛟ</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: `glyph/${id(g.ref)}` }), "glyphs");
@@ -522,7 +525,7 @@ $("panel-body").addEventListener("click", e => {
     if (!link) return;
     e.preventDefault();
     const [kind, number] = link.dataset.ref.split("#");
-    const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth", glyph: "glyph" }[kind];
+    const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth", glyph: "glyph", wonder: "wonder", beast: "beast" }[kind];
     if (panel) setHash({ panel: `${panel}/${number}` });
 });
 
@@ -556,6 +559,18 @@ async function render(kind, key, year) {
     if (kind === "wiki") return wiki(JSON.parse(await call("Wiki", Y)), key);
     if (kind === "events") return worldEvents(JSON.parse(await call("WorldEvents", Y)));
     if (kind === "underway") return underWay(JSON.parse(await call("UnderWay", Y)));
+    // A natural wonder's card (the owner, 2026-11-02): what it is, who found it, and the treasure it keeps or kept.
+    if (kind === "wonder") {
+        const w = (JSON.parse(await call("Lore", Y)).naturalWonders ?? []).find(x => x.ref === `structure#${key}`);
+        if (!w) return `<h2>Not yet discovered</h2><p class="muted">No one had come upon this place by the year shown.</p>`;
+        return `<div class="kicker">Natural wonder · ${esc(w.kind)}${w.place ? ` · ${esc(w.place)}` : ""}</div><h2>${esc(w.name)}</h2>`
+            + `<p>Discovered in Year ${w.year}${w.finder ? ` by ${ref(w.finder.ref, w.finder.name)}` : ""}.</p>`
+            + (w.lore ? `<p class="muted">${esc(w.lore)}</p>` : "")
+            + (w.treasure ? `<div class="prayer"><p><b>Its treasure:</b> ${esc(w.treasure)}, made of the place itself.</p>`
+                + (w.taken ? `<p>Taken: ${ref(w.taken.ref, w.taken.name)}${w.taken.by ? `, held by ${ref(w.taken.by.ref, w.taken.by.name)}` : ""}.</p>`
+                    : w.guardian ? `<p>Guarded by <a data-ref="beast#${esc(id(w.guardian.ref))}">${esc(w.guardian.name)}</a>, level ${w.guardian.level}${w.guardian.slain ? " (slain)" : ""}.</p>` : "")
+                + `</div>` : `<p class="muted">It keeps no treasure but itself.</p>`);
+    }
     // A Ponegralyph's own card (the owner, 2026-11-02): where it stands, who found it and when, and the secret it told.
     if (kind === "glyph") {
         const g = (JSON.parse(await call("Lore", Y)).glyphs ?? []).find(x => x.ref === `structure#${key}`);
@@ -825,6 +840,8 @@ function lore(l) {
     const mazes = list(l.labyrinths, m => `<li><a data-ref="${esc(m.ref)}" class="maze-link">${esc(m.name)}</a>${m.lair ? ` <span class="muted">(lair)</span>` : ""}${m.place ? ` <span class="muted">· ${esc(m.place)}</span>` : ""} · `
         + (m.cleared ? `cleared in Year ${m.cleared.year}${m.cleared.by ? ` by ${ref(m.cleared.by.ref, m.cleared.by.name)}` : ""} · ${ref(m.cleared.event, "how")}`
                      : `<span class="muted">unconquered; explored to level ${m.depth} of ${m.levels}</span>`) + `</li>`);
+    const marvels = list(l.naturalWonders, w => `<li><a data-ref="wonder#${esc(id(w.ref))}">${esc(w.name)}</a> <span class="muted">· ${esc(w.kind)} · found in Year ${w.year}</span>`
+        + `${w.finder ? ` by ${ref(w.finder.ref, w.finder.name)}` : ""}${w.treasure ? ` <span class="muted">· keeps ${esc(w.treasure)}${w.taken ? " (taken)" : ""}</span>` : ""}</li>`);
     // The Ponegralyphs found (the owner, 2026-10-31): where, by whom, and the secret each told.
     const glyphs = list(l.glyphs, g => `<li><a data-ref="glyph#${esc(id(g.ref))}">${esc(g.name)}</a> <span class="muted">· found in Year ${g.year}</span>${g.finder ? ` by ${ref(g.finder.ref, g.finder.name)}` : ""}`
         + (g.secret ? `<br><b>${esc(g.secret.title)}</b> <span class="muted">${esc(g.secret.text)}</span>` : "") + `</li>`);
@@ -856,6 +873,7 @@ function lore(l) {
             && `<ul class="people">${list(l.companions ?? [], k => `<li><b>${esc(k.name)}</b>, ${esc(k.what)}, with ${ref(k.of.ref, k.of.name)}${k.lore ? `<br><span class="muted">${esc(k.lore)}</span>` : ""}</li>`)}</ul>`)
         + part("The shadow", shadow)
         + part("The labyrinths", mazes && `<ul class="people">${mazes}</ul>`)
+        + part("Natural wonders", marvels && `<ul class="people">${marvels}</ul>`)
         + part("The Ponegralyphs", glyphs && `<ul class="people">${glyphs}</ul>`)
         + part("Landmarks of the towns", landmarks && `<ul class="people">${landmarks}</ul>`)
         + part("Relics of renown", relics && `<ul class="people">${relics}</ul>`);
@@ -1023,7 +1041,7 @@ async function boot() {
             e.preventDefault();
             stopPlaying();
             const [kind, number] = link.dataset.ref.split("#");
-            const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth", glyph: "glyph" }[kind];
+            const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth", glyph: "glyph", wonder: "wonder", beast: "beast" }[kind];
             if (panel) setHash({ panel: `${panel}/${number}` });
         });
         $("roads").addEventListener("change", () => dynamic.children.filter(c => c.userData.layer === "roads").forEach(c => { c.visible = $("roads").checked; }));

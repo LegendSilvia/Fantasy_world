@@ -13,7 +13,9 @@ public static partial class Invariants
             if (s.SettlementId != 0 && (!world.Settlements.TryGetValue(s.SettlementId, out var home) || home.RegionId != s.RegionId))
                 errors.Add($"Structure #{s.Id} names settlement #{s.SettlementId} outside its region.");
             if (s.BuilderId != 0 && !world.Characters.ContainsKey(s.BuilderId)) errors.Add($"Structure #{s.Id} has unknown builder #{s.BuilderId}.");
-            if (!log.TryGet(s.StartedEventId, out _)) errors.Add($"Structure #{s.Id} cites missing event #{s.StartedEventId}.");
+            // (A natural wonder no one has found yet enters the record only when it is discovered.)
+            if (!(s.Type == StructureKind.Wonder && s.FinderId == 0) && !log.TryGet(s.StartedEventId, out _))
+                errors.Add($"Structure #{s.Id} cites missing event #{s.StartedEventId}.");
             if (s.State == StructureState.Standing && s.Type == StructureKind.Landmark && s.CompletedEventId == 0)
                 errors.Add($"Landmark #{s.Id} stands without a completion event.");
             if (s.ArchitectId != 0 && !world.Characters.ContainsKey(s.ArchitectId)) errors.Add($"Structure #{s.Id} has unknown architect #{s.ArchitectId}.");

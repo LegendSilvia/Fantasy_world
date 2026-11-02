@@ -38,6 +38,7 @@ public static class DefaultSystems
         new RelationsSystem(),
         new DeedsSystem(decider, arbiter, inventor),
         new GlyphSystem(inventor),
+        new WonderSystem(arbiter, inventor),
         new ClashSystem(),
         new TransformSystem(inventor),
         new IdentitySystem(inventor),

@@ -207,4 +207,37 @@ public class LevelsTests
         });
         Assert.Contains(log.All, e => e.Type == "SecretRevealed" && e.Causes.Any(c => glyphs.Any(g => g.CompletedEventId == c.EventId)));
     }
+
+    [Fact]
+    public void NaturalWonders_AreFoundBySomeone_ShownOnlyOnceFound_AndGuardTheirTreasure()
+    {
+        var sim = History(150);
+        var world = sim.World;
+        var wonders = world.Structures.Values.Where(s => s.Type == StructureKind.Wonder).ToList();
+        // The owner, 2026-11-02: a few to a world, one to a land, each a kind the land would make.
+        Assert.Equal(WonderSystem.Count(world), wonders.Count);
+        Assert.Equal(wonders.Count, wonders.Select(w => w.RegionId).Distinct().Count());
+        var found = wonders.Where(w => w.FinderId != 0).ToList();
+        Assert.NotEmpty(found);
+        Assert.All(found, w =>
+        {
+            var discovered = sim.Log.Get(w.CompletedEventId);
+            Assert.Equal("WonderDiscovered", discovered.Type);
+            Assert.Equal(w.FinderId, discovered.Actors["discoverer"].Id);
+        });
+        // Unfound, it is on no map; found, it is.
+        var map = FantasyWorld.Sim.Views.MapScreen.Build(world, sim.Log);
+        Assert.All(wonders.Where(w => w.FinderId == 0), w => Assert.DoesNotContain(map.Structures, m => m.Ref == w.Ref));
+        Assert.All(found, w => Assert.Contains(map.Structures, m => m.Ref == w.Ref));
+        // A guarded wonder's beast is met only when the wonder is found; its treasure goes to the one who slays it.
+        Assert.All(wonders.Where(w => w.FinderId == 0), w => Assert.Equal(0, w.GuardianId));
+        Assert.All(found.Where(w => w.Treasure.Length > 0), w => Assert.True(world.Monsters[w.GuardianId].Revealed));
+        Assert.Contains(wonders, w => w.Treasure.Length > 0);
+        Assert.All(wonders.Where(w => w.TreasureArtifactId != 0), w =>
+        {
+            var treasure = world.Artifacts[w.TreasureArtifactId];
+            Assert.Contains(w.Treasure[1..], treasure.Name, StringComparison.OrdinalIgnoreCase);
+            Assert.False(world.Monsters[w.GuardianId].Alive);
+        });
+    }
 }
