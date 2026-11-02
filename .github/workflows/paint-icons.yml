@@ -59,15 +59,22 @@ jobs:
           icon fort-3.png 16 "a grey stone wall with crenellations and an arched gatehouse with a portcullis, fantasy map icon" &&
           icon fort-4.png 17 "a strong stone castle with four round towers, blue conical roofs and red pennants, fantasy map icon" &&
           icon fort-5.png 18 "a magnificent white marble citadel with many tall towers, golden domes and gold banners, fantasy map icon" &&
-          icon battle-flags.png 21 "two large war flags crossed in an X on long wooden poles, both flags fully unfurled and waving, one bold crimson with a gold lion and one bold royal blue with a white star, thick dark outlines, high contrast, a war between nations, fantasy map icon" &&
-          icon frame-char-a.png 51 "an empty circular portrait frame: an ornate gold medallion ring with fine filigree and small gems, the centre completely empty and plain white, heraldic, front view" &&
-          icon frame-char-b.png 52 "an empty circular portrait frame: a ring of dark carved stone with glowing runes and set gemstones, the centre completely empty and plain white, dark fantasy, front view" &&
-          icon frame-char-c.png 53 "an empty circular portrait frame: a laurel wreath woven around a steel ring with two crossed sword hilts at the bottom, the centre completely empty and plain white, warrior emblem, front view" &&
-          icon frame-char-d.png 54 "an empty circular portrait frame: a brass astrolabe ring engraved with stars and moon phases, the centre completely empty and plain white, mystical, front view" &&
-          icon frame-beast-a.png 61 "an empty arched portrait frame for a monster: gold and black iron with two curved horns on top, the centre completely empty and plain white, front view" &&
-          icon frame-beast-b.png 62 "an empty arched portrait frame for a monster made of bones and ribs with a horned skull at the top, the centre completely empty and plain white, front view" &&
-          icon frame-beast-c.png 63 "an empty arched portrait frame for a monster: thorny black wrought iron with dragon claws gripping each corner, the centre completely empty and plain white, front view" &&
-          icon frame-beast-d.png 64 "an empty arched portrait frame for a monster: weathered stone arch wrapped in chains with glowing red runes, the centre completely empty and plain white, front view" || true
+          icon battle-flags.png 21 "two large war flags crossed in an X on long wooden poles, both flags fully unfurled and waving, one bold crimson with a gold lion and one bold royal blue with a white star, thick dark outlines, high contrast, a war between nations, fantasy map icon"
+          icon frame-char-b.png 52 "an empty circular portrait frame: a ring of dark carved stone with glowing runes and set gemstones, the centre completely empty and plain white, dark fantasy, front view"
+          icon frame-char-d.png 54 "an empty circular portrait frame: a brass astrolabe ring engraved with stars and moon phases, the centre completely empty and plain white, mystical, front view"
+          icon frame-beast-b.png 62 "an empty arched portrait frame for a monster made of bones and ribs with a horned skull at the top, the centre completely empty and plain white, front view"
+          icon frame-beast-d.png 64 "an empty arched portrait frame for a monster: weathered stone arch wrapped in chains with glowing red runes, the centre completely empty and plain white, front view" &&
+          icon frame-lv-1.png 71 "an empty circular portrait frame: a ring of rough carved oak wood set with a single small amber stone, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-2.png 72 "an empty circular portrait frame: a ring of bronze set with two red garnets, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-3.png 73 "an empty circular portrait frame: a ring of dark iron set with three pale moonstones, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-4.png 74 "an empty circular portrait frame: a ring of polished silver set with four blue aquamarines, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-5.png 75 "an empty circular portrait frame: a ring of gold set with five golden topazes, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-6.png 76 "an empty circular portrait frame: a ring of gold set with six green emeralds, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-7.png 77 "an empty circular portrait frame: a ring of gold set with seven deep blue sapphires, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-8.png 78 "an empty circular portrait frame: a ring of gold set with eight blood-red rubies and a small crown at the top, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-9.png 79 "an empty circular portrait frame: a ring of platinum set with nine glowing violet amethysts, a crown at the top and a violet aura, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-lv-10.png 80 "an empty circular portrait frame: a ring of radiant prismatic diamond crystal set with ten rainbow-coloured gems, a golden crown at the top and starbursts of light, legendary, the gems large and prominent, the centre completely empty and plain white, front view, game UI frame" &&
+          icon frame-beast.png 81 "an empty arched portrait frame for a monster, made of bones and ribs with a large horned skull at the top with glowing red eyes, the centre completely empty and plain white, front view, game UI frame" || true
           ls -la "$RUNNER_TEMP/icons"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
