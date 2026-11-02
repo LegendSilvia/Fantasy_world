@@ -743,6 +743,8 @@ public static class Viewer
                     cleared = st.Detail == "cleared",
                     great = World.Structures.TryGetValue(st.Ref.Id, out var maze) && maze.Great,
                     lair = maze?.Lair ?? false,
+                    // The level a delver should be to go down (the owner, 2026-11-02: shown on the marker's corner).
+                    level = maze is null ? 0 : Levels.Required(maze),
                     at = V(Projection.ToBlock(grid, st.Position!, 0)),
                 }),
             // The world's notable people where they live (the owner, 2026-10-30), alive in the year shown; off unless chosen.

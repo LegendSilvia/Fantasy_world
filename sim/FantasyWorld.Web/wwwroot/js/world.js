@@ -192,8 +192,11 @@ async function showYear(year) {
     heatDrawn = "";
     for (const maze of s.labyrinths ?? [])
         // A dungeon, a monster's lair (the owner, 2026-11-02), is marked smaller and in green, apart from the labyrinths.
-        label(marker(maze.cleared ? "cleared" : maze.great ? "great" : maze.lair ? "dungeon" : "labyrinth", maze.great ? 46 : maze.lair ? 28 : 32,
-            `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : maze.lair ? ", a dungeon (a monster's lair)" : ", a labyrinth"}`), "badge",
+        // Its level on the corner (the owner, 2026-11-02); a cleared dungeon stays a cave, greyed, rather than becoming a gate.
+        label(`<span class="maze-mark${maze.cleared ? " done" : ""}">`
+            + marker(maze.lair ? "dungeon" : maze.cleared ? "cleared" : maze.great ? "great" : "labyrinth", maze.great ? 46 : maze.lair ? 28 : 32,
+                `${maze.name}${maze.great ? ", the great labyrinth" : maze.lair ? ", a dungeon (a monster's lair)" : ", a labyrinth"}${maze.cleared ? " (cleared)" : ""}${maze.level ? `, for level ${maze.level}` : ""}`)
+            + (maze.level ? `<i class="lv-${Math.min(10, maze.level)}">${maze.level}</i>` : "") + `</span>`, "badge",
             lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
     for (const fight of s.fights)
         // Crossed swords for a duel, crossed banners for a battle between nations; one still raging pulses (the owner, 2026-10-29).
