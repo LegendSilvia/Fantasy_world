@@ -179,7 +179,7 @@ async function showYear(year) {
     }
     // The Ponegralyphs found, and who found them (the owner, 2026-10-31).
     for (const g of s.glyphs ?? [])
-        label(`<span class="glyph-pin" title="${esc(g.name)}">ᛟ</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: "lore/all" }), "glyphs");
+        label(`<span class="glyph-pin" title="${esc(g.name)}">ᛟ</span>`, "badge", lift(g.at, 0.03), 65, () => setHash({ panel: `glyph/${id(g.ref)}` }), "glyphs");
     // The population map (the owner, 2026-10-31; a heatmap, 2026-11-01): each town's people glow on the land.
     heatPoints = (s.settlements ?? []).filter(t => t.population > 0).map(t => ({ at: new THREE.Vector3(...t.at), people: t.population }));
     heatDrawn = "";
@@ -493,7 +493,7 @@ $("panel-body").addEventListener("click", e => {
     if (!link) return;
     e.preventDefault();
     const [kind, number] = link.dataset.ref.split("#");
-    const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth" }[kind];
+    const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth", glyph: "glyph" }[kind];
     if (panel) setHash({ panel: `${panel}/${number}` });
 });
 
@@ -527,6 +527,15 @@ async function render(kind, key, year) {
     if (kind === "wiki") return wiki(JSON.parse(await call("Wiki", Y)), key);
     if (kind === "events") return worldEvents(JSON.parse(await call("WorldEvents", Y)));
     if (kind === "underway") return underWay(JSON.parse(await call("UnderWay", Y)));
+    // A Ponegralyph's own card (the owner, 2026-11-02): where it stands, who found it and when, and the secret it told.
+    if (kind === "glyph") {
+        const g = (JSON.parse(await call("Lore", Y)).glyphs ?? []).find(x => x.ref === `structure#${key}`);
+        if (!g) return `<h2>Not yet found</h2><p class="muted">No one had found this stone by the year shown.</p>`;
+        return `<div class="kicker">Ponegralyph${g.place ? ` · ${esc(g.place)}` : ""}</div><h2>${esc(g.name)}</h2>`
+            + `<p>A carved stone older than every realm, found in Year ${g.year}${g.finder ? ` by ${ref(g.finder.ref, g.finder.name)}` : ""}.</p>`
+            + (g.secret ? `<div class="prayer"><p><b>${esc(g.secret.title)}</b></p><p>${esc(g.secret.text)}</p></div>` : `<p class="muted">Its carving has not yet been read.</p>`)
+            + `<p class="muted">A few Ponegralyphs lie hidden in the wild lands, one to a land at most; each tells a secret of the world to the one who finds it.</p>`;
+    }
     if (kind === "labyrinth") {
         const m = (JSON.parse(await call("Lore", Y)).labyrinths ?? []).find(x => x.ref === `structure#${key}`);
         if (!m) throw new Error(kind);
@@ -788,7 +797,7 @@ function lore(l) {
         + (m.cleared ? `cleared in Year ${m.cleared.year}${m.cleared.by ? ` by ${ref(m.cleared.by.ref, m.cleared.by.name)}` : ""} · ${ref(m.cleared.event, "how")}`
                      : `<span class="muted">unconquered; explored to level ${m.depth} of ${m.levels}</span>`) + `</li>`);
     // The Ponegralyphs found (the owner, 2026-10-31): where, by whom, and the secret each told.
-    const glyphs = list(l.glyphs, g => `<li><b>${esc(g.name)}</b> <span class="muted">· found in Year ${g.year}</span>${g.finder ? ` by ${ref(g.finder.ref, g.finder.name)}` : ""}`
+    const glyphs = list(l.glyphs, g => `<li><a data-ref="glyph#${esc(id(g.ref))}">${esc(g.name)}</a> <span class="muted">· found in Year ${g.year}</span>${g.finder ? ` by ${ref(g.finder.ref, g.finder.name)}` : ""}`
         + (g.secret ? `<br><b>${esc(g.secret.title)}</b> <span class="muted">${esc(g.secret.text)}</span>` : "") + `</li>`);
     const relics = list(l.relics, a => `<li>${ref(a.ref, a.name)} <span class="muted">· ${a.holder ? `held by ${esc(a.holder.name)}` : esc(a.where)}</span>${a.lore ? `<br><span class="muted">${esc(a.lore)}</span>` : ""}</li>`);
     const shadow = l.shadow ? `<p>${l.shadow.demon ? ref(l.shadow.demon.ref, l.shadow.demon.name) : "The demon lord"} `
@@ -983,7 +992,7 @@ async function boot() {
             e.preventDefault();
             stopPlaying();
             const [kind, number] = link.dataset.ref.split("#");
-            const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth" }[kind];
+            const panel = { char: "character", realm: "realm", event: "why", artifact: "artifact", settlement: "settlement", structure: "labyrinth", glyph: "glyph" }[kind];
             if (panel) setHash({ panel: `${panel}/${number}` });
         });
         $("roads").addEventListener("change", () => dynamic.children.filter(c => c.userData.layer === "roads").forEach(c => { c.visible = $("roads").checked; }));
