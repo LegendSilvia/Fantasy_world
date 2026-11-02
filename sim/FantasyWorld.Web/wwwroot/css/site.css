@@ -331,12 +331,14 @@ p.known { font-style: italic; }
 .level-badge.lv-7 { background: #1f4fa8; box-shadow: 0 0 0 2px #f0cf6a; } .level-badge.lv-8 { background: #a3172b; box-shadow: 0 0 0 2px #f0cf6a; }
 .level-badge.lv-9 { background: #6a2aa8; box-shadow: 0 0 0 2px #f6dc86, 0 0 10px rgba(160,80,240,.8); }
 .level-badge.lv-10 { background: linear-gradient(90deg, #ff5f6d, #ffc371, #47e891, #4facfe, #a774ff); color: #fff; text-shadow: 0 1px 2px #000; box-shadow: 0 0 10px rgba(255,255,255,.8); }
-.maze-mark { position: relative; display: inline-block; cursor: pointer; }
-.maze-mark i { position: absolute; right: -5px; bottom: -3px; min-width: 15px; height: 15px; border-radius: 8px; background: #3a2c1e; border: 1px solid #c9b48a;
+.maze-mark, .beast-mark { position: relative; display: inline-block; cursor: pointer; }
+.maze-mark i, .lv-chip { position: absolute; right: -5px; bottom: -3px; min-width: 15px; height: 15px; border-radius: 8px; background: #3a2c1e; border: 1px solid #c9b48a;
     color: #fff; font: 700 10px/15px system-ui, sans-serif; font-style: normal; text-align: center; }
-.maze-mark i.lv-1 { background: #7b5a3a; } .maze-mark i.lv-2 { background: #8a5528; } .maze-mark i.lv-3 { background: #5d666e; }
-.maze-mark i.lv-4 { background: #8b96a1; } .maze-mark i.lv-5 { background: #a37a17; } .maze-mark i.lv-6 { background: #1f7a52; }
-.maze-mark i.lv-7 { background: #1f4fa8; } .maze-mark i.lv-8 { background: #a3172b; } .maze-mark i.lv-9 { background: #6a2aa8; }
-.maze-mark i.lv-10 { background: linear-gradient(90deg, #ff5f6d, #a774ff); }
+.maze-mark i.lv-1, .lv-chip.lv-1 { background: #7b5a3a; } .maze-mark i.lv-2, .lv-chip.lv-2 { background: #8a5528; } .maze-mark i.lv-3, .lv-chip.lv-3 { background: #5d666e; }
+.maze-mark i.lv-4, .lv-chip.lv-4 { background: #8b96a1; } .maze-mark i.lv-5, .lv-chip.lv-5 { background: #a37a17; } .maze-mark i.lv-6, .lv-chip.lv-6 { background: #1f7a52; }
+.maze-mark i.lv-7, .lv-chip.lv-7 { background: #1f4fa8; } .maze-mark i.lv-8, .lv-chip.lv-8 { background: #a3172b; } .maze-mark i.lv-9, .lv-chip.lv-9 { background: #6a2aa8; }
+.maze-mark i.lv-10, .lv-chip.lv-10 { background: linear-gradient(90deg, #ff5f6d, #a774ff); }
 .maze-mark.done .mk { filter: grayscale(.6) brightness(.95); }
 .maze-mark.done i { opacity: .75; }
+.beast-frame .lv-chip { right: -8px; bottom: -6px; z-index: 1; }
+.lv-chip { position: absolute; }

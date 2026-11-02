@@ -723,6 +723,8 @@ public static class Viewer
                 at = V(Projection.ToBlock(grid, m.Position, 0)),
                 eventId = m.RoseEventId,
                 badge = m.Slumbering ? "asleep" : m.Legendary ? "legend" : "boss",
+                // Its level, on the marker's corner (the owner, 2026-11-02).
+                level = World.Monsters.TryGetValue(m.Ref.Id, out var beast) ? Levels.Of(beast) : 0,
             }),
             fights = (map.Battles ?? []).Select(b => (Battle: b, Live: b.UnderWay || b.Kind != MapBattle.Duel && WarGoesOn(b.EventId, map.Year))).Select(x => new
             {

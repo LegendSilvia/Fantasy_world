@@ -164,9 +164,11 @@ async function showYear(year) {
     // A painted beast stands in its frame (the owner, 2026-10-29); a click opens its card, a fight's its face-off.
     // The frame was remade (the owner, 2026-11-02): an arched gold frame with horns, glowing embers for a legend.
     const framed = (beast, size) => `<span class="beast-frame ${beast.badge}" style="width:${Math.round(size * 0.84)}px;height:${Math.round(size)}px" title="${esc(`${beast.name}, ${beast.breed}`)}">`
-        + `<img src="${esc(pics[beast.ref])}" alt=""></span>`;
+        + `<img src="${esc(pics[beast.ref])}" alt="">${lvChip(beast.level)}</span>`;
+    // A beast's level on its corner (the owner, 2026-11-02), coloured as a person's of that level.
+    const lvChip = level => level ? `<i class="lv-chip lv-${Math.min(10, level)}" title="Level ${level}">${level}</i>` : "";
     for (const beast of s.beasts)
-        label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : `<span class="beast-mark ${beast.badge}">${marker("beast", 28 + beast.might / 8, `${beast.name}, ${beast.breed}`)}</span>`, "badge", lift(beast.at, 0.025), 70,
+        label(pics[beast.ref] ? framed(beast, 34 + beast.might / 6) : `<span class="beast-mark ${beast.badge}">${marker("beast", 28 + beast.might / 8, `${beast.name}, ${beast.breed}${beast.level ? `, level ${beast.level}` : ""}`)}${lvChip(beast.level)}</span>`, "badge", lift(beast.at, 0.025), 70,
             () => setHash({ panel: `beast/${id(beast.ref)}` }), "beasts");
     // The notable people where they live (the owner, 2026-10-30): their likeness in a round frame with their level, else their initial.
     const seen = new Map();
