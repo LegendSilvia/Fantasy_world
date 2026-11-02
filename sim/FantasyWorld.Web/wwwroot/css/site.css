@@ -1,12 +1,15 @@
 /* The game's palette (FantasyWorld.Client.Palette): ground, card, ink, body, muted. */
 :root {
-    --ground: #ecebe7;
-    --card: #f7f6f3;
-    --ink: #1a1a18;
-    --body: #4a4842;
-    --muted: #66645d;
-    --line: #d9d6cf;
-    --conflict: #d2382d;
+    /* Dark fantasy (the owner, 2026-11-02): night ground, smoked cards, parchment ink. */
+    --ground: #121317;
+    --card: #1d1c21;
+    --ink: #e6d8b8;
+    --body: #cdc3ab;
+    --muted: #978d79;
+    --line: #3a3640;
+    --conflict: #e0473b;
+    --plate: #0d0c11;
+    --gold: #d9b56a;
 }
 
 * { box-sizing: border-box; }
@@ -18,6 +21,7 @@ html, body {
     background: var(--ground);
     color: var(--body);
     font: 14px/1.45 Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    color-scheme: dark;
 }
 
 #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -39,8 +43,8 @@ html, body {
 }
 
 .label.realm {
-    background: var(--ink);
-    color: var(--card);
+    background: var(--plate);
+    color: var(--gold);
     padding: 3px 10px 3px 6px;
     display: flex;
     gap: 6px;
@@ -50,7 +54,7 @@ html, body {
 
 .label.realm i { width: 6px; height: 18px; border-radius: 2px; display: block; }
 .label.realm small { display: block; font-size: 10px; letter-spacing: 0; opacity: .75; text-transform: lowercase; }
-.label.army { background: var(--ink); color: var(--card); font-size: 11px; }
+.label.army { background: var(--plate); color: var(--gold); font-size: 11px; }
 .label.badge { background: none; box-shadow: none; padding: 0; line-height: 0; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); }
 .label.badge img { display: block; width: auto; }
 .label.news::before { content: "●"; color: var(--conflict); margin-right: 4px; }
@@ -76,7 +80,7 @@ h1 { margin: 2px 0 0; font-size: 20px; color: var(--ink); font-weight: normal; }
 h2 { margin: 4px 0 6px; font-size: 22px; color: var(--ink); font-weight: normal; }
 h3 { margin: 16px 0 6px; font: 11px/1.2 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
 
-.gods { font: 600 13px system-ui, sans-serif; color: var(--card); background: var(--ink); border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.gods { font: 600 13px system-ui, sans-serif; color: var(--gold); background: var(--plate); border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
 .prayer { border-top: 1px solid var(--rule, rgba(0,0,0,.1)); padding: 10px 0; }
 .prayer img.versus { height: 2.2em; vertical-align: middle; margin: 0 .35em; }
 img.emblem { height: 1.6em; vertical-align: middle; margin: 0 .3em; }
@@ -84,7 +88,7 @@ h2 img.emblem { height: 1.3em; margin: 0 .35em 0 0; }
 .prayer p { margin: 0 0 8px; }
 .prayer .votes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .prayer button { font: 13px system-ui, sans-serif; border: 1px solid var(--ink); background: var(--card); color: var(--ink); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
-.prayer button.chosen { background: var(--ink); color: var(--card); }
+.prayer button.chosen { background: var(--plate); color: var(--gold); }
 .prayer button i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
 .toggle { display: flex; gap: 6px; align-items: center; font: 13px system-ui, sans-serif; color: var(--body); cursor: pointer; }
 .toggle input { accent-color: var(--ink); }
@@ -208,11 +212,11 @@ p.known { font-style: italic; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
 #panel .chip, .chip { border-bottom: 0; font: 600 12px system-ui, sans-serif; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.06); color: var(--ink); cursor: pointer; text-decoration: none; }
-#panel .chip.on, .chip.on { background: var(--ink); color: var(--card); border-bottom: 0; }
+#panel .chip.on, .chip.on { background: var(--plate); color: var(--gold); border-bottom: 0; }
 
 .follow-row { margin: 4px 0 10px; }
 .follow { font: 600 12px system-ui, sans-serif; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
-.follow.chosen { background: var(--ink); color: var(--card); }
+.follow.chosen { background: var(--plate); color: var(--gold); }
 
 /* The map's marker filters (the owner, 2026-10-30). */
 .markers { position: relative; font: 13px system-ui, sans-serif; color: var(--body); }
@@ -228,10 +232,10 @@ p.known { font-style: italic; }
 .marker-row a:hover, .marker-all:hover { color: var(--ink); text-decoration: underline; }
 .marker-all { margin-top: 4px; text-align: center; }
 .turn { position: fixed; left: 16px; bottom: 16px; z-index: 10; display: flex; gap: 6px; }
-.turn button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--ink); color: var(--card); font: 18px system-ui, sans-serif;
+.turn button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--plate); color: var(--gold); font: 18px system-ui, sans-serif;
     cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
 .marker-list input { accent-color: var(--ink); }
-.level-badge { display: inline-block; margin: 2px 0 8px; padding: 2px 10px; border-radius: 999px; background: var(--ink); color: var(--card);
+.level-badge { display: inline-block; margin: 2px 0 8px; padding: 2px 10px; border-radius: 999px; background: var(--plate); color: var(--gold);
     font: 700 12px system-ui, sans-serif; letter-spacing: .04em; }
 
 /* The owner, 2026-10-31: what someone is doing, their experience, the population map, the Ponegralyphs. */
@@ -248,7 +252,7 @@ p.known { font-style: italic; }
 .heat-legend i { display: inline-block; width: 120px; height: 8px; border-radius: 4px;
     background: linear-gradient(90deg, rgb(40,90,200), rgb(40,170,120), rgb(230,210,60), rgb(235,120,40), rgb(200,30,30)); }
 .seek-pin { display: inline-flex; flex-direction: column; align-items: center; font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
-.seek-pin b { font: 700 12px system-ui, sans-serif; background: var(--ink); color: var(--card); padding: 2px 8px; border-radius: 999px; margin-top: 2px; }
+.seek-pin b { font: 700 12px system-ui, sans-serif; background: var(--plate); color: var(--gold); padding: 2px 8px; border-radius: 999px; margin-top: 2px; }
 .heat-legend[hidden], #heat[hidden] { display: none; }
 
 /* Painted marker icons, the beast's frame, a frame for each character level and each town fortification (the owner, 2026-11-02). */
@@ -319,3 +323,9 @@ p.known { font-style: italic; }
 .beast-frame.legend .bones { filter: drop-shadow(0 0 6px rgba(255,110,30,.95)); animation: ember 2.4s ease-in-out infinite; }
 .beast-frame.asleep { filter: grayscale(.85) brightness(.85); }
 @keyframes ember { 50% { filter: drop-shadow(0 0 11px rgba(255,150,40,1)); } }
+
+/* Dark fantasy: carved-letter headings and gold-edged cards. */
+h1, h2, h3, .label.realm span, #bar .title, .kicker { font-family: "Cinzel", Georgia, serif; }
+.label { border: 1px solid rgba(214, 184, 120, .35); box-shadow: 0 1px 4px rgba(0, 0, 0, .6); }
+.label.badge { border: 0; }
+.label.realm, .label.army, .turn button, .gods, .level-badge { border: 1px solid rgba(217, 181, 106, .55); }

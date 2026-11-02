@@ -8,7 +8,25 @@ const call = (method, ...args) => DotNet.invokeMethodAsync("FantasyWorld.Web", m
 const $ = id => document.getElementById(id);
 const say = text => { $("loading-text").textContent = text; };
 
-const PLASTER = new THREE.Color(0xf1ebde), STONE = new THREE.Color(0xb9b1a2), INK = 0x1a1a18;
+const PLASTER = new THREE.Color(0x8f8676), STONE = new THREE.Color(0x5f5b58), INK = 0x1a1a18;
+// The dark-fantasy look (the owner, 2026-11-02): the shared meshes' colours are graded here, on the web only (the game and the
+// films keep theirs): the land dimmed, drained and cooled; the water deep and black-green; moonlight above, an ember-low sun.
+const NIGHT = 0x121317, BORDER = 0xd9c79b;
+function grade(geometry, water = false) {
+    const colour = geometry.getAttribute("color");
+    if (!colour) return geometry;
+    const a = colour.array, step = colour.itemSize;
+    for (let i = 0; i < a.length; i += step) {
+        const [r, g, b] = [a[i], a[i + 1], a[i + 2]], grey = 0.3 * r + 0.59 * g + 0.11 * b;
+        const mix = (c, k) => c + (grey - c) * k;
+        a[i] = water ? 0.05 + mix(r, 0.5) * 0.18 : mix(r, 0.45) * 0.6 * 0.95;
+        a[i + 1] = water ? 0.10 + mix(g, 0.5) * 0.22 : mix(g, 0.45) * 0.6 * 0.97;
+        a[i + 2] = water ? 0.12 + mix(b, 0.5) * 0.24 : mix(b, 0.45) * 0.6 * 1.08;
+        if (water && step === 4) a[i + 3] = Math.max(a[i + 3], 0.88);
+    }
+    colour.needsUpdate = true;
+    return geometry;
+}
 
 let world, scene, camera, renderer, controls, dynamic, labels = [];
 let townAt = new Map(); // where each town stands, to find a character on the map
@@ -20,7 +38,8 @@ async function buildStage() {
     renderer = new THREE.WebGLRenderer({ canvas: $("world"), antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xecebe7);
+    scene.background = new THREE.Color(NIGHT);
+    scene.fog = new THREE.FogExp2(NIGHT, 0.09);
     camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50);
     camera.position.set(2.2, 2.4, 2.2);
     controls = new OrbitControls(camera, renderer.domElement);
@@ -54,14 +73,17 @@ async function buildStage() {
             t.set(x, t.y, z);
         }
     });
-    scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b2a6, 1.5));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-    sun.position.set(-2, 3, 1.5);
+    scene.add(new THREE.HemisphereLight(0x9fb2d6, 0x2a1d18, 0.95));
+    const sun = new THREE.DirectionalLight(0xffc38a, 1.35);
+    sun.position.set(-2.6, 1.6, 1.2);
     scene.add(sun);
+    const moon = new THREE.DirectionalLight(0x7f95c9, 0.45);
+    moon.position.set(2, 3, -1.5);
+    scene.add(moon);
 
     const resolution = Math.min(256, 160 + Math.round(devicePixelRatio * 32));
-    for (const part of ["top", "sides"]) scene.add(new THREE.Mesh(unpack(await call("Block", part, resolution)), new THREE.MeshLambertMaterial({ vertexColors: true })));
-    const water = unpack(await call("Block", "water", 96));
+    for (const part of ["top", "sides"]) scene.add(new THREE.Mesh(grade(unpack(await call("Block", part, resolution))), new THREE.MeshLambertMaterial({ vertexColors: true })));
+    const water = grade(unpack(await call("Block", "water", 96)), true);
     scene.add(new THREE.Mesh(water, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false })));
     scene.add(trees(await call("Trees")));
 
@@ -111,7 +133,8 @@ function trees(data) {
             const [x, y, z, h] = [data[i * 8], data[i * 8 + 1], data[i * 8 + 2], data[i * 8 + 3]];
             m.compose(new THREE.Vector3(x, y + h * kind.lift, z), new THREE.Quaternion(), new THREE.Vector3(...kind.scale(h)));
             mesh.setMatrixAt(j, m);
-            mesh.setColorAt(j, c.setRGB(data[i * 8 + 5], data[i * 8 + 6], data[i * 8 + 7]));
+            const [r, g, b] = [data[i * 8 + 5], data[i * 8 + 6], data[i * 8 + 7]], grey = 0.3 * r + 0.59 * g + 0.11 * b;
+            mesh.setColorAt(j, c.setRGB((r + (grey - r) * 0.35) * 0.5, (g + (grey - g) * 0.35) * 0.52, (b + (grey - b) * 0.35) * 0.58));
         });
         group.add(mesh);
     }
@@ -137,14 +160,14 @@ async function showYear(year) {
         line.computeLineDistances();
         group.add(line);
     });
-    lines(s.borders, new THREE.LineBasicMaterial({ color: INK, transparent: true, opacity: 0.75 }));
+    lines(s.borders, new THREE.LineBasicMaterial({ color: BORDER, transparent: true, opacity: 0.55 }));
     // Roads as the game draws them: close-dotted in road brown, severed ones broken and reddened; a layer of their own.
     const roads = new THREE.Group();
     roads.visible = $("roads").checked;
     roads.userData.layer = "roads";
-    lines(s.roads.filter(r => r.open && !r.sea).map(r => r.points), new THREE.LineDashedMaterial({ color: 0x7a5a35, dashSize: 0.006, gapSize: 0.005, transparent: true, opacity: 0.7 }), roads);
+    lines(s.roads.filter(r => r.open && !r.sea).map(r => r.points), new THREE.LineDashedMaterial({ color: 0xb48c5a, dashSize: 0.006, gapSize: 0.005, transparent: true, opacity: 0.7 }), roads);
     // Sea routes (the owner, 2026-10-29): long blue dashes over the water.
-    lines(s.roads.filter(r => r.open && r.sea).map(r => r.points), new THREE.LineDashedMaterial({ color: 0x2f5f8a, dashSize: 0.012, gapSize: 0.008, transparent: true, opacity: 0.75 }), roads);
+    lines(s.roads.filter(r => r.open && r.sea).map(r => r.points), new THREE.LineDashedMaterial({ color: 0x5f8fb8, dashSize: 0.012, gapSize: 0.008, transparent: true, opacity: 0.75 }), roads);
     lines(s.roads.filter(r => !r.open).map(r => r.points), new THREE.LineDashedMaterial({ color: 0xa8483a, dashSize: 0.004, gapSize: 0.012, transparent: true, opacity: 0.7 }), roads);
     dynamic.add(roads);
     for (const arrow of s.arrows)
