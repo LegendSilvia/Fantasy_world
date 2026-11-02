@@ -1,0 +1,67 @@
+name: paint-icons
+
+# The map's marker icons that are still to be painted (the owner, 2026-11-02: "every type of marker has its own icon,
+# generated with FLUX"): each is asked once of the FLUX API (icon scenario, transparent), kept in the bucket so it is
+# never asked again, and handed over as an artifact to be checked into the site. A 429 (the API's day is spent) stops the
+# run and is never retried.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ccr-81a7454e-12gx87]
+    paths: [.github/workflows/paint-icons.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  paint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      FLUX_ACCESS_KEY: ${{ secrets.FLUX_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Paint the icons, or fetch the ones already painted
+        run: |
+          mkdir -p "$RUNNER_TEMP/icons"
+          dotnet build sim/FantasyWorld.Broadcast -v q > /dev/null
+          kept() { dotnet run --no-build --project sim/FantasyWorld.Broadcast -- "$@"; }
+          base=$(jq -r '.images.baseUrl' broadcast.json)
+          icon() {
+            name=$1; seed=$2; prompt=$3
+            if kept get "staging/icons/$name" "$RUNNER_TEMP/icons/$name" 2>/dev/null; then echo "Reused $name."; return; fi
+            if [ -z "$FLUX_ACCESS_KEY" ]; then echo "No FLUX_ACCESS_KEY: $name is not made."; return; fi
+            body=$(jq -n --arg p "$prompt" --argjson s "$seed" '{prompt: $p, scenario: "icon", style: "hand-painted", seed: $s, transparent: true}')
+            code=$(curl -sS --max-time 120 -o "$RUNNER_TEMP/answer.json" -w '%{http_code}' -X POST "$base/generate" \
+              -H "content-type: application/json" -H "x-access-key: $FLUX_ACCESS_KEY" -d "$body" || echo timeout)
+            if [ "$code" = "timeout" ]; then
+              code=$(curl -sS --max-time 120 -o "$RUNNER_TEMP/answer.json" -w '%{http_code}' -X POST "$base/generate" \
+                -H "content-type: application/json" -H "x-access-key: $FLUX_ACCESS_KEY" -d "$body" || echo timeout)
+            fi
+            if [ "$code" = "429" ]; then echo "The image API's day is spent; $name is not made (not retried)."; return 1; fi
+            if [ "$code" != "200" ]; then echo "The image API answered $code; $name is not made."; return; fi
+            jq -r .image "$RUNNER_TEMP/answer.json" | base64 -d > "$RUNNER_TEMP/icons/$name"
+            echo "Made $name: transparent $(jq -r .transparent "$RUNNER_TEMP/answer.json")."
+            kept put "$RUNNER_TEMP/icons/$name" "staging/icons/$name" || echo "warning: $name could not be kept."
+          }
+          icon battle.png 11 "two tattered war banners on poles crossed in an X, one red and one blue, over a battle-axe, a battle between nations, fantasy map icon" &&
+          icon wonder.png 12 "a natural wonder: giant radiant golden crystals rising from a rocky peak with a small waterfall and a rainbow, fantasy map icon" &&
+          icon glyph.png 13 "an ancient square stone monolith covered in glowing cyan runic glyphs, cracked and weathered, fantasy map icon" &&
+          icon fort-1.png 14 "a short ring of sharpened wooden stakes, a simple log palisade with a small gate, fantasy map icon" &&
+          icon fort-2.png 15 "a sturdy timber wall with a tall wooden watchtower and a gate, a fortified village, fantasy map icon" &&
+          icon fort-3.png 16 "a grey stone wall with crenellations and an arched gatehouse with a portcullis, fantasy map icon" &&
+          icon fort-4.png 17 "a strong stone castle with four round towers, blue conical roofs and red pennants, fantasy map icon" &&
+          icon fort-5.png 18 "a magnificent white marble citadel with many tall towers, golden domes and gold banners, fantasy map icon" || true
+          ls -la "$RUNNER_TEMP/icons"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: icons
+          path: ${{ runner.temp }}/icons
+          if-no-files-found: ignore
