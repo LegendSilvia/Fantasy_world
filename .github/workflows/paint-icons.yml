@@ -59,7 +59,15 @@ jobs:
           icon fort-3.png 16 "a grey stone wall with crenellations and an arched gatehouse with a portcullis, fantasy map icon" &&
           icon fort-4.png 17 "a strong stone castle with four round towers, blue conical roofs and red pennants, fantasy map icon" &&
           icon fort-5.png 18 "a magnificent white marble citadel with many tall towers, golden domes and gold banners, fantasy map icon" &&
-          icon battle-flags.png 21 "two large war flags crossed in an X on long wooden poles, both flags fully unfurled and waving, one bold crimson with a gold lion and one bold royal blue with a white star, thick dark outlines, high contrast, a war between nations, fantasy map icon" || true
+          icon battle-flags.png 21 "two large war flags crossed in an X on long wooden poles, both flags fully unfurled and waving, one bold crimson with a gold lion and one bold royal blue with a white star, thick dark outlines, high contrast, a war between nations, fantasy map icon" &&
+          icon frame-char-a.png 51 "an empty circular portrait frame: an ornate gold medallion ring with fine filigree and small gems, the centre completely empty and plain white, heraldic, front view" &&
+          icon frame-char-b.png 52 "an empty circular portrait frame: a ring of dark carved stone with glowing runes and set gemstones, the centre completely empty and plain white, dark fantasy, front view" &&
+          icon frame-char-c.png 53 "an empty circular portrait frame: a laurel wreath woven around a steel ring with two crossed sword hilts at the bottom, the centre completely empty and plain white, warrior emblem, front view" &&
+          icon frame-char-d.png 54 "an empty circular portrait frame: a brass astrolabe ring engraved with stars and moon phases, the centre completely empty and plain white, mystical, front view" &&
+          icon frame-beast-a.png 61 "an empty arched portrait frame for a monster: gold and black iron with two curved horns on top, the centre completely empty and plain white, front view" &&
+          icon frame-beast-b.png 62 "an empty arched portrait frame for a monster made of bones and ribs with a horned skull at the top, the centre completely empty and plain white, front view" &&
+          icon frame-beast-c.png 63 "an empty arched portrait frame for a monster: thorny black wrought iron with dragon claws gripping each corner, the centre completely empty and plain white, front view" &&
+          icon frame-beast-d.png 64 "an empty arched portrait frame for a monster: weathered stone arch wrapped in chains with glowing red runes, the centre completely empty and plain white, front view" || true
           ls -la "$RUNNER_TEMP/icons"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
