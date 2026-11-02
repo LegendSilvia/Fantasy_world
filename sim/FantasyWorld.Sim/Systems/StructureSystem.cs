@@ -401,11 +401,18 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
     private void OpenLairs(SimContext ctx)
     {
         var world = ctx.World;
-        if (world.Structures.Values.Count(s => s.Lair && s.Type == StructureKind.Labyrinth) >= LairCap(world)) return;
+        var open = world.Structures.Values.Count(s => s.Lair && s.Type == StructureKind.Labyrinth);
+        if (open >= LairCap(world)) return;
+        // A world with few dens fills quickly (the owner, 2026-11-02: no dungeon seen yet): below half its share, several a
+        // year, and every dangerous land is likelier to hold one; then one a year at most.
+        var room = open < LairCap(world) / 2 ? LairCap(world) / 2 - open : 1;
+        var chance = open < LairCap(world) / 2 ? LairPerYear * 100 * 4 : LairPerYear * 100;
         var taken = world.Structures.Values.Where(s => s.Type == StructureKind.Labyrinth || s.Lair).Select(s => s.RegionId).ToHashSet();
         foreach (var region in world.Regions.Values.Where(r => r.Danger >= LairDanger && !taken.Contains(r.Id)).OrderBy(r => r.Id).ToList())
         {
-            if (Hash.Percent(region.Id, 8101, ctx.Date.Year) >= LairPerYear * 100) continue;
+            if (room == 0) return;
+            if (Hash.Percent(region.Id, 8101, ctx.Date.Year) >= chance) continue;
+            room--;
             var id = world.Ids.Take(Structure.Kind);
             var guardianId = world.Ids.Take(Monster.Kind);
             var breed = Monster.GuardianBreeds[Hash.Percent(region.Id, 8102, ctx.Date.Year) % Monster.GuardianBreeds.Count];
@@ -445,7 +452,6 @@ public sealed class StructureSystem(IInventor? inventor = null) : ISimSystem
                 RoseEventId = opened.Id,
                 LairStructureId = id,
             };
-            return; // at most one a year
         }
     }
 

@@ -1,15 +1,25 @@
 {
   "outcome": {
-    "eventId": 365,
+    "eventId": 534,
     "year": 20,
     "category": "characters",
     "title": {
-      "text": "Liath of Lund was killed by monsters at the age of 73.",
+      "text": "Vund of Viallciath fought Lond of Cunvei to first blood at Drerithby. Vund of Viallciath drew first blood and won.",
       "links": [
         {
           "start": 0,
-          "length": 13,
-          "entity": "char#32"
+          "length": 18,
+          "entity": "char#12"
+        },
+        {
+          "start": 26,
+          "length": 14,
+          "entity": "char#3"
+        },
+        {
+          "start": 59,
+          "length": 9,
+          "entity": "settlement#3"
         }
       ]
     },
@@ -20,21 +30,84 @@
   "layers": [
     [
       {
-        "eventId": 364,
-        "year": 20,
+        "eventId": 503,
+        "year": 19,
         "category": "characters",
         "title": {
-          "text": "Liath of Lund hunted the monsters of Gisreach and was killed.",
+          "text": "At Drerithby, Vund of Viallciath met Lond of Cunvei to first blood. Lond of Cunvei drew first blood and won.",
           "links": [
             {
-              "start": 0,
-              "length": 13,
-              "entity": "char#32"
+              "start": 3,
+              "length": 9,
+              "entity": "settlement#3"
+            },
+            {
+              "start": 14,
+              "length": 18,
+              "entity": "char#12"
             },
             {
               "start": 37,
-              "length": 8,
-              "entity": "region#7"
+              "length": 14,
+              "entity": "char#3"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      },
+      {
+        "eventId": 515,
+        "year": 19,
+        "category": "characters",
+        "title": {
+          "text": "Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day.",
+          "links": [
+            {
+              "start": 0,
+              "length": 18,
+              "entity": "char#12"
+            },
+            {
+              "start": 26,
+              "length": 14,
+              "entity": "char#3"
+            },
+            {
+              "start": 81,
+              "length": 9,
+              "entity": "settlement#3"
+            }
+          ]
+        },
+        "note": null,
+        "isRoot": false,
+        "hasMore": false
+      }
+    ],
+    [
+      {
+        "eventId": 471,
+        "year": 18,
+        "category": "characters",
+        "title": {
+          "text": "Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day.",
+          "links": [
+            {
+              "start": 0,
+              "length": 18,
+              "entity": "char#12"
+            },
+            {
+              "start": 26,
+              "length": 14,
+              "entity": "char#3"
+            },
+            {
+              "start": 81,
+              "length": 9,
+              "entity": "settlement#3"
             }
           ]
         },
@@ -46,45 +119,105 @@
   ],
   "edges": [
     {
-      "from": 364,
-      "to": 365,
+      "from": 515,
+      "to": 534,
+      "kind": "trigger",
+      "label": "because, and"
+    },
+    {
+      "from": 503,
+      "to": 534,
+      "kind": "motive",
+      "label": "because, and"
+    },
+    {
+      "from": 503,
+      "to": 515,
+      "kind": "motive",
+      "label": "because"
+    },
+    {
+      "from": 471,
+      "to": 503,
       "kind": "trigger",
       "label": "because"
     }
   ],
-  "summary": "Traced back within the year, through one root cause.",
+  "summary": "Traced back two years, through one root cause.",
   "people": [
     {
-      "ref": "char#32",
-      "name": "Liath of Lund"
+      "ref": "char#12",
+      "name": "Vund of Viallciath"
+    },
+    {
+      "ref": "char#3",
+      "name": "Lond of Cunvei"
     }
   ],
   "places": [
     {
-      "ref": "settlement#5",
-      "name": "Kaerhiand"
-    },
-    {
-      "ref": "region#7",
-      "name": "Gisreach"
+      "ref": "settlement#3",
+      "name": "Drerithby"
     }
   ],
   "systems": [
     "characters"
   ],
-  "consequences": [],
+  "consequences": [
+    {
+      "eventId": 535,
+      "year": 20,
+      "category": "characters",
+      "title": {
+        "text": "Oldwing, at the side of Lond of Cunvei, was hurt in the fight.",
+        "links": [
+          {
+            "start": 24,
+            "length": 14,
+            "entity": "char#3"
+          }
+        ]
+      },
+      "note": null,
+      "isRoot": false,
+      "hasMore": false
+    },
+    {
+      "eventId": 536,
+      "year": 20,
+      "category": "characters",
+      "title": {
+        "text": "Lond of Cunvei came back from it with a new hunger: a resolve never to be poor or powerless again.",
+        "links": [
+          {
+            "start": 0,
+            "length": 14,
+            "entity": "char#3"
+          }
+        ]
+      },
+      "note": null,
+      "isRoot": false,
+      "hasMore": false
+    }
+  ],
   "story": {
-    "text": "In Year 20, Liath of Lund hunted the monsters of Gisreach and was killed. And so Liath of Lund was killed by monsters at the age of 73.",
+    "text": "In Year 18, Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day. In Year 19, at Drerithby, Vund of Viallciath met Lond of Cunvei to first blood. Lond of Cunvei drew first blood and won. That same year, Vund of Viallciath called Lond of Cunvei out (to first blood); they will meet at Drerithby in a year and a day. And so, in Year 20, Vund of Viallciath fought Lond of Cunvei to first blood at Drerithby. Vund of Viallciath drew first blood and won.",
     "links": [
       {
         "start": 12,
-        "length": 13,
-        "entity": "char#32"
+        "length": 18,
+        "entity": "char#12"
       },
       {
-        "start": 49,
-        "length": 8,
-        "entity": "region#7"
+        "start": 38,
+        "length": 14,
+        "entity": "char#3"
+      },
+      {
+        "start": 93,
+        "length": 9,
+        "entity": "settlement#3"
       }
     ]
   }

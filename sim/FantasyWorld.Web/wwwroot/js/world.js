@@ -186,7 +186,9 @@ async function showYear(year) {
     townAt = new Map((s.settlements ?? []).map(t => [t.ref, t.at]));
     heatDrawn = "";
     for (const maze of s.labyrinths ?? [])
-        label(badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : 26, `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : ", a labyrinth"}`), "badge",
+        // A dungeon, a monster's lair (the owner, 2026-11-02), is marked smaller and in green, apart from the labyrinths.
+        label((maze.lair ? `<span class="lair-badge">` : "") + badge(maze.cleared ? "labyrinth-cleared" : "labyrinth", maze.great ? 40 : maze.lair ? 20 : 26,
+            `${maze.name}${maze.cleared ? " (cleared)" : maze.great ? ", the great labyrinth" : maze.lair ? ", a dungeon (a monster's lair)" : ", a labyrinth"}`) + (maze.lair ? `</span>` : ""), "badge",
             lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
     for (const fight of s.fights)
         // Crossed swords for a duel, crossed banners for a battle between nations; one still raging pulses (the owner, 2026-10-29).

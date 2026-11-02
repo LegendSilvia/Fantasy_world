@@ -200,7 +200,7 @@
       "card": {
         "kicker": "Drerithby · Town",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 2,662 · 1 event this year"
+        "line": "Pop. 2,504 · 1 event this year"
       },
       "marks": [
         "temple"
@@ -234,11 +234,11 @@
         "y": 0.3671875
       },
       "holder": "realm#1",
-      "marker": "recentEvent",
+      "marker": "realm",
       "card": {
         "kicker": "Kaerhiand · Village",
         "title": "Held by the Kingdom of Thonae since the founding",
-        "line": "Pop. 443 · 2 events this year"
+        "line": "Pop. 443 · 0 events this year"
       },
       "marks": [],
       "level": 1
@@ -346,7 +346,7 @@
       "card": {
         "kicker": "Droumkarnbridge · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 339 · 0 events this year"
+        "line": "Pop. 342 · 0 events this year"
       },
       "marks": [],
       "level": 1
@@ -436,7 +436,7 @@
       "card": {
         "kicker": "Greindrondcross · Town",
         "title": "Held by the County of Veirwold since the founding",
-        "line": "Pop. 1,820 · 0 events this year"
+        "line": "Pop. 1,820 · 2 events this year"
       },
       "marks": [
         "temple"
@@ -488,11 +488,11 @@
         "y": 0.6796875
       },
       "holder": "realm#2",
-      "marker": "realm",
+      "marker": "recentEvent",
       "card": {
         "kicker": "Heith · Village",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 995 · 0 events this year"
+        "line": "Pop. 995 · 2 events this year"
       },
       "marks": [],
       "level": 1
@@ -582,7 +582,7 @@
       "card": {
         "kicker": "Niar · Town",
         "title": "Held by the Duchy of Vamholt since the founding",
-        "line": "Pop. 1,964 · 0 events this year"
+        "line": "Pop. 1,730 · 1 event this year"
       },
       "marks": [
         "temple"
@@ -593,6 +593,17 @@
   "structures": [
     {
       "ref": "structure#1",
+      "name": "The Dragon's Den of Drannias",
+      "kind": "Ruin",
+      "state": "Ruined",
+      "position": {
+        "x": 0.0859375,
+        "y": 0.4609375
+      },
+      "detail": "cleared"
+    },
+    {
+      "ref": "structure#2",
       "name": "The Golem's Den of Gisreach",
       "kind": "Ruin",
       "state": "Ruined",
@@ -603,7 +614,7 @@
       "detail": "cleared"
     },
     {
-      "ref": "structure#2",
+      "ref": "structure#3",
       "name": "The Minotaur's Den of Taramdale",
       "kind": "Ruin",
       "state": "Ruined",
@@ -614,7 +625,29 @@
       "detail": "cleared"
     },
     {
-      "ref": "structure#3",
+      "ref": "structure#4",
+      "name": "The Golem's Den of Thounholt",
+      "kind": "Ruin",
+      "state": "Ruined",
+      "position": {
+        "x": 0.4921875,
+        "y": 0.1328125
+      },
+      "detail": "cleared"
+    },
+    {
+      "ref": "structure#5",
+      "name": "The Lich's Den of Vamholt",
+      "kind": "Ruin",
+      "state": "Ruined",
+      "position": {
+        "x": 0.2578125,
+        "y": 0.8203125
+      },
+      "detail": "cleared"
+    },
+    {
+      "ref": "structure#6",
       "name": "The Deeps of Taramdale",
       "kind": "Labyrinth",
       "state": "Standing",
@@ -625,15 +658,26 @@
       "detail": "level 2 of 3"
     },
     {
-      "ref": "structure#4",
-      "name": "The Dragon's Den of Drannias",
+      "ref": "structure#7",
+      "name": "The Minotaur's Den of Driall",
+      "kind": "Ruin",
+      "state": "Ruined",
+      "position": {
+        "x": 0.6171875,
+        "y": 0.6953125
+      },
+      "detail": "cleared"
+    },
+    {
+      "ref": "structure#8",
+      "name": "The Dragon's Den of Stirvale",
       "kind": "Labyrinth",
       "state": "Standing",
       "position": {
-        "x": 0.0859375,
-        "y": 0.4609375
+        "x": 0.4140625,
+        "y": 0.7421875
       },
-      "detail": "level 3 of 3"
+      "detail": "level 0 of 3"
     }
   ],
   "borders": [
@@ -694,7 +738,47 @@
     }
   ],
   "armies": [],
-  "battles": [],
+  "battles": [
+    {
+      "eventId": 525,
+      "year": 20,
+      "position": {
+        "x": 0.7421875,
+        "y": 0.6796875
+      },
+      "victor": "char#49",
+      "vanquished": "char#27",
+      "war": "#0",
+      "kind": "duel",
+      "underWay": true
+    },
+    {
+      "eventId": 531,
+      "year": 20,
+      "position": {
+        "x": 0.2578125,
+        "y": 0.7890625
+      },
+      "victor": "char#28",
+      "vanquished": "char#32",
+      "war": "#0",
+      "kind": "duel",
+      "underWay": true
+    },
+    {
+      "eventId": 534,
+      "year": 20,
+      "position": {
+        "x": 0.3515625,
+        "y": 0.1953125
+      },
+      "victor": "char#12",
+      "vanquished": "char#3",
+      "war": "#0",
+      "kind": "duel",
+      "underWay": false
+    }
+  ],
   "routes": [
     {
       "ref": "route#1",
@@ -702,7 +786,7 @@
       "from": "settlement#3",
       "to": "settlement#24",
       "state": "open",
-      "volume": 75,
+      "volume": 70,
       "path": [
         {
           "x": 0.3515625,
@@ -748,7 +832,7 @@
       "from": "settlement#16",
       "to": "settlement#24",
       "state": "open",
-      "volume": 77,
+      "volume": 72,
       "path": [
         {
           "x": 0.8828125,
@@ -766,22 +850,7 @@
       "sea": null
     }
   ],
-  "monsters": [
-    {
-      "ref": "monster#4",
-      "name": "The Dragon of the Dragon's Den of Drannias",
-      "breed": "dragon",
-      "might": 27,
-      "legendary": false,
-      "slumbering": false,
-      "position": {
-        "x": 0.0859375,
-        "y": 0.4609375
-      },
-      "roseEventId": 330,
-      "guarding": true
-    }
-  ],
+  "monsters": [],
   "realms": [
     {
       "ref": "realm#1",

@@ -27,6 +27,30 @@ public sealed class LifeSystem : ISimSystem
                 c.Died = ctx.Date;
                 c.DeathCause = "old age";
             }
+        Newcomer(ctx);
+    }
+
+    /// <summary>
+    /// A world whose notables have dwindled to under half what its towns hold draws newcomers (2026-11-02: a long world kept
+    /// its people only by births, and some histories emptied): each such year an adventurer from beyond the known lands, of
+    /// a living culture, settles in its most populous town; a stranger, not yet anyone's kin, friend or foe. Rolled from the
+    /// world's dice, as births are.
+    /// </summary>
+    private static void Newcomer(SimContext ctx)
+    {
+        var world = ctx.World;
+        var target = NotablesPerSettlement * world.Settlements.Values.Count(s => !s.Abandoned);
+        if (world.ActiveCharacters.Count() >= target / 2) return;
+        var towns = world.Settlements.Values.Where(s => !s.Abandoned && s.Population > 0).OrderByDescending(s => s.Population).ThenBy(s => s.Id).Take(5).ToList();
+        if (towns.Count == 0) return;
+        var town = towns[ctx.Rng.NextInt(0, towns.Count)];
+        var culture = world.Regions[town.RegionId].CultureId;
+        var house = CharacterFactory.NewHouse(world, ctx.Rng, culture, town.Id);
+        var age = ctx.Rng.NextInt(Character.AdultAge + 2, 36);
+        var c = CharacterFactory.Create(world, ctx.Rng, town.Id, ctx.Rng.Chance(0.5) ? Sex.Male : Sex.Female,
+            ctx.Date.Day - (long)age * WorldDate.DaysPerYear, house.Id, Role.Adventurer);
+        ctx.Emit(new EventDraft("NewcomerArrived", Actors: new Dictionary<string, EntityRef> { ["newcomer"] = c.Ref }, Place: town.Ref,
+            Importance: 8, Tags: new[] { "Characters" }));
     }
 
     public void OnMonthlyTick(SimContext ctx)

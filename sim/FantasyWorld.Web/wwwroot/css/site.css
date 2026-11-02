@@ -265,3 +265,4 @@ p.known { font-style: italic; }
 .seek-pin { display: inline-flex; flex-direction: column; align-items: center; font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
 .seek-pin b { font: 700 12px system-ui, sans-serif; background: var(--ink); color: var(--card); padding: 2px 8px; border-radius: 999px; margin-top: 2px; }
 .heat-legend[hidden], #heat[hidden] { display: none; }
+.lair-badge img { filter: hue-rotate(95deg) saturate(1.3); }
