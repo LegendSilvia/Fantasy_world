@@ -197,7 +197,7 @@ async function showYear(year) {
             lift(maze.at, 0.02), maze.great ? 85 : 60, () => setHash({ panel: `labyrinth/${id(maze.ref)}` }), "labyrinths");
     for (const fight of s.fights)
         // Crossed swords for a duel, crossed banners for a battle between nations; one still raging pulses (the owner, 2026-10-29).
-        label(`<span class="${fight.underWay ? "live" : "past"}">` + marker(fight.kind === "duel" ? "duel" : "battle", fight.kind === "duel" ? 30 : 38, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`)
+        label(`<span class="${fight.underWay ? "live" : "past"}">` + marker(fight.kind === "duel" ? "duel" : "battle", fight.kind === "duel" ? 34 : 38, `${fight.underWay ? "Under way" : "Fought"}: a ${fight.kind}`)
             + `</span>`, "badge", lift(fight.at, 0.02), fight.underWay ? 90 : 75,
             () => setHash({ panel: `fight/${fight.eventId}` }), "fights");
     for (const place of s.settlements)

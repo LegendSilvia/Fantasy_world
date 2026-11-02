@@ -256,7 +256,7 @@ p.known { font-style: italic; }
 .label .mk { display: inline-block; vertical-align: middle; object-fit: contain; }
 .label.realm .mk { margin: -4px 0; }
 .label.army .mk { margin: -3px 4px -3px -4px; }
-.past .mk { filter: saturate(.55) brightness(.92); }
+.past .mk { filter: saturate(.8) brightness(.95) drop-shadow(0 0 1px #fff); }
 .beast-mark.legend .mk { filter: drop-shadow(0 0 5px rgba(255, 120, 40, .95)); }
 .beast-mark.asleep .mk { filter: grayscale(.85) brightness(.85); opacity: .85; }
 .wonder-pin .mk { filter: drop-shadow(0 0 6px rgba(255, 214, 120, .9)); cursor: pointer; }
