@@ -58,7 +58,8 @@ jobs:
           icon fort-2.png 15 "a sturdy timber wall with a tall wooden watchtower and a gate, a fortified village, fantasy map icon" &&
           icon fort-3.png 16 "a grey stone wall with crenellations and an arched gatehouse with a portcullis, fantasy map icon" &&
           icon fort-4.png 17 "a strong stone castle with four round towers, blue conical roofs and red pennants, fantasy map icon" &&
-          icon fort-5.png 18 "a magnificent white marble citadel with many tall towers, golden domes and gold banners, fantasy map icon" || true
+          icon fort-5.png 18 "a magnificent white marble citadel with many tall towers, golden domes and gold banners, fantasy map icon" &&
+          icon battle-flags.png 21 "two large war flags crossed in an X on long wooden poles, both flags fully unfurled and waving, one bold crimson with a gold lion and one bold royal blue with a white star, thick dark outlines, high contrast, a war between nations, fantasy map icon" || true
           ls -la "$RUNNER_TEMP/icons"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
