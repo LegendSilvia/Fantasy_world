@@ -7,11 +7,13 @@ name: broadcast
 # films the episode on the game's diorama, one stretch per machine at the same time; `publish` joins the film with the
 # narration (or, if a stretch was not filmed, pans over the map instead), uploads it to YouTube and posts to Discord.
 on:
-  schedule:
-    - cron: '30 22 * * *'
-    # The release (the owner, 2026-10-30): at 10:00 in Bangkok yesterday's episode goes public (YouTube publishes the video
-    # itself at the hour), its Discord post goes out, and the website moves on to its world.
-    - cron: '0 3 * * *'
+  # Schedule off at the owner's word (2026-11-03: "disable the schedule"); runs are started by hand until it is turned back on.
+  # To restore it, put back:
+  # schedule:
+  #   - cron: '30 22 * * *'
+  #   # The release (the owner, 2026-10-30): at 10:00 in Bangkok yesterday's episode goes public (YouTube publishes the video
+  #   # itself at the hour), its Discord post goes out, and the website moves on to its world.
+  #   - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       dry-run:
